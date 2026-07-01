@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://kfpllakofd4u"]
+
+[ext_resource type="Script" uid="uid://dew8n3poubc8o" path="res://view/player_panel.gd" id="1_dvfrc"]
+
+[node name="player_panel" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("gold_label", "upgrade_button")]
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_dvfrc")
+gold_label = NodePath("gold_label")
+upgrade_button = NodePath("upgrade_button")
+
+[node name="upgrade_button" type="Button" parent="." unique_id=1256884329]
+layout_mode = 2
+
+[node name="gold_label" type="Label" parent="." unique_id=1894476433]
+layout_mode = 2

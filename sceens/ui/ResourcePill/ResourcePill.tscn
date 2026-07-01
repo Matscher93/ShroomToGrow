@@ -1,0 +1,93 @@
+[gd_scene format=3 uid="uid://nr25u3j0myxi"]
+
+[ext_resource type="Script" uid="uid://bnx5s3mwtbi51" path="res://sceens/ui/ResourcePill/resource_pill.gd" id="1_f0j1r"]
+[ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://sceens/ui/ResourcePill/ResourcePillBackground.gdshader" id="1_oegoq"]
+[ext_resource type="Script" uid="uid://fvxta4rxn53w" path="res://sceens/ui/ResourcePill/background_color_rect.gd" id="2_blyc1"]
+[ext_resource type="Shader" uid="uid://bi2mjv5oeguva" path="res://sceens/ui/ResourcePill/HeaderCircle.gdshader" id="4_2f41h"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://sceens/ui/ResourcePill/resource_bubble.gd" id="4_ku4vg"]
+[ext_resource type="FontFile" uid="uid://csqhcanb4sc1d" path="res://fonts/Noto_Sans/NotoSans-VariableFont_wdth,wght.ttf" id="5_ku4vg"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_g3qpl"]
+resource_local_to_scene = true
+shader = ExtResource("1_oegoq")
+shader_parameter/rect_size = Vector2(167, 111)
+shader_parameter/box_color = Color(0.60784316, 0.7647059, 0, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 20.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ku4vg"]
+resource_local_to_scene = true
+shader = ExtResource("4_2f41h")
+shader_parameter/rect_size = Vector2(24, 24)
+shader_parameter/circle_color = Color(0.60784316, 0.7647059, 0, 1)
+shader_parameter/inner_radius = 0.565
+shader_parameter/outer_radius = 0.785
+
+[sub_resource type="LabelSettings" id="LabelSettings_xjwha"]
+resource_local_to_scene = true
+font = ExtResource("5_ku4vg")
+font_size = 24
+font_color = Color(0.60784316, 0.7647059, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_2f41h"]
+resource_local_to_scene = true
+font_size = 42
+font_color = Color(0.60784316, 0.7647059, 0, 1)
+
+[node name="ResourcePill" type="MarginContainer" unique_id=303116976 node_paths=PackedStringArray("image_background", "image_header", "label_title", "label_amount")]
+offset_right = 110.0
+offset_bottom = 77.0
+size_flags_horizontal = 0
+size_flags_vertical = 0
+script = ExtResource("1_f0j1r")
+ItemColor = Color(0.60784316, 0.7647059, 0, 1)
+image_background = NodePath("ColorRect")
+image_header = NodePath("MarginContainer/VBoxContainer/HBoxContainer/ResourceBubble")
+label_title = NodePath("MarginContainer/VBoxContainer/HBoxContainer/lable_title")
+label_amount = NodePath("MarginContainer/VBoxContainer/lable_amount")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1738468682]
+material = SubResource("ShaderMaterial_g3qpl")
+propagate_maximum_size = true
+layout_mode = 2
+script = ExtResource("2_blyc1")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1739586070]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1796993201]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=258992491]
+layout_mode = 2
+
+[node name="ResourceBubble" type="ColorRect" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=2055941472]
+material = SubResource("ShaderMaterial_ku4vg")
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+script = ExtResource("4_ku4vg")
+
+[node name="lable_title" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=601702795]
+propagate_maximum_size = true
+layout_mode = 2
+offset_transform_scale = Vector2(0.5, 0.5)
+offset_transform_visual_only = false
+theme_override_font_sizes/font_size = 16
+text = "Nutrients"
+label_settings = SubResource("LabelSettings_xjwha")
+
+[node name="lable_amount" type="Label" parent="MarginContainer/VBoxContainer" unique_id=162577882]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "123"
+label_settings = SubResource("LabelSettings_2f41h")

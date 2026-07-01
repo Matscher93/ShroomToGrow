@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://b06bddenhrx2k"]
+
+[ext_resource type="PackedScene" uid="uid://nr25u3j0myxi" path="res://sceens/ui/ResourcePill/ResourcePill.tscn" id="1_cshku"]
+[ext_resource type="PackedScene" uid="uid://kfpllakofd4u" path="res://view/player_panel.tscn" id="2_i8u74"]
+
+[node name="Control" type="Control" unique_id=1135092363]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1100279077]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -242.5
+offset_right = 242.5
+offset_bottom = 112.0
+grow_horizontal = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=1060171763]
+layout_mode = 2
+
+[node name="Root3" parent="VBoxContainer/HBoxContainer" unique_id=125246912 instance=ExtResource("1_cshku")]
+layout_mode = 2
+ItemColor = Color(0.6787904, 0.7233946, 0.8502239, 1)
+
+[node name="Root2" parent="VBoxContainer/HBoxContainer" unique_id=1924520462 instance=ExtResource("1_cshku")]
+layout_mode = 2
+ItemColor = Color(0.3339001, 0.84818, 0.8930009, 1)
+
+[node name="Root" parent="VBoxContainer/HBoxContainer" unique_id=419686004 instance=ExtResource("1_cshku")]
+layout_mode = 2
+ItemColor = Color(0.63478667, 0.7051884, 0.16161335, 1)
+
+[node name="player_panel" parent="VBoxContainer" unique_id=506102240 instance=ExtResource("2_i8u74")]
+layout_mode = 2
