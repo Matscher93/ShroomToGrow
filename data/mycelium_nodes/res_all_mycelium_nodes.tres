@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MyceliumNodes" format=3 uid="uid://dtpvjhliagygf"]
+
+[ext_resource type="Script" uid="uid://ctp2fhoy1e3t1" path="res://model/gd_mycelium_node.gd" id="1_k057b"]
+[ext_resource type="Resource" uid="uid://cr1abm7d0skx0" path="res://data/mycelium_nodes/rex_node_l0.tres" id="2_7dmat"]
+[ext_resource type="Resource" uid="uid://carya2sihuidw" path="res://data/mycelium_nodes/rex_node_l1.tres" id="3_vn1a6"]
+[ext_resource type="Resource" uid="uid://bwcb4sy4t7ocj" path="res://data/mycelium_nodes/rex_node_l2.tres" id="4_6fwwr"]
+[ext_resource type="Resource" uid="uid://cpvcr8aa1jb7a" path="res://data/mycelium_nodes/rex_node_l3.tres" id="5_28hs3"]
+[ext_resource type="Resource" uid="uid://t5ofyy1wf4wp" path="res://data/mycelium_nodes/rex_node_l4.tres" id="6_lnyag"]
+[ext_resource type="Resource" uid="uid://c58spcfkg4jg3" path="res://data/mycelium_nodes/rex_node_l5.tres" id="7_sbprq"]
+[ext_resource type="Resource" uid="uid://2mf1tnn32p4m" path="res://data/mycelium_nodes/rex_node_l6.tres" id="8_rvm8l"]
+[ext_resource type="Resource" uid="uid://biagnw07m6mla" path="res://data/mycelium_nodes/rex_node_l7.tres" id="9_5np43"]
+[ext_resource type="Resource" uid="uid://chas6wkurwao3" path="res://data/mycelium_nodes/rex_node_l8.tres" id="10_5i2l0"]
+[ext_resource type="Resource" uid="uid://cgs08gpatvu7m" path="res://data/mycelium_nodes/rex_node_l9.tres" id="11_cegbs"]
+[ext_resource type="Script" uid="uid://b01wd3u03tuno" path="res://model/gd_mycelium_nodes.gd" id="12_f78il"]
+
+[resource]
+script = ExtResource("12_f78il")
+mycelium_nodes = Array[ExtResource("1_k057b")]([ExtResource("2_7dmat"), ExtResource("3_vn1a6"), ExtResource("4_6fwwr"), ExtResource("5_28hs3"), ExtResource("6_lnyag"), ExtResource("7_sbprq"), ExtResource("8_rvm8l"), ExtResource("9_5np43"), ExtResource("10_5i2l0"), ExtResource("11_cegbs")])
+metadata/_custom_type_script = "uid://ctp2fhoy1e3t1"

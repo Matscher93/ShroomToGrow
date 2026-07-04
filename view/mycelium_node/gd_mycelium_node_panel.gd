@@ -9,19 +9,18 @@ extends PanelContainer
 ##       ├── GoldLabel : Label
 ##       └── UpgradeButton : Button
 
-@export var gold_label: Label
 @export var upgrade_button: Button
 
-var _vm: PlayerViewModel
+var _vm: MyceliumNodesViewModel
 
 func _ready() -> void:
 	upgrade_button.pressed.connect(_on_upgrade_pressed)
 	# Bind from the composition root (autoload). Views pull their VM,
 	# which keeps scenes instantiable in isolation for testing too.
-	if App.player_vm:
-		bind(App.player_vm)
+	if App.mycelium_nodes_vm:
+		bind(App.mycelium_nodes_vm)
 
-func bind(vm: PlayerViewModel) -> void:
+func bind(vm: MyceliumNodesViewModel) -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 	_vm = vm
@@ -37,15 +36,12 @@ func _exit_tree() -> void:
 
 func _on_property_changed(property: StringName) -> void:
 	match property:
-		PlayerViewModel.PROP_GOLD_TEXT:
-			gold_label.text = _vm.gold_text
-		PlayerViewModel.PROP_UPGRADE_TEXT:
+		MyceliumNodesViewModel.PROP_UPGRADE_TEXT:
 			upgrade_button.text = _vm.upgrade_button_text
-		PlayerViewModel.PROP_CAN_BUY:
+		MyceliumNodesViewModel.PROP_CAN_BUY:
 			upgrade_button.disabled = not _vm.can_buy_upgrade
 
 func _refresh_all() -> void:
-	gold_label.text = _vm.gold_text
 	upgrade_button.text = _vm.upgrade_button_text
 	upgrade_button.disabled = not _vm.can_buy_upgrade
 

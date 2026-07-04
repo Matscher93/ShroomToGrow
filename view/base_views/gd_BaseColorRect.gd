@@ -1,6 +1,7 @@
 @tool
 extends ColorRect
 
+@export var ColorParam: String
 func _ready():
 	_update_shader()
 
@@ -14,4 +15,4 @@ func _update_shader():
 
 func _set_color(inColor : Color):
 	if material:
-		material.set_shader_parameter("circle_color", inColor)
+		material.set_shader_parameter(ColorParam, inColor)
