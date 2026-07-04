@@ -146,12 +146,15 @@ func to_display(decimals: int = 1) -> String:
 			idx += 1
 		return "%.*f%s" % [decimals, scaled, SUFFIXES[idx]]
 	# Beyond the suffix table → scientific notation
-	return "%.*fe%d" % [decimals, mantissa, exponent]
+	return to_scientific()
 
 
 ## Always scientific notation:  "1.234e56"
 func to_scientific(decimals: int = 2) -> String:
-	return "%.*fe%d" % [decimals, mantissa, exponent]
+	var length_mantissa = str(abs(int(mantissa))).length()
+	var scaled := mantissa / pow(10.0, float(length_mantissa - 1))
+	
+	return "%.*fe%d" % [decimals, scaled, exponent + length_mantissa - 1]
 
 
 ## Godot calls this for str(bignum) and print(bignum).

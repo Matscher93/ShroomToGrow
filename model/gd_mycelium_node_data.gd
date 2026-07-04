@@ -7,7 +7,7 @@ extends RefCounted
 signal nutrients_changed(value: BigNumber)
 signal nodes_changed(nodes: Array[MyceliumNode])
 
-var nutrients: BigNumber = BigNumber.from_value(1.0):
+var nutrients: BigNumber = BigNumber.new(1, 0):
 	set(value):
 		if nutrients == value:
 			return
