@@ -1,4 +1,5 @@
 class_name BigNumber
+
 ## Arbitrary-large number for idle/incremental games.
 ## Stored as  mantissa * 10^exponent,  where  1.0 ≤ |mantissa| < 1000.0
 ##
@@ -139,11 +140,11 @@ func to_display(decimals: int = 1) -> String:
 	var idx := exponent / 3
 	if idx >= 0 and idx < SUFFIXES.size():
 		var scaled := mantissa * pow(10.0, float(exponent - idx * 3))
-		if idx == 0:
-			return str(int(scaled))           # plain integer, no suffix
 		if scaled >= 1000:
 			scaled = scaled/1000
 			idx += 1
+		if idx == 0:
+			return str(int(scaled))           # plain integer, no suffix
 		return "%.*f%s" % [decimals, scaled, SUFFIXES[idx]]
 	# Beyond the suffix table → scientific notation
 	return to_scientific()

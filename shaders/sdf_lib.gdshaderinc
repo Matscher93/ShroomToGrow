@@ -298,7 +298,6 @@ float SDF_NGon(
 {
 	vec2 pos = position;
 	float p = floor(pointCount);
-	float a = pointCount + 0.5 * (2.0 - p);
  
 	float pointAngle = RADIANT_PI / p;
 	

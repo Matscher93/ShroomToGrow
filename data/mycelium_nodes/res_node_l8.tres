@@ -1,8 +1,9 @@
 [gd_resource type="Resource" script_class="MyceliumNode" format=3 uid="uid://chas6wkurwao3"]
 
-[ext_resource type="Script" uid="uid://ctp2fhoy1e3t1" path="res://model/gd_mycelium_node.gd" id="1_rbv2t"]
+[ext_resource type="Script" uid="uid://ctp2fhoy1e3t1" path="res://model/mycelium_node/gd_mycelium_node.gd" id="1_rbv2t"]
 
 [resource]
 script = ExtResource("1_rbv2t")
 name = "Node Level 9"
+_initial_cost_exponent = 9
 metadata/_custom_type_script = "uid://ctp2fhoy1e3t1"

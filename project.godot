@@ -19,6 +19,10 @@ config/icon="res://icon.svg"
 
 App="*uid://dslauy76sni3l"
 
+[debug]
+
+shader_language/warnings/unused_function=false
+
 [display]
 
 window/size/viewport_width=700

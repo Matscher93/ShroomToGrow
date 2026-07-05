@@ -24,36 +24,45 @@ grow_horizontal = 2
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=1060171763]
 layout_mode = 2
 
-[node name="Root" parent="VBoxContainer/HBoxContainer" unique_id=419686004 instance=ExtResource("1_cshku")]
+[node name="Nutrients" parent="VBoxContainer/HBoxContainer" unique_id=419686004 instance=ExtResource("1_cshku")]
 layout_mode = 2
-ItemColor = Color(0.63478667, 0.7051884, 0.16161335, 1)
+ItemColor = Color(0.72966653, 0.67178875, 0.01632441, 1)
 
 [node name="mycelium_node1" parent="VBoxContainer" unique_id=506102240 instance=ExtResource("2_i8u74")]
 layout_mode = 2
 
 [node name="mycelium_node2" parent="VBoxContainer" unique_id=1074459530 instance=ExtResource("2_i8u74")]
 layout_mode = 2
+node_level = 1
 
 [node name="mycelium_node3" parent="VBoxContainer" unique_id=1976442364 instance=ExtResource("2_i8u74")]
 layout_mode = 2
+node_level = 2
 
 [node name="mycelium_node4" parent="VBoxContainer" unique_id=393255855 instance=ExtResource("2_i8u74")]
 layout_mode = 2
+node_level = 3
 
 [node name="mycelium_node5" parent="VBoxContainer" unique_id=1275407380 instance=ExtResource("2_i8u74")]
 layout_mode = 2
+node_level = 4
 
 [node name="mycelium_node6" parent="VBoxContainer" unique_id=433536792 instance=ExtResource("2_i8u74")]
 layout_mode = 2
+node_level = 5
 
 [node name="mycelium_node7" parent="VBoxContainer" unique_id=1486518132 instance=ExtResource("2_i8u74")]
 layout_mode = 2
+node_level = 6
 
 [node name="mycelium_node8" parent="VBoxContainer" unique_id=641750190 instance=ExtResource("2_i8u74")]
 layout_mode = 2
+node_level = 7
 
 [node name="mycelium_node9" parent="VBoxContainer" unique_id=1169835142 instance=ExtResource("2_i8u74")]
 layout_mode = 2
+node_level = 8
 
 [node name="mycelium_node10" parent="VBoxContainer" unique_id=857958249 instance=ExtResource("2_i8u74")]
 layout_mode = 2
+node_level = 9

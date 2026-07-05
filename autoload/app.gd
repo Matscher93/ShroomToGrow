@@ -7,15 +7,20 @@ extends Node
 ## is what keeps them alive. Views come and go with the scene tree.
 
 var player_data: PlayerData
-var mycelium_nodes_vm: MyceliumNodesViewModel
+var player_vm: PlayerViewModel
+var mycelium_node_data: Array[MyceliumData]
+var mycelium_node_vms: Array[MyceliumNodeViewModel]
 var tick_timer: Timer
 var nodes := load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes
 
 func _ready() -> void:
 	player_data = PlayerData.new()
-	player_data.nodes = nodes.mycelium_nodes
-	mycelium_nodes_vm = MyceliumNodesViewModel.new(player_data)
-
+	player_vm = PlayerViewModel.new(player_data)
+	
+	for node in nodes.mycelium_nodes:
+		var mycelium_data = MyceliumData.new(player_data, node)
+		mycelium_node_data.append(mycelium_data)
+		mycelium_node_vms.append(MyceliumNodeViewModel.new(player_data, mycelium_data))
 	# Demo: passive income tick. In a real project this lives in a
 	# dedicated system, but it shows the flow: mutate MODEL only,
 	# and the VM/View update through signals automatically.
@@ -29,8 +34,10 @@ func _ready() -> void:
 
 func handle_tick() -> void:
 	for i in range(nodes.mycelium_nodes.size() -1, -1, -1): 
-		var node_change = mycelium_nodes_vm._model.nodes[i].auto_nodes + mycelium_nodes_vm._model.nodes[i].manual_nodes
+		var node_change = mycelium_node_vms[i]._mycelium_data._node.auto_nodes.add(\
+		 BigNumber.from_value(mycelium_node_vms[i]._mycelium_data._node.manual_nodes))
 		if i != 0:
-			mycelium_nodes_vm._model.nodes[i - 1].auto_nodes = mycelium_nodes_vm._model.nodes[i - 1].auto_nodes + node_change
+			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes = \
+			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes.add(node_change)
 		else:
-			player_data.nutrients = player_data.nutrients.add(BigNumber.from_value(node_change))
+			player_data.nutrients = player_data.nutrients.add(node_change)

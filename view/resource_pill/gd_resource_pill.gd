@@ -11,13 +11,13 @@ extends MarginContainer
 @export var label_title: Label
 @export var label_amount: Label
 	
-var _vm: MyceliumNodesViewModel
+var _vm: PlayerViewModel
 	
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	_update_colors(ItemColor)
-	if App.mycelium_nodes_vm:
-		bind(App.mycelium_nodes_vm)
+	if App.player_vm:
+		bind(App.player_vm)
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(_delta: float) -> void:
@@ -28,10 +28,10 @@ func _update_colors(in_color: Color):
 	if is_instance_valid(child):
 		image_background._set_color(in_color)
 		image_header._set_color(in_color)
-		label_title.label_settings.font_color = in_color
-		label_amount.label_settings.font_color = in_color
+		label_title.label_settings.font_color = in_color.lightened(0.3)
+		label_amount.label_settings.font_color = in_color.lightened(0.6)
 
-func bind(vm: MyceliumNodesViewModel) -> void:
+func bind(vm: PlayerViewModel) -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 	_vm = vm
@@ -46,7 +46,7 @@ func _exit_tree() -> void:
 # --- VM -> View ---
 func _on_property_changed(property: StringName) -> void:
 	match property:
-		MyceliumNodesViewModel.PROP_GOLD_TEXT:
+		PlayerViewModel.PROP_GOLD_TEXT:
 			label_amount.text = _vm.gold_text
 
 func _refresh_all() -> void:

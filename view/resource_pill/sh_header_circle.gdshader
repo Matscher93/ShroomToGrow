@@ -18,7 +18,7 @@ void fragment() {
 	float inner_cirle = SDF_Circle(p, inner_radius * smaller_side);
 	float sharp_shape = Operation_HardShape(inner_cirle);
 	
-	vec4 accent = clamp(2.0-vec4(1.5)*(-SDF_Circle(SpatialManipulation_CenterUVs(UV), 1.0)),1.0,2.0);
+	vec4 accent = clamp(2.0-vec4(1)*(-SDF_Circle(SpatialManipulation_CenterUVs(UV), 1.0)),1.0,2.0);
 	vec4 highlight = pow(circle_color, 1.0/accent);
 	float halo = SDF_Circle(p, outer_radius * smaller_side);
 	float soft_shape = Operation_SoftShape(halo, 5);
