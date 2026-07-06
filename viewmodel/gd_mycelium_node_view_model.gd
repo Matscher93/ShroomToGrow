@@ -8,6 +8,7 @@ const PROP_UPGRADE_TEXT := &"upgrade_button_text"
 const PROP_MANUAL_NODE_TEXT := &"manual_node_text"
 const PROP_AUTO_NODE_TEXT := &"auto_node_text"
 const PROP_CAN_BUY := &"can_buy_upgrade"
+const PROP_PRODUCTION_TEXT := &"production_text"
 
 var _player_data: PlayerData
 var _mycelium_data: MyceliumData
@@ -15,15 +16,19 @@ var _mycelium_data: MyceliumData
 # --- Read-only display properties the View binds to ---
 var upgrade_button_text: String:
 	get:
-		return "Buy %s - %s" % [_mycelium_data._node.name, _format_number(_mycelium_data.upgrade_cost())]
+		return "Buy +1: %s" % [_format_number(_mycelium_data.upgrade_cost())]
 
 var manual_node_text: String:
 	get:
-		return "Manual: %d" % [_mycelium_data._node.manual_nodes]
+		return "%d" % [_mycelium_data._node.manual_nodes]
 
 var auto_node_text: String:
 	get:
-		return "Auto: %s" % [_mycelium_data._node.auto_nodes._to_string()]
+		return "%s" % [_mycelium_data._node.auto_nodes._to_string()]
+		
+var production_text: String:
+	get:
+		return "+%s / tick" % [(_mycelium_data._node.auto_nodes.add(BigNumber.from_value(_mycelium_data._node.manual_nodes)))._to_string()]
 
 var can_buy_upgrade: bool:
 	get:
@@ -60,11 +65,13 @@ func _on_auto_nodes_changed(_auto_nodes: BigNumber) -> void:
 	_notify(PROP_UPGRADE_TEXT)
 	_notify(PROP_CAN_BUY)
 	_notify(PROP_AUTO_NODE_TEXT)
+	_notify(PROP_PRODUCTION_TEXT)
 	
 func _on_manual_nodes_changed(_manual_nodes: int) -> void:
 	_notify(PROP_UPGRADE_TEXT)
 	_notify(PROP_CAN_BUY)
 	_notify(PROP_MANUAL_NODE_TEXT)
+	_notify(PROP_PRODUCTION_TEXT)
 
 # --- Formatting (replace with your BigNumber formatter) ---
 

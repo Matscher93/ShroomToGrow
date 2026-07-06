@@ -4,7 +4,9 @@
 
 [resource]
 script = ExtResource("1_4r2c7")
-name = "Node Level 1"
+name = "Mycelium"
+desc = "Each node → +1 nutrient / tick"
 manual_nodes = 1
-color = Color(0.47247797, 0.9679703, 0.9256391, 1)
+color = Color(0, 0.97, 0.7275, 1)
+level_font_color = Color(0.0675, 0.15, 0.12937501, 1)
 metadata/_custom_type_script = "uid://ctp2fhoy1e3t1"

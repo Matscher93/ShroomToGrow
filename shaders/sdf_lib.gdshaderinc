@@ -24,7 +24,7 @@ vec2 mod21(vec2 x, float y)
  
 float SDF_Circle(
 	const vec2 position,
-	const float radius)
+	float radius)
 {
 	return length(position) - radius;
 }

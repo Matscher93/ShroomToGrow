@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_57wr1")
-name = "Node Level 3"
+name = "Primordium"
+desc = "Each node → +1 LVL2 node / tick"
 _initial_cost_exponent = 3
+color = Color(0, 0.84066683, 0.97, 1)
+level_font_color = Color(0.0675, 0.13900001, 0.15, 1)
 metadata/_custom_type_script = "uid://ctp2fhoy1e3t1"

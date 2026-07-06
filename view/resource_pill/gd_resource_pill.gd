@@ -4,7 +4,17 @@ extends MarginContainer
 @export var ItemColor : Color :
 	set(value):
 		ItemColor = value
-		_update_colors(value)
+		_update_colors()
+		
+@export var ValueColor : Color :
+	set(value):
+		ValueColor = value
+		_update_colors()
+		
+@export var LabelColor : Color :
+	set(value):
+		LabelColor = value
+		_update_colors()
 		
 @export var image_background: ColorRect
 @export var image_header: ColorRect
@@ -15,7 +25,7 @@ var _vm: PlayerViewModel
 	
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	_update_colors(ItemColor)
+	_update_colors()
 	if App.player_vm:
 		bind(App.player_vm)
 
@@ -23,13 +33,13 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	pass
 
-func _update_colors(in_color: Color):
+func _update_colors():
 	var child := get_node_or_null("ColorRect")
 	if is_instance_valid(child):
-		image_background._set_color(in_color)
-		image_header._set_color(in_color)
-		label_title.label_settings.font_color = in_color.lightened(0.3)
-		label_amount.label_settings.font_color = in_color.lightened(0.6)
+		image_background._set_color(ItemColor)
+		image_header._set_color(ItemColor)
+		label_title.label_settings.font_color = LabelColor
+		label_amount.label_settings.font_color = ValueColor
 
 func bind(vm: PlayerViewModel) -> void:
 	if _vm:

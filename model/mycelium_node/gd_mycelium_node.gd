@@ -7,6 +7,7 @@ signal auto_nodes_changed(value: BigNumber)
 
 
 @export var name: String = ""
+@export var desc: String = ""
 @export var manual_nodes: int = 0:
 	set(value):
 		if manual_nodes == value:
@@ -34,3 +35,4 @@ var initial_cost: BigNumber:
 		_initial_cost_exponent = value.exponent
 		
 @export var color: Color
+@export var level_font_color: Color

@@ -4,14 +4,14 @@
 [ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="2_h1bxx"]
 [ext_resource type="Shader" uid="uid://bi2mjv5oeguva" path="res://view/resource_pill/sh_header_circle.gdshader" id="4_2f41h"]
 [ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="4_ku4vg"]
-[ext_resource type="FontFile" uid="uid://bnaismgv3pmj5" path="res://fonts/Noto_Sans/static/NotoSans-Light.ttf" id="5_xqneu"]
-[ext_resource type="FontFile" uid="uid://dxlr1etacccke" path="res://fonts/Noto_Sans/static/NotoSans-SemiBold.ttf" id="6_xqneu"]
+[ext_resource type="FontFile" uid="uid://c7knyl6l8hsfc" path="res://fonts/Space_Grotesk/SpaceGrotesk-Light.ttf" id="5_xqneu"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="6_cu6ud"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_g3qpl"]
 resource_local_to_scene = true
 shader = ExtResource("2_h1bxx")
-shader_parameter/rect_size = Vector2(143, 80)
-shader_parameter/box_color = Color(0.3128297, 0.7603859, 0.8761479, 1)
+shader_parameter/rect_size = Vector2(142, 77)
+shader_parameter/box_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 16.0
 shader_parameter/border_thickness = 2.0
@@ -23,7 +23,7 @@ shader_parameter/border_alpha = 0.2
 resource_local_to_scene = true
 shader = ExtResource("4_2f41h")
 shader_parameter/rect_size = Vector2(20, 20)
-shader_parameter/circle_color = Color(0.3128297, 0.7603859, 0.8761479, 1)
+shader_parameter/circle_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
 shader_parameter/inner_radius = 0.5
 shader_parameter/outer_radius = 0.65
 
@@ -31,13 +31,13 @@ shader_parameter/outer_radius = 0.65
 resource_local_to_scene = true
 font = ExtResource("5_xqneu")
 font_size = 18
-font_color = Color(0.3128297, 0.7603859, 0.8761479, 1)
+font_color = Color(0.9313726, 0.80784315, 0.53333336, 1)
 
 [sub_resource type="LabelSettings" id="LabelSettings_2f41h"]
 resource_local_to_scene = true
-font = ExtResource("6_xqneu")
+font = ExtResource("6_cu6ud")
 font_size = 24
-font_color = Color(0.3128297, 0.7603859, 0.8761479, 1)
+font_color = Color(0.9607843, 0.8901961, 0.73333335, 1)
 
 [node name="ResourcePill" type="MarginContainer" unique_id=303116976 node_paths=PackedStringArray("image_background", "image_header", "label_title", "label_amount")]
 offset_right = 110.0
@@ -45,7 +45,9 @@ offset_bottom = 77.0
 size_flags_horizontal = 0
 size_flags_vertical = 0
 script = ExtResource("1_jq6a3")
-ItemColor = Color(0.3128297, 0.7603859, 0.8761479, 1)
+ItemColor = Color(0.9019608, 0.7254902, 0.33333334, 1)
+ValueColor = Color(0.9490196, 0.8901961, 0.72156864, 1)
+LabelColor = Color(0.8039216, 0.72156864, 0.49803922, 1)
 image_background = NodePath("ColorRect")
 image_header = NodePath("MarginContainer/VBoxContainer/HBoxContainer/ResourceBubble")
 label_title = NodePath("MarginContainer/VBoxContainer/HBoxContainer/lable_title")

@@ -2,20 +2,67 @@
 
 [ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="1_an5pq"]
 [ext_resource type="Script" uid="uid://dew8n3poubc8o" path="res://view/mycelium_node/gd_mycelium_node_panel.gd" id="1_dvfrc"]
+[ext_resource type="Shader" uid="uid://depcdiis4o4p1" path="res://view/mycelium_node/sh_level_background.gdshader" id="3_ogm57"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="4_7duim"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="5_o2fsh"]
+[ext_resource type="FontFile" uid="uid://c7knyl6l8hsfc" path="res://fonts/Space_Grotesk/SpaceGrotesk-Light.ttf" id="6_7duim"]
+[ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="7_7duim"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
 resource_local_to_scene = true
 shader = ExtResource("1_an5pq")
-shader_parameter/rect_size = Vector2(250, 82)
-shader_parameter/box_color = Color(0, 0, 0, 1)
+shader_parameter/rect_size = Vector2(250, 88)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 16.0
-shader_parameter/border_thickness = 1.0
+shader_parameter/border_thickness = 2.0
 shader_parameter/additional_border_offset = 2.0
-shader_parameter/background_alpha = 0.2
-shader_parameter/border_alpha = 0.3
+shader_parameter/background_alpha = 0.25
+shader_parameter/border_alpha = 1.0
 
-[node name="mycelium_node" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "auto_nodes", "manual_nodes")]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_w86j4"]
+resource_local_to_scene = true
+shader = ExtResource("3_ogm57")
+shader_parameter/rect_size = Vector2(48, 48)
+shader_parameter/box_color = Color(0.70865566, 0.4987288, 0.14041069, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 12.0
+shader_parameter/highlight_radius = 0.7
+shader_parameter/higlight_offset = Vector2(0, 0.5)
+
+[sub_resource type="LabelSettings" id="LabelSettings_an5pq"]
+resource_local_to_scene = true
+font = ExtResource("5_o2fsh")
+font_size = 20
+
+[sub_resource type="LabelSettings" id="LabelSettings_53xj8"]
+font = ExtResource("6_7duim")
+font_size = 8
+font_color = Color(0, 0, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_o2fsh"]
+font = ExtResource("7_7duim")
+font_size = 20
+
+[sub_resource type="LabelSettings" id="LabelSettings_3usp5"]
+font = ExtResource("7_7duim")
+font_size = 12
+
+[sub_resource type="LabelSettings" id="LabelSettings_7duim"]
+line_spacing = -14.065
+font = ExtResource("5_o2fsh")
+font_size = 20
+
+[sub_resource type="LabelSettings" id="LabelSettings_7yqcm"]
+line_spacing = 0.0
+font = ExtResource("6_7duim")
+font_size = 12
+
+[sub_resource type="LabelSettings" id="LabelSettings_0kruu"]
+font = ExtResource("7_7duim")
+font_size = 12
+
+[node name="mycelium_node" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "auto_nodes", "manual_nodes", "level_value", "level_header", "label_node_name", "label_node_desc", "label_node_income", "level_icon")]
 material = SubResource("ShaderMaterial_53xj8")
 custom_minimum_size = Vector2(250, 50)
 offset_right = 40.0
@@ -25,54 +72,135 @@ ColorParam = "box_color"
 upgrade_button = NodePath("MarginContainer/VBoxContainer/HBoxContainer/upgrade_button")
 auto_nodes = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBox_auto/auto_nodes")
 manual_nodes = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBox_manual/manual_nodes")
+level_value = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon/level_value")
+level_header = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon/level_header")
+label_node_name = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/label_node_name")
+label_node_desc = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/lable_node_desc")
+label_node_income = NodePath("MarginContainer/VBoxContainer/HBoxContainer/label_node_income")
+level_icon = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=394518787]
 layout_mode = 2
-theme_override_constants/margin_left = 4
-theme_override_constants/margin_top = 4
-theme_override_constants/margin_right = 4
-theme_override_constants/margin_bottom = 4
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1757942512]
 layout_mode = 2
+theme_override_constants/separation = 0
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=114689176]
 layout_mode = 2
+theme_override_constants/separation = 0
 
-[node name="ColorRect" type="ColorRect" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=1513601963]
+[node name="level_icon" type="ColorRect" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=1513601963]
+material = SubResource("ShaderMaterial_w86j4")
 custom_minimum_size = Vector2(48, 48)
+propagate_maximum_size = true
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+script = ExtResource("4_7duim")
+ColorParam = "box_color"
+
+[node name="level_value" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/level_icon" unique_id=1224558222]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -16.0
+offset_top = -32.0
+offset_right = 16.0
+offset_bottom = 1.5
+grow_horizontal = 2
+grow_vertical = 0
+text = "1"
+label_settings = SubResource("LabelSettings_an5pq")
+horizontal_alignment = 1
+
+[node name="level_header" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/level_icon" unique_id=30682131]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -16.0
+offset_top = 8.0
+offset_right = 16.0
+offset_bottom = 24.75
+grow_horizontal = 2
+size_flags_vertical = 0
+text = "LVL"
+label_settings = SubResource("LabelSettings_53xj8")
+horizontal_alignment = 1
+
+[node name="Control2" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=2067873580]
+custom_minimum_size = Vector2(5, 0)
 layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=814767406]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 0
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer" unique_id=1417508820]
+[node name="label_node_name" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer" unique_id=1417508820]
 layout_mode = 2
+label_settings = SubResource("LabelSettings_o2fsh")
 
-[node name="Label2" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer" unique_id=817463414]
+[node name="lable_node_desc" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer" unique_id=817463414]
 layout_mode = 2
-
-[node name="VBox_manual" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=1180277375]
-layout_mode = 2
-
-[node name="manual_nodes" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBox_manual" unique_id=644213002]
-propagate_maximum_size = true
-layout_mode = 2
+label_settings = SubResource("LabelSettings_3usp5")
 
 [node name="VBox_auto" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=903059371]
 layout_mode = 2
+theme_override_constants/separation = 0
 
 [node name="auto_nodes" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBox_auto" unique_id=409158028]
 propagate_maximum_size = true
 layout_mode = 2
+text = "1"
+label_settings = SubResource("LabelSettings_7duim")
+horizontal_alignment = 2
+
+[node name="auto_label" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBox_auto" unique_id=162014871]
+propagate_maximum_size = true
+layout_mode = 2
+text = "auto"
+label_settings = SubResource("LabelSettings_7yqcm")
+uppercase = true
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=2042776881]
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+
+[node name="VBox_manual" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=1180277375]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="manual_nodes" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBox_manual" unique_id=644213002]
+propagate_maximum_size = true
+layout_mode = 2
+text = "1"
+label_settings = SubResource("LabelSettings_7duim")
+horizontal_alignment = 2
+
+[node name="manual_label" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBox_manual" unique_id=1329168772]
+propagate_maximum_size = true
+layout_mode = 2
+text = "manual"
+label_settings = SubResource("LabelSettings_7yqcm")
+uppercase = true
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=862107365]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=647860906]
+[node name="label_node_income" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=647860906]
 layout_mode = 2
 size_flags_horizontal = 3
+label_settings = SubResource("LabelSettings_0kruu")
 
 [node name="upgrade_button" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1256884329]
 layout_mode = 2

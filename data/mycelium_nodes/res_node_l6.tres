@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_s3i7v")
-name = "Node Level 7"
+name = "Fairy Ring"
+desc = "Each node → +1 LVL6 node / tick"
 _initial_cost_exponent = 7
+color = Color(0, 0.080833256, 0.97, 1)
+level_font_color = Color(0.0675, 0.074374996, 0.15, 1)
 metadata/_custom_type_script = "uid://ctp2fhoy1e3t1"

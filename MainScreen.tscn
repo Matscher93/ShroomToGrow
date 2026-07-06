@@ -1,7 +1,136 @@
 [gd_scene format=3 uid="uid://b06bddenhrx2k"]
 
+[ext_resource type="Shader" uid="uid://bmwr1at6g1bwr" path="res://view/main/sh_main_background.gdshader" id="1_453mu"]
 [ext_resource type="PackedScene" uid="uid://nr25u3j0myxi" path="res://view/resource_pill/sc_resource_pill.tscn" id="1_cshku"]
 [ext_resource type="PackedScene" uid="uid://kfpllakofd4u" path="res://view/mycelium_node/sc_mycelium_node_panel.tscn" id="2_i8u74"]
+[ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="3_ih8ls"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vf2pt"]
+shader = ExtResource("1_453mu")
+shader_parameter/background_color = Color(0.02745098, 0.050980393, 0.039215688, 1)
+shader_parameter/highlight_color = Color(0.08627451, 0.15294118, 0.11764706, 1)
+shader_parameter/highlight_offset = Vector2(0, 1)
+shader_parameter/highlight_radius = 0.5
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_453mu"]
+resource_local_to_scene = true
+shader = ExtResource("3_ih8ls")
+shader_parameter/rect_size = Vector2(664, 86)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.25
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7pmop"]
+resource_local_to_scene = true
+shader = ExtResource("3_ih8ls")
+shader_parameter/rect_size = Vector2(664, 86)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.25
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_b26h7"]
+resource_local_to_scene = true
+shader = ExtResource("3_ih8ls")
+shader_parameter/rect_size = Vector2(664, 86)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.25
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_a8wb5"]
+resource_local_to_scene = true
+shader = ExtResource("3_ih8ls")
+shader_parameter/rect_size = Vector2(664, 86)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.25
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_6maps"]
+resource_local_to_scene = true
+shader = ExtResource("3_ih8ls")
+shader_parameter/rect_size = Vector2(664, 86)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.25
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_aycgk"]
+resource_local_to_scene = true
+shader = ExtResource("3_ih8ls")
+shader_parameter/rect_size = Vector2(664, 86)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.25
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kyyy7"]
+resource_local_to_scene = true
+shader = ExtResource("3_ih8ls")
+shader_parameter/rect_size = Vector2(664, 86)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.25
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lple0"]
+resource_local_to_scene = true
+shader = ExtResource("3_ih8ls")
+shader_parameter/rect_size = Vector2(664, 86)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.25
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0elsd"]
+resource_local_to_scene = true
+shader = ExtResource("3_ih8ls")
+shader_parameter/rect_size = Vector2(664, 86)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.25
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_u8xjt"]
+resource_local_to_scene = true
+shader = ExtResource("3_ih8ls")
+shader_parameter/rect_size = Vector2(664, 86)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.25
+shader_parameter/border_alpha = 1.0
 
 [node name="Control" type="Control" unique_id=1135092363]
 layout_mode = 3
@@ -10,59 +139,105 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1100279077]
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1115489241]
+texture_filter = 1
+material = SubResource("ShaderMaterial_vf2pt")
 layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -242.5
-offset_right = 242.5
-offset_bottom = 112.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
+grow_vertical = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=1060171763]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=143694709]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1100279077]
 layout_mode = 2
 
-[node name="Nutrients" parent="VBoxContainer/HBoxContainer" unique_id=419686004 instance=ExtResource("1_cshku")]
-layout_mode = 2
-ItemColor = Color(0.72966653, 0.67178875, 0.01632441, 1)
-
-[node name="mycelium_node1" parent="VBoxContainer" unique_id=506102240 instance=ExtResource("2_i8u74")]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1060171763]
 layout_mode = 2
 
-[node name="mycelium_node2" parent="VBoxContainer" unique_id=1074459530 instance=ExtResource("2_i8u74")]
+[node name="Nutrients" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=419686004 instance=ExtResource("1_cshku")]
 layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer" unique_id=1012884804]
+layout_mode = 2
+size_flags_vertical = 3
+draw_focus_border = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer" unique_id=886679070]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="mycelium_node1" parent="MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer" unique_id=506102240 instance=ExtResource("2_i8u74")]
+material = SubResource("ShaderMaterial_453mu")
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="mycelium_node2" parent="MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer" unique_id=1074459530 instance=ExtResource("2_i8u74")]
+material = SubResource("ShaderMaterial_7pmop")
+layout_mode = 2
+size_flags_horizontal = 3
 node_level = 1
 
-[node name="mycelium_node3" parent="VBoxContainer" unique_id=1976442364 instance=ExtResource("2_i8u74")]
+[node name="mycelium_node3" parent="MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer" unique_id=1976442364 instance=ExtResource("2_i8u74")]
+material = SubResource("ShaderMaterial_b26h7")
 layout_mode = 2
+size_flags_horizontal = 3
 node_level = 2
 
-[node name="mycelium_node4" parent="VBoxContainer" unique_id=393255855 instance=ExtResource("2_i8u74")]
+[node name="mycelium_node4" parent="MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer" unique_id=393255855 instance=ExtResource("2_i8u74")]
+material = SubResource("ShaderMaterial_a8wb5")
 layout_mode = 2
+size_flags_horizontal = 3
 node_level = 3
 
-[node name="mycelium_node5" parent="VBoxContainer" unique_id=1275407380 instance=ExtResource("2_i8u74")]
+[node name="mycelium_node5" parent="MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer" unique_id=1275407380 instance=ExtResource("2_i8u74")]
+material = SubResource("ShaderMaterial_6maps")
 layout_mode = 2
+size_flags_horizontal = 3
 node_level = 4
 
-[node name="mycelium_node6" parent="VBoxContainer" unique_id=433536792 instance=ExtResource("2_i8u74")]
+[node name="mycelium_node6" parent="MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer" unique_id=433536792 instance=ExtResource("2_i8u74")]
+material = SubResource("ShaderMaterial_aycgk")
 layout_mode = 2
+size_flags_horizontal = 3
 node_level = 5
 
-[node name="mycelium_node7" parent="VBoxContainer" unique_id=1486518132 instance=ExtResource("2_i8u74")]
+[node name="mycelium_node7" parent="MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer" unique_id=1486518132 instance=ExtResource("2_i8u74")]
+material = SubResource("ShaderMaterial_kyyy7")
 layout_mode = 2
+size_flags_horizontal = 3
 node_level = 6
 
-[node name="mycelium_node8" parent="VBoxContainer" unique_id=641750190 instance=ExtResource("2_i8u74")]
+[node name="mycelium_node8" parent="MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer" unique_id=641750190 instance=ExtResource("2_i8u74")]
+material = SubResource("ShaderMaterial_lple0")
 layout_mode = 2
+size_flags_horizontal = 3
 node_level = 7
 
-[node name="mycelium_node9" parent="VBoxContainer" unique_id=1169835142 instance=ExtResource("2_i8u74")]
+[node name="mycelium_node9" parent="MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer" unique_id=1169835142 instance=ExtResource("2_i8u74")]
+material = SubResource("ShaderMaterial_0elsd")
 layout_mode = 2
+size_flags_horizontal = 3
 node_level = 8
 
-[node name="mycelium_node10" parent="VBoxContainer" unique_id=857958249 instance=ExtResource("2_i8u74")]
+[node name="mycelium_node10" parent="MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer" unique_id=857958249 instance=ExtResource("2_i8u74")]
+material = SubResource("ShaderMaterial_u8xjt")
 layout_mode = 2
+size_flags_horizontal = 3
 node_level = 9

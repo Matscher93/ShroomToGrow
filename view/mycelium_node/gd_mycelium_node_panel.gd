@@ -1,19 +1,17 @@
 @tool
 class_name MyceliumNodePanel
 extends PanelContainer
-## VIEW — dumb by design. Reads display properties from the VM,
-## forwards input to VM commands. No game logic, no formatting.
-##
-## Expected scene structure (assign in inspector or match node names):
-##   PlayerPanel (this script)
-##   └── VBoxContainer
-##       ├── GoldLabel : Label
-##       └── UpgradeButton : Button
 
 @export var ColorParam: String
 @export var upgrade_button: Button
 @export var auto_nodes: Label
 @export var manual_nodes: Label
+@export var level_value: Label
+@export var level_header: Label
+@export var label_node_name: Label
+@export var label_node_desc: Label
+@export var label_node_income: Label
+@export var level_icon: ColorRect
 @export var node_level: int = 0
 var _vm: MyceliumNodeViewModel
 
@@ -49,13 +47,19 @@ func _on_property_changed(property: StringName) -> void:
 			auto_nodes.text =_vm.auto_node_text
 		MyceliumNodeViewModel.PROP_MANUAL_NODE_TEXT:
 			manual_nodes.text = _vm.manual_node_text
+		MyceliumNodeViewModel.PROP_PRODUCTION_TEXT:
+			label_node_income.text = _vm.production_text
 
 func _refresh_all() -> void:
 	upgrade_button.text = _vm.upgrade_button_text
 	upgrade_button.disabled = not _vm.can_buy_upgrade
 	auto_nodes.text =_vm.auto_node_text
 	manual_nodes.text = _vm.manual_node_text
-	_set_color(_vm._mycelium_data._node.color)
+	label_node_income.text = _vm.production_text
+	level_value.text = "%d" % [node_level + 1]
+	label_node_name.text = _vm._mycelium_data._node.name
+	label_node_desc.text = _vm._mycelium_data._node.desc
+	_set_color()
 
 # --- View -> VM ---
 
@@ -70,6 +74,20 @@ func _update_shader():
 	if material:
 		material.set_shader_parameter("rect_size", size * get_global_transform().get_scale())
 
-func _set_color(inColor : Color):
+func _set_color():
 	if material:
-		material.set_shader_parameter(ColorParam, inColor)
+		var color_level_text = _vm._mycelium_data._node.level_font_color
+		var color_main_text = Color.from_hsv(color_level_text.h, 0.7, 0.8)
+		level_icon._set_color(_vm._mycelium_data._node.color)
+		
+		level_value.label_settings = level_value.label_settings.duplicate()
+		level_header.label_settings = level_header.label_settings.duplicate()
+		label_node_name.label_settings = label_node_name.label_settings.duplicate()
+		auto_nodes.label_settings = auto_nodes.label_settings.duplicate()
+		manual_nodes.label_settings = manual_nodes.label_settings.duplicate()
+		
+		level_value.label_settings.font_color = color_level_text
+		level_header.label_settings.font_color = color_level_text
+		label_node_name.label_settings.font_color = color_main_text
+		auto_nodes.label_settings.font_color = color_main_text
+		manual_nodes.label_settings.font_color = color_main_text
