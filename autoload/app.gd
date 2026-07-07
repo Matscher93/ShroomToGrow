@@ -25,7 +25,7 @@ func _ready() -> void:
 	# dedicated system, but it shows the flow: mutate MODEL only,
 	# and the VM/View update through signals automatically.
 	tick_timer = Timer.new()
-	tick_timer.wait_time = 1.0
+	tick_timer.wait_time = 10.0
 	tick_timer.autostart = true
 	tick_timer.timeout.connect(func() -> void:
 		handle_tick()

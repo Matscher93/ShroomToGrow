@@ -4,7 +4,7 @@ extends ViewModel
 ## Owns formatting, derived/display state, and enabled/disabled logic.
 ## Holds a reference to the model; never to any Node.
 
-const PROP_UPGRADE_TEXT := &"upgrade_button_text"
+const PROP_BUY_TEXT := &"buy_button_text"
 const PROP_MANUAL_NODE_TEXT := &"manual_node_text"
 const PROP_AUTO_NODE_TEXT := &"auto_node_text"
 const PROP_CAN_BUY := &"can_buy_upgrade"
@@ -14,9 +14,9 @@ var _player_data: PlayerData
 var _mycelium_data: MyceliumData
 
 # --- Read-only display properties the View binds to ---
-var upgrade_button_text: String:
+var buy_button_text: String:
 	get:
-		return "Buy +1: %s" % [_format_number(_mycelium_data.upgrade_cost())]
+		return "%s" % [_format_number(_mycelium_data.upgrade_cost())]
 
 var manual_node_text: String:
 	get:
@@ -59,16 +59,16 @@ func buy_upgrade() -> void:
 
 func _on_nutrients_changed(_value: BigNumber) -> void:
 	_notify(PROP_CAN_BUY)
-	_notify(PROP_UPGRADE_TEXT)  # cost affordability display may change
+	_notify(PROP_BUY_TEXT)  # cost affordability display may change
 
 func _on_auto_nodes_changed(_auto_nodes: BigNumber) -> void:
-	_notify(PROP_UPGRADE_TEXT)
+	_notify(PROP_BUY_TEXT)
 	_notify(PROP_CAN_BUY)
 	_notify(PROP_AUTO_NODE_TEXT)
 	_notify(PROP_PRODUCTION_TEXT)
 	
 func _on_manual_nodes_changed(_manual_nodes: int) -> void:
-	_notify(PROP_UPGRADE_TEXT)
+	_notify(PROP_BUY_TEXT)
 	_notify(PROP_CAN_BUY)
 	_notify(PROP_MANUAL_NODE_TEXT)
 	_notify(PROP_PRODUCTION_TEXT)

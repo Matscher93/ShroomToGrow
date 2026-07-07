@@ -1,0 +1,97 @@
+[gd_scene format=3 uid="uid://2s8hpumsg15"]
+
+[ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="1_2hkoy"]
+[ext_resource type="Script" uid="uid://b8ca5wifa6bv" path="res://view/tick_progress/gd_tick_progress.gd" id="1_44bkl"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="2_05n8l"]
+[ext_resource type="Shader" uid="uid://djm4kfwj0ikno" path="res://view/tick_progress/sh_tick_progress.gdshader" id="3_3vbxe"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="4_44bkl"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_vf2pt"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_lxikg"]
+font = ExtResource("1_2hkoy")
+font_size = 12
+
+[sub_resource type="LabelSettings" id="LabelSettings_2hkoy"]
+resource_local_to_scene = true
+font = ExtResource("2_05n8l")
+font_size = 12
+font_color = Color(0, 1, 0.9490196, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_44bkl"]
+resource_local_to_scene = true
+font = ExtResource("2_05n8l")
+font_size = 12
+font_color = Color(0.69, 0.69, 0.69, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lxikg"]
+shader = ExtResource("3_3vbxe")
+shader_parameter/rect_size = Vector2(672, 8)
+shader_parameter/box_color = Color(0.4, 0.4, 0.4, 1)
+shader_parameter/fill_color = Color(0, 1, 0.95000005, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 3.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 0.0
+shader_parameter/background_alpha = 0.2
+shader_parameter/border_alpha = 0.3
+shader_parameter/tick_progress = 0.5
+
+[node name="tick_progress" type="PanelContainer" unique_id=655712839 node_paths=PackedStringArray("progress_rect", "lbl_time_left", "lbl_time_per_tick")]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_vf2pt")
+script = ExtResource("1_44bkl")
+progress_rect = NodePath("MarginContainer/VBoxContainer/ColorRect")
+lbl_time_left = NodePath("MarginContainer/VBoxContainer/HBoxContainer/lbl_time_left")
+lbl_time_per_tick = NodePath("MarginContainer/VBoxContainer/HBoxContainer/lbl_time_per_tick")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1889204548]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_right = 4
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1191718132]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Control3" type="Control" parent="MarginContainer/VBoxContainer" unique_id=490950689]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1294919663]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1604011110]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "NEXT TICK"
+label_settings = SubResource("LabelSettings_lxikg")
+
+[node name="lbl_time_left" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=797198276]
+layout_mode = 2
+text = "1s"
+label_settings = SubResource("LabelSettings_2hkoy")
+
+[node name="lbl_time_per_tick" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1326890253]
+layout_mode = 2
+text = "1s"
+label_settings = SubResource("LabelSettings_44bkl")
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer" unique_id=943947669]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="ColorRect" type="ColorRect" parent="MarginContainer/VBoxContainer" unique_id=123959336]
+material = SubResource("ShaderMaterial_lxikg")
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+script = ExtResource("4_44bkl")
+
+[node name="Control2" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1118233188]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
