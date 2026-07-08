@@ -33,10 +33,10 @@ func _init(m: float = 0.0, e: int = 0) -> void:
 static func from_value(value: float) -> BigNumber:
 	if value == 0.0:
 		return BigNumber.new(0.0, 0)
-	var sign := 1.0 if value > 0.0 else -1.0
+	var num_sign := 1.0 if value > 0.0 else -1.0
 	var abs_val := absf(value)
 	var e := int(floor(log(abs_val) / log(10.0)))
-	return BigNumber.new((abs_val / pow(10.0, float(e))) * sign, e)
+	return BigNumber.new((abs_val / pow(10.0, float(e))) * num_sign, e)
 
 
 ## Shallow copy.
@@ -49,7 +49,7 @@ func _normalize() -> void:
 	if mantissa == 0.0:
 		exponent = 0
 		return
-	var sign := 1.0 if mantissa > 0.0 else -1.0
+	var num_sign := 1.0 if mantissa > 0.0 else -1.0
 	var m := absf(mantissa)
 	while m >= 1000.0:
 		m /= 10.0
@@ -57,7 +57,7 @@ func _normalize() -> void:
 	while m > 0.0 and m < 1.0:
 		m *= 10.0
 		exponent -= 1
-	mantissa = m * sign
+	mantissa = m * num_sign
 
 
 # ─── Arithmetic ──────────────────────────────────────────────────────────────
@@ -137,7 +137,8 @@ func equals(other: BigNumber) -> bool:
 ## Examples:  "0"  "42"  "1.50K"  "999.99M"  "2.72e99"
 func to_display(decimals: int = 1) -> String:
 	if mantissa == 0.0: return "0"
-	var idx := exponent / 3
+	@warning_ignore("integer_division")
+	var idx := floori(exponent / 3)
 	if idx >= 0 and idx < SUFFIXES.size():
 		var scaled := mantissa * pow(10.0, float(exponent - idx * 3))
 		if scaled >= 1000:
