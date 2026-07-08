@@ -30,6 +30,7 @@ window/size/viewport_width=700
 window/size/viewport_height=1000
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/handheld/orientation=6
 
 [gui]
 
@@ -46,4 +47,5 @@ theme/custom_font="uid://csqhcanb4sc1d"
 
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/use_debanding=true

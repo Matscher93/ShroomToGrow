@@ -97,6 +97,7 @@ material = SubResource("ShaderMaterial_53xj8")
 custom_minimum_size = Vector2(250, 50)
 offset_right = 40.0
 offset_bottom = 40.0
+mouse_filter = 1
 script = ExtResource("1_dvfrc")
 ColorParam = "box_color"
 upgrade_button = NodePath("MarginContainer/VBoxContainer/HBoxContainer/panel_buy_node/upgrade_button")
@@ -238,8 +239,10 @@ size_flags_horizontal = 3
 label_settings = SubResource("LabelSettings_0kruu")
 
 [node name="panel_buy_node" type="PanelContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1624840392 node_paths=PackedStringArray("upgrade_button")]
+modulate = Color(0.3, 0.3, 0.3, 1)
 material = SubResource("ShaderMaterial_bj2ss")
 layout_mode = 2
+mouse_filter = 1
 script = ExtResource("8_3usp5")
 ColorParam = "box_color"
 upgrade_button = NodePath("upgrade_button")
@@ -269,6 +272,7 @@ label_settings = SubResource("LabelSettings_jeu7j")
 [node name="upgrade_button" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/panel_buy_node" unique_id=1256884329]
 propagate_maximum_size = true
 layout_mode = 2
+mouse_filter = 1
 theme_override_styles/normal = SubResource("StyleBoxEmpty_7duim")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_3usp5")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_7yqcm")
