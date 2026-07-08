@@ -161,3 +161,9 @@ func to_scientific(decimals: int = 2) -> String:
 ## Godot calls this for str(bignum) and print(bignum).
 func _to_string() -> String:
 	return to_display()
+
+func to_save() -> Dictionary:
+	return {"m": mantissa, "e": exponent}
+
+static func from_save(d: Dictionary) -> BigNumber:
+	return BigNumber.new(d.get("m", 0.0), d.get("e", 0))

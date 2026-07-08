@@ -8,7 +8,7 @@ var tick_timer: Timer
 func _ready() -> void:
 	tick_timer = App.tick_timer
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	var time_left = tick_timer.time_left
 	var tick_duration = tick_timer.wait_time
 	progress_rect.material.set_shader_parameter("tick_progress", 1.0 - time_left/tick_duration)

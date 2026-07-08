@@ -11,6 +11,6 @@ func _ready() -> void:
 	
 	var nodes = App.nodes.mycelium_nodes
 	for index in range(nodes.size()):
-		var node_scene = node_scene.instantiate()
-		node_scene.node_level = index
-		vbox_nodes.add_child(node_scene)
+		var node_scene_instance = node_scene.instantiate()
+		node_scene_instance.node_level = index
+		vbox_nodes.add_child(node_scene_instance)

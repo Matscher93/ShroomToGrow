@@ -33,6 +33,7 @@ func _ready() -> void:
 	add_child(tick_timer)
 
 func handle_tick() -> void:
+	player_data.tick_count += 1;
 	for i in range(nodes.mycelium_nodes.size() -1, -1, -1): 
 		var node_change = mycelium_node_vms[i]._mycelium_data._node.auto_nodes.add(\
 		 BigNumber.from_value(mycelium_node_vms[i]._mycelium_data._node.manual_nodes))
