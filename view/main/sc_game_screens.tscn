@@ -1,0 +1,91 @@
+[gd_scene format=3 uid="uid://dd8g1hdbxpy74"]
+
+[ext_resource type="Script" uid="uid://bxghr0m0ih4ji" path="res://view/main/gd_game_screens.gd" id="1_hrgbw"]
+[ext_resource type="PackedScene" uid="uid://1qtc15fq671h" path="res://view/main/sc_screen_button.tscn" id="2_yael5"]
+[ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="3_8phkr"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_vf2pt"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yael5"]
+resource_local_to_scene = true
+shader = ExtResource("3_8phkr")
+shader_parameter/rect_size = Vector2(220, 34)
+shader_parameter/box_color = Color(0, 0, 0, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 8.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.2
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_8phkr"]
+resource_local_to_scene = true
+shader = ExtResource("3_8phkr")
+shader_parameter/rect_size = Vector2(220, 34)
+shader_parameter/box_color = Color(0, 0, 0, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 8.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.2
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_suht8"]
+resource_local_to_scene = true
+shader = ExtResource("3_8phkr")
+shader_parameter/rect_size = Vector2(220, 34)
+shader_parameter/box_color = Color(0, 0, 0, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 8.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.2
+shader_parameter/border_alpha = 1.0
+
+[node name="game_screens" type="PanelContainer" unique_id=535792977 node_paths=PackedStringArray("screen_container", "button_container")]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_lxikg")
+script = ExtResource("1_hrgbw")
+screen_container = NodePath("VBoxContainer/screen_container")
+button_container = NodePath("VBoxContainer/MarginContainer/button_container")
+button_scene = ExtResource("2_yael5")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=822794784]
+layout_mode = 2
+
+[node name="screen_container" type="PanelContainer" parent="VBoxContainer" unique_id=1127273565]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxEmpty_vf2pt")
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer" unique_id=670096847]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="button_container" type="HBoxContainer" parent="VBoxContainer/MarginContainer" unique_id=640726803]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="screen_button" parent="VBoxContainer/MarginContainer/button_container" unique_id=436266803 instance=ExtResource("2_yael5")]
+modulate = Color(0.74509805, 0.74509805, 0.74509805, 1)
+material = SubResource("ShaderMaterial_yael5")
+layout_mode = 2
+
+[node name="screen_button2" parent="VBoxContainer/MarginContainer/button_container" unique_id=57981868 instance=ExtResource("2_yael5")]
+modulate = Color(0.74509805, 0.74509805, 0.74509805, 1)
+material = SubResource("ShaderMaterial_8phkr")
+layout_mode = 2
+
+[node name="screen_button3" parent="VBoxContainer/MarginContainer/button_container" unique_id=2001899089 instance=ExtResource("2_yael5")]
+modulate = Color(0.74509805, 0.74509805, 0.74509805, 1)
+material = SubResource("ShaderMaterial_suht8")
+layout_mode = 2

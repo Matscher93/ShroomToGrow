@@ -20,14 +20,19 @@ extends MarginContainer
 @export var image_header: ColorRect
 @export var label_title: Label
 @export var label_amount: Label
+@export var label_change_per_tick: Label
 	
 var _vm: PlayerViewModel
+var _vm_change: MyceliumNodeViewModel 
 	
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	_update_colors()
 	if App.player_vm:
 		bind(App.player_vm)
+		if(App.mycelium_node_vms.size() > 0):
+			bind_change(App.mycelium_node_vms[0])
+		_refresh_all()
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(_delta: float) -> void:
@@ -46,18 +51,31 @@ func bind(vm: PlayerViewModel) -> void:
 		_vm.property_changed.disconnect(_on_property_changed)
 	_vm = vm
 	_vm.property_changed.connect(_on_property_changed)
-	_refresh_all()
+	
+	
+func bind_change(vm: MyceliumNodeViewModel) -> void:
+	if _vm_change:
+		_vm_change.property_changed.disconnect(_on_property_changed)
+	_vm_change = vm
+	_vm_change.property_changed.connect(_on_property_changed)
+	
 
 func _exit_tree() -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
+	if _vm_change:
+		_vm_change.property_changed.disconnect(_on_property_changed)
+		_vm_change = null
 
 # --- VM -> View ---
 func _on_property_changed(property: StringName) -> void:
 	match property:
 		PlayerViewModel.PROP_GOLD_TEXT:
 			label_amount.text = _vm.gold_text
+		MyceliumNodeViewModel.PROP_PRODUCTION_TEXT:
+			label_change_per_tick.text = _vm_change.production_text_short
 
 func _refresh_all() -> void:
 	label_amount.text = _vm.gold_text
+	label_change_per_tick.text = _vm_change.production_text_short

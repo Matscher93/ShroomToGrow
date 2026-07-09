@@ -4,7 +4,7 @@ extends PanelContainer
 
 @export var ColorParam: String
 @export var upgrade_button: Button
-@export var auto_nodes: Label
+@export var owned_nodes: Label
 @export var manual_nodes: Label
 @export var level_value: Label
 @export var level_header: Label
@@ -43,8 +43,8 @@ func _on_property_changed(property: StringName) -> void:
 			label_buy_cost.text = _vm.buy_button_text
 		MyceliumNodeViewModel.PROP_CAN_BUY:
 			panel_buy_node.set_enabled(_vm.can_buy_upgrade)
-		MyceliumNodeViewModel.PROP_AUTO_NODE_TEXT:
-			auto_nodes.text =_vm.auto_node_text
+		MyceliumNodeViewModel.PROP_OWNED_NODE_TEXT:
+			owned_nodes.text =_vm.owned_node_text
 		MyceliumNodeViewModel.PROP_MANUAL_NODE_TEXT:
 			manual_nodes.text = _vm.manual_node_text
 		MyceliumNodeViewModel.PROP_PRODUCTION_TEXT:
@@ -53,7 +53,7 @@ func _on_property_changed(property: StringName) -> void:
 func _refresh_all() -> void:
 	label_buy_cost.text = _vm.buy_button_text
 	panel_buy_node.set_enabled(_vm.can_buy_upgrade)
-	auto_nodes.text =_vm.auto_node_text
+	owned_nodes.text =_vm.owned_node_text
 	manual_nodes.text = _vm.manual_node_text
 	label_node_income.text = _vm.production_text
 	level_value.text = "%d" % [node_level + 1]
@@ -85,13 +85,13 @@ func _set_color():
 		level_value.label_settings = level_value.label_settings.duplicate()
 		level_header.label_settings = level_header.label_settings.duplicate()
 		label_node_name.label_settings = label_node_name.label_settings.duplicate()
-		auto_nodes.label_settings = auto_nodes.label_settings.duplicate()
+		owned_nodes.label_settings = owned_nodes.label_settings.duplicate()
 		manual_nodes.label_settings = manual_nodes.label_settings.duplicate()
 		label_node_income.label_settings = label_node_income.label_settings.duplicate()
 		
 		level_value.label_settings.font_color = color_level_text
 		level_header.label_settings.font_color = color_level_text
 		label_node_name.label_settings.font_color = color_main_text
-		auto_nodes.label_settings.font_color = color_main_text
+		owned_nodes.label_settings.font_color = color_main_text
 		manual_nodes.label_settings.font_color = color_main_text
 		label_node_income.label_settings.font_color = color_main_text

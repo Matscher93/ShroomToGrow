@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://bg66qb1i1qos1"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_lxikg"]
+font_size = 90
+
+[node name="symbiosis_panel" type="PanelContainer" unique_id=1202854427]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_lxikg")
+
+[node name="Label" type="Label" parent="." unique_id=577884857]
+layout_mode = 2
+text = "SYMBIOSIS!!!!"
+label_settings = SubResource("LabelSettings_lxikg")
+horizontal_alignment = 1

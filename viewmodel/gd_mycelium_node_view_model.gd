@@ -6,7 +6,7 @@ extends ViewModel
 
 const PROP_BUY_TEXT := &"buy_button_text"
 const PROP_MANUAL_NODE_TEXT := &"manual_node_text"
-const PROP_AUTO_NODE_TEXT := &"auto_node_text"
+const PROP_OWNED_NODE_TEXT := &"owned_node_text"
 const PROP_CAN_BUY := &"can_buy_upgrade"
 const PROP_PRODUCTION_TEXT := &"production_text"
 
@@ -22,13 +22,27 @@ var manual_node_text: String:
 	get:
 		return "%d" % [_mycelium_data._node.manual_nodes]
 
-var auto_node_text: String:
+var owned_node_text: String:
 	get:
-		return "%s" % [_mycelium_data._node.auto_nodes._to_string()]
+		return "%s" % [_mycelium_data._node.auto_nodes
+						.add(BigNumber.from_value(_mycelium_data._node.manual_nodes))
+						._to_string()]
 		
 var production_text: String:
 	get:
-		return "+%s / tick" % [(_mycelium_data._node.auto_nodes.add(BigNumber.from_value(_mycelium_data._node.manual_nodes)))._to_string()]
+		return "+%s / tick" % \
+			[(_mycelium_data._node.auto_nodes
+				.add(BigNumber.from_value(_mycelium_data._node.manual_nodes)))
+				._to_string()
+			]
+
+var production_text_short: String:
+	get:
+		return "+%s/t" % \
+			[(_mycelium_data._node.auto_nodes
+				.add(BigNumber.from_value(_mycelium_data._node.manual_nodes)))
+				._to_string()
+			]
 
 var can_buy_upgrade: bool:
 	get:
@@ -62,16 +76,15 @@ func _on_nutrients_changed(_value: BigNumber) -> void:
 	_notify(PROP_BUY_TEXT)  # cost affordability display may change
 
 func _on_auto_nodes_changed(_auto_nodes: BigNumber) -> void:
-	_notify(PROP_BUY_TEXT)
-	_notify(PROP_CAN_BUY)
-	_notify(PROP_AUTO_NODE_TEXT)
+	_notify(PROP_OWNED_NODE_TEXT)
 	_notify(PROP_PRODUCTION_TEXT)
 	
 func _on_manual_nodes_changed(_manual_nodes: int) -> void:
+	_notify(PROP_MANUAL_NODE_TEXT)
+	_notify(PROP_OWNED_NODE_TEXT)
+	_notify(PROP_PRODUCTION_TEXT)
 	_notify(PROP_BUY_TEXT)
 	_notify(PROP_CAN_BUY)
-	_notify(PROP_MANUAL_NODE_TEXT)
-	_notify(PROP_PRODUCTION_TEXT)
 
 # --- Formatting (replace with your BigNumber formatter) ---
 

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ScreenDefinition" format=3 uid="uid://c3lfk0avuygfe"]
+
+[ext_resource type="Script" uid="uid://cfbpk4evittcm" path="res://model/screens/gd_screen_definition.gd" id="1_nxygd"]
+[ext_resource type="PackedScene" uid="uid://bg66qb1i1qos1" path="res://view/Symbiosis/sc_symbiosis_panel.tscn" id="1_osjyv"]
+
+[resource]
+script = ExtResource("1_nxygd")
+screen_name = "Symbiosis"
+screen_scene = ExtResource("1_osjyv")
+metadata/_custom_type_script = "uid://cfbpk4evittcm"

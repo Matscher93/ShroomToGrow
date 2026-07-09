@@ -26,9 +26,9 @@ font_color = Color(0.69, 0.69, 0.69, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_lxikg"]
 shader = ExtResource("3_3vbxe")
-shader_parameter/rect_size = Vector2(672, 8)
+shader_parameter/rect_size = Vector2(692, 8)
 shader_parameter/box_color = Color(0.4, 0.4, 0.4, 1)
-shader_parameter/fill_color = Color(0, 1, 0.95000005, 1)
+shader_parameter/fill_color = Color(0, 1, 0.9490196, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 3.0
 shader_parameter/border_thickness = 1.0

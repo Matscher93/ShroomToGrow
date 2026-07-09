@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ScreenDefinition" format=3 uid="uid://dt5uv8j1f4xyt"]
+
+[ext_resource type="PackedScene" uid="uid://de8xf0uvr7hvp" path="res://view/mycelium_node/sc_nodes_panel.tscn" id="1_h1kwa"]
+[ext_resource type="Script" uid="uid://cfbpk4evittcm" path="res://model/screens/gd_screen_definition.gd" id="1_rwors"]
+
+[resource]
+script = ExtResource("1_rwors")
+screen_name = "Nodes"
+screen_scene = ExtResource("1_h1kwa")
+metadata/_custom_type_script = "uid://cfbpk4evittcm"

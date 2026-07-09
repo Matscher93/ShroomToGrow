@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Screens" format=3 uid="uid://b4fwubh0sxccf"]
+
+[ext_resource type="Script" uid="uid://cfbpk4evittcm" path="res://model/screens/gd_screen_definition.gd" id="1_0nlu5"]
+[ext_resource type="Resource" uid="uid://dt5uv8j1f4xyt" path="res://data/screens/res_node_screen.tres" id="2_1v5js"]
+[ext_resource type="Script" uid="uid://tswg1df7l0x0" path="res://model/screens/gd_screens.gd" id="2_vej25"]
+[ext_resource type="Resource" uid="uid://c3lfk0avuygfe" path="res://data/screens/res_symbiosis_screen.tres" id="3_ds5ak"]
+
+[resource]
+script = ExtResource("2_vej25")
+screens = Dictionary[int, ExtResource("1_0nlu5")]({
+0: ExtResource("2_1v5js"),
+1: ExtResource("3_ds5ak")
+})
+metadata/_custom_type_script = "uid://tswg1df7l0x0"

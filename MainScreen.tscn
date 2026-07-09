@@ -1,10 +1,9 @@
 [gd_scene format=3 uid="uid://b06bddenhrx2k"]
 
-[ext_resource type="Script" uid="uid://8hyeybwm5jh3" path="res://main_screen.gd" id="1_7pmop"]
 [ext_resource type="Shader" uid="uid://bmwr1at6g1bwr" path="res://view/main/sh_main_background.gdshader" id="1_453mu"]
 [ext_resource type="PackedScene" uid="uid://nr25u3j0myxi" path="res://view/resource_pill/sc_resource_pill.tscn" id="1_cshku"]
 [ext_resource type="PackedScene" uid="uid://2s8hpumsg15" path="res://view/tick_progress/sc_tick_progress.tscn" id="5_7pmop"]
-[ext_resource type="PackedScene" uid="uid://de8xf0uvr7hvp" path="res://view/mycelium_node/sc_nodes_panel.tscn" id="6_b26h7"]
+[ext_resource type="PackedScene" uid="uid://dd8g1hdbxpy74" path="res://view/main/sc_game_screens.tscn" id="5_b26h7"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vf2pt"]
 shader = ExtResource("1_453mu")
@@ -22,7 +21,6 @@ grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-script = ExtResource("1_7pmop")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1115489241]
 texture_filter = 1
@@ -58,6 +56,6 @@ layout_mode = 2
 [node name="tick_progress" parent="MarginContainer/VBoxContainer" unique_id=655712839 instance=ExtResource("5_7pmop")]
 layout_mode = 2
 
-[node name="nodes_panel" parent="MarginContainer/VBoxContainer" unique_id=997519081 instance=ExtResource("6_b26h7")]
+[node name="game_screens" parent="MarginContainer/VBoxContainer" unique_id=535792977 instance=ExtResource("5_b26h7")]
 layout_mode = 2
 size_flags_vertical = 3

@@ -31,15 +31,21 @@ shader_parameter/outer_radius = 0.65
 resource_local_to_scene = true
 font = ExtResource("5_xqneu")
 font_size = 18
-font_color = Color(0.9313726, 0.80784315, 0.53333336, 1)
+font_color = Color(0.8039216, 0.72156864, 0.49803922, 1)
 
 [sub_resource type="LabelSettings" id="LabelSettings_2f41h"]
 resource_local_to_scene = true
 font = ExtResource("6_cu6ud")
 font_size = 24
-font_color = Color(0.9607843, 0.8901961, 0.73333335, 1)
+font_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
 
-[node name="ResourcePill" type="MarginContainer" unique_id=303116976 node_paths=PackedStringArray("image_background", "image_header", "label_title", "label_amount")]
+[sub_resource type="LabelSettings" id="LabelSettings_xqneu"]
+resource_local_to_scene = true
+font = ExtResource("6_cu6ud")
+font_size = 12
+font_color = Color(0, 1, 0.9490196, 1)
+
+[node name="ResourcePill" type="MarginContainer" unique_id=303116976 node_paths=PackedStringArray("image_background", "image_header", "label_title", "label_amount", "label_change_per_tick")]
 offset_right = 110.0
 offset_bottom = 77.0
 size_flags_horizontal = 0
@@ -51,7 +57,8 @@ LabelColor = Color(0.8039216, 0.72156864, 0.49803922, 1)
 image_background = NodePath("ColorRect")
 image_header = NodePath("MarginContainer/VBoxContainer/HBoxContainer/ResourceBubble")
 label_title = NodePath("MarginContainer/VBoxContainer/HBoxContainer/lable_title")
-label_amount = NodePath("MarginContainer/VBoxContainer/lable_amount")
+label_amount = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/label_amount")
+label_change_per_tick = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/label_change_per_tick")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1738468682]
 material = SubResource("ShaderMaterial_g3qpl")
@@ -69,6 +76,7 @@ theme_override_constants/margin_bottom = 8
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1796993201]
 layout_mode = 2
+theme_override_constants/separation = 0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=258992491]
 layout_mode = 2
@@ -92,8 +100,20 @@ text = "Nutrients"
 label_settings = SubResource("LabelSettings_xjwha")
 uppercase = true
 
-[node name="lable_amount" type="Label" parent="MarginContainer/VBoxContainer" unique_id=162577882]
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1214910101]
+layout_mode = 2
+
+[node name="label_amount" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=162577882]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "123"
 label_settings = SubResource("LabelSettings_2f41h")
+
+[node name="label_change_per_tick" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=21042413]
+layout_mode = 2
+size_flags_vertical = 8
+offset_transform_enabled = true
+offset_transform_position = Vector2(0, -4)
+theme_override_font_sizes/font_size = 24
+text = "123"
+label_settings = SubResource("LabelSettings_xqneu")

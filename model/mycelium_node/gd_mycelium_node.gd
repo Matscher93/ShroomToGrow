@@ -1,10 +1,8 @@
 class_name MyceliumNode
 extends Resource
-## Mycelium node definition, tracks the number of manual and automatically bought nodes
 
 signal manual_nodes_changed(value: int)
 signal auto_nodes_changed(value: BigNumber)
-
 
 @export var name: String = ""
 @export var desc: String = ""

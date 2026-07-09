@@ -10,8 +10,11 @@ var player_data: PlayerData
 var player_vm: PlayerViewModel
 var mycelium_node_data: Array[MyceliumData]
 var mycelium_node_vms: Array[MyceliumNodeViewModel]
-var tick_timer: Timer
 var nodes := load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes
+var screens_data: ScreensData
+var screens_vm: ScreensViewModel
+var screens := load("res://data/screens/all_screens.tres") as Screens
+var tick_timer: Timer
 
 func _ready() -> void:
 	player_data = PlayerData.new()
@@ -21,9 +24,10 @@ func _ready() -> void:
 		var mycelium_data = MyceliumData.new(player_data, node)
 		mycelium_node_data.append(mycelium_data)
 		mycelium_node_vms.append(MyceliumNodeViewModel.new(player_data, mycelium_data))
-	# Demo: passive income tick. In a real project this lives in a
-	# dedicated system, but it shows the flow: mutate MODEL only,
-	# and the VM/View update through signals automatically.
+
+	screens_data = ScreensData.new(screens.screens, screens.initial_screen)
+	screens_vm = ScreensViewModel.new(screens_data)
+
 	tick_timer = Timer.new()
 	tick_timer.wait_time = 10.0
 	tick_timer.autostart = true

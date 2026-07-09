@@ -92,7 +92,7 @@ font_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_oi3wt"]
 
-[node name="mycelium_node" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "auto_nodes", "manual_nodes", "level_value", "level_header", "label_node_name", "label_node_desc", "label_node_income", "label_buy_cost", "panel_buy_node", "level_icon")]
+[node name="mycelium_node" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "owned_nodes", "manual_nodes", "level_value", "level_header", "label_node_name", "label_node_desc", "label_node_income", "label_buy_cost", "panel_buy_node", "level_icon")]
 material = SubResource("ShaderMaterial_53xj8")
 custom_minimum_size = Vector2(250, 50)
 offset_right = 40.0
@@ -101,7 +101,7 @@ mouse_filter = 1
 script = ExtResource("1_dvfrc")
 ColorParam = "box_color"
 upgrade_button = NodePath("MarginContainer/VBoxContainer/HBoxContainer/panel_buy_node/upgrade_button")
-auto_nodes = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBox_auto/lbl_auto_nodes")
+owned_nodes = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBox_owned/lbl_owned_nodes")
 manual_nodes = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBox_manual/lbl_manual_nodes")
 level_value = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon/lbl_level_value")
 level_header = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon/lbl_level_header")
@@ -187,21 +187,21 @@ label_settings = SubResource("LabelSettings_o2fsh")
 layout_mode = 2
 label_settings = SubResource("LabelSettings_3usp5")
 
-[node name="VBox_auto" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=903059371]
+[node name="VBox_owned" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=903059371]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="lbl_auto_nodes" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBox_auto" unique_id=409158028]
+[node name="lbl_owned_nodes" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBox_owned" unique_id=409158028]
 propagate_maximum_size = true
 layout_mode = 2
 text = "1"
 label_settings = SubResource("LabelSettings_7duim")
 horizontal_alignment = 2
 
-[node name="lbl_auto_footer" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBox_auto" unique_id=162014871]
+[node name="lbl_owneds_footer" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBox_owned" unique_id=162014871]
 propagate_maximum_size = true
 layout_mode = 2
-text = "auto"
+text = "OWNED"
 label_settings = SubResource("LabelSettings_7yqcm")
 horizontal_alignment = 2
 uppercase = true
