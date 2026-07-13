@@ -18,3 +18,4 @@ layout_mode = 2
 text = "SYMBIOSIS!!!!"
 label_settings = SubResource("LabelSettings_lxikg")
 horizontal_alignment = 1
+autowrap_mode = 1

@@ -2,6 +2,7 @@
 
 [ext_resource type="Shader" uid="uid://bmwr1at6g1bwr" path="res://view/main/sh_main_background.gdshader" id="1_453mu"]
 [ext_resource type="PackedScene" uid="uid://nr25u3j0myxi" path="res://view/resource_pill/sc_resource_pill.tscn" id="1_cshku"]
+[ext_resource type="Script" uid="uid://b45v4o3xbe61m" path="res://view/main/gd_main_content_container.gd" id="2_7pmop"]
 [ext_resource type="PackedScene" uid="uid://2s8hpumsg15" path="res://view/tick_progress/sc_tick_progress.tscn" id="5_7pmop"]
 [ext_resource type="PackedScene" uid="uid://dd8g1hdbxpy74" path="res://view/main/sc_game_screens.tscn" id="5_b26h7"]
 
@@ -32,7 +33,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="." unique_id=143694709]
+[node name="content_container" type="MarginContainer" parent="." unique_id=143694709]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -43,19 +44,27 @@ theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
+script = ExtResource("2_7pmop")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1100279077]
+[node name="margin" type="MarginContainer" parent="content_container" unique_id=1042597311]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="content_container/margin" unique_id=1100279077]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1060171763]
+[node name="HBoxContainer" type="HBoxContainer" parent="content_container/margin/VBoxContainer" unique_id=1060171763]
 layout_mode = 2
 
-[node name="Nutrients" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=419686004 instance=ExtResource("1_cshku")]
+[node name="Nutrients" parent="content_container/margin/VBoxContainer/HBoxContainer" unique_id=419686004 instance=ExtResource("1_cshku")]
 layout_mode = 2
 
-[node name="tick_progress" parent="MarginContainer/VBoxContainer" unique_id=655712839 instance=ExtResource("5_7pmop")]
+[node name="tick_progress" parent="content_container/margin/VBoxContainer" unique_id=655712839 instance=ExtResource("5_7pmop")]
 layout_mode = 2
 
-[node name="game_screens" parent="MarginContainer/VBoxContainer" unique_id=535792977 instance=ExtResource("5_b26h7")]
+[node name="game_screens" parent="content_container/margin/VBoxContainer" unique_id=535792977 instance=ExtResource("5_b26h7")]
 layout_mode = 2
 size_flags_vertical = 3
