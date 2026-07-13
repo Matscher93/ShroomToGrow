@@ -1,0 +1,69 @@
+[gd_scene format=3 uid="uid://o8nmxsdasvvn"]
+
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="1_eqbyr"]
+[ext_resource type="Shader" uid="uid://cndkaol5bn13t" path="res://view/icons/sh_water_icon.gdshader" id="2_uwptj"]
+[ext_resource type="Shader" uid="uid://c375w8lclv4gy" path="res://view/icons/sh_biomass_icon.gdshader" id="3_vdl5b"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_eqbyr"]
+
+[sub_resource type="Shader" id="Shader_5tulh"]
+code = "shader_type canvas_item;
+
+#include \"res://shaders/icons/shi_nutrient_icon.gdshaderinc\"
+
+uniform float icon_scale = 1.0;
+
+void fragment() {
+	COLOR = nutrient_icon(UV, icon_scale);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cwuqh"]
+shader = SubResource("Shader_5tulh")
+shader_parameter/icon_scale = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_w73ta"]
+shader = ExtResource("2_uwptj")
+shader_parameter/icon_scale = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_wuyjm"]
+shader = ExtResource("3_vdl5b")
+shader_parameter/icon_scale = 1.0
+
+[node name="offline_income" type="PanelContainer" unique_id=1005754687]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_eqbyr")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=120627609]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=869888238]
+layout_mode = 2
+
+[node name="ColorRect" type="ColorRect" parent="MarginContainer/VBoxContainer" unique_id=824679612]
+material = SubResource("ShaderMaterial_cwuqh")
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+script = ExtResource("1_eqbyr")
+
+[node name="ColorRect2" type="ColorRect" parent="MarginContainer/VBoxContainer" unique_id=279914751]
+material = SubResource("ShaderMaterial_w73ta")
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+script = ExtResource("1_eqbyr")
+
+[node name="ColorRect3" type="ColorRect" parent="MarginContainer/VBoxContainer" unique_id=1528834632]
+material = SubResource("ShaderMaterial_wuyjm")
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+script = ExtResource("1_eqbyr")

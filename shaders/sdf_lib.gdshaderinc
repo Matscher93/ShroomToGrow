@@ -81,7 +81,19 @@ float SDF_LineSegment(
 	float distanceAlongLine = clamp(dot(p1Top2, p1ToPosition) / dot2(p1Top2), 0.0, 1.0);
 	return length(p1ToPosition - distanceAlongLine * p1Top2) - thickness;
 }
- 
+
+float SDF_UnevenCapsule(const vec2 position, const float r1, const float r2, const float h)
+{
+	vec2 p = position;
+	p.x = abs(p.x);
+	float b = (r1-r2)/h;
+	float a = sqrt(1.0-b*b);
+	float k = dot(p, vec2(-b, a));
+	if( k < 0.0) return length(p) - r1;
+	if( k > a*h) return length(p-vec2(0.0,h)) - r2;
+	return dot(p, vec2(a,b)) - r1;
+}
+
 float SDF_SlantedCapsule(
 	const vec2 position,
 	const vec2 point1,

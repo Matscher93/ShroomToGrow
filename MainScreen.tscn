@@ -3,6 +3,8 @@
 [ext_resource type="Shader" uid="uid://bmwr1at6g1bwr" path="res://view/main/sh_main_background.gdshader" id="1_453mu"]
 [ext_resource type="PackedScene" uid="uid://nr25u3j0myxi" path="res://view/resource_pill/sc_resource_pill.tscn" id="1_cshku"]
 [ext_resource type="Script" uid="uid://b45v4o3xbe61m" path="res://view/main/gd_main_content_container.gd" id="2_7pmop"]
+[ext_resource type="Shader" uid="uid://djv435mgle2ct" path="res://view/main/sh_firefiles.gdshader" id="2_a8wb5"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="3_6maps"]
 [ext_resource type="PackedScene" uid="uid://2s8hpumsg15" path="res://view/tick_progress/sc_tick_progress.tscn" id="5_7pmop"]
 [ext_resource type="PackedScene" uid="uid://dd8g1hdbxpy74" path="res://view/main/sc_game_screens.tscn" id="5_b26h7"]
 
@@ -12,6 +14,11 @@ shader_parameter/background_color = Color(0.02745098, 0.050980393, 0.039215688, 
 shader_parameter/highlight_color = Color(0.08627451, 0.15294118, 0.11764706, 1)
 shader_parameter/highlight_offset = Vector2(0, 1)
 shader_parameter/highlight_radius = 0.5
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lxikg"]
+shader = ExtResource("2_a8wb5")
+shader_parameter/rect_size = Vector2(700, 1000)
+shader_parameter/box_color = Color(0, 1, 0.9490196, 1)
 
 [node name="Control" type="Control" unique_id=1135092363]
 layout_mode = 3
@@ -32,6 +39,16 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="ColorRect2" type="ColorRect" parent="." unique_id=1757825337]
+material = SubResource("ShaderMaterial_lxikg")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_6maps")
 
 [node name="content_container" type="MarginContainer" parent="." unique_id=143694709]
 layout_mode = 1
