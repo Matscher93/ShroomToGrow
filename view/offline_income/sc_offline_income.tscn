@@ -1,10 +1,24 @@
 [gd_scene format=3 uid="uid://o8nmxsdasvvn"]
 
+[ext_resource type="Shader" uid="uid://bmwr1at6g1bwr" path="res://view/main/sh_main_background.gdshader" id="1_5tulh"]
 [ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="1_eqbyr"]
 [ext_resource type="Shader" uid="uid://cndkaol5bn13t" path="res://view/icons/sh_water_icon.gdshader" id="2_uwptj"]
+[ext_resource type="Shader" uid="uid://djv435mgle2ct" path="res://view/main/sh_firefiles.gdshader" id="2_w73ta"]
 [ext_resource type="Shader" uid="uid://c375w8lclv4gy" path="res://view/icons/sh_biomass_icon.gdshader" id="3_vdl5b"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_eqbyr"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tmupt"]
+shader = ExtResource("1_5tulh")
+shader_parameter/background_color = Color(0.02745098, 0.050980393, 0.039215688, 1)
+shader_parameter/highlight_color = Color(0.08627451, 0.15294118, 0.11764706, 1)
+shader_parameter/highlight_offset = Vector2(0, 1)
+shader_parameter/highlight_radius = 0.5
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_wun4e"]
+shader = ExtResource("2_w73ta")
+shader_parameter/rect_size = Vector2(700, 1000)
+shader_parameter/box_color = Color(0, 1, 0.9490196, 1)
 
 [sub_resource type="Shader" id="Shader_5tulh"]
 code = "shader_type canvas_item;
@@ -37,6 +51,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxEmpty_eqbyr")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=2095083930]
+texture_filter = 1
+material = SubResource("ShaderMaterial_tmupt")
+layout_mode = 2
+
+[node name="ColorRect2" type="ColorRect" parent="." unique_id=1418049602]
+material = SubResource("ShaderMaterial_wun4e")
+layout_mode = 2
+script = ExtResource("1_eqbyr")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=120627609]
 layout_mode = 2

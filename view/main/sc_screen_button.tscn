@@ -7,8 +7,8 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_2oahe"]
 resource_local_to_scene = true
 shader = ExtResource("1_ysyw5")
-shader_parameter/rect_size = Vector2(111, 34)
-shader_parameter/box_color = Color(0, 1, 0.9490196, 1)
+shader_parameter/rect_size = Vector2(92, 40)
+shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 12.0
 shader_parameter/border_thickness = 1.0
@@ -27,6 +27,7 @@ shader_parameter/border_alpha = 0.5
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ysgxa"]
 
 [node name="screen_button" type="PanelContainer" unique_id=436266803 node_paths=PackedStringArray("_button")]
+modulate = Color(0.74509805, 0.74509805, 0.74509805, 1)
 material = SubResource("ShaderMaterial_2oahe")
 offset_right = 40.0
 offset_bottom = 40.0
