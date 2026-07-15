@@ -14,6 +14,8 @@ var nodes := load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as My
 var screens_data: ScreensData
 var screens_vm: ScreensViewModel
 var screens := load("res://data/screens/all_screens.tres") as Screens
+
+var offline_income_vm: OfflineIncomeViewModel
 var tick_timer: Timer
 
 func _ready() -> void:
@@ -28,6 +30,8 @@ func _ready() -> void:
 	screens_data = ScreensData.new(screens.screens, screens.initial_screen)
 	screens_vm = ScreensViewModel.new(screens_data)
 
+	offline_income_vm = OfflineIncomeViewModel.new()
+	
 	tick_timer = Timer.new()
 	tick_timer.wait_time = 10.0
 	tick_timer.autostart = true

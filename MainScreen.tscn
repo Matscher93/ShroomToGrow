@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="3_6maps"]
 [ext_resource type="PackedScene" uid="uid://2s8hpumsg15" path="res://view/tick_progress/sc_tick_progress.tscn" id="5_7pmop"]
 [ext_resource type="PackedScene" uid="uid://dd8g1hdbxpy74" path="res://view/main/sc_game_screens.tscn" id="5_b26h7"]
+[ext_resource type="PackedScene" uid="uid://o8nmxsdasvvn" path="res://view/offline_income/sc_offline_income.tscn" id="8_6maps"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vf2pt"]
 shader = ExtResource("1_453mu")
@@ -85,3 +86,6 @@ layout_mode = 2
 [node name="game_screens" parent="content_container/margin/VBoxContainer" unique_id=535792977 instance=ExtResource("5_b26h7")]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="offline_income" parent="content_container" unique_id=1005754687 instance=ExtResource("8_6maps")]
+layout_mode = 2

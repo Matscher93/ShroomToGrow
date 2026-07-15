@@ -7,6 +7,9 @@ const BACKUP_PATH := "user://save.bak.json"
 const TMP_PATH    := "user://save.tmp.json"
 const SAVE_VERSION := 1
 const AUTOSAVE_INTERVAL := 15.0  # seconds
+const MIN_OFFLINE_SECONDS := 60.0
+
+var last_savegame : Dictionary
 
 func _ready() -> void:
 	# We want to run our own logic before the window closes.
@@ -31,7 +34,9 @@ func _notification(what: int) -> void:
 		NOTIFICATION_APPLICATION_PAUSED, \
 		NOTIFICATION_APPLICATION_FOCUS_OUT: # mobile: may get killed after this
 			save_game()
-
+		NOTIFICATION_APPLICATION_RESUMED, \
+		NOTIFICATION_APPLICATION_FOCUS_IN:
+			_apply_offline_progress(float(last_savegame.get("saved_at", 0.0)))
 # ---------------------------------------------------------------- save
 
 func save_game() -> void:
@@ -57,6 +62,8 @@ func save_game() -> void:
 
 	# 3. Replace the real file with the temp (overwrites the existing file).
 	DirAccess.rename_absolute(TMP_PATH, SAVE_PATH)
+	
+	last_savegame = data
 
 # ---------------------------------------------------------------- load
 
@@ -83,9 +90,29 @@ func _apply_offline_progress(saved_at: float) -> void:
 	if saved_at <= 0.0:
 		return
 	var elapsed := Time.get_unix_time_from_system() - saved_at
-	if elapsed <= 0.0:
+	if elapsed <= MIN_OFFLINE_SECONDS:
 		return
-	# e.g. Game.grant_offline(elapsed) — production_per_sec * elapsed, etc.
+	
+	var save_game_snapshots: Array[Dictionary]
+	save_game_snapshots.append(_collect_data())
+	
+	var snapshot_interval: int = floor((elapsed/App.tick_timer.wait_time)/100)
+	
+	var tick_counter = 0
+	var snapshot_tick_counter = 0
+	while elapsed > 0.0:
+		elapsed -= App.tick_timer.wait_time
+		App.handle_tick()
+		tick_counter += 1
+		if snapshot_tick_counter >= snapshot_interval:
+			save_game_snapshots.append(_collect_data())
+			snapshot_tick_counter = 0
+		else:
+			snapshot_tick_counter += 1
+		
+	App.offline_income_vm.set_save_data(save_game_snapshots, \
+		tick_counter, Time.get_unix_time_from_system() - saved_at)
+	save_game()
 
 # ---------------------------------------------------------------- hooks
 

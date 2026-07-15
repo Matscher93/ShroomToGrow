@@ -1,0 +1,67 @@
+[gd_scene format=3 uid="uid://y1nkfda6pvis"]
+
+[ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="1_ehft0"]
+[ext_resource type="Script" uid="uid://dbcmg04rpjkfn" path="res://view/offline_income/gd_collect_offline_income_button.gd" id="2_ehft0"]
+[ext_resource type="FontFile" uid="uid://bfcncplwx4kw5" path="res://fonts/Space_Grotesk/SpaceGrotesk-Bold.ttf" id="3_ctoay"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2oahe"]
+resource_local_to_scene = true
+shader = ExtResource("1_ehft0")
+shader_parameter/rect_size = Vector2(128, 60)
+shader_parameter/box_color = Color(0, 1, 0.9490196, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 18.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 1.0
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ta4mn"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0cvsm"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_rgfid"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_u3nse"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ysgxa"]
+
+[node name="offline_income_button" type="PanelContainer" unique_id=436266803 node_paths=PackedStringArray("_button")]
+modulate = Color(0.74509805, 0.74509805, 0.74509805, 1)
+material = SubResource("ShaderMaterial_2oahe")
+custom_minimum_size = Vector2(0, 60)
+offset_right = 40.0
+offset_bottom = 40.0
+size_flags_horizontal = 3
+script = ExtResource("2_ehft0")
+ColorParam = "box_color"
+_button = NodePath("MarginContainer/button")
+button_color = Color(0, 1, 0.9490196, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1573346673]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="button" type="Button" parent="MarginContainer" unique_id=1659484812]
+custom_minimum_size = Vector2(0, 24)
+propagate_maximum_size = true
+layout_mode = 2
+mouse_filter = 1
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_pressed_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("3_ctoay")
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxEmpty_ta4mn")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_0cvsm")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_rgfid")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_u3nse")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_ysgxa")
+text = "Collect harvest
+
+"
