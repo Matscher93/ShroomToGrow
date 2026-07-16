@@ -1,20 +1,14 @@
 @tool
 extends MarginContainer
 
-@export var ItemColor : Color :
+@export var currency_def: CurrencyDef:
 	set(value):
-		ItemColor = value
-		_update_colors()
-		
-@export var ValueColor : Color :
-	set(value):
-		ValueColor = value
-		_update_colors()
-		
-@export var LabelColor : Color :
-	set(value):
-		LabelColor = value
-		_update_colors()
+		if currency_def:
+			currency_def.changed.disconnect(_update_visuals)
+		currency_def = value
+		if currency_def:
+			currency_def.changed.connect(_update_visuals)
+		_update_visuals()
 		
 @export var image_background: ColorRect
 @export var image_header: ColorRect
@@ -38,13 +32,17 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	pass
 
+func _update_visuals():
+	_update_colors()
+	label_title.text = currency_def.currency_name
+	
 func _update_colors():
 	var child := get_node_or_null("ColorRect")
 	if is_instance_valid(child):
-		image_background._set_color(ItemColor)
-		image_header._set_color(ItemColor)
-		label_title.label_settings.font_color = LabelColor
-		label_amount.label_settings.font_color = ValueColor
+		image_background._set_color(currency_def.main_color)
+		image_header._set_color(currency_def.main_color)
+		label_title.label_settings.font_color = currency_def.label_color
+		label_amount.label_settings.font_color = currency_def.currency_color
 
 func bind(vm: PlayerViewModel) -> void:
 	if _vm:

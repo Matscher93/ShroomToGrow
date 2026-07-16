@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CurrencyDef" format=3 uid="uid://cu7pu8ny7a7lb"]
+
+[ext_resource type="Script" uid="uid://d285gd4vuvyo4" path="res://model/currencies/gd_currency_def.gd" id="1_2hndh"]
+
+[resource]
+script = ExtResource("1_2hndh")
+currency_name = "Nutrients"
+main_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
+label_color = Color(0.8039216, 0.72156864, 0.49803922, 1)
+currency_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
+metadata/_custom_type_script = "uid://d285gd4vuvyo4"

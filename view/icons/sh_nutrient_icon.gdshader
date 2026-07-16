@@ -5,5 +5,5 @@ shader_type canvas_item;
 uniform float icon_scale = 1.0;
 
 void fragment() {
-	COLOR = nutrient_icon(UV, icon_scale);
+	COLOR = vec4(nutrient_icon(UV, icon_scale));
 }

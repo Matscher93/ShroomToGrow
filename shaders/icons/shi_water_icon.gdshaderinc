@@ -2,9 +2,9 @@
 #include "res://shaders/sdf_operations.gdshaderinc"
 #include "res://shaders/sdf_spatial_manip.gdshaderinc"
 
-vec4 water_icon(vec2 UVspace, float icon_scale)
+float water_icon(vec2 UVspace, float icon_scale)
 {
-	vec2 p = SpatialManipulation_CenterUVs(UVspace)*icon_scale;
+	vec2 p = SpatialManipulation_CenterUVs(UVspace)/icon_scale;
 	float r1 = 0.01;
 	float r2 = 0.5;
 	float h = 1.0;
@@ -18,5 +18,5 @@ vec4 water_icon(vec2 UVspace, float icon_scale)
 	
 	float shape = Operation_HardShape(combined_sdf);
 	
-	return vec4(1.0, 1.0, 1.0, shape);
+	return shape;
 }

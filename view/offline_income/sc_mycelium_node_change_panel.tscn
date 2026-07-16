@@ -1,0 +1,106 @@
+[gd_scene format=3 uid="uid://c8l0gpyp3ccv4"]
+
+[ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="1_ojqnj"]
+[ext_resource type="Script" uid="uid://bgcmgm6ocj1p4" path="res://view/offline_income/gd_mycelium_node_change_panel.gd" id="2_xnack"]
+[ext_resource type="Shader" uid="uid://depcdiis4o4p1" path="res://view/mycelium_node/sh_level_background.gdshader" id="3_634ch"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="4_sr1at"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="5_t15tc"]
+[ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="7_20ehd"]
+[ext_resource type="FontFile" uid="uid://bfk21kf7a5r3w" path="res://fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf" id="8_8sciu"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
+resource_local_to_scene = true
+shader = ExtResource("1_ojqnj")
+shader_parameter/rect_size = Vector2(229, 46)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 14.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.2
+shader_parameter/border_alpha = 0.5
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_w86j4"]
+resource_local_to_scene = true
+shader = ExtResource("3_634ch")
+shader_parameter/rect_size = Vector2(24, 24)
+shader_parameter/box_color = Color(0.70865566, 0.4987288, 0.14041069, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 8.0
+shader_parameter/highlight_radius = 0.7
+shader_parameter/higlight_offset = Vector2(0, 0.5)
+
+[sub_resource type="LabelSettings" id="LabelSettings_an5pq"]
+resource_local_to_scene = true
+font = ExtResource("5_t15tc")
+
+[sub_resource type="LabelSettings" id="LabelSettings_dp1u1"]
+font = ExtResource("7_20ehd")
+
+[sub_resource type="LabelSettings" id="LabelSettings_o2fsh"]
+line_spacing = 0.0
+font = ExtResource("8_8sciu")
+
+[node name="mycelium_node" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("level_value", "label_node_name", "label_node_change", "level_icon")]
+material = SubResource("ShaderMaterial_53xj8")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -471.0
+offset_bottom = -956.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("2_xnack")
+ColorParam = "box_color"
+level_value = NodePath("MarginContainer/HBoxContainer2/level_icon/lbl_level_value")
+label_node_name = NodePath("MarginContainer/HBoxContainer2/lbl_node_name")
+label_node_change = NodePath("MarginContainer/HBoxContainer2/lbl_node_change")
+level_icon = NodePath("MarginContainer/HBoxContainer2/level_icon")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=394518787]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 11
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 11
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer" unique_id=114689176]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 10
+
+[node name="level_icon" type="ColorRect" parent="MarginContainer/HBoxContainer2" unique_id=1513601963]
+material = SubResource("ShaderMaterial_w86j4")
+custom_minimum_size = Vector2(24, 24)
+propagate_maximum_size = true
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+script = ExtResource("4_sr1at")
+ColorParam = "box_color"
+
+[node name="lbl_level_value" type="Label" parent="MarginContainer/HBoxContainer2/level_icon" unique_id=1224558222]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 2.0
+offset_bottom = 2.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "1"
+label_settings = SubResource("LabelSettings_an5pq")
+horizontal_alignment = 1
+
+[node name="lbl_node_name" type="Label" parent="MarginContainer/HBoxContainer2" unique_id=1417508820]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "NodeName"
+label_settings = SubResource("LabelSettings_dp1u1")
+
+[node name="lbl_node_change" type="Label" parent="MarginContainer/HBoxContainer2" unique_id=923029381]
+layout_mode = 2
+text = "NodeName"
+label_settings = SubResource("LabelSettings_o2fsh")

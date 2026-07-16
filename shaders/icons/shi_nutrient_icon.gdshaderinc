@@ -2,9 +2,9 @@
 #include "res://shaders/sdf_operations.gdshaderinc"
 #include "res://shaders/sdf_spatial_manip.gdshaderinc"
 
-vec4 nutrient_icon(vec2 UVspace, float scale)
+float nutrient_icon(vec2 UVspace, float scale)
 {
-	vec2 p = SpatialManipulation_CenterUVs(UVspace)*scale;
+	vec2 p = SpatialManipulation_CenterUVs(UVspace)/scale;
 	
 	float circle_radius = 0.4;
 	float center_offset = 0.5;
@@ -17,5 +17,5 @@ vec4 nutrient_icon(vec2 UVspace, float scale)
 	
 	float shape = Operation_HardShape(combined_sdf);
 	
-	return vec4(1.0, 1.0, 1.0, shape);
+	return shape;
 }

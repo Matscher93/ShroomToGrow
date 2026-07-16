@@ -1,0 +1,88 @@
+[gd_scene format=3 uid="uid://db571nler60or"]
+
+[ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="1_7aoqu"]
+[ext_resource type="Script" uid="uid://dffjgke4s85om" path="res://view/offline_income/gd_currency_panel.gd" id="2_qoix3"]
+[ext_resource type="Resource" uid="uid://cu7pu8ny7a7lb" path="res://data/currencies/res_nutrients_def.tres" id="3_qoix3"]
+[ext_resource type="Shader" uid="uid://b1heymxykaps" path="res://view/offline_income/sh_nutrient_background.gdshader" id="3_yd3cl"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="4_xb7yw"]
+[ext_resource type="FontFile" uid="uid://bfk21kf7a5r3w" path="res://fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf" id="5_wm6ef"]
+[ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="6_yd3cl"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_161fk"]
+shader = ExtResource("1_7aoqu")
+shader_parameter/rect_size = Vector2(0, 40)
+shader_parameter/box_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 24.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.1
+shader_parameter/border_alpha = 0.3
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sy85a"]
+shader = ExtResource("3_yd3cl")
+shader_parameter/rect_size = Vector2(48, 48)
+shader_parameter/box_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 14.0
+shader_parameter/highlight_radius = 1.0
+shader_parameter/higlight_offset = Vector2(0, 0)
+shader_parameter/icon_id = 0
+shader_parameter/icon_scale = 0.5
+
+[sub_resource type="LabelSettings" id="LabelSettings_ox1kf"]
+font = ExtResource("6_yd3cl")
+
+[sub_resource type="LabelSettings" id="LabelSettings_i58tx"]
+font = ExtResource("5_wm6ef")
+
+[node name="CurrencyPanel" type="PanelContainer" unique_id=1541256804 node_paths=PackedStringArray("currency_name", "currency_change", "icon_rect")]
+material = SubResource("ShaderMaterial_161fk")
+custom_minimum_size = Vector2(0, 40)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -426.0
+offset_bottom = -920.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 1
+script = ExtResource("2_qoix3")
+currency_name = NodePath("MarginContainer/HBoxContainer/lable_currency_name")
+currency_change = NodePath("MarginContainer/HBoxContainer/label_currency_change")
+icon_rect = NodePath("MarginContainer/HBoxContainer/icon_rect")
+ColorParam = "box_color"
+currency_def = ExtResource("3_qoix3")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=681779799]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=153816642]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 16
+
+[node name="icon_rect" type="ColorRect" parent="MarginContainer/HBoxContainer" unique_id=257001541]
+material = SubResource("ShaderMaterial_sy85a")
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+mouse_filter = 1
+script = ExtResource("4_xb7yw")
+ColorParam = "box_color"
+
+[node name="lable_currency_name" type="Label" parent="MarginContainer/HBoxContainer" unique_id=1997675994]
+layout_mode = 2
+text = "NUTRIENTS"
+label_settings = SubResource("LabelSettings_ox1kf")
+
+[node name="label_currency_change" type="Label" parent="MarginContainer/HBoxContainer" unique_id=424013485]
+layout_mode = 2
+text = "1.3k"
+label_settings = SubResource("LabelSettings_i58tx")

@@ -5,5 +5,5 @@ shader_type canvas_item;
 uniform float icon_scale = 1.0;
 
 void fragment() {
-	COLOR = biomass_icon(UV, icon_scale);
+	COLOR = vec4(biomass_icon(UV, icon_scale));
 }

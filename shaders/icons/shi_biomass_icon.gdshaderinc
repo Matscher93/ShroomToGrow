@@ -2,9 +2,9 @@
 #include "res://shaders/sdf_operations.gdshaderinc"
 #include "res://shaders/sdf_spatial_manip.gdshaderinc"
 
-vec4 biomass_icon(vec2 UVspace, float scale)
+float biomass_icon(vec2 UVspace, float scale)
 {
-	vec2 p = SpatialManipulation_CenterUVs(UVspace) * scale;
+	vec2 p = SpatialManipulation_CenterUVs(UVspace)/scale;
 	
 	float hexagon_radius = 0.7;
 	float circle_radius = 0.25;
@@ -17,5 +17,5 @@ vec4 biomass_icon(vec2 UVspace, float scale)
 	
 	float shape = Operation_HardShape(combined_sdf);
 	
-	return vec4(1.0, 1.0, 1.0, shape);
+	return shape;
 }

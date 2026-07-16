@@ -10,7 +10,9 @@
 [ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="8_wun4e"]
 [ext_resource type="Script" uid="uid://p7c3cm6dxbjy" path="res://view/offline_income/general_panel_background.gd" id="9_78cc6"]
 [ext_resource type="PackedScene" uid="uid://y1nkfda6pvis" path="res://view/offline_income/sc_collect_offline_income_button.tscn" id="10_78cc6"]
+[ext_resource type="PackedScene" uid="uid://db571nler60or" path="res://view/offline_income/sc_currency_panel.tscn" id="10_puft7"]
 [ext_resource type="Shader" uid="uid://bldghbtldukkw" path="res://view/offline_income/sh_background_offline_income.gdshader" id="11_373pk"]
+[ext_resource type="PackedScene" uid="uid://c8l0gpyp3ccv4" path="res://view/offline_income/sc_mycelium_node_change_panel.tscn" id="11_txtru"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_eqbyr"]
 
@@ -36,7 +38,7 @@ font_size = 20
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vf2pt"]
 shader = ExtResource("8_wun4e")
-shader_parameter/rect_size = Vector2(660, 40)
+shader_parameter/rect_size = Vector2(650, 40)
 shader_parameter/box_color = Color(0, 1, 0.9490196, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 18.0
@@ -60,7 +62,18 @@ font = ExtResource("6_tmupt")
 [sub_resource type="LabelSettings" id="LabelSettings_1fw70"]
 font = ExtResource("6_tmupt")
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_78cc6"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ckobu"]
+shader = ExtResource("8_wun4e")
+shader_parameter/rect_size = Vector2(650, 40)
+shader_parameter/box_color = Color(0, 1, 0.9490196, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 18.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.1
+shader_parameter/border_alpha = 0.3
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_txtru"]
 resource_local_to_scene = true
 shader = ExtResource("11_373pk")
 shader_parameter/rect_size = Vector2(660, 60)
@@ -72,7 +85,7 @@ shader_parameter/additional_border_offset = 2.0
 shader_parameter/background_alpha = 1.0
 shader_parameter/border_alpha = 1.0
 
-[node name="offline_income" type="PanelContainer" unique_id=1005754687 node_paths=PackedStringArray("label_ticks", "label_time", "offline_income_button")]
+[node name="offline_income" type="PanelContainer" unique_id=1005754687 node_paths=PackedStringArray("label_ticks", "label_time", "nutrient_panel", "offline_income_button", "vbox_node_change")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -80,9 +93,12 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxEmpty_eqbyr")
 script = ExtResource("1_w73ta")
-label_ticks = NodePath("MarginContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer/label_ticks")
-label_time = NodePath("MarginContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer/lable_time")
+label_ticks = NodePath("MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/PanelContainer/MarginContainer/HBoxContainer/label_ticks")
+label_time = NodePath("MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/PanelContainer/MarginContainer/HBoxContainer/lable_time")
+nutrient_panel = NodePath("MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer/NutrientsPanel")
 offline_income_button = NodePath("MarginContainer/VBoxContainer/offline_income_button")
+vbox_node_change = NodePath("MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer2/PanelContainer2/MarginContainer/vbox_node_change")
+mycelium_node_change_item = ExtResource("11_txtru")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=2095083930]
 texture_filter = 1
@@ -123,164 +139,104 @@ label_settings = SubResource("LabelSettings_78cc6")
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer" unique_id=1804664909]
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer" unique_id=1077669388]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/ScrollContainer" unique_id=1792412658]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="VBoxContainer3" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer" unique_id=340731967]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 40
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3" unique_id=1804664909]
 material = SubResource("ShaderMaterial_vf2pt")
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 script = ExtResource("9_78cc6")
 
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainer" unique_id=329173166]
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/PanelContainer" unique_id=329173166]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_constants/margin_left = 10
+theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 10
+theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 5
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/MarginContainer" unique_id=151245085]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/PanelContainer/MarginContainer" unique_id=151245085]
 layout_mode = 2
 size_flags_vertical = 4
 
-[node name="ColorRect" type="ColorRect" parent="MarginContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer" unique_id=428460952]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer" unique_id=1716482736]
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/PanelContainer/MarginContainer/HBoxContainer" unique_id=1716482736]
 layout_mode = 2
 text = "Away for"
 label_settings = SubResource("LabelSettings_wuyjm")
 
-[node name="lable_time" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer" unique_id=286806347]
+[node name="lable_time" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/PanelContainer/MarginContainer/HBoxContainer" unique_id=286806347]
 layout_mode = 2
 text = "3h 42m"
 label_settings = SubResource("LabelSettings_tmupt")
 
-[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer" unique_id=1430824564]
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/PanelContainer/MarginContainer/HBoxContainer" unique_id=1430824564]
 custom_minimum_size = Vector2(20, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="label_ticks" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer" unique_id=1706928684]
+[node name="label_ticks" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/PanelContainer/MarginContainer/HBoxContainer" unique_id=1706928684]
 layout_mode = 2
 text = "1.3k"
 label_settings = SubResource("LabelSettings_vf2pt")
 
-[node name="Label4" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/MarginContainer/HBoxContainer" unique_id=1113279390]
+[node name="Label4" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/PanelContainer/MarginContainer/HBoxContainer" unique_id=1113279390]
 layout_mode = 2
 text = "ticks"
 label_settings = SubResource("LabelSettings_373pk")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1467826021]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3" unique_id=1467826021]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/VBoxContainer" unique_id=1721451204]
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer" unique_id=1721451204]
 layout_mode = 2
 text = "HARVESTED WHILE AWAY"
 label_settings = SubResource("LabelSettings_1fw70")
 
-[node name="PanelContainer2" type="PanelContainer" parent="MarginContainer/VBoxContainer/VBoxContainer" unique_id=2022518193]
-material = SubResource("ShaderMaterial_vf2pt")
-custom_minimum_size = Vector2(0, 40)
-layout_mode = 2
-script = ExtResource("9_78cc6")
-
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/VBoxContainer/PanelContainer2" unique_id=1945856153]
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 5
-
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/VBoxContainer/PanelContainer2/MarginContainer" unique_id=144192368]
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="ColorRect" type="ColorRect" parent="MarginContainer/VBoxContainer/VBoxContainer/PanelContainer2/MarginContainer/HBoxContainer" unique_id=109967433]
+[node name="NutrientsPanel" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer" unique_id=1541256804 instance=ExtResource("10_puft7")]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/VBoxContainer/PanelContainer2/MarginContainer/HBoxContainer" unique_id=493854980]
-layout_mode = 2
-text = "Away for"
-label_settings = SubResource("LabelSettings_wuyjm")
-
-[node name="lable_time" type="Label" parent="MarginContainer/VBoxContainer/VBoxContainer/PanelContainer2/MarginContainer/HBoxContainer" unique_id=376498158]
-layout_mode = 2
-text = "3h 42m"
-label_settings = SubResource("LabelSettings_tmupt")
-
-[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/VBoxContainer/PanelContainer2/MarginContainer/HBoxContainer" unique_id=114849584]
-custom_minimum_size = Vector2(20, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="label_ticks" type="Label" parent="MarginContainer/VBoxContainer/VBoxContainer/PanelContainer2/MarginContainer/HBoxContainer" unique_id=1874068916]
-layout_mode = 2
-text = "1.3k"
-label_settings = SubResource("LabelSettings_vf2pt")
-
-[node name="Label4" type="Label" parent="MarginContainer/VBoxContainer/VBoxContainer/PanelContainer2/MarginContainer/HBoxContainer" unique_id=1343547783]
-layout_mode = 2
-text = "ticks"
-label_settings = SubResource("LabelSettings_373pk")
-
-[node name="VBoxContainer2" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1902434239]
+[node name="VBoxContainer2" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3" unique_id=1902434239]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/VBoxContainer2" unique_id=999834355]
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer2" unique_id=999834355]
 layout_mode = 2
 text = "COLONY SPREAD"
 label_settings = SubResource("LabelSettings_1fw70")
 
-[node name="PanelContainer2" type="PanelContainer" parent="MarginContainer/VBoxContainer/VBoxContainer2" unique_id=941362941]
-material = SubResource("ShaderMaterial_vf2pt")
+[node name="PanelContainer2" type="PanelContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer2" unique_id=941362941]
+material = SubResource("ShaderMaterial_ckobu")
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+mouse_filter = 1
 script = ExtResource("9_78cc6")
 
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/VBoxContainer2/PanelContainer2" unique_id=184523483]
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer2/PanelContainer2" unique_id=184523483]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/VBoxContainer2/PanelContainer2/MarginContainer" unique_id=384373940]
+[node name="vbox_node_change" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer2/PanelContainer2/MarginContainer" unique_id=1095045557]
 layout_mode = 2
-size_flags_vertical = 4
-
-[node name="ColorRect" type="ColorRect" parent="MarginContainer/VBoxContainer/VBoxContainer2/PanelContainer2/MarginContainer/HBoxContainer" unique_id=1624823055]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/VBoxContainer2/PanelContainer2/MarginContainer/HBoxContainer" unique_id=393261545]
-layout_mode = 2
-text = "Away for"
-label_settings = SubResource("LabelSettings_wuyjm")
-
-[node name="lable_time" type="Label" parent="MarginContainer/VBoxContainer/VBoxContainer2/PanelContainer2/MarginContainer/HBoxContainer" unique_id=390210424]
-layout_mode = 2
-text = "3h 42m"
-label_settings = SubResource("LabelSettings_tmupt")
-
-[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/VBoxContainer2/PanelContainer2/MarginContainer/HBoxContainer" unique_id=138703999]
-custom_minimum_size = Vector2(20, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="label_ticks" type="Label" parent="MarginContainer/VBoxContainer/VBoxContainer2/PanelContainer2/MarginContainer/HBoxContainer" unique_id=1587931303]
-layout_mode = 2
-text = "1.3k"
-label_settings = SubResource("LabelSettings_vf2pt")
-
-[node name="Label4" type="Label" parent="MarginContainer/VBoxContainer/VBoxContainer2/PanelContainer2/MarginContainer/HBoxContainer" unique_id=1673204717]
-layout_mode = 2
-text = "ticks"
-label_settings = SubResource("LabelSettings_373pk")
-
-[node name="Control" type="Control" parent="MarginContainer/VBoxContainer" unique_id=466284473]
-layout_mode = 2
-size_flags_vertical = 3
+theme_override_constants/separation = 10
 
 [node name="offline_income_button" parent="MarginContainer/VBoxContainer" unique_id=436266803 instance=ExtResource("10_78cc6")]
-material = SubResource("ShaderMaterial_78cc6")
+material = SubResource("ShaderMaterial_txtru")
 layout_mode = 2
