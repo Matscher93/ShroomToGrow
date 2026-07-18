@@ -40,6 +40,14 @@ func effect_amount(id: StringName, ctx: ResolveContext) -> float:
 		mag *= e.dependency.evaluate(ctx)
 	return mag
 
+## Combines several upgrades' own effects into one overall % bonus, assuming
+## each contributes multiplicatively (op MORE) — e.g. potency * synergy.
+func combined_bonus(ids: Array, ctx: ResolveContext) -> float:
+	var total := 1.0
+	for id in ids:
+		total *= (1.0 + effect_amount(id, ctx))
+	return total - 1.0
+
 func cost(id: StringName) -> float:
 	var def: UpgradeDef = _defs.get(id)
 	if def == null:

@@ -79,6 +79,8 @@ func _refresh_upgrades() -> void:
 	_refresh_upgrade_track(us, nutrients, _synergy_id,
 		label_synergy_level, label_synergy_accumulated, label_synergy_cost,
 		panel_synergy, upgrade_button_synergy)
+	var total := us.combined_bonus([_potency_id, _synergy_id], App.resolve_context)
+	label_yield.text = "+%d%%" % [int(round(total * 100.0))]
 
 func _refresh_upgrade_track(us: UpgradeSystem, nutrients: BigNumber, id: StringName,
 		lvl_label: Label, acc_label: Label, cost_label: Label,
