@@ -90,6 +90,6 @@ func _format_number(value: BigNumber) -> String:
 
 func _scaled_production() -> BigNumber:
 	var raw := _mycelium_data._node.auto_nodes.add(BigNumber.from_value(_mycelium_data._node.manual_nodes))
-	var bonus := App.upgrade_system.modify(&"node_production", 1.0, App.resolve_context,
-		[], StringName(str(_mycelium_data._node.node_id)))
-	return raw.scale(bonus)
+	var bonus := App.upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
+		App.resolve_context, [], StringName(str(_mycelium_data._node.node_id)))
+	return raw.mul(bonus)

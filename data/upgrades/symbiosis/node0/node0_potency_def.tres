@@ -1,13 +1,14 @@
 [gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://mg7v82fmtw2r"]
 
-[ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_4dm5d"]
-[ext_resource type="Resource" uid="uid://b6fb5wyv2ioc5" path="res://data/upgrades/symbiosis/node0/node0_potency_effect.tres" id="2_584ca"]
-[ext_resource type="Script" uid="uid://cvpufn4k21esd" path="res://model/upgrades/res_upgrade_def.gd" id="2_wuew2"]
+[ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_1kc0o"]
+[ext_resource type="Resource" uid="uid://b6fb5wyv2ioc5" path="res://data/upgrades/symbiosis/node0/node0_potency_effect.tres" id="2_8a63a"]
+[ext_resource type="Script" uid="uid://cvpufn4k21esd" path="res://model/upgrades/res_upgrade_def.gd" id="3_7ilnv"]
 
 [resource]
-script = ExtResource("2_wuew2")
+script = ExtResource("3_7ilnv")
 id = &"NodePotency0"
 display_name = "Mycelium Potency"
 description = "increases mycelium production by 10% each level"
-effects = Array[ExtResource("1_4dm5d")]([ExtResource("2_584ca")])
+cost_growth_exponent = 1.5
+effects = Array[ExtResource("1_1kc0o")]([ExtResource("2_8a63a")])
 metadata/_custom_type_script = "uid://cvpufn4k21esd"

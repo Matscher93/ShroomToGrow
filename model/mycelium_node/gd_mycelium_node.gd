@@ -36,3 +36,4 @@ var initial_cost: BigNumber:
 @export var color: Color
 @export var level_font_color: Color
 @export var cost_increase_per_level: float = 1.5
+@export var cost_growth_exponent: float = 1.2  # >1 makes the buy-cost curve steepen with manual_nodes

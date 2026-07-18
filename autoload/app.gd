@@ -64,8 +64,10 @@ func _load_upgrade_defs(path: String) -> Array[UpgradeDef]:
 		var full_path := path.path_join(file_name)
 		if dir.current_is_dir():
 			defs.append_array(_load_upgrade_defs(full_path))
-		elif file_name.ends_with(".tres"):
-			var res := load(full_path)
+		elif file_name.ends_with(".tres") or file_name.ends_with(".tres.remap"):
+			# Exported/packed builds list resources as "<name>.tres.remap" —
+			# the real resource lives at the path with ".remap" stripped.
+			var res := load(full_path.trim_suffix(".remap"))
 			if res is UpgradeDef:
 				defs.append(res)
 		file_name = dir.get_next()
@@ -85,9 +87,9 @@ func handle_tick() -> void:
 	for i in range(nodes.mycelium_nodes.size() -1, -1, -1):
 		var node := mycelium_node_vms[i]._mycelium_data._node
 		var node_change = node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
-		var bonus := upgrade_system.modify(&"node_production", 1.0, resolve_context,
-			[], StringName(str(node.node_id)))
-		node_change = node_change.scale(bonus)
+		var bonus := upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
+			resolve_context, [], StringName(str(node.node_id)))
+		node_change = node_change.mul(bonus)
 		if i != 0:
 			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes = \
 			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes.add(node_change)

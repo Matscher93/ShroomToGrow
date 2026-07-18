@@ -14,7 +14,7 @@ enum LevelScaling { LINEAR, COMPOUND } # per_level*level  vs  (1+per_level)^leve
 @export var dependency: ScalingSource  # extra multiplier on the effect magnitude, e.g. manual node count
 
 ## This effect's own magnitude at the given upgrade level, before dependency scaling.
-func magnitude(lvl: int) -> float:
+func magnitude(lvl: int) -> BigNumber:
 	if level_scaling == LevelScaling.COMPOUND:
-		return pow(1.0 + per_level, lvl) - 1.0
-	return per_level * lvl
+		return BigNumber.from_value(1.0 + per_level).pow_float(float(lvl)).sub(BigNumber.from_value(1.0))
+	return BigNumber.from_value(per_level).scale(float(lvl))

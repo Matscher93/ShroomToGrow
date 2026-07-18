@@ -34,9 +34,8 @@ func _ready() -> void:
 	upgrade_button_synergy.pressed.connect(_on_buy_synergy_pressed)
 	App.upgrade_system.upgrades_changed.connect(_refresh_upgrades)
 	App.player_data.nutrients_changed.connect(_on_nutrients_changed)
-	if App.mycelium_node_vms.size() > 0:
-		if App.mycelium_node_vms[node_level]:
-			bind(App.mycelium_node_vms[node_level])
+	if node_level < App.mycelium_node_vms.size():
+		bind(App.mycelium_node_vms[node_level])
 	_refresh_upgrades()
 
 func bind(vm: MyceliumNodeViewModel) -> void:
@@ -80,15 +79,15 @@ func _refresh_upgrades() -> void:
 		label_synergy_level, label_synergy_accumulated, label_synergy_cost,
 		panel_synergy, upgrade_button_synergy)
 	var total := us.combined_bonus([_potency_id, _synergy_id], App.resolve_context)
-	label_yield.text = "+%d%%" % [int(round(total * 100.0))]
+	label_yield.text = "+%s%%" % [total.scale(100.0)._to_string()]
 
 func _refresh_upgrade_track(us: UpgradeSystem, nutrients: BigNumber, id: StringName,
 		lvl_label: Label, acc_label: Label, cost_label: Label,
 		buy_panel, button: Button) -> void:
 	var lvl := us.level(id)
 	lvl_label.text = "Lv %d" % lvl
-	acc_label.text = "now +%d%%" % [int(round(us.effect_amount(id, App.resolve_context) * 100.0))]
-	cost_label.text = BigNumber.from_value(us.cost(id))._to_string() if us.has_def(id) else "--"
+	acc_label.text = "now +%s%%" % [us.effect_amount(id, App.resolve_context).scale(100.0)._to_string()]
+	cost_label.text = us.cost(id)._to_string() if us.has_def(id) else "--"
 	var can_buy := us.can_buy(id, nutrients)
 	button.disabled = not can_buy
 	buy_panel.set_enabled(can_buy)

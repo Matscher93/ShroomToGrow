@@ -17,7 +17,8 @@ func _init(player_data: PlayerData, node: MyceliumNode) -> void:
 
 ## Game rules live here (or in dedicated systems that mutate the model).
 func upgrade_cost() -> BigNumber:
-	return _node.initial_cost.mul(BigNumber.from_value(_node.cost_increase_per_level).pow_int(_node.manual_nodes))
+	var scaled_level := pow(float(_node.manual_nodes), _node.cost_growth_exponent)
+	return _node.initial_cost.mul(BigNumber.from_value(_node.cost_increase_per_level).pow_float(scaled_level))
 
 func can_afford_upgrade() -> bool:
 	return _player_data.nutrients.gte(upgrade_cost())

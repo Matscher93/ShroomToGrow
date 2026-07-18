@@ -9,6 +9,7 @@
 [ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="7_n5ddq"]
 [ext_resource type="Script" uid="uid://dtkedj5m6urcc" path="res://view/mycelium_node/gd_buy_button_visuals.gd" id="8_g0fqw"]
 [ext_resource type="Script" uid="uid://c3ouusiqjure6" path="res://view/base_views/gd_BasePanelContainer.gd" id="8_qqop7"]
+[ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="10_44wru"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
 resource_local_to_scene = true
@@ -64,7 +65,7 @@ font_color = Color(1, 1, 1, 0.5882353)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_44wru"]
 shader = ExtResource("1_my76n")
-shader_parameter/rect_size = Vector2(476, 46)
+shader_parameter/rect_size = Vector2(658, 46)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 8.0
@@ -123,7 +124,7 @@ font_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_qqop7"]
 shader = ExtResource("1_my76n")
-shader_parameter/rect_size = Vector2(476, 46)
+shader_parameter/rect_size = Vector2(658, 46)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 8.0
@@ -371,13 +372,13 @@ label_settings = SubResource("LabelSettings_jeu7j")
 [node name="potency_button" type="Button" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency" unique_id=1256884329]
 propagate_maximum_size = true
 layout_mode = 2
-mouse_filter = 1
 theme_override_styles/normal = SubResource("StyleBoxEmpty_7duim")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_3usp5")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_7yqcm")
 theme_override_styles/disabled = SubResource("StyleBoxEmpty_0kruu")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_oi3wt")
 alignment = 0
+script = ExtResource("10_44wru")
 
 [node name="PanelContainerSynergy" type="PanelContainer" parent="MarginContainer/VBoxContainer" unique_id=518930020]
 material = SubResource("ShaderMaterial_qqop7")
@@ -462,10 +463,10 @@ label_settings = SubResource("LabelSettings_jeu7j")
 [node name="synergy_button" type="Button" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy" unique_id=892471222]
 propagate_maximum_size = true
 layout_mode = 2
-mouse_filter = 1
 theme_override_styles/normal = SubResource("StyleBoxEmpty_7duim")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_3usp5")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_7yqcm")
 theme_override_styles/disabled = SubResource("StyleBoxEmpty_0kruu")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_oi3wt")
 alignment = 0
+script = ExtResource("10_44wru")

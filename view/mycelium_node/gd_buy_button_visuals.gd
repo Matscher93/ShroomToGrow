@@ -34,6 +34,7 @@ func _set_color(inColor : Color):
 func set_enabled(inEnabled : bool):
 	is_enabled = inEnabled
 	upgrade_button.disabled = not inEnabled
+	upgrade_button.mouse_filter = Control.MOUSE_FILTER_STOP if inEnabled else Control.MOUSE_FILTER_PASS 
 	_update_shader()
 	
 func on_button_down():

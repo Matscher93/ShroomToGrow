@@ -8,6 +8,7 @@
 [ext_resource type="FontFile" uid="uid://c7knyl6l8hsfc" path="res://fonts/Space_Grotesk/SpaceGrotesk-Light.ttf" id="6_7duim"]
 [ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="7_7duim"]
 [ext_resource type="Script" uid="uid://dtkedj5m6urcc" path="res://view/mycelium_node/gd_buy_button_visuals.gd" id="8_3usp5"]
+[ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="9_7yqcm"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
 resource_local_to_scene = true
@@ -272,10 +273,10 @@ label_settings = SubResource("LabelSettings_jeu7j")
 [node name="upgrade_button" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/panel_buy_node" unique_id=1256884329]
 propagate_maximum_size = true
 layout_mode = 2
-mouse_filter = 1
 theme_override_styles/normal = SubResource("StyleBoxEmpty_7duim")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_3usp5")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_7yqcm")
 theme_override_styles/disabled = SubResource("StyleBoxEmpty_0kruu")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_oi3wt")
 alignment = 0
+script = ExtResource("9_7yqcm")

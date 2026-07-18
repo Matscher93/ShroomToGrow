@@ -20,7 +20,7 @@ var _vm: MyceliumNodeViewModel
 func _ready() -> void:
 	_update_shader()
 	upgrade_button.pressed.connect(_on_upgrade_pressed)
-	if App.mycelium_node_vms[node_level]:
+	if node_level < App.mycelium_node_vms.size():
 		bind(App.mycelium_node_vms[node_level])
 
 func bind(vm: MyceliumNodeViewModel) -> void:
