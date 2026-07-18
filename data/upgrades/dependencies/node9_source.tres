@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ScalingSource" format=3 uid="uid://c4ufqwg0eef2i"]
+
+[ext_resource type="Script" uid="uid://et8tl87lvtui" path="res://model/upgrades/res_scaling_source_def.gd" id="1_lqt1m"]
+
+[resource]
+script = ExtResource("1_lqt1m")
+kind = 1
+key = &"ManualNode9"
+metadata/_custom_type_script = "uid://et8tl87lvtui"

@@ -4,9 +4,10 @@
 
 [resource]
 script = ExtResource("1_4uvr7")
-stat = &"NodePotency0"
+stat = &"node_production"
 op = 2
 scope = 2
-target = &"NodePotency0"
+target = &"0"
 per_level = 0.1
+level_scaling = 1
 metadata/_custom_type_script = "uid://067aofp8r8ni"

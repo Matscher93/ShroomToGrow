@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeEffect" format=3 uid="uid://uedmyetu2v05"]
+
+[ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_atoky"]
+
+[resource]
+script = ExtResource("1_atoky")
+stat = &"node_production"
+op = 2
+scope = 2
+target = &"7"
+per_level = 0.1
+level_scaling = 1
+metadata/_custom_type_script = "uid://067aofp8r8ni"

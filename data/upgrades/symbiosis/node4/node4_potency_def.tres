@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://cjhvp23qc4jw5"]
+
+[ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_rm604"]
+[ext_resource type="Resource" uid="uid://x0bi60x5gvpr" path="res://data/upgrades/symbiosis/node4/node4_potency_effect.tres" id="2_jo7ov"]
+[ext_resource type="Script" uid="uid://cvpufn4k21esd" path="res://model/upgrades/res_upgrade_def.gd" id="3_ejcun"]
+
+[resource]
+script = ExtResource("3_ejcun")
+id = &"NodePotency4"
+display_name = "Mycelium Potency"
+description = "increases mycelium production by 10% each level"
+base_cost = 1000.0
+effects = Array[ExtResource("1_rm604")]([ExtResource("2_jo7ov")])
+metadata/_custom_type_script = "uid://cvpufn4k21esd"

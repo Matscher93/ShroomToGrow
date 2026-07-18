@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://cc0qf3pgceg6p"]
+
+[ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_oax84"]
+[ext_resource type="Resource" uid="uid://b5ccy41knexir" path="res://data/upgrades/symbiosis/node4/node4_synergy_effect.tres" id="2_hvcoi"]
+[ext_resource type="Script" uid="uid://cvpufn4k21esd" path="res://model/upgrades/res_upgrade_def.gd" id="3_631hk"]
+
+[resource]
+script = ExtResource("3_631hk")
+id = &"NodeSynergy4"
+display_name = "Mycelium Synergy"
+description = "increases mycelium production by 10% each level"
+base_cost = 1000.0
+effects = Array[ExtResource("1_oax84")]([ExtResource("2_hvcoi")])
+metadata/_custom_type_script = "uid://cvpufn4k21esd"

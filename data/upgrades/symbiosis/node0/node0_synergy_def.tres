@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://qtygukag0quo"]
 
 [ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_mij1d"]
-[ext_resource type="Resource" uid="uid://d4ixmb058x2ro" path="res://data/upgrades/symbiosis/node0_synergy_effect.tres" id="2_mij1d"]
+[ext_resource type="Resource" uid="uid://d4ixmb058x2ro" path="res://data/upgrades/symbiosis/node0/node0_synergy_effect.tres" id="2_mij1d"]
 [ext_resource type="Script" uid="uid://cvpufn4k21esd" path="res://model/upgrades/res_upgrade_def.gd" id="3_pwhhd"]
 
 [resource]

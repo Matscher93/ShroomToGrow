@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeEffect" format=3 uid="uid://b5ccy41knexir"]
+
+[ext_resource type="Resource" uid="uid://b526wp1nh6hkv" path="res://data/upgrades/dependencies/node4_source.tres" id="1_3cq7a"]
+[ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="2_gvyu5"]
+
+[resource]
+script = ExtResource("2_gvyu5")
+stat = &"node_production"
+op = 2
+scope = 2
+target = &"4"
+per_level = 0.01
+dependency = ExtResource("1_3cq7a")
+metadata/_custom_type_script = "uid://067aofp8r8ni"

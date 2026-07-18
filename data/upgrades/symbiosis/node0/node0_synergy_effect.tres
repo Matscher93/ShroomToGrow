@@ -5,10 +5,10 @@
 
 [resource]
 script = ExtResource("1_wmd0w")
-stat = &"NodeSynergy0"
+stat = &"node_production"
 op = 2
 scope = 2
-target = &"NodeSynergy0"
+target = &"0"
 per_level = 0.01
 dependency = ExtResource("2_source")
 metadata/_custom_type_script = "uid://067aofp8r8ni"

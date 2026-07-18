@@ -30,19 +30,11 @@ var owned_node_text: String:
 		
 var production_text: String:
 	get:
-		return "+%s / tick" % \
-			[(_mycelium_data._node.auto_nodes
-				.add(BigNumber.from_value(_mycelium_data._node.manual_nodes)))
-				._to_string()
-			]
+		return "+%s / tick" % [_scaled_production()._to_string()]
 
 var production_text_short: String:
 	get:
-		return "+%s/t" % \
-			[(_mycelium_data._node.auto_nodes
-				.add(BigNumber.from_value(_mycelium_data._node.manual_nodes)))
-				._to_string()
-			]
+		return "+%s/t" % [_scaled_production()._to_string()]
 
 var can_buy_upgrade: bool:
 	get:
@@ -56,12 +48,14 @@ func _init(player_data: PlayerData, mycelium_data: MyceliumData) -> void:
 	_mycelium_data = mycelium_data
 	_mycelium_data._node.auto_nodes_changed.connect(_on_auto_nodes_changed)
 	_mycelium_data._node.manual_nodes_changed.connect(_on_manual_nodes_changed)
-	
+	App.upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
+
 
 func dispose() -> void:
 	_player_data.nutrients_changed.disconnect(_on_nutrients_changed)
 	_mycelium_data._node.auto_nodes_changed.disconnect(_on_auto_nodes_changed)
 	_mycelium_data._node.manual_nodes_changed.disconnect(_on_manual_nodes_changed)
+	App.upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
 
 # --- Commands (called by the View on user input) ---
 
@@ -86,7 +80,16 @@ func _on_manual_nodes_changed(_manual_nodes: int) -> void:
 	_notify(PROP_BUY_TEXT)
 	_notify(PROP_CAN_BUY)
 
-# --- Formatting (replace with your BigNumber formatter) ---
+func _on_upgrades_changed() -> void:
+	_notify(PROP_PRODUCTION_TEXT)
+
+# --- Formatting ---
 
 func _format_number(value: BigNumber) -> String:
 	return value._to_string()
+
+func _scaled_production() -> BigNumber:
+	var raw := _mycelium_data._node.auto_nodes.add(BigNumber.from_value(_mycelium_data._node.manual_nodes))
+	var bonus := App.upgrade_system.modify(&"node_production", 1.0, App.resolve_context,
+		[], StringName(str(_mycelium_data._node.node_id)))
+	return raw.scale(bonus)

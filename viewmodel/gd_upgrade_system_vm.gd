@@ -35,7 +35,7 @@ func effect_amount(id: StringName, ctx: ResolveContext) -> float:
 		return 0.0
 	var lvl := level(id)
 	var e: UpgradeEffect = def.effects[0]
-	var mag := e.per_level * lvl
+	var mag := e.magnitude(lvl)
 	if e.dependency:
 		mag *= e.dependency.evaluate(ctx)
 	return mag
@@ -71,6 +71,20 @@ func buy(id: StringName, player_data: PlayerData) -> bool:
 	upgrades_changed.emit()
 	return true
 
+func to_save() -> Dictionary:
+	var data := {}
+	for id in _levels:
+		var lvl: int = _levels[id]
+		if lvl > 0:
+			data[String(id)] = lvl
+	return data
+
+func from_save(data: Dictionary) -> void:
+	for key in data:
+		_levels[StringName(key)] = int(data[key])
+	_dirty = true
+	upgrades_changed.emit()
+
 # Effect authoring side: which single bucket does this effect write into?
 func _scope_key(scope: UpgradeEffect.Scope, target: StringName) -> String:
 	match scope:
@@ -103,7 +117,7 @@ func _rebuild(ctx: ResolveContext) -> void:
 		var lvl: int = _levels[id]
 		if lvl <= 0: continue
 		for e in (_defs[id] as UpgradeDef).effects:
-			var mag: float = e.per_level * lvl
+			var mag: float = e.magnitude(lvl)
 			if e.dependency:
 				mag *= e.dependency.evaluate(ctx)
 			var key := _scope_key(e.scope, e.target)
