@@ -4,6 +4,7 @@ extends Resource
 signal manual_nodes_changed(value: int)
 signal auto_nodes_changed(value: BigNumber)
 
+@export var node_id: int = 0
 @export var name: String = ""
 @export var desc: String = ""
 @export var manual_nodes: int = 0:
@@ -34,3 +35,4 @@ var initial_cost: BigNumber:
 		
 @export var color: Color
 @export var level_font_color: Color
+@export var cost_increase_per_level: float = 1.5

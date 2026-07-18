@@ -18,20 +18,32 @@ var screens := load("res://data/screens/all_screens.tres") as Screens
 var offline_income_vm: OfflineIncomeViewModel
 var tick_timer: Timer
 
+var upgrade_system: UpgradeSystem
+var upgrade_defs: Array[UpgradeDef] = [
+	load("res://data/upgrades/symbiosis/node0_potency_def.tres"),
+	load("res://data/upgrades/symbiosis/node0_synergy_def.tres"),
+]
+var resolve_context := ResolveContext.new()
+
 func _ready() -> void:
 	player_data = PlayerData.new()
 	player_vm = PlayerViewModel.new(player_data)
-	
+
 	for node in nodes.mycelium_nodes:
 		var mycelium_data = MyceliumData.new(player_data, node)
 		mycelium_node_data.append(mycelium_data)
 		mycelium_node_vms.append(MyceliumNodeViewModel.new(player_data, mycelium_data))
+		_track_manual_count(node)
 
 	screens_data = ScreensData.new(screens.screens, screens.initial_screen)
 	screens_vm = ScreensViewModel.new(screens_data)
 
 	offline_income_vm = OfflineIncomeViewModel.new()
-	
+
+	upgrade_system = UpgradeSystem.new()
+	for def in upgrade_defs:
+		upgrade_system.register(def)
+
 	tick_timer = Timer.new()
 	tick_timer.wait_time = 10.0
 	tick_timer.autostart = true
@@ -39,6 +51,14 @@ func _ready() -> void:
 		handle_tick()
 	)
 	add_child(tick_timer)
+
+func _track_manual_count(node: MyceliumNode) -> void:
+	var key := StringName("ManualNode%d" % node.node_id)
+	resolve_context.manual_counts[key] = node.manual_nodes
+	node.manual_nodes_changed.connect(func(value: int) -> void:
+		resolve_context.manual_counts[key] = value
+		upgrade_system.invalidate()
+	)
 
 func handle_tick() -> void:
 	player_data.tick_count += 1;

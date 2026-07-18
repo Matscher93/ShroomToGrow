@@ -7,7 +7,7 @@
 [ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="5_o2fsh"]
 [ext_resource type="FontFile" uid="uid://c7knyl6l8hsfc" path="res://fonts/Space_Grotesk/SpaceGrotesk-Light.ttf" id="6_7duim"]
 [ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="7_7duim"]
-[ext_resource type="Script" uid="uid://dtkedj5m6urcc" path="res://view/mycelium_node/sc_buy_button_visuals.gd" id="8_3usp5"]
+[ext_resource type="Script" uid="uid://dtkedj5m6urcc" path="res://view/mycelium_node/gd_buy_button_visuals.gd" id="8_3usp5"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
 resource_local_to_scene = true

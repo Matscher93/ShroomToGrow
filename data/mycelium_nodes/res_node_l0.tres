@@ -7,7 +7,6 @@ script = ExtResource("1_4r2c7")
 name = "Mycelium"
 desc = "Each node → +1 nutrient / tick"
 manual_nodes = 1
-_initial_cost_mantissa = 2.0
 _initial_cost_exponent = 0
 color = Color(0, 0.97, 0.7275, 1)
 level_font_color = Color(0.0675, 0.15, 0.12937501, 1)

@@ -1,0 +1,199 @@
+[gd_scene format=3 uid="uid://bg66qb1i1qos1"]
+
+[ext_resource type="PackedScene" uid="uid://ciychyggj03rn" path="res://view/symbiosis/sc_mycelium_symbiosis_panel.tscn" id="1_adjg4"]
+[ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="2_kj1fi"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_adjg4"]
+resource_local_to_scene = true
+shader = ExtResource("2_kj1fi")
+shader_parameter/rect_size = Vector2(682, 174)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kj1fi"]
+resource_local_to_scene = true
+shader = ExtResource("2_kj1fi")
+shader_parameter/rect_size = Vector2(682, 174)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fkqhn"]
+resource_local_to_scene = true
+shader = ExtResource("2_kj1fi")
+shader_parameter/rect_size = Vector2(682, 174)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_6ejrj"]
+resource_local_to_scene = true
+shader = ExtResource("2_kj1fi")
+shader_parameter/rect_size = Vector2(682, 174)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1jl4q"]
+resource_local_to_scene = true
+shader = ExtResource("2_kj1fi")
+shader_parameter/rect_size = Vector2(682, 174)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ipfka"]
+resource_local_to_scene = true
+shader = ExtResource("2_kj1fi")
+shader_parameter/rect_size = Vector2(682, 174)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fx22r"]
+resource_local_to_scene = true
+shader = ExtResource("2_kj1fi")
+shader_parameter/rect_size = Vector2(682, 174)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_3a8op"]
+resource_local_to_scene = true
+shader = ExtResource("2_kj1fi")
+shader_parameter/rect_size = Vector2(682, 174)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_qvsni"]
+resource_local_to_scene = true
+shader = ExtResource("2_kj1fi")
+shader_parameter/rect_size = Vector2(682, 174)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7e3ht"]
+resource_local_to_scene = true
+shader = ExtResource("2_kj1fi")
+shader_parameter/rect_size = Vector2(682, 174)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[node name="symbiosis_panel" type="PanelContainer" unique_id=1202854427]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_lxikg")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=199281371]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="ScrollContainer" unique_id=1048309780]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ScrollContainer/MarginContainer" unique_id=2080847074]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="mycelium_symbiosis" parent="ScrollContainer/MarginContainer/VBoxContainer" unique_id=506102240 instance=ExtResource("1_adjg4")]
+material = SubResource("ShaderMaterial_adjg4")
+layout_mode = 2
+
+[node name="mycelium_symbiosis2" parent="ScrollContainer/MarginContainer/VBoxContainer" unique_id=576370926 instance=ExtResource("1_adjg4")]
+material = SubResource("ShaderMaterial_kj1fi")
+layout_mode = 2
+node_level = 1
+
+[node name="mycelium_symbiosis3" parent="ScrollContainer/MarginContainer/VBoxContainer" unique_id=172821687 instance=ExtResource("1_adjg4")]
+material = SubResource("ShaderMaterial_fkqhn")
+layout_mode = 2
+node_level = 2
+
+[node name="mycelium_symbiosis4" parent="ScrollContainer/MarginContainer/VBoxContainer" unique_id=1759438002 instance=ExtResource("1_adjg4")]
+material = SubResource("ShaderMaterial_6ejrj")
+layout_mode = 2
+node_level = 3
+
+[node name="mycelium_symbiosis5" parent="ScrollContainer/MarginContainer/VBoxContainer" unique_id=299865060 instance=ExtResource("1_adjg4")]
+material = SubResource("ShaderMaterial_1jl4q")
+layout_mode = 2
+node_level = 4
+
+[node name="mycelium_symbiosis6" parent="ScrollContainer/MarginContainer/VBoxContainer" unique_id=971573625 instance=ExtResource("1_adjg4")]
+material = SubResource("ShaderMaterial_ipfka")
+layout_mode = 2
+node_level = 5
+
+[node name="mycelium_symbiosis7" parent="ScrollContainer/MarginContainer/VBoxContainer" unique_id=263437707 instance=ExtResource("1_adjg4")]
+material = SubResource("ShaderMaterial_fx22r")
+layout_mode = 2
+node_level = 6
+
+[node name="mycelium_symbiosis8" parent="ScrollContainer/MarginContainer/VBoxContainer" unique_id=1325382825 instance=ExtResource("1_adjg4")]
+material = SubResource("ShaderMaterial_3a8op")
+layout_mode = 2
+node_level = 7
+
+[node name="mycelium_symbiosis9" parent="ScrollContainer/MarginContainer/VBoxContainer" unique_id=1881481811 instance=ExtResource("1_adjg4")]
+material = SubResource("ShaderMaterial_qvsni")
+layout_mode = 2
+node_level = 8
+
+[node name="mycelium_symbiosis10" parent="ScrollContainer/MarginContainer/VBoxContainer" unique_id=861627091 instance=ExtResource("1_adjg4")]
+material = SubResource("ShaderMaterial_7e3ht")
+layout_mode = 2
+node_level = 9

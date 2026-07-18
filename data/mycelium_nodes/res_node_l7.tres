@@ -4,9 +4,11 @@
 
 [resource]
 script = ExtResource("1_jwwfu")
+node_id = 7
 name = "Grove"
 desc = "Each node → +1 LVL7 node / tick"
-_initial_cost_exponent = 8
+_initial_cost_exponent = 128
 color = Color(0.113166794, 0, 0.97, 1)
 level_font_color = Color(0.07712501, 0.0675, 0.15, 1)
+cost_increase_per_level = 40.0
 metadata/_custom_type_script = "uid://ctp2fhoy1e3t1"

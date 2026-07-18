@@ -1,0 +1,471 @@
+[gd_scene format=3 uid="uid://ciychyggj03rn"]
+
+[ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="1_my76n"]
+[ext_resource type="Script" uid="uid://bv4svi5egu8vn" path="res://view/symbiosis/gd_mycelium_symbiosis_panel.gd" id="2_kkelg"]
+[ext_resource type="Shader" uid="uid://depcdiis4o4p1" path="res://view/mycelium_node/sh_level_background.gdshader" id="3_rp3ev"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="4_d8ufr"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="5_uktlb"]
+[ext_resource type="FontFile" uid="uid://c7knyl6l8hsfc" path="res://fonts/Space_Grotesk/SpaceGrotesk-Light.ttf" id="6_3b66w"]
+[ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="7_n5ddq"]
+[ext_resource type="Script" uid="uid://dtkedj5m6urcc" path="res://view/mycelium_node/gd_buy_button_visuals.gd" id="8_g0fqw"]
+[ext_resource type="Script" uid="uid://c3ouusiqjure6" path="res://view/base_views/gd_BasePanelContainer.gd" id="8_qqop7"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
+resource_local_to_scene = true
+shader = ExtResource("1_my76n")
+shader_parameter/rect_size = Vector2(500, 174)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.05
+shader_parameter/border_alpha = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_w86j4"]
+resource_local_to_scene = true
+shader = ExtResource("3_rp3ev")
+shader_parameter/rect_size = Vector2(48, 48)
+shader_parameter/box_color = Color(0.70865566, 0.4987288, 0.14041069, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 8.0
+shader_parameter/highlight_radius = 0.7
+shader_parameter/higlight_offset = Vector2(0, 0.5)
+
+[sub_resource type="LabelSettings" id="LabelSettings_an5pq"]
+resource_local_to_scene = true
+font = ExtResource("5_uktlb")
+font_size = 20
+
+[sub_resource type="LabelSettings" id="LabelSettings_53xj8"]
+font = ExtResource("6_3b66w")
+font_size = 8
+font_color = Color(0, 0, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_o2fsh"]
+font = ExtResource("7_n5ddq")
+font_size = 20
+
+[sub_resource type="LabelSettings" id="LabelSettings_3usp5"]
+font = ExtResource("7_n5ddq")
+font_size = 12
+font_color = Color(1, 1, 1, 0.5882353)
+
+[sub_resource type="LabelSettings" id="LabelSettings_7duim"]
+line_spacing = -14.065
+font = ExtResource("5_uktlb")
+font_size = 20
+
+[sub_resource type="LabelSettings" id="LabelSettings_7yqcm"]
+line_spacing = 0.0
+font = ExtResource("6_3b66w")
+font_size = 12
+font_color = Color(1, 1, 1, 0.5882353)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_44wru"]
+shader = ExtResource("1_my76n")
+shader_parameter/rect_size = Vector2(476, 46)
+shader_parameter/box_color = Color(0, 0, 0, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 8.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.4
+shader_parameter/border_alpha = 0.4
+
+[sub_resource type="LabelSettings" id="LabelSettings_0kruu"]
+font = ExtResource("7_n5ddq")
+font_size = 12
+
+[sub_resource type="LabelSettings" id="LabelSettings_kkelg"]
+font = ExtResource("7_n5ddq")
+font_size = 12
+font_color = Color(1, 1, 1, 0.5882353)
+
+[sub_resource type="LabelSettings" id="LabelSettings_qqop7"]
+font = ExtResource("7_n5ddq")
+font_size = 12
+font_color = Color(1, 1, 1, 0.5882353)
+
+[sub_resource type="LabelSettings" id="LabelSettings_44wru"]
+font = ExtResource("7_n5ddq")
+font_size = 12
+font_color = Color(1, 1, 1, 0.5882353)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bj2ss"]
+resource_local_to_scene = true
+shader = ExtResource("1_my76n")
+shader_parameter/rect_size = Vector2(111, 36)
+shader_parameter/box_color = Color(0, 0, 0, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 4.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.2
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_oi3wt"]
+font = ExtResource("7_n5ddq")
+
+[sub_resource type="LabelSettings" id="LabelSettings_jeu7j"]
+font = ExtResource("5_uktlb")
+font_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_7duim"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_3usp5"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_7yqcm"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0kruu"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_oi3wt"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_qqop7"]
+shader = ExtResource("1_my76n")
+shader_parameter/rect_size = Vector2(476, 46)
+shader_parameter/box_color = Color(0, 0, 0, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 8.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.4
+shader_parameter/border_alpha = 0.4
+
+[sub_resource type="LabelSettings" id="LabelSettings_dp8oj"]
+font = ExtResource("7_n5ddq")
+font_size = 12
+font_color = Color(1, 1, 1, 0.5882353)
+
+[sub_resource type="LabelSettings" id="LabelSettings_u7c2y"]
+font = ExtResource("7_n5ddq")
+font_size = 12
+font_color = Color(1, 1, 1, 0.5882353)
+
+[sub_resource type="LabelSettings" id="LabelSettings_7wrhg"]
+font = ExtResource("7_n5ddq")
+font_size = 12
+font_color = Color(1, 1, 1, 0.5882353)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dp8oj"]
+resource_local_to_scene = true
+shader = ExtResource("1_my76n")
+shader_parameter/rect_size = Vector2(111, 36)
+shader_parameter/box_color = Color(0, 0, 0, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 4.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.2
+shader_parameter/border_alpha = 1.0
+
+[node name="mycelium_symbiosis" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "upgrade_button_synergy", "label_yield", "level_value", "level_header", "label_node_name", "label_node_desc", "label_potency_label", "label_potency_level", "label_potency_accumulated", "label_synergy_label", "label_synergy_level", "label_synergy_accumulated", "label_potency_cost", "panel_potency", "label_synergy_cost", "panel_synergy", "level_icon")]
+material = SubResource("ShaderMaterial_53xj8")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -200.0
+offset_bottom = -826.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("2_kkelg")
+ColorParam = "box_color"
+upgrade_button = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency/potency_button")
+upgrade_button_synergy = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy/synergy_button")
+label_yield = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBox_manual/lbl_yield")
+level_value = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon/lbl_level_value")
+level_header = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon/lbl_level_header")
+label_node_name = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/lbl_node_name")
+label_node_desc = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/lbl_node_desc")
+label_potency_label = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_potency_header")
+label_potency_level = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_potency_level")
+label_potency_accumulated = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_potency_gain_amount")
+label_synergy_label = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_synergy_header")
+label_synergy_level = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_synergy_level")
+label_synergy_accumulated = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_synergy_gain_amount")
+label_potency_cost = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency/MarginContainer/HBox/lbl_buy_cost")
+panel_potency = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency")
+label_synergy_cost = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy/MarginContainer/HBox/lbl_buy_cost")
+panel_synergy = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy")
+level_icon = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=394518787]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1757942512]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=114689176]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="level_icon" type="ColorRect" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=1513601963]
+material = SubResource("ShaderMaterial_w86j4")
+custom_minimum_size = Vector2(48, 48)
+propagate_maximum_size = true
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+script = ExtResource("4_d8ufr")
+ColorParam = "box_color"
+
+[node name="lbl_level_value" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/level_icon" unique_id=1224558222]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -16.0
+offset_top = -32.0
+offset_right = 16.0
+offset_bottom = 1.5
+grow_horizontal = 2
+grow_vertical = 0
+text = "1"
+label_settings = SubResource("LabelSettings_an5pq")
+horizontal_alignment = 1
+
+[node name="lbl_level_header" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/level_icon" unique_id=30682131]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -16.0
+offset_top = 8.0
+offset_right = 16.0
+offset_bottom = 24.75
+grow_horizontal = 2
+size_flags_vertical = 0
+text = "LVL"
+label_settings = SubResource("LabelSettings_53xj8")
+horizontal_alignment = 1
+
+[node name="Control2" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=2067873580]
+custom_minimum_size = Vector2(5, 0)
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=814767406]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="lbl_node_name" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer" unique_id=1417508820]
+layout_mode = 2
+label_settings = SubResource("LabelSettings_o2fsh")
+
+[node name="lbl_node_desc" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer" unique_id=817463414]
+layout_mode = 2
+label_settings = SubResource("LabelSettings_3usp5")
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=2042776881]
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+
+[node name="VBox_manual" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=1180277375]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="lbl_yield" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBox_manual" unique_id=644213002]
+propagate_maximum_size = true
+layout_mode = 2
+text = "1"
+label_settings = SubResource("LabelSettings_7duim")
+horizontal_alignment = 2
+
+[node name="lbl_yield_footer" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBox_manual" unique_id=1329168772]
+propagate_maximum_size = true
+layout_mode = 2
+text = "yield"
+label_settings = SubResource("LabelSettings_7yqcm")
+horizontal_alignment = 2
+uppercase = true
+
+[node name="PanelContainerPotency" type="PanelContainer" parent="MarginContainer/VBoxContainer" unique_id=1363004070]
+material = SubResource("ShaderMaterial_44wru")
+layout_mode = 2
+mouse_filter = 1
+script = ExtResource("8_qqop7")
+ColorParam = "box_color"
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency" unique_id=1867726604]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer" unique_id=862107365]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer" unique_id=1002887829]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer" unique_id=1056215149]
+layout_mode = 2
+
+[node name="lbl_potency_header" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=647860906]
+layout_mode = 2
+text = "Potency"
+label_settings = SubResource("LabelSettings_0kruu")
+
+[node name="lbl_potency_level" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=906427446]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Lv 0"
+label_settings = SubResource("LabelSettings_kkelg")
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer" unique_id=539758255]
+layout_mode = 2
+
+[node name="lbl_potency_gain_header" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2" unique_id=1616777421]
+layout_mode = 2
+text = "+10% / level:"
+label_settings = SubResource("LabelSettings_qqop7")
+
+[node name="lbl_potency_gain_amount" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2" unique_id=125206779]
+layout_mode = 2
+text = "now +10%"
+label_settings = SubResource("LabelSettings_44wru")
+
+[node name="panel_buy_potency" type="PanelContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer" unique_id=1624840392 node_paths=PackedStringArray("upgrade_button")]
+modulate = Color(0.3, 0.3, 0.3, 1)
+material = SubResource("ShaderMaterial_bj2ss")
+layout_mode = 2
+mouse_filter = 1
+script = ExtResource("8_g0fqw")
+ColorParam = "box_color"
+upgrade_button = NodePath("potency_button")
+deactivated_color = Color(1, 1, 1, 0.29803923)
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency" unique_id=214309987]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
+
+[node name="HBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency/MarginContainer" unique_id=2014435498]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="lbl_buy_header" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency/MarginContainer/HBox" unique_id=2011751018]
+layout_mode = 2
+text = "Buy:"
+label_settings = SubResource("LabelSettings_oi3wt")
+
+[node name="lbl_buy_cost" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency/MarginContainer/HBox" unique_id=1484529724]
+layout_mode = 2
+text = "11.9k"
+label_settings = SubResource("LabelSettings_jeu7j")
+
+[node name="potency_button" type="Button" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency" unique_id=1256884329]
+propagate_maximum_size = true
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/normal = SubResource("StyleBoxEmpty_7duim")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_3usp5")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_7yqcm")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_0kruu")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_oi3wt")
+alignment = 0
+
+[node name="PanelContainerSynergy" type="PanelContainer" parent="MarginContainer/VBoxContainer" unique_id=518930020]
+material = SubResource("ShaderMaterial_qqop7")
+layout_mode = 2
+mouse_filter = 1
+script = ExtResource("8_qqop7")
+ColorParam = "box_color"
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy" unique_id=491171058]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer" unique_id=1131743877]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer" unique_id=139220070]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer" unique_id=1875529925]
+layout_mode = 2
+
+[node name="lbl_synergy_header" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=2117609694]
+layout_mode = 2
+text = "Synergy"
+label_settings = SubResource("LabelSettings_0kruu")
+
+[node name="lbl_synergy_level" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=1625555636]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Lv 0"
+label_settings = SubResource("LabelSettings_dp8oj")
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer" unique_id=68272612]
+layout_mode = 2
+
+[node name="lbl_synergy_gain_header" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2" unique_id=1410408521]
+layout_mode = 2
+text = "+1% / manual node:"
+label_settings = SubResource("LabelSettings_u7c2y")
+
+[node name="lbl_synergy_gain_amount" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2" unique_id=408166807]
+layout_mode = 2
+text = "now +10%"
+label_settings = SubResource("LabelSettings_7wrhg")
+
+[node name="panel_buy_synergy" type="PanelContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer" unique_id=2031695529 node_paths=PackedStringArray("upgrade_button")]
+modulate = Color(0.3, 0.3, 0.3, 1)
+material = SubResource("ShaderMaterial_dp8oj")
+layout_mode = 2
+mouse_filter = 1
+script = ExtResource("8_g0fqw")
+ColorParam = "box_color"
+upgrade_button = NodePath("synergy_button")
+deactivated_color = Color(1, 1, 1, 0.29803923)
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy" unique_id=2129055191]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
+
+[node name="HBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy/MarginContainer" unique_id=1119003199]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="lbl_buy_header" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy/MarginContainer/HBox" unique_id=1671499582]
+layout_mode = 2
+text = "Buy:"
+label_settings = SubResource("LabelSettings_oi3wt")
+
+[node name="lbl_buy_cost" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy/MarginContainer/HBox" unique_id=2027367903]
+layout_mode = 2
+text = "11.9k"
+label_settings = SubResource("LabelSettings_jeu7j")
+
+[node name="synergy_button" type="Button" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy" unique_id=892471222]
+propagate_maximum_size = true
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/normal = SubResource("StyleBoxEmpty_7duim")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_3usp5")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_7yqcm")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_0kruu")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_oi3wt")
+alignment = 0

@@ -64,14 +64,26 @@ font = ExtResource("6_tmupt")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ckobu"]
 shader = ExtResource("8_wun4e")
-shader_parameter/rect_size = Vector2(650, 40)
+shader_parameter/rect_size = Vector2(650, 78)
 shader_parameter/box_color = Color(0, 1, 0.9490196, 1)
 shader_parameter/box_extends = Vector2(1, 1)
-shader_parameter/corner_radius = 18.0
+shader_parameter/corner_radius = 24.0
 shader_parameter/border_thickness = 1.0
 shader_parameter/additional_border_offset = 2.0
 shader_parameter/background_alpha = 0.1
 shader_parameter/border_alpha = 0.3
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1eaog"]
+resource_local_to_scene = true
+shader = ExtResource("8_wun4e")
+shader_parameter/rect_size = Vector2(618, 46)
+shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 14.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.2
+shader_parameter/border_alpha = 0.5
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_txtru"]
 resource_local_to_scene = true
@@ -154,7 +166,7 @@ theme_override_constants/margin_right = 5
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 40
+theme_override_constants/separation = 25
 
 [node name="PanelContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3" unique_id=1804664909]
 material = SubResource("ShaderMaterial_vf2pt")
@@ -228,14 +240,18 @@ script = ExtResource("9_78cc6")
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer2/PanelContainer2" unique_id=184523483]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
 
 [node name="vbox_node_change" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer2/PanelContainer2/MarginContainer" unique_id=1095045557]
 layout_mode = 2
 theme_override_constants/separation = 10
+
+[node name="mycelium_node" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer2/PanelContainer2/MarginContainer/vbox_node_change" unique_id=506102240 instance=ExtResource("11_txtru")]
+material = SubResource("ShaderMaterial_1eaog")
+layout_mode = 2
 
 [node name="offline_income_button" parent="MarginContainer/VBoxContainer" unique_id=436266803 instance=ExtResource("10_78cc6")]
 material = SubResource("ShaderMaterial_txtru")
