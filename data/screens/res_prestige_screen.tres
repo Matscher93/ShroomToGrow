@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ScreenDefinition" format=3 uid="uid://ds65ytqwp2alp"]
+
+[ext_resource type="PackedScene" uid="uid://caas4emc1u2wh" path="res://view/prestige/sc_prestige.tscn" id="1_l4pd3"]
+[ext_resource type="Script" uid="uid://cfbpk4evittcm" path="res://model/screens/gd_screen_definition.gd" id="2_2ya65"]
+
+[resource]
+script = ExtResource("2_2ya65")
+screen_name = "Prestige"
+screen_scene = ExtResource("1_l4pd3")
+metadata/_custom_type_script = "uid://cfbpk4evittcm"

@@ -43,7 +43,7 @@ func update_visuals() -> void:
 		child.queue_free()
 	
 	var all_screens = _vm.get_all_screen_data()
-	for screen_key : ScreenTypes.Types in all_screens:
+	for screen_key : ScreenTypes.Types in ScreenTypes.Types.size():
 		var button_data = all_screens.get(screen_key)
 		var button = button_scene.instantiate()
 		button.set_button_text(button_data.screen_name)

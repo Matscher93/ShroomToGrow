@@ -1,6 +1,11 @@
 class_name CurrencyDef
 extends Resource
 
+@export var currency_type: CurrencyTypes.Types:
+	set(value):
+		currency_type = value
+		emit_changed()
+
 @export var currency_name: String:
 	set(value):
 		currency_name = value

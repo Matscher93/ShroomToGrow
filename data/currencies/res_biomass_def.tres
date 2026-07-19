@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CurrencyDef" format=3 uid="uid://cro3wpo0rxwsk"]
+
+[ext_resource type="Script" uid="uid://d285gd4vuvyo4" path="res://model/currencies/gd_currency_def.gd" id="1_m5410"]
+
+[resource]
+script = ExtResource("1_m5410")
+currency_type = 2
+currency_name = "Biomass"
+main_color = Color(0.7019608, 0.53333336, 0.9607843, 1)
+label_color = Color(0.78039217, 0.6784314, 0.84705883, 1)
+currency_color = Color(0.8901961, 0.827451, 0.9843137, 1)
+metadata/_custom_type_script = "uid://d285gd4vuvyo4"

@@ -1,3 +1,3 @@
 class_name ScreenTypes
 
-enum Types {NODES, SYMBIOSIS}
+enum Types {BIOMES, NODES, SYMBIOSIS, PRESTIGE}

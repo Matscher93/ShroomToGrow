@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" uid="uid://2s8hpumsg15" path="res://view/tick_progress/sc_tick_progress.tscn" id="5_7pmop"]
 [ext_resource type="PackedScene" uid="uid://dd8g1hdbxpy74" path="res://view/main/sc_game_screens.tscn" id="5_b26h7"]
 [ext_resource type="Resource" uid="uid://cu7pu8ny7a7lb" path="res://data/currencies/res_nutrients_def.tres" id="6_aycgk"]
+[ext_resource type="Resource" uid="uid://cro3wpo0rxwsk" path="res://data/currencies/res_biomass_def.tres" id="7_kyyy7"]
+[ext_resource type="Resource" uid="uid://byespeth6sl5t" path="res://data/currencies/res_water_def.tres" id="7_lple0"]
 [ext_resource type="PackedScene" uid="uid://o8nmxsdasvvn" path="res://view/offline_income/sc_offline_income.tscn" id="8_6maps"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vf2pt"]
@@ -80,7 +82,18 @@ layout_mode = 2
 
 [node name="Nutrients" parent="content_container/margin/VBoxContainer/HBoxContainer" unique_id=419686004 instance=ExtResource("1_cshku")]
 layout_mode = 2
+size_flags_horizontal = 3
 currency_def = ExtResource("6_aycgk")
+
+[node name="Water" parent="content_container/margin/VBoxContainer/HBoxContainer" unique_id=303116976 instance=ExtResource("1_cshku")]
+layout_mode = 2
+size_flags_horizontal = 3
+currency_def = ExtResource("7_lple0")
+
+[node name="Biomass" parent="content_container/margin/VBoxContainer/HBoxContainer" unique_id=1813530114 instance=ExtResource("1_cshku")]
+layout_mode = 2
+size_flags_horizontal = 3
+currency_def = ExtResource("7_kyyy7")
 
 [node name="tick_progress" parent="content_container/margin/VBoxContainer" unique_id=655712839 instance=ExtResource("5_7pmop")]
 layout_mode = 2

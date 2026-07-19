@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ScreenDefinition" format=3 uid="uid://upklmpjvik75"]
+
+[ext_resource type="PackedScene" uid="uid://ddh3upe4opucw" path="res://view/biomes/sc_biomes.tscn" id="1_rb6u0"]
+[ext_resource type="Script" uid="uid://cfbpk4evittcm" path="res://model/screens/gd_screen_definition.gd" id="2_45r8q"]
+
+[resource]
+script = ExtResource("2_45r8q")
+screen_name = "Biomes"
+screen_scene = ExtResource("1_rb6u0")
+metadata/_custom_type_script = "uid://cfbpk4evittcm"

@@ -55,7 +55,7 @@ func _exit_tree() -> void:
 
 # --- VM -> View ---
 
-func _on_property_changed(property: StringName) -> void:
+func _on_property_changed(_property: StringName) -> void:
 	pass
 
 

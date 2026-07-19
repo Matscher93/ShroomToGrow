@@ -106,11 +106,11 @@ func scale(factor: float) -> BigNumber:
 ## and arbitrarily large exponents without overflowing (e.g. cost curves with
 ## a growth exponent, or per-level compounding at high levels). Assumes a
 ## positive base (true for growth rates like cost_growth / 1+per_level).
-func pow_float(exp: float) -> BigNumber:
+func pow_float(float_exp: float) -> BigNumber:
 	if mantissa <= 0.0:
 		return BigNumber.new(0.0, 0)
 	var log10_value := log(mantissa) / log(10.0) + exponent
-	var log10_result := log10_value * exp
+	var log10_result := log10_value * float_exp
 	var result_exponent := int(floor(log10_result))
 	var result_mantissa := pow(10.0, log10_result - result_exponent)
 	return BigNumber.new(result_mantissa, result_exponent)

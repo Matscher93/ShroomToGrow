@@ -35,6 +35,7 @@ func _process(_delta: float) -> void:
 func _update_visuals():
 	_update_colors()
 	label_title.text = currency_def.currency_name
+	image_header.material.set_shader_parameter("icon_id", currency_def.currency_type)
 	
 func _update_colors():
 	var child := get_node_or_null("ColorRect")
@@ -69,11 +70,26 @@ func _exit_tree() -> void:
 # --- VM -> View ---
 func _on_property_changed(property: StringName) -> void:
 	match property:
-		PlayerViewModel.PROP_GOLD_TEXT:
-			label_amount.text = _vm.gold_text
+		PlayerViewModel.PROP_NUTRIENT_TEXT:
+			if currency_def.currency_type == CurrencyTypes.Types.NUTRIENTS:
+				label_amount.text = _vm.nutrient_text
+		PlayerViewModel.PROP_BIOMASS_TEXT:
+			if currency_def.currency_type == CurrencyTypes.Types.BIOMASS:
+				label_amount.text = _vm.biomass_text
+		PlayerViewModel.PROP_WATER_TEXT:
+			if currency_def.currency_type == CurrencyTypes.Types.WATER:
+				label_amount.text = _vm.water_text
 		MyceliumNodeViewModel.PROP_PRODUCTION_TEXT:
-			label_change_per_tick.text = _vm_change.production_text_short
+			if currency_def.currency_type == CurrencyTypes.Types.NUTRIENTS:
+				label_change_per_tick.text = _vm_change.production_text_short
 
 func _refresh_all() -> void:
-	label_amount.text = _vm.gold_text
-	label_change_per_tick.text = _vm_change.production_text_short
+	if currency_def.currency_type == CurrencyTypes.Types.NUTRIENTS:
+		label_amount.text = _vm.nutrient_text
+		label_change_per_tick.text = _vm_change.production_text_short
+	elif currency_def.currency_type == CurrencyTypes.Types.BIOMASS:
+		label_amount.text = _vm.biomass_text
+		label_change_per_tick.text = ""
+	elif currency_def.currency_type == CurrencyTypes.Types.WATER:
+		label_amount.text = _vm.water_text
+		label_change_per_tick.text = ""
