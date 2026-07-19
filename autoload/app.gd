@@ -19,17 +19,23 @@ var offline_income_vm: OfflineIncomeViewModel
 var tick_timer: Timer
 
 var upgrade_system: UpgradeSystem
+var prestige_upgrade_system: UpgradeSystem
 var resolve_context := ResolveContext.new()
 
-const UPGRADES_PATH := "res://data/upgrades/"
+const SYMBIOSIS_UPGRADES_PATH := "res://data/upgrades/symbiosis/"
+const PRESTIGE_UPGRADES_PATH := "res://data/upgrades/prestige/"
 
 func _ready() -> void:
 	player_data = PlayerData.new()
 	player_vm = PlayerViewModel.new(player_data)
 
 	upgrade_system = UpgradeSystem.new()
-	for def in _load_upgrade_defs(UPGRADES_PATH):
+	for def in _load_upgrade_defs(SYMBIOSIS_UPGRADES_PATH):
 		upgrade_system.register(def)
+
+	prestige_upgrade_system = UpgradeSystem.new()
+	for def in _load_upgrade_defs(PRESTIGE_UPGRADES_PATH):
+		prestige_upgrade_system.register(def)
 
 	for node in nodes.mycelium_nodes:
 		var mycelium_data = MyceliumData.new(player_data, node)
@@ -95,3 +101,25 @@ func handle_tick() -> void:
 			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes.add(node_change)
 		else:
 			player_data.nutrients = player_data.nutrients.add(node_change)
+
+func can_prestige() -> bool:
+	return preview_biomass_gain().gt(BigNumber.new(0.0, 0))
+
+func preview_biomass_gain() -> BigNumber:
+	return PrestigeCalculator.calculate_biomass_gain(player_data.tick_count, player_data.nutrients)
+
+## Resets the current run (nutrients, water, tick_count, node purchases,
+## symbiosis upgrades) and converts it into biomass. prestige_upgrade_system
+## and biomass itself are untouched.
+func prestige() -> void:
+	var biomass_gain := preview_biomass_gain()
+	player_data.biomass = player_data.biomass.add(biomass_gain)
+	player_data.nutrients = BigNumber.from_value(1.0)
+	player_data.water = BigNumber.from_value(0.0)
+	player_data.tick_count = 0
+
+	for node in nodes.mycelium_nodes:
+		node.manual_nodes = 0 if node.node_id != 0 else 1
+		node.auto_nodes = BigNumber.new(0.0, 0)
+
+	upgrade_system.reset()

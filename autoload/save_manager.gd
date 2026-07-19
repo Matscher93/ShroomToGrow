@@ -126,16 +126,20 @@ func _collect_data() -> Dictionary:
 	var save_state = {
 		"player_data": App.player_data.to_save(),
 		"mycelium_nodes": get_mycelium_node_data(),
-		"upgrades": App.upgrade_system.to_save()
+		"upgrades": App.upgrade_system.to_save(),
+		"prestige_upgrades": App.prestige_upgrade_system.to_save()
 	}
 	return save_state
 
 func _apply_data(_game: Dictionary) -> void:
 	var loaded_player_data = PlayerData.from_save(_game.get("player_data", PlayerData.new()))
 	App.player_data.nutrients = loaded_player_data.nutrients
+	App.player_data.water = loaded_player_data.water
+	App.player_data.biomass = loaded_player_data.biomass
 	App.player_data.tick_count = loaded_player_data.tick_count
 	load_mycelium_node_data(_game.get("mycelium_nodes", []))
 	App.upgrade_system.from_save(_game.get("upgrades", {}))
+	App.prestige_upgrade_system.from_save(_game.get("prestige_upgrades", {}))
 
 func get_mycelium_node_data() -> Array[Dictionary]:
 	var all_node_data: Array[Dictionary] = []

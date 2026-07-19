@@ -1,12 +1,24 @@
 [gd_scene format=3 uid="uid://caas4emc1u2wh"]
 
+[ext_resource type="Script" uid="uid://c04d6jttwnc6k" path="res://view/prestige/gd_prestige_panel.gd" id="1_4rf68"]
+
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
 
-[node name="biomes" type="PanelContainer" unique_id=1211922849]
+[node name="biomes" type="PanelContainer" unique_id=1211922849 node_paths=PackedStringArray("dummy_label", "button")]
 offset_right = 40.0
 offset_bottom = 40.0
 theme_override_styles/panel = SubResource("StyleBoxEmpty_lxikg")
+script = ExtResource("1_4rf68")
+dummy_label = NodePath("VBoxContainer/Label")
+button = NodePath("VBoxContainer/Button")
 
-[node name="Label" type="Label" parent="." unique_id=142522203]
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1913069588]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer" unique_id=142522203]
 layout_mode = 2
 text = "PRESTIGE"
+
+[node name="Button" type="Button" parent="VBoxContainer" unique_id=1181627247]
+layout_mode = 2
+text = "prestige"

@@ -63,14 +63,23 @@ func can_buy(id: StringName, nutrients: BigNumber) -> bool:
 		return false
 	return nutrients.gte(cost(id))
 
-func buy(id: StringName, player_data: PlayerData) -> bool:
-	if not can_buy(id, player_data.nutrients):
+func buy(id: StringName, player_data: PlayerData, currency: StringName = &"nutrients") -> bool:
+	var current: BigNumber = player_data.get(currency)
+	if not can_buy(id, current):
 		return false
-	player_data.nutrients = player_data.nutrients.sub(cost(id))
+	player_data.set(currency, current.sub(cost(id)))
 	_levels[id] = level(id) + 1
 	_dirty = true
 	upgrades_changed.emit()
 	return true
+
+## Clears purchased levels (e.g. on prestige) without touching _defs.
+func reset() -> void:
+	_levels.clear()
+	for id in _defs:
+		_levels[id] = 0
+	_dirty = true
+	upgrades_changed.emit()
 
 func to_save() -> Dictionary:
 	var data := {}
