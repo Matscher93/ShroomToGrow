@@ -11,7 +11,7 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_yael5"]
 resource_local_to_scene = true
 shader = ExtResource("3_8phkr")
-shader_parameter/rect_size = Vector2(220, 34)
+shader_parameter/rect_size = Vector2(220, 50)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 8.0
@@ -23,7 +23,7 @@ shader_parameter/border_alpha = 1.0
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_8phkr"]
 resource_local_to_scene = true
 shader = ExtResource("3_8phkr")
-shader_parameter/rect_size = Vector2(220, 34)
+shader_parameter/rect_size = Vector2(220, 50)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 8.0
@@ -35,7 +35,7 @@ shader_parameter/border_alpha = 1.0
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_suht8"]
 resource_local_to_scene = true
 shader = ExtResource("3_8phkr")
-shader_parameter/rect_size = Vector2(220, 34)
+shader_parameter/rect_size = Vector2(220, 50)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 8.0
@@ -67,7 +67,7 @@ theme_override_styles/panel = SubResource("StyleBoxEmpty_vf2pt")
 [node name="MarginContainer" type="MarginContainer" parent="VBoxContainer" unique_id=670096847]
 layout_mode = 2
 theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 20
+theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
@@ -76,16 +76,13 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="screen_button" parent="VBoxContainer/MarginContainer/button_container" unique_id=436266803 instance=ExtResource("2_yael5")]
-modulate = Color(0.74509805, 0.74509805, 0.74509805, 1)
 material = SubResource("ShaderMaterial_yael5")
 layout_mode = 2
 
 [node name="screen_button2" parent="VBoxContainer/MarginContainer/button_container" unique_id=57981868 instance=ExtResource("2_yael5")]
-modulate = Color(0.74509805, 0.74509805, 0.74509805, 1)
 material = SubResource("ShaderMaterial_8phkr")
 layout_mode = 2
 
 [node name="screen_button3" parent="VBoxContainer/MarginContainer/button_container" unique_id=2001899089 instance=ExtResource("2_yael5")]
-modulate = Color(0.74509805, 0.74509805, 0.74509805, 1)
 material = SubResource("ShaderMaterial_suht8")
 layout_mode = 2
