@@ -6,7 +6,7 @@
 script = ExtResource("1_57wr1")
 node_id = 2
 name = "Primordium"
-desc = "Each node → +1 LVL2 node / tick"
+desc = "Each node → +%s / tick"
 _initial_cost_exponent = 4
 color = Color(0, 0.84066683, 0.97, 1)
 level_font_color = Color(0.0675, 0.13900001, 0.15, 1)

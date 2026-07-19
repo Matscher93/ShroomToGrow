@@ -9,7 +9,6 @@ extends PanelContainer
 @export var level_value: Label
 @export var level_header: Label
 @export var label_node_name: Label
-@export var label_node_desc: Label
 @export var label_potency_label: Label
 @export var label_potency_level: Label
 @export var label_potency_accumulated: Label
@@ -63,7 +62,6 @@ func _on_property_changed(property: StringName) -> void:
 func _refresh_all() -> void:
 	level_value.text = "%d" % [node_level + 1]
 	label_node_name.text = _vm._mycelium_data._node.name
-	label_node_desc.text = _vm._mycelium_data._node.desc
 	_set_color()
 
 func _on_nutrients_changed(_value: BigNumber) -> void:
@@ -112,7 +110,10 @@ func _set_color():
 	if material:
 		material.set_shader_parameter(ColorParam, _vm._mycelium_data._node.color)
 		level_icon._set_color(_vm._mycelium_data._node.color)
-	
+		
+		panel_potency._set_color(_vm._mycelium_data._node.color)
+		panel_synergy._set_color(_vm._mycelium_data._node.color)
+		
 		var color_level_text = _vm._mycelium_data._node.level_font_color
 		var color_main_text = Color.from_hsv(color_level_text.h, 0.7, 0.8)
 		

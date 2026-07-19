@@ -6,7 +6,7 @@
 script = ExtResource("1_eahxk")
 node_id = 9
 name = "Panspore"
-desc = "Each node → +1 LVL9 node / tick"
+desc = "Each node → +%s / tick"
 _initial_cost_exponent = 512
 color = Color(0.485, 0, 0.97, 1)
 level_font_color = Color(0.10875001, 0.0675, 0.15, 1)

@@ -6,7 +6,7 @@
 script = ExtResource("1_ey773")
 node_id = 4
 name = "Colony"
-desc = "Each node → +1 LVL4 node / tick"
+desc = "Each node → +%s / tick"
 _initial_cost_exponent = 16
 color = Color(0, 0.4526667, 0.97, 1)
 level_font_color = Color(0.0675, 0.10600001, 0.15, 1)

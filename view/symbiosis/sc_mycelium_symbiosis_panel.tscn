@@ -47,11 +47,6 @@ font_color = Color(0, 0, 0, 1)
 font = ExtResource("7_n5ddq")
 font_size = 20
 
-[sub_resource type="LabelSettings" id="LabelSettings_3usp5"]
-font = ExtResource("7_n5ddq")
-font_size = 12
-font_color = Color(1, 1, 1, 0.5882353)
-
 [sub_resource type="LabelSettings" id="LabelSettings_7duim"]
 line_spacing = -14.065
 font = ExtResource("5_uktlb")
@@ -160,7 +155,7 @@ shader_parameter/additional_border_offset = 1.0
 shader_parameter/background_alpha = 0.2
 shader_parameter/border_alpha = 1.0
 
-[node name="mycelium_symbiosis" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "upgrade_button_synergy", "label_yield", "level_value", "level_header", "label_node_name", "label_node_desc", "label_potency_label", "label_potency_level", "label_potency_accumulated", "label_synergy_label", "label_synergy_level", "label_synergy_accumulated", "label_potency_cost", "panel_potency", "label_synergy_cost", "panel_synergy", "level_icon")]
+[node name="mycelium_symbiosis" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "upgrade_button_synergy", "label_yield", "level_value", "level_header", "label_node_name", "label_potency_label", "label_potency_level", "label_potency_accumulated", "label_synergy_label", "label_synergy_level", "label_synergy_accumulated", "label_potency_cost", "panel_potency", "label_synergy_cost", "panel_synergy", "level_icon")]
 material = SubResource("ShaderMaterial_53xj8")
 anchors_preset = 15
 anchor_right = 1.0
@@ -177,8 +172,7 @@ upgrade_button_synergy = NodePath("MarginContainer/VBoxContainer/PanelContainerS
 label_yield = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBox_manual/lbl_yield")
 level_value = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon/lbl_level_value")
 level_header = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon/lbl_level_header")
-label_node_name = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/lbl_node_name")
-label_node_desc = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/lbl_node_desc")
+label_node_name = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/lbl_node_name")
 label_potency_label = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_potency_header")
 label_potency_level = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_potency_level")
 label_potency_accumulated = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_potency_gain_amount")
@@ -253,18 +247,10 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(5, 0)
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=814767406]
+[node name="lbl_node_name" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=1417508820]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 0
-
-[node name="lbl_node_name" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer" unique_id=1417508820]
-layout_mode = 2
 label_settings = SubResource("LabelSettings_o2fsh")
-
-[node name="lbl_node_desc" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer" unique_id=817463414]
-layout_mode = 2
-label_settings = SubResource("LabelSettings_3usp5")
 
 [node name="Control" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=2042776881]
 custom_minimum_size = Vector2(10, 0)

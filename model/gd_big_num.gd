@@ -17,9 +17,8 @@ var exponent: int    ## Power of 10
 const SUFFIXES: Array[String] = [
 	"",    "K",   "M",   "B",   "T",
 	"Qa",  "Qi",  "Sx",  "Sp",  "Oc",  "No",
-	"Dc",  "Ud"
+	"Dc"
 ]
-
 
 # ─── Construction ────────────────────────────────────────────────────────────
 
@@ -27,7 +26,6 @@ func _init(m: float = 0.0, e: int = 0) -> void:
 	mantissa = m
 	exponent = e
 	_normalize()
-
 
 ## Build from a plain float or integer (e.g.  BigNumber.from_value(1000.0)).
 static func from_value(value: float) -> BigNumber:
@@ -38,11 +36,9 @@ static func from_value(value: float) -> BigNumber:
 	var e := int(floor(log(abs_val) / log(10.0)))
 	return BigNumber.new((abs_val / pow(10.0, float(e))) * num_sign, e)
 
-
 ## Shallow copy.
 func copy() -> BigNumber:
 	return BigNumber.new(mantissa, exponent)
-
 
 # Keeps mantissa in [1, 1000) by shifting the exponent.
 func _normalize() -> void:
@@ -59,7 +55,6 @@ func _normalize() -> void:
 		exponent -= 1
 	mantissa = m * num_sign
 
-
 # ─── Arithmetic ──────────────────────────────────────────────────────────────
 
 func add(other: BigNumber) -> BigNumber:
@@ -74,23 +69,19 @@ func add(other: BigNumber) -> BigNumber:
 	else:
 		return BigNumber.new(mantissa / pow(10.0, float(-diff)) + other.mantissa, other.exponent)
 
-
 func sub(other: BigNumber) -> BigNumber:
 	var neg := other.copy()
 	neg.mantissa = -neg.mantissa
 	return add(neg)
 
-
 func mul(other: BigNumber) -> BigNumber:
 	return BigNumber.new(mantissa * other.mantissa, exponent + other.exponent)
-
 
 func div(other: BigNumber) -> BigNumber:
 	if other.mantissa == 0.0:
 		push_error("BigNumber: division by zero")
 		return BigNumber.new(0.0, 0)
 	return BigNumber.new(mantissa / other.mantissa, exponent - other.exponent)
-
 
 ## Integer exponentiation via fast squaring — handy for upgrade cost curves.
 ## e.g.  base_cost.pow_int(level)
@@ -107,11 +98,9 @@ func pow_int(p: int) -> BigNumber:
 		n >>= 1
 	return result
 
-
 ## Multiply by a plain float scalar (cheaper than wrapping in a BigNumber).
 func scale(factor: float) -> BigNumber:
 	return BigNumber.new(mantissa * factor, exponent)
-
 
 ## Real-exponent power via log10 space — unlike pow_int, handles fractional
 ## and arbitrarily large exponents without overflowing (e.g. cost curves with
@@ -125,7 +114,6 @@ func pow_float(exp: float) -> BigNumber:
 	var result_exponent := int(floor(log10_result))
 	var result_mantissa := pow(10.0, log10_result - result_exponent)
 	return BigNumber.new(result_mantissa, result_exponent)
-
 
 # ─── Comparison ──────────────────────────────────────────────────────────────
 
@@ -144,7 +132,6 @@ func lte(other: BigNumber) -> bool: return not gt(other)
 func equals(other: BigNumber) -> bool:
 	return exponent == other.exponent and is_equal_approx(mantissa, other.mantissa)
 
-
 # ─── Display ─────────────────────────────────────────────────────────────────
 
 ## Human-readable, suffix-based string.
@@ -159,11 +146,10 @@ func to_display(decimals: int = 1) -> String:
 			scaled = scaled/1000
 			idx += 1
 		if idx == 0:
-			return str(int(scaled))           # plain integer, no suffix
+			return "%.1f" % scaled           # plain float, no suffix
 		return "%.*f%s" % [decimals, scaled, SUFFIXES[idx]]
 	# Beyond the suffix table → scientific notation
 	return to_scientific()
-
 
 ## Always scientific notation:  "1.234e56"
 func to_scientific(decimals: int = 2) -> String:
@@ -171,7 +157,6 @@ func to_scientific(decimals: int = 2) -> String:
 	var scaled := mantissa / pow(10.0, float(length_mantissa - 1))
 	
 	return "%.*fe%d" % [decimals, scaled, exponent + length_mantissa - 1]
-
 
 ## Godot calls this for str(bignum) and print(bignum).
 func _to_string() -> String:

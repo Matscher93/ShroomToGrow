@@ -6,7 +6,7 @@
 script = ExtResource("1_rbv2t")
 node_id = 8
 name = "Mycosphere"
-desc = "Each node → +1 LVL8 node / tick"
+desc = "Each node → +%s / tick"
 _initial_cost_exponent = 256
 color = Color(0.29099974, 0, 0.97, 1)
 level_font_color = Color(0.092249975, 0.0675, 0.15, 1)

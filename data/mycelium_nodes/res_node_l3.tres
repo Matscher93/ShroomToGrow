@@ -6,7 +6,7 @@
 script = ExtResource("1_q3of3")
 node_id = 3
 name = "Sporocarp"
-desc = "Each node → +1 LVL3 node / tick"
+desc = "Each node → +%s / tick"
 _initial_cost_exponent = 8
 color = Color(0, 0.6466665, 0.97, 1)
 level_font_color = Color(0.0675, 0.122499995, 0.15, 1)

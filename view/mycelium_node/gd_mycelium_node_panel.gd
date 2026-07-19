@@ -49,6 +49,8 @@ func _on_property_changed(property: StringName) -> void:
 			manual_nodes.text = _vm.manual_node_text
 		MyceliumNodeViewModel.PROP_PRODUCTION_TEXT:
 			label_node_income.text = _vm.production_text
+		MyceliumNodeViewModel.PROP_PRODUCTION_PER_NODE_TEXT:
+			label_node_desc.text = _vm.production_per_node_text
 
 func _refresh_all() -> void:
 	label_buy_cost.text = _vm.buy_button_text
@@ -58,7 +60,7 @@ func _refresh_all() -> void:
 	label_node_income.text = _vm.production_text
 	level_value.text = "%d" % [node_level + 1]
 	label_node_name.text = _vm._mycelium_data._node.name
-	label_node_desc.text = _vm._mycelium_data._node.desc
+	label_node_desc.text = _vm.production_per_node_text
 	_set_color()
 
 # --- View -> VM ---

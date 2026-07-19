@@ -6,7 +6,7 @@
 script = ExtResource("1_su0an")
 node_id = 5
 name = "Mycorrhiza"
-desc = "Each node → +1 LVL5 node / tick"
+desc = "Each node → +%s / tick"
 _initial_cost_exponent = 32
 color = Color(0, 0.27483332, 0.97, 1)
 level_font_color = Color(0.0675, 0.090875, 0.15, 1)

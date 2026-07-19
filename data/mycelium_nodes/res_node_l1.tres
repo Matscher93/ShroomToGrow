@@ -6,7 +6,7 @@
 script = ExtResource("1_tjqji")
 node_id = 1
 name = "Rhizomorph"
-desc = "Each node → +1 LVL1 node / tick"
+desc = "Each node → +%s / tick"
 _initial_cost_exponent = 2
 color = Color(0, 1, 0.95000005, 1)
 level_font_color = Color(0.0675, 0.15, 0.145875, 1)

@@ -9,6 +9,7 @@ const PROP_MANUAL_NODE_TEXT := &"manual_node_text"
 const PROP_OWNED_NODE_TEXT := &"owned_node_text"
 const PROP_CAN_BUY := &"can_buy_upgrade"
 const PROP_PRODUCTION_TEXT := &"production_text"
+const PROP_PRODUCTION_PER_NODE_TEXT := &"production_per_node_text"
 
 var _player_data: PlayerData
 var _mycelium_data: MyceliumData
@@ -31,6 +32,18 @@ var owned_node_text: String:
 var production_text: String:
 	get:
 		return "+%s / tick" % [_scaled_production()._to_string()]
+		
+var production_per_node_text: String:
+	get:
+		var source_text = _mycelium_data._node.desc
+		var unit_text: String
+		if _mycelium_data._node.node_id == 0:
+			unit_text = ("%s nutrients" if is_multiple else "%s nutrient") % [_bonus_production()._to_string()]
+		else:
+			var level_text = "LV%d" % [_mycelium_data._node.node_id + 1]
+			unit_text = ("%s %s nodes" if is_multiple else "%s %s node") % [_bonus_production()._to_string(), level_text]
+		
+		return source_text % [unit_text]
 
 var production_text_short: String:
 	get:
@@ -40,6 +53,9 @@ var can_buy_upgrade: bool:
 	get:
 		return _mycelium_data.can_afford_upgrade()
 
+var is_multiple: bool:
+	get:
+		return _bonus_production().gt(BigNumber.from_value(1.0))
 # --- Lifecycle ---
 
 func _init(player_data: PlayerData, mycelium_data: MyceliumData) -> void:
@@ -93,3 +109,7 @@ func _scaled_production() -> BigNumber:
 	var bonus := App.upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
 		App.resolve_context, [], StringName(str(_mycelium_data._node.node_id)))
 	return raw.mul(bonus)
+
+func _bonus_production() -> BigNumber:
+	return App.upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
+		App.resolve_context, [], StringName(str(_mycelium_data._node.node_id)))
