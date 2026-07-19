@@ -56,12 +56,15 @@ func _update_visuals() -> void:
 		
 		for i in range(nodes.size()):
 			var node = nodes[i]
-			var node_scene_instance = mycelium_node_change_item.instantiate()
 			var initial_node_count = _get_node_count(_snapshots[0], i)
 			var final_node_count = _get_node_count(_snapshots[_snapshots.size()-1], i)
-			
-			node_scene_instance.set_data(node, i, final_node_count.sub(initial_node_count))
-			
+			var node_change = final_node_count.sub(initial_node_count)
+			if node_change.equals(BigNumber.from_value(0.0)):
+				continue
+
+			var node_scene_instance = mycelium_node_change_item.instantiate()
+			node_scene_instance.set_data(node, i, node_change)
+
 			vbox_node_change.add_child(node_scene_instance)
 
 	

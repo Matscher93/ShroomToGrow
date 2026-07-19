@@ -62,7 +62,7 @@ font_size = 12
 
 [sub_resource type="LabelSettings" id="LabelSettings_0kruu"]
 font = ExtResource("7_7duim")
-font_size = 12
+font_size = 14
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_bj2ss"]
 resource_local_to_scene = true
@@ -230,6 +230,10 @@ label_settings = SubResource("LabelSettings_7yqcm")
 horizontal_alignment = 2
 uppercase = true
 
+[node name="Control3" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=566303540]
+custom_minimum_size = Vector2(5, 0)
+layout_mode = 2
+
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=862107365]
 layout_mode = 2
 theme_override_constants/separation = 0
@@ -237,7 +241,9 @@ theme_override_constants/separation = 0
 [node name="lbl_node_income" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=647860906]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 8
 label_settings = SubResource("LabelSettings_0kruu")
+vertical_alignment = 2
 
 [node name="panel_buy_node" type="PanelContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1624840392 node_paths=PackedStringArray("upgrade_button")]
 modulate = Color(0.3, 0.3, 0.3, 1)

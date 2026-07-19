@@ -37,3 +37,6 @@ var initial_cost: BigNumber:
 @export var level_font_color: Color
 @export var cost_increase_per_level: float = 1.5
 @export var cost_growth_exponent: float = 1.2  # >1 makes the buy-cost curve steepen with manual_nodes
+
+func has_nodes() -> bool:
+	return manual_nodes > 0 or auto_nodes.gt(BigNumber.from_value(0.0))

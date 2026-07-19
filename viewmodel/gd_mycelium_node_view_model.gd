@@ -40,7 +40,7 @@ var production_per_node_text: String:
 		if _mycelium_data._node.node_id == 0:
 			unit_text = ("%s nutrients" if is_multiple else "%s nutrient") % [_bonus_production()._to_string()]
 		else:
-			var level_text = "LV%d" % [_mycelium_data._node.node_id + 1]
+			var level_text = "LV%d" % [_mycelium_data._node.node_id]
 			unit_text = ("%s %s nodes" if is_multiple else "%s %s node") % [_bonus_production()._to_string(), level_text]
 		
 		return source_text % [unit_text]

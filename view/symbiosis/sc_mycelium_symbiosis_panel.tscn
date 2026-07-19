@@ -60,7 +60,7 @@ font_color = Color(1, 1, 1, 0.5882353)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_44wru"]
 shader = ExtResource("1_my76n")
-shader_parameter/rect_size = Vector2(658, 46)
+shader_parameter/rect_size = Vector2(476, 46)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 8.0
@@ -91,10 +91,10 @@ font_color = Color(1, 1, 1, 0.5882353)
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_bj2ss"]
 resource_local_to_scene = true
 shader = ExtResource("1_my76n")
-shader_parameter/rect_size = Vector2(111, 36)
+shader_parameter/rect_size = Vector2(111, 46)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
-shader_parameter/corner_radius = 4.0
+shader_parameter/corner_radius = 8.0
 shader_parameter/border_thickness = 1.0
 shader_parameter/additional_border_offset = 1.0
 shader_parameter/background_alpha = 0.2
@@ -119,7 +119,7 @@ font_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_qqop7"]
 shader = ExtResource("1_my76n")
-shader_parameter/rect_size = Vector2(658, 46)
+shader_parameter/rect_size = Vector2(476, 46)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 8.0
@@ -146,10 +146,10 @@ font_color = Color(1, 1, 1, 0.5882353)
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_dp8oj"]
 resource_local_to_scene = true
 shader = ExtResource("1_my76n")
-shader_parameter/rect_size = Vector2(111, 36)
+shader_parameter/rect_size = Vector2(111, 46)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
-shader_parameter/corner_radius = 4.0
+shader_parameter/corner_radius = 8.0
 shader_parameter/border_thickness = 1.0
 shader_parameter/additional_border_offset = 1.0
 shader_parameter/background_alpha = 0.2
@@ -167,8 +167,8 @@ grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("2_kkelg")
 ColorParam = "box_color"
-upgrade_button = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency/potency_button")
-upgrade_button_synergy = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy/synergy_button")
+upgrade_button = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer/panel_buy_potency/potency_button")
+upgrade_button_synergy = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/MarginContainer/panel_buy_synergy/synergy_button")
 label_yield = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBox_manual/lbl_yield")
 level_value = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon/lbl_level_value")
 level_header = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon/lbl_level_header")
@@ -179,10 +179,10 @@ label_potency_accumulated = NodePath("MarginContainer/VBoxContainer/PanelContain
 label_synergy_label = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_synergy_header")
 label_synergy_level = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_synergy_level")
 label_synergy_accumulated = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_synergy_gain_amount")
-label_potency_cost = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency/MarginContainer/HBox/lbl_buy_cost")
-panel_potency = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency")
-label_synergy_cost = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy/MarginContainer/HBox/lbl_buy_cost")
-panel_synergy = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy")
+label_potency_cost = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer/panel_buy_potency/MarginContainer/HBox/lbl_buy_cost")
+panel_potency = NodePath("MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer/panel_buy_potency")
+label_synergy_cost = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/MarginContainer/panel_buy_synergy/MarginContainer/HBox/lbl_buy_cost")
+panel_synergy = NodePath("MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/MarginContainer/panel_buy_synergy")
 level_icon = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=394518787]
@@ -275,6 +275,10 @@ label_settings = SubResource("LabelSettings_7yqcm")
 horizontal_alignment = 2
 uppercase = true
 
+[node name="Control3" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=297064062]
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+
 [node name="PanelContainerPotency" type="PanelContainer" parent="MarginContainer/VBoxContainer" unique_id=1363004070]
 material = SubResource("ShaderMaterial_44wru")
 layout_mode = 2
@@ -284,7 +288,7 @@ ColorParam = "box_color"
 
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency" unique_id=1867726604]
 layout_mode = 2
-theme_override_constants/margin_left = 5
+theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
@@ -324,7 +328,14 @@ layout_mode = 2
 text = "now +10%"
 label_settings = SubResource("LabelSettings_44wru")
 
-[node name="panel_buy_potency" type="PanelContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer" unique_id=1624840392 node_paths=PackedStringArray("upgrade_button")]
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer" unique_id=1927908050]
+layout_mode = 2
+theme_override_constants/margin_left = -5
+theme_override_constants/margin_top = -5
+theme_override_constants/margin_right = -5
+theme_override_constants/margin_bottom = -5
+
+[node name="panel_buy_potency" type="PanelContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer" unique_id=1624840392 node_paths=PackedStringArray("upgrade_button")]
 modulate = Color(0.3, 0.3, 0.3, 1)
 material = SubResource("ShaderMaterial_bj2ss")
 layout_mode = 2
@@ -334,28 +345,28 @@ ColorParam = "box_color"
 upgrade_button = NodePath("potency_button")
 deactivated_color = Color(1, 1, 1, 0.29803923)
 
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency" unique_id=214309987]
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer/panel_buy_potency" unique_id=214309987]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 6
 
-[node name="HBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency/MarginContainer" unique_id=2014435498]
+[node name="HBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer/panel_buy_potency/MarginContainer" unique_id=2014435498]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="lbl_buy_header" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency/MarginContainer/HBox" unique_id=2011751018]
+[node name="lbl_buy_header" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer/panel_buy_potency/MarginContainer/HBox" unique_id=2011751018]
 layout_mode = 2
 text = "Buy:"
 label_settings = SubResource("LabelSettings_oi3wt")
 
-[node name="lbl_buy_cost" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency/MarginContainer/HBox" unique_id=1484529724]
+[node name="lbl_buy_cost" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer/panel_buy_potency/MarginContainer/HBox" unique_id=1484529724]
 layout_mode = 2
 text = "11.9k"
 label_settings = SubResource("LabelSettings_jeu7j")
 
-[node name="potency_button" type="Button" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/panel_buy_potency" unique_id=1256884329]
+[node name="potency_button" type="Button" parent="MarginContainer/VBoxContainer/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer/panel_buy_potency" unique_id=1256884329]
 propagate_maximum_size = true
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxEmpty_7duim")
@@ -375,7 +386,7 @@ ColorParam = "box_color"
 
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy" unique_id=491171058]
 layout_mode = 2
-theme_override_constants/margin_left = 5
+theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
@@ -415,7 +426,14 @@ layout_mode = 2
 text = "now +10%"
 label_settings = SubResource("LabelSettings_7wrhg")
 
-[node name="panel_buy_synergy" type="PanelContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer" unique_id=2031695529 node_paths=PackedStringArray("upgrade_button")]
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer" unique_id=1767847375]
+layout_mode = 2
+theme_override_constants/margin_left = -5
+theme_override_constants/margin_top = -5
+theme_override_constants/margin_right = -5
+theme_override_constants/margin_bottom = -5
+
+[node name="panel_buy_synergy" type="PanelContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/MarginContainer" unique_id=2031695529 node_paths=PackedStringArray("upgrade_button")]
 modulate = Color(0.3, 0.3, 0.3, 1)
 material = SubResource("ShaderMaterial_dp8oj")
 layout_mode = 2
@@ -425,28 +443,28 @@ ColorParam = "box_color"
 upgrade_button = NodePath("synergy_button")
 deactivated_color = Color(1, 1, 1, 0.29803923)
 
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy" unique_id=2129055191]
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/MarginContainer/panel_buy_synergy" unique_id=2129055191]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 6
 
-[node name="HBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy/MarginContainer" unique_id=1119003199]
+[node name="HBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/MarginContainer/panel_buy_synergy/MarginContainer" unique_id=1119003199]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="lbl_buy_header" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy/MarginContainer/HBox" unique_id=1671499582]
+[node name="lbl_buy_header" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/MarginContainer/panel_buy_synergy/MarginContainer/HBox" unique_id=1671499582]
 layout_mode = 2
 text = "Buy:"
 label_settings = SubResource("LabelSettings_oi3wt")
 
-[node name="lbl_buy_cost" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy/MarginContainer/HBox" unique_id=2027367903]
+[node name="lbl_buy_cost" type="Label" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/MarginContainer/panel_buy_synergy/MarginContainer/HBox" unique_id=2027367903]
 layout_mode = 2
 text = "11.9k"
 label_settings = SubResource("LabelSettings_jeu7j")
 
-[node name="synergy_button" type="Button" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/panel_buy_synergy" unique_id=892471222]
+[node name="synergy_button" type="Button" parent="MarginContainer/VBoxContainer/PanelContainerSynergy/MarginContainer/HBoxContainer/MarginContainer/panel_buy_synergy" unique_id=892471222]
 propagate_maximum_size = true
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxEmpty_7duim")
