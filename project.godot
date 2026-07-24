@@ -32,6 +32,10 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=6
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/yard/plugin.cfg")
+
 [gui]
 
 theme/default_font_subpixel_positioning=2

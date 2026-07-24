@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="Registry" format=3 uid="uid://b2wnkfjgmu674"]
+
+[ext_resource type="Script" uid="uid://dqtv77mng5dyh" path="res://addons/yard/registry.gd" id="1_cknli"]
+
+[resource]
+script = ExtResource("1_cknli")
+_version = 2
+_scan_rulesets = Array[Dictionary]([{
+&"allowed_file_extensions": Array[String]([]),
+&"class_restrictions": Array[StringName]([&"\"res://model/upgrades/res_upgrade_def.gd\""]),
+&"recursive_scan": true,
+&"scan_directories": Array[String](["res://data/upgrades"]),
+&"scan_regex_exclude": "",
+&"scan_regex_include": ""
+}])
+_uids_to_string_ids = Dictionary[StringName, StringName]({
+&"uid://73slk6ey74nq": &"node7_synergy_def",
+&"uid://b8uxmjvjl4ue7": &"node9_potency_def",
+&"uid://biyuk408pnjct": &"node2_synergy_def",
+&"uid://c1inkn6yjjjdq": &"node7_potency_def",
+&"uid://caifi473rhu5x": &"node1_synergy_def",
+&"uid://capnknjuds1pt": &"node8_potency_def",
+&"uid://cc0qf3pgceg6p": &"node4_synergy_def",
+&"uid://ccmi6jjfhu6w1": &"node3_potency_def",
+&"uid://cgw821ewrvatr": &"node5_synergy_def",
+&"uid://cjhvp23qc4jw5": &"node4_potency_def",
+&"uid://cnv3apdakdvwm": &"node6_synergy_def",
+&"uid://cv0l2e4c537ko": &"node6_potency_def",
+&"uid://db4yb0qmeqpyi": &"node2_potency_def",
+&"uid://dnmj2amsqpgrk": &"node5_potency_def",
+&"uid://dnqasyao7f7pw": &"node8_synergy_def",
+&"uid://dookjjkfyj5qn": &"node9_synergy_def",
+&"uid://mg7v82fmtw2r": &"node0_potency_def",
+&"uid://omt5qybf2bbq": &"node1_potency_def",
+&"uid://qtygukag0quo": &"node0_synergy_def",
+&"uid://wuqphv622022": &"node3_synergy_def"
+})
+_string_ids_to_uids = Dictionary[StringName, StringName]({
+&"node0_potency_def": &"uid://mg7v82fmtw2r",
+&"node0_synergy_def": &"uid://qtygukag0quo",
+&"node1_potency_def": &"uid://omt5qybf2bbq",
+&"node1_synergy_def": &"uid://caifi473rhu5x",
+&"node2_potency_def": &"uid://db4yb0qmeqpyi",
+&"node2_synergy_def": &"uid://biyuk408pnjct",
+&"node3_potency_def": &"uid://ccmi6jjfhu6w1",
+&"node3_synergy_def": &"uid://wuqphv622022",
+&"node4_potency_def": &"uid://cjhvp23qc4jw5",
+&"node4_synergy_def": &"uid://cc0qf3pgceg6p",
+&"node5_potency_def": &"uid://dnmj2amsqpgrk",
+&"node5_synergy_def": &"uid://cgw821ewrvatr",
+&"node6_potency_def": &"uid://cv0l2e4c537ko",
+&"node6_synergy_def": &"uid://cnv3apdakdvwm",
+&"node7_potency_def": &"uid://c1inkn6yjjjdq",
+&"node7_synergy_def": &"uid://73slk6ey74nq",
+&"node8_potency_def": &"uid://capnknjuds1pt",
+&"node8_synergy_def": &"uid://dnqasyao7f7pw",
+&"node9_potency_def": &"uid://b8uxmjvjl4ue7",
+&"node9_synergy_def": &"uid://dookjjkfyj5qn"
+})

@@ -22,7 +22,7 @@ vec4 generate_sparks( vec2 fragCoord )
 	float sdf = 1.0;
 	for(int i = 0; i < int(ZOOM); i++)
 	{
-		vec2 spark_uv = SpatialManipulation_CenterUVs(vec2(uv.x-float(i), uv.y));
+		vec2 spark_uv = SpatialManipulation_CenterUVs(vec2(uv.x-float(i)+sin(TIME/2.0*rand(float(i)))*.3, uv.y));
 		spark_uv.y += -TIME*rand(id.x+1.1230) - rand(id.x)*ZOOM*rect_size.y/rect_size.x;
 		spark_uv.y = mod(spark_uv.y, ZOOM*rect_size.y/rect_size.x)-1.0; 
 		float size = 0.02+0.01*(sin((rand(id.y)+TIME*rand(id.y))/2.0)+1.0);
