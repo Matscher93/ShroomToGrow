@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BiomeDef" format=3]
+
+[ext_resource type="Script" path="res://model/biomes/gd_biome_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+key = &"forest"
+display_name = "Meadow"
+description = "Where it all begins — open grassy flats studded with mycelium."
+screen_type = 1
+xp_source = 0
+xp_label = "nodes grown"
+always_unlocked = true
+unlock_currency = 0
+_unlock_cost_mantissa = 0.0
+_unlock_cost_exponent = 0

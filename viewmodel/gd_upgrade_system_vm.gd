@@ -73,6 +73,28 @@ func buy(id: StringName, player_data: PlayerData, currency: StringName = &"nutri
 	upgrades_changed.emit()
 	return true
 
+## Level up an upgrade paid for with a flat point budget (e.g. biome level
+## points) instead of a BigNumber currency — always costs exactly 1 point.
+func buy_with_points(id: StringName, available_points: int) -> bool:
+	var def: UpgradeDef = _defs.get(id)
+	if def == null:
+		return false
+	if def.max_level > 0 and level(id) >= def.max_level:
+		return false
+	if available_points < 1:
+		return false
+	_levels[id] = level(id) + 1
+	_dirty = true
+	upgrades_changed.emit()
+	return true
+
+## Sum of every registered upgrade's level — used as a biome XP source.
+func total_levels() -> int:
+	var total := 0
+	for id in _levels:
+		total += _levels[id]
+	return total
+
 ## Clears purchased levels (e.g. on prestige) without touching _defs.
 func reset() -> void:
 	_levels.clear()

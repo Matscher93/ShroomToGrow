@@ -127,7 +127,9 @@ func _collect_data() -> Dictionary:
 		"player_data": App.player_data.to_save(),
 		"mycelium_nodes": get_mycelium_node_data(),
 		"upgrades": App.upgrade_system.to_save(),
-		"prestige_upgrades": App.prestige_upgrade_system.to_save()
+		"prestige_upgrades": App.prestige_upgrade_system.to_save(),
+		"biomes": App.biomes_data.to_save(),
+		"biome_upgrades": App.biome_upgrade_system.to_save()
 	}
 	return save_state
 
@@ -137,9 +139,15 @@ func _apply_data(_game: Dictionary) -> void:
 	App.player_data.water = loaded_player_data.water
 	App.player_data.biomass = loaded_player_data.biomass
 	App.player_data.tick_count = loaded_player_data.tick_count
+	App.player_data.prestige_count = loaded_player_data.prestige_count
 	load_mycelium_node_data(_game.get("mycelium_nodes", []))
 	App.upgrade_system.from_save(_game.get("upgrades", {}))
 	App.prestige_upgrade_system.from_save(_game.get("prestige_upgrades", {}))
+	var loaded_biomes_data := BiomesData.from_save(_game.get("biomes", {}))
+	for key in loaded_biomes_data.unlocked:
+		App.biomes_data.unlock(key)
+	App.biomes_data.spent_points = loaded_biomes_data.spent_points
+	App.biome_upgrade_system.from_save(_game.get("biome_upgrades", {}))
 
 func get_mycelium_node_data() -> Array[Dictionary]:
 	var all_node_data: Array[Dictionary] = []

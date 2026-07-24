@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BiomeDef" format=3 uid="uid://mjdaw5ovbf86"]
+
+[ext_resource type="Script" uid="uid://beyspvlhwfx6a" path="res://model/biomes/gd_biome_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+key = &"symbiosis"
+display_name = "Forest"
+description = "Shaded woodland where neighboring nodes learn to feed each other."
+screen_type = 2
+xp_source = 1
+xp_label = "symbioses formed"
+_unlock_cost_mantissa = 5.0
+_unlock_cost_exponent = 1

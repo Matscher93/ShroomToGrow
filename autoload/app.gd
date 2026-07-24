@@ -20,10 +20,15 @@ var tick_timer: Timer
 
 var upgrade_system: UpgradeSystem
 var prestige_upgrade_system: UpgradeSystem
+var biome_upgrade_system: UpgradeSystem
 var resolve_context := ResolveContext.new()
+
+var biomes := load("res://data/biomes/all_biomes.tres") as BiomeList
+var biomes_data: BiomesData
 
 const SYMBIOSIS_UPGRADES_PATH := "res://data/upgrades/symbiosis/"
 const PRESTIGE_UPGRADES_PATH := "res://data/upgrades/prestige/"
+const BIOME_UPGRADES_PATH := "res://data/upgrades/biomes/"
 
 func _ready() -> void:
 	player_data = PlayerData.new()
@@ -36,6 +41,15 @@ func _ready() -> void:
 	prestige_upgrade_system = UpgradeSystem.new()
 	for def in _load_upgrade_defs(PRESTIGE_UPGRADES_PATH):
 		prestige_upgrade_system.register(def)
+
+	biome_upgrade_system = UpgradeSystem.new()
+	for def in _load_upgrade_defs(BIOME_UPGRADES_PATH):
+		biome_upgrade_system.register(def)
+
+	biomes_data = BiomesData.new()
+	for def in biomes.biomes:
+		if def.always_unlocked:
+			biomes_data.unlock(def.key)
 
 	for node in nodes.mycelium_nodes:
 		var mycelium_data = MyceliumData.new(player_data, node)
@@ -95,7 +109,9 @@ func handle_tick() -> void:
 		var node_change = node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
 		var bonus := upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
 			resolve_context, [], StringName(str(node.node_id)))
-		node_change = node_change.mul(bonus)
+		var biome_bonus := biome_upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
+			resolve_context, [], StringName(str(node.node_id)))
+		node_change = node_change.mul(bonus).mul(biome_bonus)
 		if i != 0:
 			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes = \
 			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes.add(node_change)
@@ -106,20 +122,90 @@ func can_prestige() -> bool:
 	return preview_biomass_gain().gt(BigNumber.new(0.0, 0))
 
 func preview_biomass_gain() -> BigNumber:
-	return PrestigeCalculator.calculate_biomass_gain(player_data.tick_count, player_data.nutrients)
+	var gain := PrestigeCalculator.calculate_biomass_gain(player_data.tick_count, player_data.nutrients)
+	if biomes_data.is_unlocked(&"permafrost"):
+		var bonus := biome_upgrade_system.effect_amount(&"FrozenSpores", resolve_context)
+		gain = gain.mul(BigNumber.from_value(1.0).add(bonus))
+	return gain
 
 ## Resets the current run (nutrients, water, tick_count, node purchases,
-## symbiosis upgrades) and converts it into biomass. prestige_upgrade_system
-## and biomass itself are untouched.
+## symbiosis upgrades) and converts it into biomass. Biomes, biome upgrades,
+## and prestige_upgrade_system are untouched — they persist across prestiges.
 func prestige() -> void:
 	var biomass_gain := preview_biomass_gain()
 	player_data.biomass = player_data.biomass.add(biomass_gain)
 	player_data.nutrients = BigNumber.from_value(1.0)
 	player_data.water = BigNumber.from_value(0.0)
 	player_data.tick_count = 0
+	player_data.prestige_count += 1
 
 	for node in nodes.mycelium_nodes:
 		node.manual_nodes = 0 if node.node_id != 0 else 1
 		node.auto_nodes = BigNumber.new(0.0, 0)
 
 	upgrade_system.reset()
+
+# ---------------------------------------------------------------- biomes
+
+func is_screen_unlocked(screen_type: int) -> bool:
+	if screen_type == ScreenTypes.Types.BIOMES:
+		return true
+	var def := biome_def_for_screen(screen_type)
+	return def == null or biomes_data.is_unlocked(def.key)
+
+func biome_def(key: StringName) -> BiomeDef:
+	for def in biomes.biomes:
+		if def.key == key:
+			return def
+	return null
+
+func biome_def_for_screen(screen_type: int) -> BiomeDef:
+	for def in biomes.biomes:
+		if def.screen_type == screen_type:
+			return def
+	return null
+
+func biome_xp(key: StringName) -> int:
+	var def := biome_def(key)
+	return BiomeCalculator.xp_for(def) if def else 0
+
+func biome_level(key: StringName) -> Dictionary:
+	return BiomeCalculator.level_for(biome_xp(key))
+
+func biome_available_points(key: StringName) -> int:
+	var lvl: int = biome_level(key).level
+	return max(0, lvl - 1 - biomes_data.points_spent(key))
+
+func can_unlock_biome(key: StringName) -> bool:
+	var def := biome_def(key)
+	if def == null or biomes_data.is_unlocked(key):
+		return false
+	var currency: BigNumber = player_data.get(_currency_field(def.unlock_currency))
+	return currency.gte(def.unlock_cost)
+
+func unlock_biome(key: StringName) -> bool:
+	if not can_unlock_biome(key):
+		return false
+	var def := biome_def(key)
+	var field := _currency_field(def.unlock_currency)
+	var current: BigNumber = player_data.get(field)
+	player_data.set(field, current.sub(def.unlock_cost))
+	biomes_data.unlock(key)
+	return true
+
+func buy_biome_upgrade(id: StringName, key: StringName) -> bool:
+	if biome_available_points(key) < 1:
+		return false
+	if not biome_upgrade_system.buy_with_points(id, biome_available_points(key)):
+		return false
+	biomes_data.spend_points(key, 1)
+	return true
+
+func _currency_field(currency: CurrencyTypes.Types) -> StringName:
+	match currency:
+		CurrencyTypes.Types.WATER:
+			return &"water"
+		CurrencyTypes.Types.BIOMASS:
+			return &"biomass"
+		_:
+			return &"nutrients"

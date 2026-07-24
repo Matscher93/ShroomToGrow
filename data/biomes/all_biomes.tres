@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="BiomeList" format=3 uid="uid://vwe3p2owvfj4"]
+
+[ext_resource type="Script" uid="uid://cmxnnf3gyfthp" path="res://model/biomes/gd_biome_list.gd" id="1_list_script"]
+[ext_resource type="Script" uid="uid://beyspvlhwfx6a" path="res://model/biomes/gd_biome_def.gd" id="2_def_script"]
+[ext_resource type="Resource" path="res://data/biomes/res_biome_forest.tres" id="3_forest"]
+[ext_resource type="Resource" uid="uid://mjdaw5ovbf86" path="res://data/biomes/res_biome_symbiosis.tres" id="4_symbiosis"]
+[ext_resource type="Resource" path="res://data/biomes/res_biome_permafrost.tres" id="5_permafrost"]
+
+[resource]
+script = ExtResource("1_list_script")
+biomes = Array[ExtResource("2_def_script")]([ExtResource("3_forest"), ExtResource("4_symbiosis"), ExtResource("5_permafrost")])
