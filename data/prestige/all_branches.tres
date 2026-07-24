@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PerkBranchList" format=3]
+
+[ext_resource type="Script" path="res://model/prestige/gd_perk_branch_list.gd" id="1_list_script"]
+[ext_resource type="Script" path="res://model/prestige/gd_perk_branch_def.gd" id="2_def_script"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_substrate.tres" id="3_substrate"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_fruiting.tres" id="4_fruiting"]
+
+[resource]
+script = ExtResource("1_list_script")
+branches = Array[ExtResource("2_def_script")]([ExtResource("3_substrate"), ExtResource("4_fruiting")])

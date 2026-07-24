@@ -26,6 +26,9 @@ var resolve_context := ResolveContext.new()
 var biomes := load("res://data/biomes/all_biomes.tres") as BiomeList
 var biomes_data: BiomesData
 
+var perk_branches := load("res://data/prestige/all_branches.tres") as PerkBranchList
+var perk_defs: Dictionary = {}  # StringName -> PerkDef
+
 const SYMBIOSIS_UPGRADES_PATH := "res://data/upgrades/symbiosis/"
 const PRESTIGE_UPGRADES_PATH := "res://data/upgrades/prestige/"
 const BIOME_UPGRADES_PATH := "res://data/upgrades/biomes/"
@@ -45,6 +48,10 @@ func _ready() -> void:
 	biome_upgrade_system = UpgradeSystem.new()
 	for def in _load_upgrade_defs(BIOME_UPGRADES_PATH):
 		biome_upgrade_system.register(def)
+
+	for perk in PerkTree.build(perk_branches):
+		prestige_upgrade_system.register(perk)
+		perk_defs[perk.id] = perk
 
 	biomes_data = BiomesData.new()
 	for def in biomes.biomes:
@@ -121,11 +128,13 @@ func handle_tick() -> void:
 func can_prestige() -> bool:
 	return preview_biomass_gain().gt(BigNumber.new(0.0, 0))
 
+## Any upgrade in any system (biome upgrades, perks) that targets the
+## &"biomass_gain" stat contributes here automatically — no per-upgrade
+## wiring needed when a new one is added.
 func preview_biomass_gain() -> BigNumber:
 	var gain := PrestigeCalculator.calculate_biomass_gain(player_data.tick_count, player_data.nutrients)
-	if biomes_data.is_unlocked(&"permafrost"):
-		var bonus := biome_upgrade_system.effect_amount(&"FrozenSpores", resolve_context)
-		gain = gain.mul(BigNumber.from_value(1.0).add(bonus))
+	gain = biome_upgrade_system.modify(&"biomass_gain", gain, resolve_context)
+	gain = prestige_upgrade_system.modify(&"biomass_gain", gain, resolve_context)
 	return gain
 
 ## Resets the current run (nutrients, water, tick_count, node purchases,
@@ -200,6 +209,33 @@ func buy_biome_upgrade(id: StringName, key: StringName) -> bool:
 		return false
 	biomes_data.spend_points(key, 1)
 	return true
+
+# ---------------------------------------------------------------- perks
+
+func perk_def(id: StringName) -> PerkDef:
+	return perk_defs.get(id)
+
+## "owned" (level > 0), "available" (parent owned, this isn't maxed), or
+## "locked" (parent not yet owned).
+func perk_status(id: StringName) -> String:
+	var def := perk_def(id)
+	if def == null:
+		return "locked"
+	if prestige_upgrade_system.level(id) > 0:
+		return "owned"
+	if def.parent_id == &"" or prestige_upgrade_system.level(def.parent_id) > 0:
+		return "available"
+	return "locked"
+
+func can_buy_perk(id: StringName) -> bool:
+	if perk_status(id) == "locked":
+		return false
+	return prestige_upgrade_system.can_buy(id, player_data.biomass)
+
+func buy_perk(id: StringName) -> bool:
+	if not can_buy_perk(id):
+		return false
+	return prestige_upgrade_system.buy(id, player_data, &"biomass")
 
 func _currency_field(currency: CurrencyTypes.Types) -> StringName:
 	match currency:

@@ -1,24 +1,73 @@
 [gd_scene format=3 uid="uid://caas4emc1u2wh"]
 
-[ext_resource type="Script" uid="uid://c04d6jttwnc6k" path="res://view/prestige/gd_prestige_panel.gd" id="1_4rf68"]
+[ext_resource type="Script" path="res://view/prestige/gd_prestige_panel.gd" id="1_panel_script"]
+[ext_resource type="Script" path="res://view/prestige/gd_perk_web.gd" id="2_web_script"]
+[ext_resource type="Script" path="res://view/prestige/gd_perk_lines.gd" id="3_lines_script"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
 
-[node name="biomes" type="PanelContainer" unique_id=1211922849 node_paths=PackedStringArray("dummy_label", "button")]
+[node name="biomes" type="PanelContainer" node_paths=PackedStringArray("biomass_label", "sporate_button", "perk_web", "detail_name", "detail_effect", "detail_cost", "buy_button")]
 offset_right = 40.0
 offset_bottom = 40.0
 theme_override_styles/panel = SubResource("StyleBoxEmpty_lxikg")
-script = ExtResource("1_4rf68")
-dummy_label = NodePath("VBoxContainer/Label")
-button = NodePath("VBoxContainer/Button")
+script = ExtResource("1_panel_script")
+biomass_label = NodePath("VBox/TopBar/BiomassLabel")
+sporate_button = NodePath("VBox/TopBar/SporateButton")
+perk_web = NodePath("VBox/WebClip")
+detail_name = NodePath("VBox/DetailPanel/DetailBox/DetailName")
+detail_effect = NodePath("VBox/DetailPanel/DetailBox/DetailEffect")
+detail_cost = NodePath("VBox/DetailPanel/DetailBox/DetailCost")
+buy_button = NodePath("VBox/DetailPanel/DetailBox/BuyButton")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1913069588]
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TopBar" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BiomassLabel" type="Label" parent="VBox/TopBar"]
+layout_mode = 2
+text = "0"
+
+[node name="SporateButton" type="Button" parent="VBox/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Sporate"
+
+[node name="WebClip" type="Control" node_paths=PackedStringArray("world", "lines") parent="VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 320)
+script = ExtResource("2_web_script")
+world = NodePath("World")
+lines = NodePath("World/Lines")
+
+[node name="World" type="Node2D" parent="VBox/WebClip"]
+
+[node name="Lines" type="Node2D" parent="VBox/WebClip/World"]
+script = ExtResource("3_lines_script")
+
+[node name="DetailPanel" type="PanelContainer" parent="VBox"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="VBoxContainer" unique_id=142522203]
+[node name="DetailBox" type="VBoxContainer" parent="VBox/DetailPanel"]
 layout_mode = 2
-text = "PRESTIGE"
+theme_override_constants/separation = 4
 
-[node name="Button" type="Button" parent="VBoxContainer" unique_id=1181627247]
+[node name="DetailName" type="Label" parent="VBox/DetailPanel/DetailBox"]
 layout_mode = 2
-text = "prestige"
+text = "Sporation"
+
+[node name="DetailEffect" type="Label" parent="VBox/DetailPanel/DetailBox"]
+layout_mode = 2
+text = ""
+
+[node name="DetailCost" type="Label" parent="VBox/DetailPanel/DetailBox"]
+layout_mode = 2
+text = ""
+
+[node name="BuyButton" type="Button" parent="VBox/DetailPanel/DetailBox"]
+layout_mode = 2
+text = "Buy"
