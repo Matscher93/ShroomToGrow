@@ -23,10 +23,6 @@ var _touches: Dictionary = {}  # int finger index -> Vector2 last local position
 var _pinch_prev_dist := -1.0
 
 func _ready() -> void:
-	# Android/iOS synthesize InputEventMouseMotion from touch by default, which
-	# would double-drive world.position alongside our own ScreenDrag handling
-	# below (that's what the earlier 2x pan bug actually was).
-	Input.set_emulate_mouse_from_touch(false)
 	clip_contents = true
 	for id in App.perk_defs:
 		_spawn_button(App.perk_defs[id])
@@ -35,16 +31,27 @@ func _ready() -> void:
 	resized.connect(_center_on_core)
 	call_deferred("_center_on_core")
 	_refresh_all()
+	_update_touch_emulation()
 
 func _exit_tree() -> void:
-	# Undo the _ready() override — this is a global engine setting, so leaving
-	# it off would silently kill touch-to-mouse emulation (and anything relying
-	# on it, e.g. tap handling elsewhere) for the rest of the app session.
 	Input.set_emulate_mouse_from_touch(true)
 	if App.prestige_upgrade_system.upgrades_changed.is_connected(_on_changed):
 		App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
 	if App.player_data.biomass_changed.is_connected(_on_changed):
 		App.player_data.biomass_changed.disconnect(_on_changed)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VISIBILITY_CHANGED:
+		_update_touch_emulation()
+
+## Android/iOS synthesize InputEventMouseMotion from touch by default, which
+## would double-drive world.position alongside our own ScreenDrag handling
+## below (that's what the earlier 2x pan bug actually was). Screens are now
+## cached rather than freed on switch (see gd_game_screens.gd), so this can
+## no longer key off _ready/_exit_tree alone — it must track actual on-screen
+## visibility, since an ancestor (the screen container) is what shows/hides us.
+func _update_touch_emulation() -> void:
+	Input.set_emulate_mouse_from_touch(not is_visible_in_tree())
 
 func _on_changed(_arg = null) -> void:
 	_refresh_all()
