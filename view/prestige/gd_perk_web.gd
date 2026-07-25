@@ -37,6 +37,10 @@ func _ready() -> void:
 	_refresh_all()
 
 func _exit_tree() -> void:
+	# Undo the _ready() override — this is a global engine setting, so leaving
+	# it off would silently kill touch-to-mouse emulation (and anything relying
+	# on it, e.g. tap handling elsewhere) for the rest of the app session.
+	Input.set_emulate_mouse_from_touch(true)
 	if App.prestige_upgrade_system.upgrades_changed.is_connected(_on_changed):
 		App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
 	if App.player_data.biomass_changed.is_connected(_on_changed):

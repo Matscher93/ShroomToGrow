@@ -7,7 +7,6 @@ script = ExtResource("1_script")
 key = &"symbiosis"
 display_name = "Forest"
 description = "Shaded woodland where neighboring nodes learn to feed each other."
-screen_type = 2
 xp_source = 1
 xp_label = "symbioses formed"
 _unlock_cost_mantissa = 5.0

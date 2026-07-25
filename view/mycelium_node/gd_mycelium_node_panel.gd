@@ -14,14 +14,43 @@ extends PanelContainer
 @export var label_buy_cost: Label
 @export var panel_buy_node: PanelContainer
 @export var level_icon: ColorRect
+@export var vbox_synergy: VBoxContainer
+@export var vbox_buy: VBoxContainer
+@export var label_yield: Label
+@export var label_potency_level: Label
+@export var label_potency_accumulated: Label
+@export var label_potency_cost: Label
+@export var panel_potency: PanelContainer
+@export var upgrade_button_potency: Button
+@export var label_synergy_level: Label
+@export var label_synergy_accumulated: Label
+@export var label_synergy_cost: Label
+@export var panel_synergy: PanelContainer
+@export var upgrade_button_synergy: Button
 @export var node_level: int = 0
 var _vm: MyceliumNodeViewModel
+var _potency_id: StringName
+var _synergy_id: StringName
+
+const TAP_CANCEL_DISTANCE := 10.0  # px — beyond this, a press is a scroll drag, not a tap
+var _press_active := false
+var _press_start := Vector2.ZERO
 
 func _ready() -> void:
 	_update_shader()
+	vbox_synergy.visible = false
+	vbox_buy.visible = false
+	var _press_active := false
 	upgrade_button.pressed.connect(_on_upgrade_pressed)
+	_potency_id = StringName("NodePotency%d" % node_level)
+	_synergy_id = StringName("NodeSynergy%d" % node_level)
+	upgrade_button_potency.pressed.connect(_on_buy_potency_pressed)
+	upgrade_button_synergy.pressed.connect(_on_buy_synergy_pressed)
+	App.upgrade_system.upgrades_changed.connect(_refresh_upgrades)
+	App.player_data.nutrients_changed.connect(_on_nutrients_changed)
 	if node_level < App.mycelium_node_vms.size():
 		bind(App.mycelium_node_vms[node_level])
+	_refresh_upgrades()
 
 func bind(vm: MyceliumNodeViewModel) -> void:
 	if _vm:
@@ -34,6 +63,10 @@ func _exit_tree() -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
+	if App.upgrade_system.upgrades_changed.is_connected(_refresh_upgrades):
+		App.upgrade_system.upgrades_changed.disconnect(_refresh_upgrades)
+	if App.player_data.nutrients_changed.is_connected(_on_nutrients_changed):
+		App.player_data.nutrients_changed.disconnect(_on_nutrients_changed)
 
 # --- VM -> View ---
 
@@ -63,10 +96,64 @@ func _refresh_all() -> void:
 	label_node_desc.text = _vm.production_per_node_text
 	_set_color()
 
+func _on_nutrients_changed(_value: BigNumber) -> void:
+	_refresh_upgrades()
+
+func _refresh_upgrades() -> void:
+	var us := App.upgrade_system
+	var nutrients := App.player_data.nutrients
+	_refresh_upgrade_track(us, nutrients, _potency_id,
+		label_potency_level, label_potency_accumulated, label_potency_cost,
+		panel_potency, upgrade_button_potency)
+	_refresh_upgrade_track(us, nutrients, _synergy_id,
+		label_synergy_level, label_synergy_accumulated, label_synergy_cost,
+		panel_synergy, upgrade_button_synergy)
+	var total := us.combined_bonus([_potency_id, _synergy_id], App.resolve_context)
+	label_yield.text = "+%s%%" % [total.scale(100.0)._to_string()]
+
+func _refresh_upgrade_track(us: UpgradeSystem, nutrients: BigNumber, id: StringName,
+		lvl_label: Label, acc_label: Label, cost_label: Label,
+		buy_panel, button: Button) -> void:
+	var lvl := us.level(id)
+	lvl_label.text = "Lv %d" % lvl
+	acc_label.text = "now +%s%%" % [us.effect_amount(id, App.resolve_context).scale(100.0)._to_string()]
+	cost_label.text = us.cost(id)._to_string() if us.has_def(id) else "--"
+	var can_buy := us.can_buy(id, nutrients)
+	button.disabled = not can_buy
+	buy_panel.set_enabled(can_buy)
+
 # --- View -> VM ---
 
 func _on_upgrade_pressed() -> void:
 	_vm.buy_upgrade()
+
+func _on_buy_potency_pressed() -> void:
+	App.upgrade_system.buy(_potency_id, App.player_data)
+
+func _on_buy_synergy_pressed() -> void:
+	App.upgrade_system.buy(_synergy_id, App.player_data)
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_press_active = true
+			_press_start = event.position
+		elif _press_active:
+			_press_active = false
+			_toggle_synergy()
+	elif event is InputEventMouseMotion and _press_active:
+		# Android/iOS synthesize mouse motion from touch — a real scroll drag
+		# starts as a press here too, so cancel the tap once it moves enough
+		# to be a scroll rather than a tap.
+		if event.position.distance_to(_press_start) > TAP_CANCEL_DISTANCE:
+			_press_active = false
+
+func _toggle_synergy() -> void:
+	vbox_buy.visible = not vbox_buy.visible
+	if App.biomes_data.is_unlocked(&"symbiosis"):
+		vbox_synergy.visible = vbox_buy.visible
+	else:
+		vbox_synergy.visible = false
 
 func _notification(what):
 	if what == NOTIFICATION_RESIZED:
@@ -81,6 +168,8 @@ func _set_color():
 		material.set_shader_parameter(ColorParam, _vm._mycelium_data._node.color)
 		level_icon._set_color(_vm._mycelium_data._node.color)
 		panel_buy_node._set_color(_vm._mycelium_data._node.color)
+		panel_potency._set_color(_vm._mycelium_data._node.color)
+		panel_synergy._set_color(_vm._mycelium_data._node.color)
 		var color_level_text = _vm._mycelium_data._node.level_font_color
 		var color_main_text = Color.from_hsv(color_level_text.h, 0.7, 0.8)
 		
