@@ -1,5 +1,10 @@
 extends PanelContainer
 
+## Emitted when the player dismisses the popup (collect button pressed).
+## The PopupLayer that spawned this instance owns freeing it — this view
+## never queue_frees itself, so it can't desync PopupLayer's tracked ref.
+signal dismissed
+
 var _vm: OfflineIncomeViewModel
 var _snapshots: Array[Dictionary]
 var _total_offline_ticks: int
@@ -23,7 +28,7 @@ func bind(vm: OfflineIncomeViewModel) -> void:
 	_vm = vm
 	_vm.property_changed.connect(_on_property_changed)
 	_update_visuals()
-	offline_income_button.on_button_pressed.connect(hide_panel)
+	offline_income_button.on_button_pressed.connect(_on_dismiss_pressed)
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(_delta: float) -> void:
@@ -38,9 +43,7 @@ func _update_visuals() -> void:
 	_snapshots = _vm.get_save_data_snapshots()
 	_total_offline_ticks = _vm.get_total_offline_ticks()
 	_total_offline_time = _vm.get_offline_time()
-	
-	if _total_offline_ticks == 0:
-		self.visible = false
+
 	label_ticks.text = "%d" % [_total_offline_ticks]
 	label_time.text = format_duration(_total_offline_time)
 	if _snapshots.size() > 0:
@@ -88,8 +91,8 @@ static func format_duration(total_seconds: float, max_units := 2) -> String:
 
 	return " ".join(parts.slice(0, max_units))
 
-func hide_panel() -> void:
-	self.visible = false
+func _on_dismiss_pressed() -> void:
+	dismissed.emit()
 
 func _get_node_count(save_data: Dictionary, index: int) -> BigNumber:
 	var mycelium_nodes = save_data.get("mycelium_nodes", [])

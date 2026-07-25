@@ -10,7 +10,8 @@
 [ext_resource type="Resource" uid="uid://cu7pu8ny7a7lb" path="res://data/currencies/res_nutrients_def.tres" id="6_aycgk"]
 [ext_resource type="Resource" uid="uid://cro3wpo0rxwsk" path="res://data/currencies/res_biomass_def.tres" id="7_kyyy7"]
 [ext_resource type="Resource" uid="uid://byespeth6sl5t" path="res://data/currencies/res_water_def.tres" id="7_lple0"]
-[ext_resource type="PackedScene" uid="uid://o8nmxsdasvvn" path="res://view/offline_income/sc_offline_income.tscn" id="8_6maps"]
+[ext_resource type="Script" uid="uid://8hyeybwm5jh3" path="res://main_screen.gd" id="9_mainscr"]
+[ext_resource type="Script" uid="uid://7lvxm4ge8ici" path="res://view/main/gd_popup_layer.gd" id="10_popup"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vf2pt"]
 shader = ExtResource("1_453mu")
@@ -24,7 +25,7 @@ shader = ExtResource("2_a8wb5")
 shader_parameter/rect_size = Vector2(700, 1000)
 shader_parameter/box_color = Color(0, 1, 0.9490196, 1)
 
-[node name="Control" type="Control" unique_id=1135092363]
+[node name="Control" type="Control" unique_id=1135092363 node_paths=PackedStringArray("popup_layer")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -33,6 +34,8 @@ grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+script = ExtResource("9_mainscr")
+popup_layer = NodePath("content_container/popup_layer")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1115489241]
 texture_filter = 1
@@ -67,40 +70,42 @@ theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 script = ExtResource("2_7pmop")
 
-[node name="margin" type="MarginContainer" parent="content_container" unique_id=1042597311]
+[node name="content_layer" type="MarginContainer" parent="content_container" unique_id=1042597311]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="content_container/margin" unique_id=1100279077]
+[node name="VBoxContainer" type="VBoxContainer" parent="content_container/content_layer" unique_id=1100279077]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="content_container/margin/VBoxContainer" unique_id=1060171763]
+[node name="HBoxContainer" type="HBoxContainer" parent="content_container/content_layer/VBoxContainer" unique_id=1060171763]
 layout_mode = 2
 
-[node name="Nutrients" parent="content_container/margin/VBoxContainer/HBoxContainer" unique_id=419686004 instance=ExtResource("1_cshku")]
+[node name="Nutrients" parent="content_container/content_layer/VBoxContainer/HBoxContainer" unique_id=419686004 instance=ExtResource("1_cshku")]
 layout_mode = 2
 size_flags_horizontal = 3
 currency_def = ExtResource("6_aycgk")
 
-[node name="Water" parent="content_container/margin/VBoxContainer/HBoxContainer" unique_id=303116976 instance=ExtResource("1_cshku")]
+[node name="Water" parent="content_container/content_layer/VBoxContainer/HBoxContainer" unique_id=303116976 instance=ExtResource("1_cshku")]
 layout_mode = 2
 size_flags_horizontal = 3
 currency_def = ExtResource("7_lple0")
 
-[node name="Biomass" parent="content_container/margin/VBoxContainer/HBoxContainer" unique_id=1813530114 instance=ExtResource("1_cshku")]
+[node name="Biomass" parent="content_container/content_layer/VBoxContainer/HBoxContainer" unique_id=1813530114 instance=ExtResource("1_cshku")]
 layout_mode = 2
 size_flags_horizontal = 3
 currency_def = ExtResource("7_kyyy7")
 
-[node name="tick_progress" parent="content_container/margin/VBoxContainer" unique_id=655712839 instance=ExtResource("5_7pmop")]
+[node name="tick_progress" parent="content_container/content_layer/VBoxContainer" unique_id=655712839 instance=ExtResource("5_7pmop")]
 layout_mode = 2
 
-[node name="game_screens" parent="content_container/margin/VBoxContainer" unique_id=535792977 instance=ExtResource("5_b26h7")]
+[node name="game_screens" parent="content_container/content_layer/VBoxContainer" unique_id=535792977 instance=ExtResource("5_b26h7")]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="offline_income" parent="content_container" unique_id=1005754687 instance=ExtResource("8_6maps")]
+[node name="popup_layer" type="MarginContainer" parent="content_container" unique_id=1159527543]
 layout_mode = 2
+mouse_filter = 2
+script = ExtResource("10_popup")
