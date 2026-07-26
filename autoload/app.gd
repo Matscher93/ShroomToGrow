@@ -123,6 +123,8 @@ func handle_tick() -> void:
 			player_data.nutrients = player_data.nutrients.add(node_change)
 
 func can_prestige() -> bool:
+	if not biomes_data.is_unlocked(&"permafrost"):
+		return false
 	return preview_biomass_gain().gt(BigNumber.new(0.0, 0))
 
 ## Any upgrade in any system (symbiosis, biome upgrades, perks) that targets
@@ -174,11 +176,14 @@ func _unlock_starting_biomes() -> void:
 
 # ---------------------------------------------------------------- biomes
 
+## Gates bottom-bar tab visibility only. Once a biome has ever been unlocked,
+## its screen stays reachable across prestige resets — feature access inside
+## that screen (buying, etc.) is gated separately on biomes_data.is_unlocked.
 func is_screen_unlocked(screen_type: int) -> bool:
 	if screen_type == ScreenTypes.Types.BIOMES:
 		return true
 	var def := biome_def_for_screen(screen_type)
-	return def == null or biomes_data.is_unlocked(def.key)
+	return def == null or biomes_data.is_ever_unlocked(def.key)
 
 func biome_def(key: StringName) -> BiomeDef:
 	for def in biomes.biomes:

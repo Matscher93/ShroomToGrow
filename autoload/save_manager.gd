@@ -139,6 +139,10 @@ func _apply_data(_game: Dictionary) -> void:
 	App.upgrade_system.from_save(_game.get("upgrades", {}))
 	App.prestige_upgrade_system.from_save(_game.get("prestige_upgrades", {}))
 	var loaded_biomes_data := BiomesData.from_save(_game.get("biomes", {}))
+	# ever_unlocked must be restored directly, not via unlock(), which would
+	# also mark the biome unlocked for the current run.
+	for key in loaded_biomes_data.ever_unlocked:
+		App.biomes_data.ever_unlocked[key] = true
 	for key in loaded_biomes_data.unlocked:
 		App.biomes_data.unlock(key)
 	App.biomes_data.spent_points = loaded_biomes_data.spent_points
