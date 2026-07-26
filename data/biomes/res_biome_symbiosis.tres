@@ -12,3 +12,5 @@ xp_label = "symbioses formed"
 biome_color = Color(0.56078434, 0.8392157, 0.627451, 1)
 _unlock_cost_mantissa = 5.0
 _unlock_cost_exponent = 1
+_size_base_cost_mantissa = 5.0
+_size_base_cost_exponent = 1

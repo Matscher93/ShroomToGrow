@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+[gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://dsoon7hjhrfwj"]
 
 [ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_effect_script"]
 [ext_resource type="Resource" path="res://data/upgrades/biomes/permafrost/frozen_spores_effect.tres" id="2_effect"]
@@ -9,5 +9,4 @@ script = ExtResource("3_def_script")
 id = &"FrozenSpores"
 display_name = "Frozen Spores"
 description = "+25% biomass gained on prestige, per level. Paid with Permafrost level points, not nutrients."
-max_level = 0
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

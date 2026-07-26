@@ -26,3 +26,15 @@ var unlock_cost: BigNumber:
 	set(value):
 		_unlock_cost_mantissa = value.mantissa
 		_unlock_cost_exponent = value.exponent
+
+## Cost curve for buying Biome Size, paid in nutrients: size_base_cost * size_cost_growth^(size^size_cost_growth_exponent).
+@export var _size_base_cost_mantissa: float = 1.0
+@export var _size_base_cost_exponent: int = 0
+var size_base_cost: BigNumber:
+	get: return BigNumber.new(_size_base_cost_mantissa, _size_base_cost_exponent)
+	set(value):
+		_size_base_cost_mantissa = value.mantissa
+		_size_base_cost_exponent = value.exponent
+
+@export var size_cost_growth: float = 1.15
+@export var size_cost_growth_exponent: float = 1.0

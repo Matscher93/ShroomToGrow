@@ -20,6 +20,9 @@ func register(def: UpgradeDef) -> void:
 func has_def(id: StringName) -> bool:
 	return _defs.has(id)
 
+func def(id: StringName) -> UpgradeDef:
+	return _defs.get(id)
+
 func level(id: StringName) -> int:
 	return _levels.get(id, 0)
 
@@ -40,6 +43,17 @@ func effect_amount(id: StringName, ctx: ResolveContext) -> BigNumber:
 	if e.dependency:
 		mag = mag.scale(e.dependency.evaluate(ctx))
 	return mag
+
+## Marginal gain from this upgrade's own effect a single additional level would
+## add at the current level (ignores the ScalingSource dependency, so callers
+## can present it as the upgrade's per-level/per-unit rate).
+func next_level_delta(id: StringName) -> BigNumber:
+	var def: UpgradeDef = _defs.get(id)
+	if def == null or def.effects.is_empty():
+		return BigNumber.new(0.0, 0)
+	var lvl := level(id)
+	var e: UpgradeEffect = def.effects[0]
+	return e.magnitude(lvl + 1).sub(e.magnitude(lvl))
 
 ## Combines several upgrades' own effects into one overall % bonus, assuming
 ## each contributes multiplicatively (op MORE) — e.g. potency * synergy.

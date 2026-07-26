@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("1_wmd0w")
-stat = &"node_production"
+stat = &"synergy_production"
 op = 2
 scope = 2
 target = &"0"

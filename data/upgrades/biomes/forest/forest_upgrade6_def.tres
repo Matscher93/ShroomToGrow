@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://jt4ll1xk4ki7"]
+
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_effect_script"]
+[ext_resource type="Resource" path="res://data/upgrades/biomes/forest/forest_upgrade6_effect.tres" id="2_effect"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_def.gd" id="3_def_script"]
+
+[resource]
+script = ExtResource("3_def_script")
+id = &"ForestUpgrade6"
+display_name = "Leaf Litter"
+description = "+4% Synergy production, biome-wide, per level. Compounds with your own Synergy upgrade levels. Paid with Meadow level points, not nutrients."
+effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

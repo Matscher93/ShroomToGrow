@@ -2,17 +2,15 @@
 class_name BiomePanel
 extends PanelContainer
 ## VIEW — one biome's card: name/desc, current level badge, XP progress,
-## unlock action, and its single point-bought upgrade. Spawned once per
-## BiomeDef by BiomesPanel (gd_biomes_panel.gd), which sets biome_key right
-## after instantiating; binds itself to App.biome_vms[biome_key] in _ready.
-##
-## "Biome Size" (panel_biome_size / panel_buy_size) is a stat the design
-## calls for — it'll boost upgrade effectiveness — but nothing backs it yet
-## (no BiomeDef field, no purchase path), so its buy button stays permanently
-## disabled here until that model exists.
+## unlock action, Biome Size, and its 10 point-bought upgrades. Spawned once
+## per BiomeDef by BiomesPanel (gd_biomes_panel.gd), which sets biome_key
+## right after instantiating; binds itself to App.biome_vms[biome_key] in
+## _ready. Upgrade cards are spawned at runtime (one per App.biome_upgrade_ids())
+## into vbox_upgrade_cards, same pattern as gd_nodes_panel.gd.
 
 @export var color_param: String
 @export var biome_key: StringName
+@export var upgrade_card_scene: PackedScene
 
 @export var level_icon: ColorRect
 @export var lbl_biome_name: Label
@@ -36,15 +34,11 @@ extends PanelContainer
 @export var lbl_size_level: Label
 @export var lbl_size_desc: Label
 @export var panel_buy_size: PanelContainer
+@export var lbl_size_cost: Label
+@export var size_buy_button: Button
 
 @export var lbl_upgrade_points: Label
-@export var panel_upgrade_card: PanelContainer
-@export var lbl_upgrade_name: Label
-@export var lbl_upgrade_level: Label
-@export var lbl_upgrade_effect: Label
-@export var panel_buy_upgrade: PanelContainer
-@export var lbl_upgrade_cost: Label
-@export var upgrade_buy_button: Button
+@export var vbox_upgrade_cards: VBoxContainer
 
 var _vm: BiomeViewModel
 var _expanded := true
@@ -57,16 +51,27 @@ func _ready() -> void:
 	_update_shader()
 	expansion_arrow.offset_transform_rotation = 0.0
 
-	# "Biome Size" has no backing stat yet — keep it visible but locked.
-	panel_buy_size.set_enabled(false)
-	lbl_size_level.text = "—"
-	lbl_size_desc.text = "Coming soon"
+	lbl_size_desc.text = "Scales size-dependent upgrades"
 
 	unlock_biome_button.pressed.connect(_on_unlock_pressed)
-	upgrade_buy_button.pressed.connect(_on_buy_upgrade_pressed)
+	size_buy_button.pressed.connect(_on_buy_size_pressed)
+	App.biome_size_changed.connect(_on_biome_size_changed)
+	App.player_data.nutrients_changed.connect(_on_nutrients_changed)
+
+	_spawn_upgrade_cards()
 
 	if App.biome_vms.has(biome_key):
 		bind(App.biome_vms[biome_key])
+
+func _spawn_upgrade_cards() -> void:
+	for child in vbox_upgrade_cards.get_children():
+		vbox_upgrade_cards.remove_child(child)
+		child.queue_free()
+	for id in App.biome_upgrade_ids(biome_key):
+		var card = upgrade_card_scene.instantiate()
+		card.upgrade_id = id
+		card.biome_key = biome_key
+		vbox_upgrade_cards.add_child(card)
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -101,6 +106,10 @@ func _exit_tree() -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
+	if App.biome_size_changed.is_connected(_on_biome_size_changed):
+		App.biome_size_changed.disconnect(_on_biome_size_changed)
+	if App.player_data.nutrients_changed.is_connected(_on_nutrients_changed):
+		App.player_data.nutrients_changed.disconnect(_on_nutrients_changed)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
@@ -128,12 +137,13 @@ func _on_property_changed(property: StringName) -> void:
 			lbl_upgrade_points.text = _vm.points_text
 		BiomeViewModel.PROP_HAS_POINTS:
 			image_notification.visible = _vm.has_points
-		BiomeViewModel.PROP_UPGRADE_LEVEL_TEXT:
-			lbl_upgrade_level.text = _vm.upgrade_level_text
-		BiomeViewModel.PROP_UPGRADE_EFFECT_TEXT:
-			lbl_upgrade_effect.text = _vm.upgrade_effect_text
-		BiomeViewModel.PROP_CAN_BUY_UPGRADE:
-			panel_buy_upgrade.set_enabled(_vm.can_buy_upgrade)
+
+func _on_biome_size_changed(key: StringName) -> void:
+	if key == biome_key:
+		_refresh_size_section()
+
+func _on_nutrients_changed(_value: BigNumber) -> void:
+	_refresh_size_section()
 
 func _refresh_unlock_section() -> void:
 	vbox_buy.visible = not _vm.unlocked
@@ -142,6 +152,13 @@ func _refresh_unlock_section() -> void:
 		lbl_unlock_info.text = _vm.unlock_info_text
 		lbl_unlock_cost.text = _vm.unlock_cost_text
 		panel_unlock_biome.set_enabled(_vm.can_unlock)
+
+func _refresh_size_section() -> void:
+	lbl_size_level.text = "Lv %d" % App.biome_size(biome_key)
+	lbl_size_cost.text = App.biome_size_cost(biome_key)._to_string()
+	var can_buy := App.can_buy_biome_size(biome_key)
+	size_buy_button.disabled = not can_buy
+	panel_buy_size.set_enabled(can_buy)
 
 func _set_progress_ratio(ratio: float) -> void:
 	if image_biome_progress.material:
@@ -153,9 +170,7 @@ func _refresh_all() -> void:
 	lbl_biome_desc.text = _vm.description
 	level_icon._set_color(_vm.biome_color)
 	panel_level_badge._set_color(_vm.biome_color)
-	panel_upgrade_card._set_color(_vm.biome_color)
 	panel_buy_size._set_color(_vm.biome_color)
-	panel_buy_upgrade._set_color(_vm.biome_color)
 	if material:
 		material.set_shader_parameter(color_param, _vm.biome_color)
 
@@ -168,16 +183,12 @@ func _refresh_all() -> void:
 	lbl_upgrade_points.text = _vm.points_text
 	image_notification.visible = _vm.has_points
 
-	lbl_upgrade_name.text = _vm.upgrade_name
-	lbl_upgrade_level.text = _vm.upgrade_level_text
-	lbl_upgrade_effect.text = _vm.upgrade_effect_text
-	lbl_upgrade_cost.text = "1 pt"
-	panel_buy_upgrade.set_enabled(_vm.can_buy_upgrade)
+	_refresh_size_section()
 
 # --- View -> VM ---
 
 func _on_unlock_pressed() -> void:
 	_vm.unlock()
 
-func _on_buy_upgrade_pressed() -> void:
-	_vm.buy_upgrade()
+func _on_buy_size_pressed() -> void:
+	App.buy_biome_size(biome_key)

@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dint58ceyo88r"]
 
 [ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="1_v3bgn"]
-[ext_resource type="Shader" uid="uid://depcdiis4o4p1" path="res://view/mycelium_node/sh_level_background.gdshader" id="3_po2i8"]
+[ext_resource type="Shader" uid="uid://dcv4q0ccwchsx" path="res://shaders/icons/biomes/sh_meadow.gdshader" id="3_1d2gj"]
 [ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_base_color_rect.gd" id="4_0ioeh"]
 [ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="5_0e0y6"]
 [ext_resource type="FontFile" uid="uid://c7knyl6l8hsfc" path="res://fonts/Space_Grotesk/SpaceGrotesk-Light.ttf" id="6_7h0wi"]
@@ -13,11 +13,12 @@
 [ext_resource type="Script" uid="uid://c3ouusiqjure6" path="res://view/base_views/gd_base_panel_container.gd" id="11_h61rx"]
 [ext_resource type="Script" uid="uid://618xwt11kdvi" path="res://view/biomes/gd_biome_panel.gd" id="12_biome"]
 [ext_resource type="Shader" uid="uid://djm4kfwj0ikno" path="res://view/tick_progress/sh_tick_progress.gdshader" id="12_uvy23"]
+[ext_resource type="PackedScene" path="res://view/biomes/sc_biome_upgrade_card.tscn" id="13_upgrade_card"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
 resource_local_to_scene = true
 shader = ExtResource("1_v3bgn")
-shader_parameter/rect_size = Vector2(250, 328)
+shader_parameter/rect_size = Vector2(347, 276)
 shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 24.0
@@ -28,9 +29,9 @@ shader_parameter/border_alpha = 0.2
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_w86j4"]
 resource_local_to_scene = true
-shader = ExtResource("3_po2i8")
+shader = ExtResource("3_1d2gj")
 shader_parameter/rect_size = Vector2(48, 48)
-shader_parameter/box_color = Color(0.70865566, 0.4987288, 0.14041069, 1)
+shader_parameter/box_color = Color(0.49019608, 0.9411765, 0.8235294, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 16.0
 shader_parameter/highlight_radius = 0.7
@@ -40,7 +41,7 @@ shader_parameter/higlight_offset = Vector2(0, 0.5)
 font = ExtResource("7_3s4g6")
 font_size = 20
 
-[sub_resource type="LabelSettings" id="LabelSettings_0kruu"]
+[sub_resource type="LabelSettings" id="LabelSettings_xkh6a"]
 font = ExtResource("7_3s4g6")
 font_size = 14
 
@@ -80,7 +81,7 @@ font_color = Color(1, 1, 1, 0.5882353)
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_bj2ss"]
 resource_local_to_scene = true
 shader = ExtResource("1_v3bgn")
-shader_parameter/rect_size = Vector2(230, 40)
+shader_parameter/rect_size = Vector2(323, 40)
 shader_parameter/box_color = Color(0.1364706, 0.2764706, 0.24117649, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 11.0
@@ -110,7 +111,7 @@ font_color = Color(0, 0, 0, 1)
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1d2gj"]
 resource_local_to_scene = true
 shader = ExtResource("12_uvy23")
-shader_parameter/rect_size = Vector2(230, 12)
+shader_parameter/rect_size = Vector2(323, 12)
 shader_parameter/box_color = Color(0.4, 0.4, 0.4, 1)
 shader_parameter/fill_color = Color(0, 1, 0.9490196, 1)
 shader_parameter/box_extends = Vector2(1, 1)
@@ -123,7 +124,7 @@ shader_parameter/tick_progress = 0.5
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_8wed3"]
 shader = ExtResource("1_v3bgn")
-shader_parameter/rect_size = Vector2(230, 52)
+shader_parameter/rect_size = Vector2(323, 52)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 16.0
@@ -171,41 +172,7 @@ font_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0wcpl"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_q5snh"]
-resource_local_to_scene = true
-shader = ExtResource("1_v3bgn")
-shader_parameter/rect_size = Vector2(230, 52)
-shader_parameter/box_color = Color(0, 0, 0, 1)
-shader_parameter/box_extends = Vector2(1, 1)
-shader_parameter/corner_radius = 16.0
-shader_parameter/border_thickness = 1.0
-shader_parameter/additional_border_offset = 1.0
-shader_parameter/background_alpha = 0.1
-shader_parameter/border_alpha = 0.4
-
-[sub_resource type="LabelSettings" id="LabelSettings_w4qm2"]
-font = ExtResource("7_3s4g6")
-font_size = 12
-font_color = Color(1, 1, 1, 0.5882353)
-
-[sub_resource type="LabelSettings" id="LabelSettings_m2ao3"]
-font = ExtResource("7_3s4g6")
-font_size = 12
-font_color = Color(1, 1, 1, 0.5882353)
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_ud6rb"]
-resource_local_to_scene = true
-shader = ExtResource("1_v3bgn")
-shader_parameter/rect_size = Vector2(72, 36)
-shader_parameter/box_color = Color(0, 0, 0, 1)
-shader_parameter/box_extends = Vector2(1, 1)
-shader_parameter/corner_radius = 11.0
-shader_parameter/border_thickness = 1.0
-shader_parameter/additional_border_offset = 1.0
-shader_parameter/background_alpha = 0.2
-shader_parameter/border_alpha = 1.0
-
-[node name="biome_panel" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("level_icon", "lbl_biome_name", "lbl_biome_desc", "panel_level_badge", "lbl_level_badge", "image_notification", "vbox_buy", "lbl_unlock_info", "panel_unlock_biome", "lbl_unlock_cost", "unlock_biome_button", "vbox_upgrades", "lbl_biome_progress", "image_biome_progress", "panel_biome_size", "lbl_size_level", "lbl_size_desc", "panel_buy_size", "lbl_upgrade_points", "panel_upgrade_card", "lbl_upgrade_name", "lbl_upgrade_level", "lbl_upgrade_effect", "panel_buy_upgrade", "lbl_upgrade_cost", "upgrade_buy_button", "expansion_arrow")]
+[node name="biome_panel" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("level_icon", "lbl_biome_name", "lbl_biome_desc", "panel_level_badge", "lbl_level_badge", "image_notification", "expansion_arrow", "vbox_buy", "lbl_unlock_info", "panel_unlock_biome", "lbl_unlock_cost", "unlock_biome_button", "vbox_upgrades", "lbl_biome_progress", "image_biome_progress", "panel_biome_size", "lbl_size_level", "lbl_size_desc", "panel_buy_size", "lbl_size_cost", "size_buy_button", "lbl_upgrade_points", "vbox_upgrade_cards")]
 material = SubResource("ShaderMaterial_53xj8")
 custom_minimum_size = Vector2(250, 50)
 offset_right = 40.0
@@ -213,12 +180,14 @@ offset_bottom = 40.0
 mouse_filter = 1
 script = ExtResource("12_biome")
 color_param = "box_color"
+upgrade_card_scene = ExtResource("13_upgrade_card")
 level_icon = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon")
 lbl_biome_name = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/lbl_biome_name")
 lbl_biome_desc = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/lbl_biome_desc")
 panel_level_badge = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/panel_biome_level")
 lbl_level_badge = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/panel_biome_level/MarginContainer/lbl_biome_level")
 image_notification = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/panel_biome_level/image_notification")
+expansion_arrow = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/image_expansion_indicator")
 vbox_buy = NodePath("MarginContainer/VBoxContainer/vbox_buy")
 lbl_unlock_info = NodePath("MarginContainer/VBoxContainer/vbox_buy/lbl_unlock_info")
 panel_unlock_biome = NodePath("MarginContainer/VBoxContainer/vbox_buy/panel_unlock_biome")
@@ -231,21 +200,16 @@ panel_biome_size = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelCo
 lbl_size_level = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_size_level")
 lbl_size_desc = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_size_desc")
 panel_buy_size = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/MarginContainer/panel_buy_size")
+lbl_size_cost = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/MarginContainer/panel_buy_size/MarginContainer/HBox/lbl_size_cost")
+size_buy_button = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/MarginContainer/panel_buy_size/size_buy_button")
 lbl_upgrade_points = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/vbox_upgrades/HBoxContainer/lbl_upgrade_pts")
-panel_upgrade_card = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation")
-lbl_upgrade_name = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_upgrade_name")
-lbl_upgrade_level = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_upgrade_level")
-lbl_upgrade_effect = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_upgrade_effect")
-panel_buy_upgrade = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade")
-lbl_upgrade_cost = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade/MarginContainer/HBox/lbl_upgrade_cost")
-upgrade_buy_button = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade/upgrade_buy_button")
-expansion_arrow = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/image_expansion_indicator")
+vbox_upgrade_cards = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/vbox_upgrade_cards")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=394518787]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 8
+theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1757942512]
@@ -280,10 +244,10 @@ theme_override_constants/separation = 0
 layout_mode = 2
 label_settings = SubResource("LabelSettings_o2fsh")
 
-[node name="lbl_biome_desc" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer" unique_id=647860906]
+[node name="lbl_biome_desc" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer" unique_id=59240398]
 layout_mode = 2
 size_flags_horizontal = 3
-label_settings = SubResource("LabelSettings_0kruu")
+label_settings = SubResource("LabelSettings_xkh6a")
 
 [node name="Control" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=2042776881]
 custom_minimum_size = Vector2(10, 0)
@@ -445,7 +409,7 @@ layout_mode = 2
 
 [node name="lbl_size_desc" type="Label" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2" unique_id=813657693]
 layout_mode = 2
-text = "Coming soon"
+text = "Scales size-dependent upgrades"
 label_settings = SubResource("LabelSettings_4yr5c")
 
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer" unique_id=2069197807]
@@ -458,7 +422,7 @@ layout_mode = 2
 mouse_filter = 1
 script = ExtResource("9_8n8lr")
 color_param = "box_color"
-upgrade_button = NodePath("potency_button")
+upgrade_button = NodePath("size_buy_button")
 
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/MarginContainer/panel_buy_size" unique_id=2059466392]
 layout_mode = 2
@@ -476,12 +440,12 @@ layout_mode = 2
 text = "Buy:"
 label_settings = SubResource("LabelSettings_4b0wh")
 
-[node name="lbl_buy_cost" type="Label" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/MarginContainer/panel_buy_size/MarginContainer/HBox" unique_id=355025314]
+[node name="lbl_size_cost" type="Label" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/MarginContainer/panel_buy_size/MarginContainer/HBox" unique_id=355025314]
 layout_mode = 2
 text = "11.9k"
 label_settings = SubResource("LabelSettings_uoeh8")
 
-[node name="potency_button" type="Button" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/MarginContainer/panel_buy_size" unique_id=785509577]
+[node name="size_buy_button" type="Button" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/MarginContainer/panel_buy_size" unique_id=785509577]
 propagate_maximum_size = true
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxEmpty_hxpog")
@@ -489,7 +453,6 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_24bg7")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_8yhdi")
 theme_override_styles/disabled = SubResource("StyleBoxEmpty_go8p7")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_0wcpl")
-disabled = true
 alignment = 0
 script = ExtResource("10_6d5td")
 
@@ -513,85 +476,6 @@ size_flags_vertical = 0
 text = "0 pts"
 label_settings = SubResource("LabelSettings_bj2ss")
 
-[node name="PanelContainerUpgradeExplanation" type="PanelContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades" unique_id=1130098095]
-material = SubResource("ShaderMaterial_q5snh")
+[node name="vbox_upgrade_cards" type="VBoxContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades" unique_id=1130098095]
 layout_mode = 2
-mouse_filter = 1
-script = ExtResource("11_h61rx")
-color_param = "box_color"
-
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation" unique_id=333935281]
-layout_mode = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
-
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer" unique_id=1886679477]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer" unique_id=1502082679]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/VBoxContainer" unique_id=228256753]
-layout_mode = 2
-
-[node name="lbl_upgrade_name" type="Label" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=644139660]
-layout_mode = 2
-text = "Synergy"
-label_settings = SubResource("LabelSettings_mf8ia")
-
-[node name="lbl_upgrade_level" type="Label" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=606903680]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Lv 0"
-label_settings = SubResource("LabelSettings_w4qm2")
-
-[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/VBoxContainer" unique_id=704928045]
-layout_mode = 2
-
-[node name="lbl_upgrade_effect" type="Label" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2" unique_id=353592776]
-layout_mode = 2
-text = "+1% / manual node:"
-label_settings = SubResource("LabelSettings_m2ao3")
-
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer" unique_id=279131508]
-layout_mode = 2
-
-[node name="panel_buy_upgrade" type="PanelContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/MarginContainer" unique_id=1265758226 node_paths=PackedStringArray("upgrade_button")]
-modulate = Color(0.3, 0.3, 0.3, 1)
-material = SubResource("ShaderMaterial_ud6rb")
-layout_mode = 2
-mouse_filter = 1
-script = ExtResource("9_8n8lr")
-color_param = "box_color"
-upgrade_button = NodePath("upgrade_buy_button")
-
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade" unique_id=1827462252]
-layout_mode = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 6
-
-[node name="HBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade/MarginContainer" unique_id=1958230972]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="lbl_upgrade_cost" type="Label" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade/MarginContainer/HBox" unique_id=972443069]
-layout_mode = 2
-text = "11.9k"
-label_settings = SubResource("LabelSettings_uoeh8")
-
-[node name="upgrade_buy_button" type="Button" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerUpgradeExplanation/MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade" unique_id=447237634]
-propagate_maximum_size = true
-layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxEmpty_hxpog")
-theme_override_styles/pressed = SubResource("StyleBoxEmpty_24bg7")
-theme_override_styles/hover = SubResource("StyleBoxEmpty_8yhdi")
-theme_override_styles/disabled = SubResource("StyleBoxEmpty_go8p7")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_0wcpl")
-alignment = 0
-script = ExtResource("10_6d5td")
+theme_override_constants/separation = 8

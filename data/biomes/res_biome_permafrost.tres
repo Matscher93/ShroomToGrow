@@ -13,3 +13,6 @@ xp_label = "colonies sporated"
 biome_color = Color(0.654902, 0.78431374, 1, 1)
 _unlock_cost_mantissa = 5.0
 _unlock_cost_exponent = 3
+_size_base_cost_mantissa = 5.0
+_size_base_cost_exponent = 2
+size_cost_growth = 1.15

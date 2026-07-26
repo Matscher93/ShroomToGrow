@@ -212,7 +212,7 @@ shader_parameter/additional_border_offset = 1.0
 shader_parameter/background_alpha = 0.2
 shader_parameter/border_alpha = 1.0
 
-[node name="mycelium_node" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "owned_nodes", "manual_nodes", "level_value", "level_header", "label_node_name", "label_node_desc", "label_node_income", "label_buy_cost", "panel_buy_node", "level_icon", "vbox_synergy", "vbox_buy", "expansion_arrow", "label_yield", "label_potency_level", "label_potency_accumulated", "label_potency_cost", "panel_potency", "upgrade_button_potency", "label_synergy_level", "label_synergy_accumulated", "label_synergy_cost", "panel_synergy", "upgrade_button_synergy")]
+[node name="mycelium_node" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "owned_nodes", "manual_nodes", "level_value", "level_header", "label_node_name", "label_node_desc", "label_node_income", "label_buy_cost", "panel_buy_node", "level_icon", "vbox_synergy", "vbox_buy", "expansion_arrow", "label_yield", "label_potency_level", "label_potency_gain_header", "label_potency_accumulated", "label_potency_cost", "panel_potency", "upgrade_button_potency", "label_synergy_level", "label_synergy_gain_header", "label_synergy_accumulated", "label_synergy_cost", "panel_synergy", "upgrade_button_synergy")]
 material = SubResource("ShaderMaterial_53xj8")
 custom_minimum_size = Vector2(250, 50)
 offset_right = 40.0
@@ -236,11 +236,13 @@ vbox_buy = NodePath("MarginContainer/VBoxContainer/vbox_buy")
 expansion_arrow = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/ColorRect")
 label_yield = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/MarginContainer/HBoxContainer2/lbl_yield")
 label_potency_level = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_potency_level")
+label_potency_gain_header = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_potency_gain_header")
 label_potency_accumulated = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_potency_gain_amount")
 label_potency_cost = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer/panel_buy_potency/MarginContainer/HBox/lbl_buy_cost")
 panel_potency = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer/panel_buy_potency")
 upgrade_button_potency = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerPotency/MarginContainer/HBoxContainer/MarginContainer/panel_buy_potency/potency_button")
 label_synergy_level = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_synergy_level")
+label_synergy_gain_header = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_synergy_gain_header")
 label_synergy_accumulated = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerSynergy/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_synergy_gain_amount")
 label_synergy_cost = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerSynergy/MarginContainer/HBoxContainer/MarginContainer/panel_buy_synergy/MarginContainer/HBox/lbl_buy_cost")
 panel_synergy = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerSynergy/MarginContainer/HBoxContainer/MarginContainer/panel_buy_synergy")

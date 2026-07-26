@@ -11,3 +11,4 @@ screen_type = 1
 xp_label = "nodes grown"
 biome_color = Color(0.49019608, 0.9411765, 0.8235294, 1)
 always_unlocked = true
+_size_base_cost_exponent = 1

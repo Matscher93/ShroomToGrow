@@ -1,11 +1,11 @@
 class_name ScalingSource
 extends Resource
 
-enum Kind { NONE, NODE_COUNT, STAT, RESOURCE }
+enum Kind { NONE, NODE_COUNT, STAT, RESOURCE, BIOME_SIZE }
 enum Transform { NONE, SQRT, LOG10 }
 
 @export var kind: Kind = Kind.NONE
-@export var key: StringName = &""       # tier id / stat id / resource id
+@export var key: StringName = &""       # tier id / stat id / resource id / biome key
 @export var manual_only: bool = true    # NODE_COUNT: only hand-bought nodes
 @export var transform: Transform = Transform.NONE
 
@@ -16,6 +16,7 @@ func evaluate(ctx: ResolveContext) -> float:
 		Kind.NODE_COUNT: v = ctx.node_count(key, manual_only)
 		Kind.STAT:       v = ctx.stat_value(key)
 		Kind.RESOURCE:   v = ctx.resource_amount(key)
+		Kind.BIOME_SIZE: v = ctx.biome_size(key)
 	match transform:
 		Transform.SQRT:  return sqrt(max(0.0, v))
 		Transform.LOG10: return log(max(1.0, v)) / log(10.0)

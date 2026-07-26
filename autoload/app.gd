@@ -6,6 +6,8 @@ extends Node
 ## Models and VMs are RefCounted, so this autoload holding references
 ## is what keeps them alive. Views come and go with the scene tree.
 
+signal biome_size_changed(key: StringName)
+
 var player_data: PlayerData
 var player_vm: PlayerViewModel
 var mycelium_node_data: Array[MyceliumNodeData]
@@ -128,12 +130,49 @@ func can_prestige() -> bool:
 	return preview_biomass_gain().gt(BigNumber.new(0.0, 0))
 
 ## Any upgrade in any system (symbiosis, biome upgrades, perks) that targets
+## the &"potency_production" / &"synergy_production" stat for this node
+## contributes here automatically. The symbiosis NodePotency/NodeSynergy
+## upgrades write their own per-level effect into these stats, so a biome or
+## prestige upgrade targeting the same stat compounds with the player's own
+## levels via the shared UpgradeSystem.modify() bucket — no cross-track
+## special-casing needed.
+func node_potency_bonus(node_id: StringName) -> BigNumber:
+	var bonus := upgrade_system.modify(&"potency_production", BigNumber.from_value(1.0),
+		resolve_context, [], node_id)
+	bonus = biome_upgrade_system.modify(&"potency_production", bonus, resolve_context, [], node_id)
+	bonus = prestige_upgrade_system.modify(&"potency_production", bonus, resolve_context, [], node_id)
+	return bonus
+
+func node_synergy_bonus(node_id: StringName) -> BigNumber:
+	var bonus := upgrade_system.modify(&"synergy_production", BigNumber.from_value(1.0),
+		resolve_context, [], node_id)
+	bonus = biome_upgrade_system.modify(&"synergy_production", bonus, resolve_context, [], node_id)
+	bonus = prestige_upgrade_system.modify(&"synergy_production", bonus, resolve_context, [], node_id)
+	return bonus
+
+## The biome+prestige-only portion of node_potency_bonus()/node_synergy_bonus()
+## — everything boosting that stat *except* the player's own symbiosis levels.
+## Used to scale a symbiosis upgrade's own marginal per-level rate for display
+## (UpgradeSystem.next_level_delta()) so the shown rate reflects current boosts.
+func node_potency_external_multiplier(node_id: StringName) -> BigNumber:
+	var bonus := biome_upgrade_system.modify(&"potency_production", BigNumber.from_value(1.0),
+		resolve_context, [], node_id)
+	bonus = prestige_upgrade_system.modify(&"potency_production", bonus, resolve_context, [], node_id)
+	return bonus
+
+func node_synergy_external_multiplier(node_id: StringName) -> BigNumber:
+	var bonus := biome_upgrade_system.modify(&"synergy_production", BigNumber.from_value(1.0),
+		resolve_context, [], node_id)
+	bonus = prestige_upgrade_system.modify(&"synergy_production", bonus, resolve_context, [], node_id)
+	return bonus
+
+## Any upgrade in any system (symbiosis, biome upgrades, perks) that targets
 ## the &"node_production" stat for this node contributes here automatically —
 ## no per-upgrade wiring needed when a new one is added. Shared by the tick
 ## loop and the display VMs so they can never drift out of sync.
 func node_production_bonus(node_id: StringName) -> BigNumber:
-	var bonus := upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
-		resolve_context, [], node_id)
+	var bonus := node_potency_bonus(node_id).mul(node_synergy_bonus(node_id))
+	bonus = upgrade_system.modify(&"node_production", bonus, resolve_context, [], node_id)
 	bonus = biome_upgrade_system.modify(&"node_production", bonus, resolve_context, [], node_id)
 	bonus = prestige_upgrade_system.modify(&"node_production", bonus, resolve_context, [], node_id)
 	return bonus
@@ -167,6 +206,7 @@ func prestige() -> void:
 	biome_upgrade_system.reset()
 
 	biomes_data.reset()
+	resolve_context.biome_sizes.clear()
 	_unlock_starting_biomes()
 
 func _unlock_starting_biomes() -> void:
@@ -225,22 +265,31 @@ func unlock_biome(key: StringName) -> bool:
 	biomes_data.unlock(key)
 	return true
 
-## Each biome currently ships exactly one upgrade, bought with that biome's
-## own level points. Add more by extending this map alongside new .tres defs
-## under data/upgrades/biomes/<key>/.
-func biome_upgrade_id(key: StringName) -> StringName:
+## Each biome ships 10 upgrades, bought with that biome's own level points.
+## Add more by extending this map alongside new .tres defs under
+## data/upgrades/biomes/<key>/.
+func biome_upgrade_ids(key: StringName) -> Array[StringName]:
 	match key:
-		&"forest": return &"DenseMycelium"
-		&"symbiosis": return &"SymbioticBloom"
-		&"permafrost": return &"FrozenSpores"
-		_: return &""
+		&"forest":
+			return [&"DenseMycelium", &"ForestUpgrade2", &"ForestUpgrade3", &"ForestUpgrade4",
+				&"ForestUpgrade5", &"ForestUpgrade6", &"ForestUpgrade7", &"ForestUpgrade8",
+				&"ForestUpgrade9", &"ForestUpgrade10"]
+		&"symbiosis":
+			return [&"SymbioticBloom", &"SymbiosisUpgrade2", &"SymbiosisUpgrade3", &"SymbiosisUpgrade4",
+				&"SymbiosisUpgrade5", &"SymbiosisUpgrade6", &"SymbiosisUpgrade7", &"SymbiosisUpgrade8",
+				&"SymbiosisUpgrade9", &"SymbiosisUpgrade10"]
+		&"permafrost":
+			return [&"FrozenSpores", &"PermafrostUpgrade2", &"PermafrostUpgrade3", &"PermafrostUpgrade4",
+				&"PermafrostUpgrade5", &"PermafrostUpgrade6", &"PermafrostUpgrade7", &"PermafrostUpgrade8",
+				&"PermafrostUpgrade9", &"PermafrostUpgrade10"]
+		_:
+			return []
 
-func biome_upgrade_name(key: StringName) -> String:
-	match key:
-		&"forest": return "Dense Mycelium"
-		&"symbiosis": return "Symbiotic Bloom"
-		&"permafrost": return "Frozen Spores"
-		_: return ""
+func can_buy_biome_upgrade(id: StringName, key: StringName) -> bool:
+	if biome_available_points(key) < 1:
+		return false
+	var def := biome_upgrade_system.def(id)
+	return def != null and (def.max_level <= 0 or biome_upgrade_system.level(id) < def.max_level)
 
 func buy_biome_upgrade(id: StringName, key: StringName) -> bool:
 	if biome_available_points(key) < 1:
@@ -253,6 +302,35 @@ func buy_biome_upgrade(id: StringName, key: StringName) -> bool:
 	if not biome_upgrade_system.buy_with_points(id, 1):
 		biomes_data.spend_points(key, -1)  # refund: def had no room left to level
 		return false
+	return true
+
+# ---------------------------------------------------------------- biome size
+
+func biome_size(key: StringName) -> int:
+	return biomes_data.biome_size(key)
+
+func biome_size_cost(key: StringName) -> BigNumber:
+	var def := biome_def(key)
+	if def == null:
+		return BigNumber.new(0.0, 0)
+	var scaled_size := pow(float(biome_size(key)), def.size_cost_growth_exponent)
+	return def.size_base_cost.mul(BigNumber.from_value(def.size_cost_growth).pow_float(scaled_size))
+
+func can_buy_biome_size(key: StringName) -> bool:
+	if biome_def(key) == null:
+		return false
+	return player_data.nutrients.gte(biome_size_cost(key))
+
+func buy_biome_size(key: StringName) -> bool:
+	if not can_buy_biome_size(key):
+		return false
+	player_data.nutrients = player_data.nutrients.sub(biome_size_cost(key))
+	biomes_data.increase_size(key)
+	resolve_context.biome_sizes[key] = biomes_data.biome_size(key)
+	upgrade_system.invalidate()
+	biome_upgrade_system.invalidate()
+	prestige_upgrade_system.invalidate()
+	biome_size_changed.emit(key)
 	return true
 
 # ---------------------------------------------------------------- perks

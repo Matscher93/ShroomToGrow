@@ -17,15 +17,19 @@ _uids_to_string_ids = Dictionary[StringName, StringName]({
 &"uid://4gnpt13k1mky": &"node7_source",
 &"uid://b526wp1nh6hkv": &"node4_source",
 &"uid://bfiwnirp28p8p": &"node8_source",
+&"uid://bn33m8vxs4tkp": &"symbiosis_size_source",
+&"uid://bs3urny6nqnin": &"permafrost_size_source",
 &"uid://c30corpsxevj2": &"node2_source",
 &"uid://c4ufqwg0eef2i": &"node9_source",
 &"uid://ctqlfvkrswy84": &"node0_source",
 &"uid://cwr6y5blvrevk": &"node6_source",
 &"uid://d2xce2dpeby8q": &"node3_source",
 &"uid://dafr8hrg2lbu8": &"node5_source",
+&"uid://dhc7uro1sbsej": &"forest_size_source",
 &"uid://dv3x8w0a1o6uw": &"node1_source"
 })
 _string_ids_to_uids = Dictionary[StringName, StringName]({
+&"forest_size_source": &"uid://dhc7uro1sbsej",
 &"node0_source": &"uid://ctqlfvkrswy84",
 &"node1_source": &"uid://dv3x8w0a1o6uw",
 &"node2_source": &"uid://c30corpsxevj2",
@@ -35,5 +39,7 @@ _string_ids_to_uids = Dictionary[StringName, StringName]({
 &"node6_source": &"uid://cwr6y5blvrevk",
 &"node7_source": &"uid://4gnpt13k1mky",
 &"node8_source": &"uid://bfiwnirp28p8p",
-&"node9_source": &"uid://c4ufqwg0eef2i"
+&"node9_source": &"uid://c4ufqwg0eef2i",
+&"permafrost_size_source": &"uid://bs3urny6nqnin",
+&"symbiosis_size_source": &"uid://bn33m8vxs4tkp"
 })

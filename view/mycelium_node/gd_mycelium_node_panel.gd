@@ -19,11 +19,13 @@ extends PanelContainer
 @export var expansion_arrow: ColorRect
 @export var label_yield: Label
 @export var label_potency_level: Label
+@export var label_potency_gain_header: Label
 @export var label_potency_accumulated: Label
 @export var label_potency_cost: Label
 @export var panel_potency: PanelContainer
 @export var upgrade_button_potency: Button
 @export var label_synergy_level: Label
+@export var label_synergy_gain_header: Label
 @export var label_synergy_accumulated: Label
 @export var label_synergy_cost: Label
 @export var panel_synergy: PanelContainer
@@ -102,21 +104,25 @@ func _on_nutrients_changed(_value: BigNumber) -> void:
 func _refresh_upgrades() -> void:
 	var us := App.upgrade_system
 	var nutrients := App.player_data.nutrients
+	var node_id := StringName(str(node_level))
 	_refresh_upgrade_track(us, nutrients, _potency_id,
-		label_potency_level, label_potency_accumulated, label_potency_cost,
-		panel_potency, upgrade_button_potency)
+		label_potency_level, label_potency_gain_header, label_potency_accumulated, label_potency_cost,
+		panel_potency, upgrade_button_potency,
+		App.node_potency_bonus(node_id), App.node_potency_external_multiplier(node_id), "level")
 	_refresh_upgrade_track(us, nutrients, _synergy_id,
-		label_synergy_level, label_synergy_accumulated, label_synergy_cost,
-		panel_synergy, upgrade_button_synergy)
-	var total := us.combined_bonus([_potency_id, _synergy_id], App.resolve_context)
+		label_synergy_level, label_synergy_gain_header, label_synergy_accumulated, label_synergy_cost,
+		panel_synergy, upgrade_button_synergy,
+		App.node_synergy_bonus(node_id), App.node_synergy_external_multiplier(node_id), "manual node")
+	var total := App.node_production_bonus(node_id).sub(BigNumber.from_value(1.0))
 	label_yield.text = "+%s%%" % [total.scale(100.0)._to_string()]
 
 func _refresh_upgrade_track(us: UpgradeSystem, nutrients: BigNumber, id: StringName,
-		lvl_label: Label, acc_label: Label, cost_label: Label,
-		buy_panel, button: Button) -> void:
+		lvl_label: Label, header_label: Label, acc_label: Label, cost_label: Label,
+		buy_panel, button: Button, bonus: BigNumber, external_mult: BigNumber, unit: String) -> void:
 	var lvl := us.level(id)
 	lvl_label.text = "Lv %d" % lvl
-	acc_label.text = "now +%s%%" % [us.effect_amount(id, App.resolve_context).scale(100.0)._to_string()]
+	header_label.text = "+%s%% / %s:" % [us.next_level_delta(id).mul(external_mult).scale(100.0)._to_string(), unit]
+	acc_label.text = "now +%s%%" % [bonus.sub(BigNumber.from_value(1.0)).scale(100.0)._to_string()]
 	cost_label.text = us.cost(id)._to_string() if us.has_def(id) else "--"
 	var can_buy := us.can_buy(id, nutrients)
 	button.disabled = not can_buy

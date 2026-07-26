@@ -8,9 +8,16 @@ signal biome_unlocked(key: StringName)
 var unlocked: Dictionary = {}       # StringName -> bool (true entries only matter) — cleared on prestige
 var ever_unlocked: Dictionary = {}  # StringName -> bool — permanent, survives prestige reset
 var spent_points: Dictionary = {}   # StringName -> int
+var size: Dictionary = {}           # StringName -> int, purchased Biome Size — cleared on prestige
 
 func is_unlocked(key: StringName) -> bool:
 	return unlocked.get(key, false)
+
+func biome_size(key: StringName) -> int:
+	return size.get(key, 0)
+
+func increase_size(key: StringName) -> void:
+	size[key] = biome_size(key) + 1
 
 ## True once a biome has been unlocked at least once, even across a prestige
 ## reset. Used to keep its bottom-bar tab reachable; does not grant features.
@@ -33,6 +40,7 @@ func spend_points(key: StringName, amount: int) -> void:
 func reset() -> void:
 	unlocked.clear()
 	spent_points.clear()
+	size.clear()
 
 func to_save() -> Dictionary:
 	var unlocked_out := {}
@@ -46,7 +54,11 @@ func to_save() -> Dictionary:
 	var spent_out := {}
 	for key in spent_points:
 		spent_out[String(key)] = spent_points[key]
-	return {"unlocked": unlocked_out, "ever_unlocked": ever_unlocked_out, "spent_points": spent_out}
+	var size_out := {}
+	for key in size:
+		if size[key] > 0:
+			size_out[String(key)] = size[key]
+	return {"unlocked": unlocked_out, "ever_unlocked": ever_unlocked_out, "spent_points": spent_out, "size": size_out}
 
 static func from_save(d: Dictionary) -> BiomesData:
 	var data := BiomesData.new()
@@ -66,4 +78,7 @@ static func from_save(d: Dictionary) -> BiomesData:
 	var spent_in: Dictionary = d.get("spent_points", {})
 	for key in spent_in:
 		data.spent_points[StringName(key)] = int(spent_in[key])
+	var size_in: Dictionary = d.get("size", {})
+	for key in size_in:
+		data.size[StringName(key)] = int(size_in[key])
 	return data

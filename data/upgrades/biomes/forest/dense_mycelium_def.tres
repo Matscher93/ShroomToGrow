@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+[gd_resource type="Resource" script_class="UpgradeDef" format=3 uid="uid://72feoeaebicr"]
 
 [ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_effect_script"]
 [ext_resource type="Resource" path="res://data/upgrades/biomes/forest/dense_mycelium_effect.tres" id="2_effect"]
@@ -9,5 +9,4 @@ script = ExtResource("3_def_script")
 id = &"DenseMycelium"
 display_name = "Dense Mycelium"
 description = "+15% node production, biome-wide, per level. Paid with Meadow level points, not nutrients."
-max_level = 0
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

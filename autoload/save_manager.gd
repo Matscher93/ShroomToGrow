@@ -146,6 +146,8 @@ func _apply_data(_game: Dictionary) -> void:
 	for key in loaded_biomes_data.unlocked:
 		App.biomes_data.unlock(key)
 	App.biomes_data.spent_points = loaded_biomes_data.spent_points
+	App.biomes_data.size = loaded_biomes_data.size
+	App.resolve_context.biome_sizes = App.biomes_data.size.duplicate()
 	App.biome_upgrade_system.from_save(_game.get("biome_upgrades", {}))
 
 func get_mycelium_node_data() -> Array[Dictionary]:
