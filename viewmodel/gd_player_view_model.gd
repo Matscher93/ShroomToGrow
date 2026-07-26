@@ -33,8 +33,8 @@ func _init(model: PlayerData) -> void:
 
 func dispose() -> void:
 	_model.nutrients_changed.disconnect(_on_nutrients_changed)
-	_model.biomass_changed.connect(_on_biomass_changed)
-	_model.water_changed.connect(_on_water_changed)
+	_model.biomass_changed.disconnect(_on_biomass_changed)
+	_model.water_changed.disconnect(_on_water_changed)
 
 # --- Model -> notification plumbing ---
 

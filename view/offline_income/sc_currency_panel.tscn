@@ -53,8 +53,8 @@ script = ExtResource("2_qoix3")
 currency_name = NodePath("MarginContainer/HBoxContainer/lable_currency_name")
 currency_change = NodePath("MarginContainer/HBoxContainer/label_currency_change")
 icon_rect = NodePath("MarginContainer/HBoxContainer/icon_rect")
-ColorParam = "box_color"
 currency_def = ExtResource("3_qoix3")
+ColorParam = "box_color"
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=681779799]
 layout_mode = 2

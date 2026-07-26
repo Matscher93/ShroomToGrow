@@ -4,7 +4,6 @@ extends "res://view/offline_income/general_panel_background.gd"
 @export var currency_name: Label
 @export var currency_change: Label
 @export var icon_rect: ColorRect
-@export var ColorParam: String
 @export var currency_def: CurrencyDef:
 	set(value):
 		if currency_def:

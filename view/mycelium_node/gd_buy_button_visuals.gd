@@ -10,8 +10,8 @@ var is_enabled : bool
 var is_button_pressed : bool
 func _ready():
 	_update_shader()
-	upgrade_button.button_down.connect(on_button_down)
-	upgrade_button.button_up.connect(on_button_up)
+	upgrade_button.button_down.connect(_on_button_down)
+	upgrade_button.button_up.connect(_on_button_up)
 
 func _notification(what):
 	if what == NOTIFICATION_RESIZED:
@@ -36,10 +36,10 @@ func set_enabled(inEnabled : bool):
 	upgrade_button.disabled = not inEnabled
 	_update_shader()
 	
-func on_button_down():
+func _on_button_down():
 	is_button_pressed = true
 	_update_shader()
-	
-func on_button_up():
+
+func _on_button_up():
 	is_button_pressed = false
 	_update_shader()

@@ -40,7 +40,6 @@ func _ready() -> void:
 	_update_shader()
 	vbox_synergy.visible = false
 	vbox_buy.visible = false
-	var _press_active := false
 	upgrade_button.pressed.connect(_on_upgrade_pressed)
 	_potency_id = StringName("NodePotency%d" % node_level)
 	_synergy_id = StringName("NodeSynergy%d" % node_level)
