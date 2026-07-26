@@ -32,12 +32,12 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	pass
 
-func _update_visuals():
+func _update_visuals() -> void:
 	_update_colors()
 	label_title.text = currency_def.currency_name
 	image_header.material.set_shader_parameter("icon_id", currency_def.currency_type)
-	
-func _update_colors():
+
+func _update_colors() -> void:
 	var child := get_node_or_null("ColorRect")
 	if is_instance_valid(child):
 		image_background._set_color(currency_def.main_color)

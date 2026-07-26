@@ -3,7 +3,7 @@
 [ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="1_ojqnj"]
 [ext_resource type="Script" uid="uid://bgcmgm6ocj1p4" path="res://view/offline_income/gd_mycelium_node_change_panel.gd" id="2_xnack"]
 [ext_resource type="Shader" uid="uid://depcdiis4o4p1" path="res://view/mycelium_node/sh_level_background.gdshader" id="3_634ch"]
-[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="4_sr1at"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_base_color_rect.gd" id="4_sr1at"]
 [ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="5_t15tc"]
 [ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="7_20ehd"]
 [ext_resource type="FontFile" uid="uid://bfk21kf7a5r3w" path="res://fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf" id="8_8sciu"]
@@ -52,7 +52,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("2_xnack")
-ColorParam = "box_color"
+color_param = "box_color"
 level_value = NodePath("MarginContainer/HBoxContainer2/level_icon/lbl_level_value")
 label_node_name = NodePath("MarginContainer/HBoxContainer2/lbl_node_name")
 label_node_change = NodePath("MarginContainer/HBoxContainer2/lbl_node_change")
@@ -79,7 +79,7 @@ layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
 script = ExtResource("4_sr1at")
-ColorParam = "box_color"
+color_param = "box_color"
 
 [node name="lbl_level_value" type="Label" parent="MarginContainer/HBoxContainer2/level_icon" unique_id=1224558222]
 layout_mode = 1

@@ -1,2 +1,2 @@
 @tool
-extends "res://view/base_views/gd_BasePanelContainer.gd"
+extends "res://view/base_views/gd_base_panel_container.gd"

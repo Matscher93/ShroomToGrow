@@ -9,7 +9,7 @@ const PROP_SCREEN_CHANGED_TEXT := "screen_changed"
 var _model: ScreensData
 
 # --- View -> ViewModel ---
-func set_current_screen(type: ScreenTypes.Types):
+func set_current_screen(type: ScreenTypes.Types) -> void:
 	_model.current_screen = type
 
 # --- Read-only display properties the View binds to ---

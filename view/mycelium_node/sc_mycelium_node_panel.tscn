@@ -3,13 +3,13 @@
 [ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="1_an5pq"]
 [ext_resource type="Script" uid="uid://dew8n3poubc8o" path="res://view/mycelium_node/gd_mycelium_node_panel.gd" id="1_dvfrc"]
 [ext_resource type="Shader" uid="uid://depcdiis4o4p1" path="res://view/mycelium_node/sh_level_background.gdshader" id="3_ogm57"]
-[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="4_7duim"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_base_color_rect.gd" id="4_7duim"]
 [ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="5_o2fsh"]
 [ext_resource type="FontFile" uid="uid://c7knyl6l8hsfc" path="res://fonts/Space_Grotesk/SpaceGrotesk-Light.ttf" id="6_7duim"]
 [ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="7_7duim"]
 [ext_resource type="Script" uid="uid://dtkedj5m6urcc" path="res://view/mycelium_node/gd_buy_button_visuals.gd" id="8_3usp5"]
 [ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="9_7yqcm"]
-[ext_resource type="Script" uid="uid://c3ouusiqjure6" path="res://view/base_views/gd_BasePanelContainer.gd" id="10_0kruu"]
+[ext_resource type="Script" uid="uid://c3ouusiqjure6" path="res://view/base_views/gd_base_panel_container.gd" id="10_0kruu"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
 resource_local_to_scene = true
@@ -214,7 +214,7 @@ offset_right = 40.0
 offset_bottom = 40.0
 mouse_filter = 1
 script = ExtResource("1_dvfrc")
-ColorParam = "box_color"
+color_param = "box_color"
 upgrade_button = NodePath("MarginContainer/VBoxContainer/vbox_buy/HBoxContainer/panel_buy_node/upgrade_button")
 owned_nodes = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBox_owned/lbl_owned_nodes")
 manual_nodes = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBox_manual/lbl_manual_nodes")
@@ -264,7 +264,7 @@ layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
 script = ExtResource("4_7duim")
-ColorParam = "box_color"
+color_param = "box_color"
 
 [node name="lbl_level_value" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2/level_icon" unique_id=1224558222]
 layout_mode = 1
@@ -379,7 +379,7 @@ material = SubResource("ShaderMaterial_bj2ss")
 layout_mode = 2
 mouse_filter = 1
 script = ExtResource("8_3usp5")
-ColorParam = "box_color"
+color_param = "box_color"
 upgrade_button = NodePath("upgrade_button")
 deactivated_color = Color(1, 1, 1, 0.29803923)
 
@@ -460,7 +460,7 @@ material = SubResource("ShaderMaterial_8wed3")
 layout_mode = 2
 mouse_filter = 1
 script = ExtResource("10_0kruu")
-ColorParam = "box_color"
+color_param = "box_color"
 
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerPotency" unique_id=1718541658]
 layout_mode = 2
@@ -513,7 +513,7 @@ material = SubResource("ShaderMaterial_qglmv")
 layout_mode = 2
 mouse_filter = 1
 script = ExtResource("8_3usp5")
-ColorParam = "box_color"
+color_param = "box_color"
 upgrade_button = NodePath("potency_button")
 deactivated_color = Color(1, 1, 1, 0.29803923)
 
@@ -554,7 +554,7 @@ material = SubResource("ShaderMaterial_q5snh")
 layout_mode = 2
 mouse_filter = 1
 script = ExtResource("10_0kruu")
-ColorParam = "box_color"
+color_param = "box_color"
 
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerSynergy" unique_id=333935281]
 layout_mode = 2
@@ -607,7 +607,7 @@ material = SubResource("ShaderMaterial_ud6rb")
 layout_mode = 2
 mouse_filter = 1
 script = ExtResource("8_3usp5")
-ColorParam = "box_color"
+color_param = "box_color"
 upgrade_button = NodePath("synergy_button")
 deactivated_color = Color(1, 1, 1, 0.29803923)
 

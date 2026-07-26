@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://dffjgke4s85om" path="res://view/offline_income/gd_currency_panel.gd" id="2_qoix3"]
 [ext_resource type="Resource" uid="uid://cu7pu8ny7a7lb" path="res://data/currencies/res_nutrients_def.tres" id="3_qoix3"]
 [ext_resource type="Shader" uid="uid://b1heymxykaps" path="res://view/offline_income/sh_nutrient_background.gdshader" id="3_yd3cl"]
-[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="4_xb7yw"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_base_color_rect.gd" id="4_xb7yw"]
 [ext_resource type="FontFile" uid="uid://bfk21kf7a5r3w" path="res://fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf" id="5_wm6ef"]
 [ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="6_yd3cl"]
 
@@ -54,7 +54,7 @@ currency_name = NodePath("MarginContainer/HBoxContainer/lable_currency_name")
 currency_change = NodePath("MarginContainer/HBoxContainer/label_currency_change")
 icon_rect = NodePath("MarginContainer/HBoxContainer/icon_rect")
 currency_def = ExtResource("3_qoix3")
-ColorParam = "box_color"
+color_param = "box_color"
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=681779799]
 layout_mode = 2
@@ -75,7 +75,7 @@ custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 mouse_filter = 1
 script = ExtResource("4_xb7yw")
-ColorParam = "box_color"
+color_param = "box_color"
 
 [node name="lable_currency_name" type="Label" parent="MarginContainer/HBoxContainer" unique_id=1997675994]
 layout_mode = 2

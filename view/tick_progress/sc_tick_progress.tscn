@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://b8ca5wifa6bv" path="res://view/tick_progress/gd_tick_progress.gd" id="1_44bkl"]
 [ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="2_05n8l"]
 [ext_resource type="Shader" uid="uid://djm4kfwj0ikno" path="res://view/tick_progress/sh_tick_progress.gdshader" id="3_3vbxe"]
-[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_BaseColorRect.gd" id="4_44bkl"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_base_color_rect.gd" id="4_44bkl"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_vf2pt"]
 

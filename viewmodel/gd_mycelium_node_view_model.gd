@@ -12,7 +12,7 @@ const PROP_PRODUCTION_TEXT := &"production_text"
 const PROP_PRODUCTION_PER_NODE_TEXT := &"production_per_node_text"
 
 var _player_data: PlayerData
-var _mycelium_data: MyceliumData
+var _mycelium_data: MyceliumNodeData
 
 # --- Read-only display properties the View binds to ---
 var buy_button_text: String:
@@ -58,7 +58,7 @@ var is_multiple: bool:
 		return _bonus_production().gt(BigNumber.from_value(1.0))
 # --- Lifecycle ---
 
-func _init(player_data: PlayerData, mycelium_data: MyceliumData) -> void:
+func _init(player_data: PlayerData, mycelium_data: MyceliumNodeData) -> void:
 	_player_data = player_data
 	_player_data.nutrients_changed.connect(_on_nutrients_changed)
 	_mycelium_data = mycelium_data

@@ -28,7 +28,7 @@ func bind(vm: OfflineIncomeViewModel) -> void:
 	_vm = vm
 	_vm.property_changed.connect(_on_property_changed)
 	_update_visuals()
-	offline_income_button.on_button_pressed.connect(_on_dismiss_pressed)
+	offline_income_button.pressed.connect(_on_dismiss_pressed)
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(_delta: float) -> void:

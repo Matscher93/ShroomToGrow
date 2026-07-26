@@ -33,7 +33,7 @@ offset_right = 92.0
 offset_bottom = 34.0
 size_flags_horizontal = 3
 script = ExtResource("2_2oahe")
-ColorParam = "box_color"
+color_param = "box_color"
 _button = NodePath("MarginContainer/button")
 button_selected_color = Color(0, 1, 0.9490196, 1)
 

@@ -1,50 +1,50 @@
 @tool
 extends PanelContainer
 
-@export var ColorParam: String
+@export var color_param: String
 @export var _button: Button
 @export var button_color: Color
 @export var button_selected_color: Color
 
-signal on_button_pressed()
+signal pressed()
 
 var is_selected : bool = false
 var is_button_pressed : bool
-func _ready():
+func _ready() -> void:
 	_update_shader()
 	_button.button_down.connect(_on_button_down)
 	_button.button_up.connect(_on_button_up)
 
-func _notification(what):
+func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		_update_shader()
 
-func _update_shader():
+func _update_shader() -> void:
 	if material:
 		material.set_shader_parameter("rect_size", size * get_global_transform().get_scale())
 		if(is_selected):
-			material.set_shader_parameter(ColorParam, button_selected_color)
+			material.set_shader_parameter(color_param, button_selected_color)
 			modulate = Color.WHITE
 		else:
-			material.set_shader_parameter(ColorParam, button_color)
+			material.set_shader_parameter(color_param, button_color)
 			modulate = Color.GRAY
 
-func _set_color(inColor : Color):
-	button_color = inColor
+func _set_color(in_color : Color) -> void:
+	button_color = in_color
 	_update_shader()
 
-func set_selected(inEnabled : bool):
-	is_selected = inEnabled
+func set_selected(in_enabled : bool) -> void:
+	is_selected = in_enabled
 	_update_shader()
 
 func set_button_text(button_text: String) -> void:
 	_button.text = button_text
-		
-func _on_button_down():
+
+func _on_button_down() -> void:
 	is_button_pressed = true
 	_update_shader()
-	
-func _on_button_up():
+
+func _on_button_up() -> void:
 	is_button_pressed = false
 	_update_shader()
-	on_button_pressed.emit()
+	pressed.emit()

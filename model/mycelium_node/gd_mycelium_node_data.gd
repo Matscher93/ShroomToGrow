@@ -1,4 +1,4 @@
-class_name MyceliumData
+class_name MyceliumNodeData
 extends RefCounted
 
 signal node_changed(nodes: MyceliumNode)

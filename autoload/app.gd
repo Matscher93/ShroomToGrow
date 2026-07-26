@@ -8,7 +8,7 @@ extends Node
 
 var player_data: PlayerData
 var player_vm: PlayerViewModel
-var mycelium_node_data: Array[MyceliumData]
+var mycelium_node_data: Array[MyceliumNodeData]
 var mycelium_node_vms: Array[MyceliumNodeViewModel]
 var nodes := load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes
 var screens_data: ScreensData
@@ -59,7 +59,7 @@ func _ready() -> void:
 			biomes_data.unlock(def.key)
 
 	for node in nodes.mycelium_nodes:
-		var mycelium_data = MyceliumData.new(player_data, node)
+		var mycelium_data = MyceliumNodeData.new(player_data, node)
 		mycelium_node_data.append(mycelium_data)
 		mycelium_node_vms.append(MyceliumNodeViewModel.new(player_data, mycelium_data))
 		_track_manual_count(node)
@@ -110,7 +110,7 @@ func _track_manual_count(node: MyceliumNode) -> void:
 	)
 
 func handle_tick() -> void:
-	player_data.tick_count += 1;
+	player_data.tick_count += 1
 	for i in range(nodes.mycelium_nodes.size() -1, -1, -1):
 		var node := mycelium_node_vms[i]._mycelium_data._node
 		var node_change = node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))

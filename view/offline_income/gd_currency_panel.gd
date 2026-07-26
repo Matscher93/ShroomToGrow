@@ -15,19 +15,19 @@ extends "res://view/offline_income/general_panel_background.gd"
 		
 func _validate_property(property: Dictionary) -> void:
 	if property.name != "currency_name" and property.name != "currency_change"\
-		and property.name != "ColorParam" and property.name != "icon_rect":
+		and property.name != "color_param" and property.name != "icon_rect":
 		return
 	# Editable only when this scene is the one open on its own in the editor.
 	if Engine.is_editor_hint() and get_tree().edited_scene_root != self:
 		property.usage &= ~PROPERTY_USAGE_EDITOR
-		
-func _ready():
+
+func _ready() -> void:
 	_update_visuals()
-	
+
 func _update_visuals() -> void:
 	_update_shader()
 	if material:
-		material.set_shader_parameter(ColorParam, currency_def.main_color)
+		material.set_shader_parameter(color_param, currency_def.main_color)
 		
 	if currency_name:
 		currency_name.text = currency_def.currency_name

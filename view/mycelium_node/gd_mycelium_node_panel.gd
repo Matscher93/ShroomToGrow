@@ -2,7 +2,7 @@
 class_name MyceliumNodePanel
 extends PanelContainer
 
-@export var ColorParam: String
+@export var color_param: String
 @export var upgrade_button: Button
 @export var owned_nodes: Label
 @export var manual_nodes: Label
@@ -154,17 +154,17 @@ func _toggle_synergy() -> void:
 	else:
 		vbox_synergy.visible = false
 
-func _notification(what):
+func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		_update_shader()
 
-func _update_shader():
+func _update_shader() -> void:
 	if material:
 		material.set_shader_parameter("rect_size", size * get_global_transform().get_scale())
 
-func _set_color():
+func _set_color() -> void:
 	if material:
-		material.set_shader_parameter(ColorParam, _vm._mycelium_data._node.color)
+		material.set_shader_parameter(color_param, _vm._mycelium_data._node.color)
 		level_icon._set_color(_vm._mycelium_data._node.color)
 		panel_buy_node._set_color(_vm._mycelium_data._node.color)
 		panel_potency._set_color(_vm._mycelium_data._node.color)

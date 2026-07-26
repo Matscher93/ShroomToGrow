@@ -5,7 +5,7 @@ var _vm : ScreensViewModel
 @export var button_container: HBoxContainer
 @export var button_scene: PackedScene
 
-var button_dictonary: Dictionary[ScreenTypes.Types, PanelContainer]
+var button_dictionary: Dictionary[ScreenTypes.Types, PanelContainer]
 var _screen_instances: Dictionary[ScreenTypes.Types, Node] = {}
 
 # Called when the node enters the scene tree for the first time.
@@ -60,7 +60,7 @@ func _rebuild_nav_buttons() -> void:
 	for child in button_container.get_children():
 		button_container.remove_child(child)
 		child.queue_free()
-	button_dictonary.clear()
+	button_dictionary.clear()
 
 	var all_screens = _vm.get_all_screen_data()
 	for screen_key in ScreenTypes.Types.size():
@@ -69,13 +69,13 @@ func _rebuild_nav_buttons() -> void:
 		var button_data = all_screens.get(screen_key)
 		var button = button_scene.instantiate()
 		button.set_button_text(button_data.screen_name)
-		button.on_button_pressed.connect(on_screen_selected.bind(screen_key))
+		button.pressed.connect(on_screen_selected.bind(screen_key))
 		button.set_selected(_vm.get_current_screen() == screen_key)
 
-		button_dictonary[screen_key] = button
+		button_dictionary[screen_key] = button
 		button_container.add_child(button)
 
 func on_screen_selected(selected_screen : ScreenTypes.Types) -> void:
 	_vm.set_current_screen(selected_screen)
-	for button_key in button_dictonary:
-		button_dictonary.get(button_key).set_selected(_vm.get_current_screen() == button_key)
+	for button_key in button_dictionary:
+		button_dictionary.get(button_key).set_selected(_vm.get_current_screen() == button_key)
