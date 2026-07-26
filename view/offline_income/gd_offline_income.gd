@@ -100,5 +100,5 @@ func _get_node_count(save_data: Dictionary, index: int) -> BigNumber:
 	return auto_nodes
 	
 func _get_nutrient_count(save_data: Dictionary) -> BigNumber:
-	var player_data = PlayerData.from_save(save_data.get("player_data", PlayerData.new()))
+	var player_data = PlayerData.from_save(save_data.get("player_data", {}))
 	return player_data.nutrients

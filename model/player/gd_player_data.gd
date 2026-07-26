@@ -14,14 +14,14 @@ var nutrients: BigNumber = BigNumber.from_value(1.0):
 			return
 		nutrients = value
 		nutrients_changed.emit(nutrients)
-		
+
 var biomass: BigNumber = BigNumber.from_value(0.0):
 	set(value):
 		if biomass == value:
 			return
 		biomass = value
 		biomass_changed.emit(biomass)
-		
+
 var water: BigNumber = BigNumber.from_value(0.0):
 	set(value):
 		if water == value:
@@ -43,21 +43,32 @@ var prestige_count: int = 0:
 		prestige_count = value
 		prestige_count_changed.emit(prestige_count)
 
+## Single source of truth for which fields round-trip through a save file.
+## Add a new field here (and nowhere else) to have it saved/loaded.
+const _BIG_NUMBER_FIELDS: Array[String] = ["nutrients", "biomass", "water"]
+const _PLAIN_FIELDS: Array[String] = ["tick_count", "prestige_count"]
+
 func to_save() -> Dictionary:
-	var save_state = {
-		"tick_count": tick_count,
-		"nutrients": nutrients.to_save(),
-		"biomass": biomass.to_save(),
-		"water": water.to_save(),
-		"prestige_count": prestige_count
-	}
+	var save_state := {}
+	for field in _BIG_NUMBER_FIELDS:
+		save_state[field] = (get(field) as BigNumber).to_save()
+	for field in _PLAIN_FIELDS:
+		save_state[field] = get(field)
 	return save_state
 
+## Applies a save dict onto this instance in place, going through each
+## field's setter (so *_changed signals fire as usual). Use this — instead of
+## replacing App.player_data outright — because ViewModels already hold a
+## reference to it; swapping the instance would silently orphan them.
+func load_from_save(d: Dictionary) -> void:
+	for field in _BIG_NUMBER_FIELDS:
+		set(field, BigNumber.from_save(d.get(field, {})))
+	for field in _PLAIN_FIELDS:
+		set(field, d.get(field, 0))
+
+## Builds a fresh, disconnected PlayerData from a save dict — for reading a
+## past snapshot's values (e.g. offline-income deltas), not for live state.
 static func from_save(d: Dictionary) -> PlayerData:
-	var player_data = PlayerData.new()
-	player_data.tick_count = d.get("tick_count", 0)
-	player_data.nutrients = BigNumber.from_save(d.get("nutrients", {}))
-	player_data.biomass = BigNumber.from_save(d.get("biomass", {}))
-	player_data.water = BigNumber.from_save(d.get("water", {}))
-	player_data.prestige_count = d.get("prestige_count", 0)
+	var player_data := PlayerData.new()
+	player_data.load_from_save(d)
 	return player_data
