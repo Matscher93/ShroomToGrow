@@ -50,7 +50,7 @@ func _on_biome_unlocked(_key: StringName) -> void:
 	_rebuild_nav_buttons()
 
 func update_visuals() -> void:
-	var current_screen := _vm.get_current_screen()
+	var current_screen := _vm.current_screen
 	for screen_key in _screen_instances:
 		_screen_instances[screen_key].visible = screen_key == current_screen
 
@@ -62,7 +62,7 @@ func _rebuild_nav_buttons() -> void:
 		child.queue_free()
 	button_dictionary.clear()
 
-	var all_screens = _vm.get_all_screen_data()
+	var all_screens = _vm.all_screen_data
 	for screen_key in ScreenTypes.Types.size():
 		if not App.is_screen_unlocked(screen_key):
 			continue
@@ -70,7 +70,7 @@ func _rebuild_nav_buttons() -> void:
 		var button = button_scene.instantiate()
 		button.set_button_text(button_data.screen_name)
 		button.pressed.connect(on_screen_selected.bind(screen_key))
-		button.set_selected(_vm.get_current_screen() == screen_key)
+		button.set_selected(_vm.current_screen == screen_key)
 
 		button_dictionary[screen_key] = button
 		button_container.add_child(button)
@@ -78,4 +78,4 @@ func _rebuild_nav_buttons() -> void:
 func on_screen_selected(selected_screen : ScreenTypes.Types) -> void:
 	_vm.set_current_screen(selected_screen)
 	for button_key in button_dictionary:
-		button_dictionary.get(button_key).set_selected(_vm.get_current_screen() == button_key)
+		button_dictionary.get(button_key).set_selected(_vm.current_screen == button_key)

@@ -97,7 +97,7 @@ func _apply_offline_progress(saved_at: float) -> void:
 	# initial snapshot
 	save_game_snapshots.append(_collect_data())
 	
-	# limit snapshots to a managable amount
+	# limit snapshots to a manageable amount
 	var snapshot_interval: int = floor((elapsed/App.tick_timer.wait_time)/100)
 	
 	var tick_counter = 0

@@ -40,9 +40,9 @@ func _on_property_changed(property: StringName) -> void:
 			_update_visuals()
 
 func _update_visuals() -> void:
-	_snapshots = _vm.get_save_data_snapshots()
-	_total_offline_ticks = _vm.get_total_offline_ticks()
-	_total_offline_time = _vm.get_offline_time()
+	_snapshots = _vm.save_data_snapshots
+	_total_offline_ticks = _vm.total_offline_ticks
+	_total_offline_time = _vm.offline_time
 
 	label_ticks.text = "%d" % [_total_offline_ticks]
 	label_time.text = format_duration(_total_offline_time)

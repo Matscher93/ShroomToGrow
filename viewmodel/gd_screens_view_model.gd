@@ -4,7 +4,7 @@ extends ViewModel
 ## Owns formatting, derived/display state, and enabled/disabled logic.
 ## Holds a reference to the model; never to any Node.
 
-const PROP_SCREEN_CHANGED_TEXT := "screen_changed"
+const PROP_SCREEN_CHANGED_TEXT := &"screen_changed"
 
 var _model: ScreensData
 
@@ -14,15 +14,15 @@ func set_current_screen(type: ScreenTypes.Types) -> void:
 
 # --- Read-only display properties the View binds to ---
 
-func get_current_screen() -> ScreenTypes.Types:
-	return _model.current_screen
+var current_screen: ScreenTypes.Types:
+	get: return _model.current_screen
+
+var all_screen_data: Dictionary[ScreenTypes.Types, ScreenDefinition]:
+	get: return _model.screen_data
 
 func get_screen_data(type: ScreenTypes.Types) -> ScreenDefinition:
 	return _model.screen_data.get(type)
 
-func get_all_screen_data() -> Dictionary[ScreenTypes.Types, ScreenDefinition]:
-	return _model.screen_data
-	
 # --- Lifecycle ---
 
 func _init(model: ScreensData) -> void:

@@ -1,4 +1,5 @@
-class_name ScalingSource extends Resource
+class_name ScalingSource
+extends Resource
 
 enum Kind { NONE, NODE_COUNT, STAT, RESOURCE }
 enum Transform { NONE, SQRT, LOG10 }

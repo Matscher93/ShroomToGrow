@@ -1,4 +1,5 @@
-class_name ResolveContext extends RefCounted
+class_name ResolveContext
+extends RefCounted
 
 var node_counts: Dictionary = {}      # tier -> total
 var manual_counts: Dictionary = {}    # tier -> hand-bought   (track this separately in NodeManager)

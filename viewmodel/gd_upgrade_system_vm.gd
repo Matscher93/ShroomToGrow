@@ -1,4 +1,5 @@
-class_name UpgradeSystem extends RefCounted
+class_name UpgradeSystem
+extends RefCounted
 signal upgrades_changed
 
 var _defs: Dictionary = {}      # id -> UpgradeDef

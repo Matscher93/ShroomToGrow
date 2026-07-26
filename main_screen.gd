@@ -22,7 +22,7 @@ func _on_offline_income_changed(property: StringName) -> void:
 	_check_pending_offline_income()
 
 func _check_pending_offline_income() -> void:
-	if App.offline_income_vm.get_total_offline_ticks() <= 0:
+	if App.offline_income_vm.total_offline_ticks <= 0:
 		return
 	var popup := popup_layer.show_popup(OFFLINE_INCOME_SCENE)
 	popup.dismissed.connect(popup_layer.clear, CONNECT_ONE_SHOT)
