@@ -200,7 +200,7 @@ float SDF_Parallelogram(
  
 float SDF_Triangle_Equilateral( 
 	const vec2 position, 
-	const float radius )
+	float radius )
 {
 	vec2 pos = position;
     pos.x = abs(pos.x);

@@ -8,10 +8,10 @@ var _save_data_snapshots: Array[Dictionary]
 var _total_offline_ticks: int
 var _offline_time: float
 
-func set_save_data(save_data_snapshots: Array[Dictionary], total_offline_ticks: int, offline_time: float) -> void:
-	_save_data_snapshots = save_data_snapshots
-	_total_offline_ticks = total_offline_ticks
-	_offline_time = offline_time
+func set_save_data(in_save_data_snapshots: Array[Dictionary], in_total_offline_ticks: int, in_offline_time: float) -> void:
+	_save_data_snapshots = in_save_data_snapshots
+	_total_offline_ticks = in_total_offline_ticks
+	_offline_time = in_offline_time
 	_notify(PROP_SNAPSHOTS_CHANGED)
 
 var save_data_snapshots: Array[Dictionary]:

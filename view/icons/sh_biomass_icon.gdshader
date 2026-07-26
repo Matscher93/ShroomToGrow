@@ -1,6 +1,6 @@
 shader_type canvas_item;
 
-#include "res://shaders/icons/shi_biomass_icon.gdshaderinc"
+#include "res://shaders/icons/currencies/shi_biomass_icon.gdshaderinc"
 
 uniform float icon_scale = 1.0;
 

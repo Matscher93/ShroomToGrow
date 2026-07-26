@@ -6,24 +6,13 @@ var _vm : ScreensViewModel
 @export var button_scene: PackedScene
 
 var button_dictionary: Dictionary[ScreenTypes.Types, PanelContainer]
-var _screen_instances: Dictionary[ScreenTypes.Types, Node] = {}
+var _current_screen_instance: Node = null
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	_warm_screen_cache()
 	if App.screens_vm:
 		bind(App.screens_vm)
 	App.biomes_data.biome_unlocked.connect(_on_biome_unlocked)
-
-## Instantiate every screen once up front so first-time switching doesn't
-## pay scene instantiation/shader-compile cost mid-game (was causing a freeze).
-func _warm_screen_cache() -> void:
-	for screen_key in App.screens.screens:
-		var screen_data: ScreenDefinition = App.screens.screens[screen_key]
-		var instance := screen_data.screen_scene.instantiate()
-		instance.visible = false
-		screen_container.add_child(instance)
-		_screen_instances[screen_key] = instance
 
 func bind(vm: ScreensViewModel) -> void:
 	if _vm:
@@ -50,9 +39,13 @@ func _on_biome_unlocked(_key: StringName) -> void:
 	_rebuild_nav_buttons()
 
 func update_visuals() -> void:
-	var current_screen := _vm.current_screen
-	for screen_key in _screen_instances:
-		_screen_instances[screen_key].visible = screen_key == current_screen
+	if _current_screen_instance:
+		_current_screen_instance.queue_free()
+		_current_screen_instance = null
+
+	var screen_data := _vm.get_screen_data(_vm.current_screen)
+	_current_screen_instance = screen_data.screen_scene.instantiate()
+	screen_container.add_child(_current_screen_instance)
 
 	_rebuild_nav_buttons()
 

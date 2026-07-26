@@ -31,7 +31,19 @@ var owned_node_text: String:
 		
 var production_text: String:
 	get:
-		return "+%s / tick" % [_scaled_production()._to_string()]
+		var production = _scaled_production()
+		if production.equals(BigNumber.from_value(0.0)):
+			return ""
+
+		var source_text = "+%s / tick"
+		var unit_text: String
+		if _mycelium_data._node.node_id == 0:
+			unit_text = ("%s nutrients" if is_multiple else "%s nutrient") % [production._to_string()]
+		else:
+			var level_text = "LV%d" % [_mycelium_data._node.node_id]
+			unit_text = ("%s %s nodes" if is_multiple else "%s %s node") % [production._to_string(), level_text]
+		
+		return source_text % [unit_text]
 		
 var production_per_node_text: String:
 	get:
@@ -47,7 +59,7 @@ var production_per_node_text: String:
 
 var production_text_short: String:
 	get:
-		return "+%s/t" % [_scaled_production()._to_string()]
+		return "+%s/tick" % [_scaled_production()._to_string()]
 
 var can_buy_upgrade: bool:
 	get:
@@ -65,6 +77,8 @@ func _init(player_data: PlayerData, mycelium_data: MyceliumNodeData) -> void:
 	_mycelium_data._node.auto_nodes_changed.connect(_on_auto_nodes_changed)
 	_mycelium_data._node.manual_nodes_changed.connect(_on_manual_nodes_changed)
 	App.upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
+	App.biome_upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
+	App.prestige_upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
 
 
 func dispose() -> void:
@@ -72,6 +86,8 @@ func dispose() -> void:
 	_mycelium_data._node.auto_nodes_changed.disconnect(_on_auto_nodes_changed)
 	_mycelium_data._node.manual_nodes_changed.disconnect(_on_manual_nodes_changed)
 	App.upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
+	App.biome_upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
+	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
 
 # --- Commands (called by the View on user input) ---
 
@@ -106,10 +122,7 @@ func _format_number(value: BigNumber) -> String:
 
 func _scaled_production() -> BigNumber:
 	var raw := _mycelium_data._node.auto_nodes.add(BigNumber.from_value(_mycelium_data._node.manual_nodes))
-	var bonus := App.upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
-		App.resolve_context, [], StringName(str(_mycelium_data._node.node_id)))
-	return raw.mul(bonus)
+	return raw.mul(_bonus_production())
 
 func _bonus_production() -> BigNumber:
-	return App.upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
-		App.resolve_context, [], StringName(str(_mycelium_data._node.node_id)))
+	return App.node_production_bonus(StringName(str(_mycelium_data._node.node_id)))

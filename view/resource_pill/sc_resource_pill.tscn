@@ -10,7 +10,7 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_g3qpl"]
 resource_local_to_scene = true
 shader = ExtResource("2_h1bxx")
-shader_parameter/rect_size = Vector2(142, 77)
+shader_parameter/rect_size = Vector2(142, 88)
 shader_parameter/box_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 16.0
@@ -56,8 +56,8 @@ script = ExtResource("1_jq6a3")
 image_background = NodePath("ColorRect")
 image_header = NodePath("MarginContainer/VBoxContainer/HBoxContainer/ResourceBubble")
 label_title = NodePath("MarginContainer/VBoxContainer/HBoxContainer/lable_title")
-label_amount = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/label_amount")
-label_change_per_tick = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/label_change_per_tick")
+label_amount = NodePath("MarginContainer/VBoxContainer/label_amount")
+label_change_per_tick = NodePath("MarginContainer/VBoxContainer/label_change_per_tick")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1738468682]
 material = SubResource("ShaderMaterial_g3qpl")
@@ -102,17 +102,16 @@ uppercase = true
 [node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1214910101]
 layout_mode = 2
 
-[node name="label_amount" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=162577882]
+[node name="label_amount" type="Label" parent="MarginContainer/VBoxContainer" unique_id=162577882]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "123"
 label_settings = SubResource("LabelSettings_2f41h")
 
-[node name="label_change_per_tick" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=21042413]
+[node name="label_change_per_tick" type="Label" parent="MarginContainer/VBoxContainer" unique_id=21042413]
 layout_mode = 2
 size_flags_vertical = 8
 offset_transform_enabled = true
-offset_transform_position = Vector2(0, -4)
 theme_override_font_sizes/font_size = 24
 text = "123"
 label_settings = SubResource("LabelSettings_xqneu")

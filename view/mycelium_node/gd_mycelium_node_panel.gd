@@ -16,6 +16,7 @@ extends PanelContainer
 @export var level_icon: ColorRect
 @export var vbox_synergy: VBoxContainer
 @export var vbox_buy: VBoxContainer
+@export var expansion_arrow: ColorRect
 @export var label_yield: Label
 @export var label_potency_level: Label
 @export var label_potency_accumulated: Label
@@ -40,6 +41,7 @@ func _ready() -> void:
 	_update_shader()
 	vbox_synergy.visible = false
 	vbox_buy.visible = false
+	expansion_arrow.offset_transform_rotation = 0.0
 	upgrade_button.pressed.connect(_on_upgrade_pressed)
 	_potency_id = StringName("NodePotency%d" % node_level)
 	_synergy_id = StringName("NodeSynergy%d" % node_level)
@@ -81,7 +83,6 @@ func _on_property_changed(property: StringName) -> void:
 			manual_nodes.text = _vm.manual_node_text
 		MyceliumNodeViewModel.PROP_PRODUCTION_TEXT:
 			label_node_income.text = _vm.production_text
-		MyceliumNodeViewModel.PROP_PRODUCTION_PER_NODE_TEXT:
 			label_node_desc.text = _vm.production_per_node_text
 
 func _refresh_all() -> void:
@@ -149,6 +150,7 @@ func _gui_input(event: InputEvent) -> void:
 
 func _toggle_synergy() -> void:
 	vbox_buy.visible = not vbox_buy.visible
+	expansion_arrow.offset_transform_rotation = PI if vbox_buy.visible else 0.0 
 	if App.biomes_data.is_unlocked(&"symbiosis"):
 		vbox_synergy.visible = vbox_buy.visible
 	else:

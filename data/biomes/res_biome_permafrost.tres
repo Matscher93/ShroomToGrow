@@ -1,16 +1,15 @@
-[gd_resource type="Resource" script_class="BiomeDef" format=3]
+[gd_resource type="Resource" script_class="BiomeDef" format=3 uid="uid://dip5pp7ugluxw"]
 
-[ext_resource type="Script" path="res://model/biomes/gd_biome_def.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://beyspvlhwfx6a" path="res://model/biomes/gd_biome_def.gd" id="1_script"]
 
 [resource]
 script = ExtResource("1_script")
 key = &"permafrost"
 display_name = "Permafrost"
-description = "Frozen memory of colonies past — where sporation begins."
+description = "Frozen memory of colonies"
 screen_type = 2
 xp_source = 2
 xp_label = "colonies sporated"
-always_unlocked = false
-unlock_currency = 0
+biome_color = Color(0.654902, 0.78431374, 1, 1)
 _unlock_cost_mantissa = 5.0
 _unlock_cost_exponent = 3

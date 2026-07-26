@@ -12,6 +12,9 @@ enum XpSource { TOTAL_NODES, SYMBIOSIS_LEVELS, PRESTIGE_COUNT }
 @export var xp_source: XpSource
 @export var xp_label: String  ## e.g. "nodes grown" — used in level-progress display
 
+@export var biome_color: Color
+@export var biome_shader: Shader  ## assigned to a ColorRect's material to render biome's icon
+
 ## True for the starter biome(s) — unlocked from a fresh save, no cost/currency needed.
 @export var always_unlocked: bool = false
 @export var unlock_currency: CurrencyTypes.Types = CurrencyTypes.Types.NUTRIENTS

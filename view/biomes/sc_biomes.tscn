@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://ddh3upe4opucw"]
 
 [ext_resource type="Script" uid="uid://chhxa71yn2gca" path="res://view/biomes/gd_biomes_panel.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://dint58ceyo88r" path="res://view/biomes/sc_biome_panel.tscn" id="2_biome_panel"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
 
@@ -9,12 +10,20 @@ offset_right = 40.0
 offset_bottom = 40.0
 theme_override_styles/panel = SubResource("StyleBoxEmpty_lxikg")
 script = ExtResource("1_script")
-vbox_items = NodePath("ScrollContainer/VBoxContainer")
+vbox_items = NodePath("ScrollContainer/MarginContainer/VBoxContainer")
+biome_scene = ExtResource("2_biome_panel")
 
 [node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1274331972]
 layout_mode = 2
+vertical_scroll_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="ScrollContainer" unique_id=537907087]
+[node name="MarginContainer" type="MarginContainer" parent="ScrollContainer" unique_id=1418727958]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+size_flags_vertical = 3
+theme_override_constants/margin_right = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ScrollContainer/MarginContainer" unique_id=537907087]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10

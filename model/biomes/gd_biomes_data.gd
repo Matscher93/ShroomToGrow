@@ -23,6 +23,10 @@ func points_spent(key: StringName) -> int:
 func spend_points(key: StringName, amount: int) -> void:
 	spent_points[key] = points_spent(key) + amount
 
+func reset() -> void:
+	unlocked.clear()
+	spent_points.clear()
+
 func to_save() -> Dictionary:
 	var unlocked_out := {}
 	for key in unlocked:

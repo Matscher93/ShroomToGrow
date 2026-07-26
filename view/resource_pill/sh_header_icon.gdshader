@@ -4,9 +4,9 @@ shader_type canvas_item;
 #include "res://shaders/sdf_operations.gdshaderinc"
 #include "res://shaders/sdf_spatial_manip.gdshaderinc"
 
-#include "res://shaders/icons/shi_nutrient_icon.gdshaderinc"
-#include "res://shaders/icons/shi_water_icon.gdshaderinc"
-#include "res://shaders/icons/shi_biomass_icon.gdshaderinc"
+#include "res://shaders/icons/currencies/shi_nutrient_icon.gdshaderinc"
+#include "res://shaders/icons/currencies/shi_water_icon.gdshaderinc"
+#include "res://shaders/icons/currencies/shi_biomass_icon.gdshaderinc"
 
 uniform vec2 rect_size;
 uniform vec4 circle_color : source_color;

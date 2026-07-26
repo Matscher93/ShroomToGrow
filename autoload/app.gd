@@ -25,6 +25,7 @@ var resolve_context := ResolveContext.new()
 
 var biomes := load("res://data/biomes/all_biomes.tres") as BiomeList
 var biomes_data: BiomesData
+var biome_vms: Dictionary = {}  # StringName -> BiomeViewModel
 
 var perk_branches := load("res://data/prestige/all_branches.tres") as PerkBranchList
 var perk_defs: Dictionary = {}  # StringName -> PerkDef
@@ -54,9 +55,9 @@ func _ready() -> void:
 		perk_defs[perk.id] = perk
 
 	biomes_data = BiomesData.new()
+	_unlock_starting_biomes()
 	for def in biomes.biomes:
-		if def.always_unlocked:
-			biomes_data.unlock(def.key)
+		biome_vms[def.key] = BiomeViewModel.new(def.key, def)
 
 	for node in nodes.mycelium_nodes:
 		var mycelium_data = MyceliumNodeData.new(player_data, node)
@@ -114,11 +115,7 @@ func handle_tick() -> void:
 	for i in range(nodes.mycelium_nodes.size() -1, -1, -1):
 		var node := mycelium_node_vms[i]._mycelium_data._node
 		var node_change = node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
-		var bonus := upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
-			resolve_context, [], StringName(str(node.node_id)))
-		var biome_bonus := biome_upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
-			resolve_context, [], StringName(str(node.node_id)))
-		node_change = node_change.mul(bonus).mul(biome_bonus)
+		node_change = node_change.mul(node_production_bonus(StringName(str(node.node_id))))
 		if i != 0:
 			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes = \
 			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes.add(node_change)
@@ -127,6 +124,17 @@ func handle_tick() -> void:
 
 func can_prestige() -> bool:
 	return preview_biomass_gain().gt(BigNumber.new(0.0, 0))
+
+## Any upgrade in any system (symbiosis, biome upgrades, perks) that targets
+## the &"node_production" stat for this node contributes here automatically —
+## no per-upgrade wiring needed when a new one is added. Shared by the tick
+## loop and the display VMs so they can never drift out of sync.
+func node_production_bonus(node_id: StringName) -> BigNumber:
+	var bonus := upgrade_system.modify(&"node_production", BigNumber.from_value(1.0),
+		resolve_context, [], node_id)
+	bonus = biome_upgrade_system.modify(&"node_production", bonus, resolve_context, [], node_id)
+	bonus = prestige_upgrade_system.modify(&"node_production", bonus, resolve_context, [], node_id)
+	return bonus
 
 ## Any upgrade in any system (biome upgrades, perks) that targets the
 ## &"biomass_gain" stat contributes here automatically — no per-upgrade
@@ -138,8 +146,9 @@ func preview_biomass_gain() -> BigNumber:
 	return gain
 
 ## Resets the current run (nutrients, water, tick_count, node purchases,
-## symbiosis upgrades) and converts it into biomass. Biomes, biome upgrades,
-## and prestige_upgrade_system are untouched — they persist across prestiges.
+## symbiosis upgrades, biome unlocks) and converts it into biomass. Biome
+## upgrades and prestige_upgrade_system are untouched — they persist across
+## prestiges.
 func prestige() -> void:
 	var biomass_gain := preview_biomass_gain()
 	player_data.biomass = player_data.biomass.add(biomass_gain)
@@ -153,6 +162,15 @@ func prestige() -> void:
 		node.auto_nodes = BigNumber.new(0.0, 0)
 
 	upgrade_system.reset()
+	biome_upgrade_system.reset()
+
+	biomes_data.reset()
+	_unlock_starting_biomes()
+
+func _unlock_starting_biomes() -> void:
+	for def in biomes.biomes:
+		if def.always_unlocked:
+			biomes_data.unlock(def.key)
 
 # ---------------------------------------------------------------- biomes
 
@@ -202,12 +220,34 @@ func unlock_biome(key: StringName) -> bool:
 	biomes_data.unlock(key)
 	return true
 
+## Each biome currently ships exactly one upgrade, bought with that biome's
+## own level points. Add more by extending this map alongside new .tres defs
+## under data/upgrades/biomes/<key>/.
+func biome_upgrade_id(key: StringName) -> StringName:
+	match key:
+		&"forest": return &"DenseMycelium"
+		&"symbiosis": return &"SymbioticBloom"
+		&"permafrost": return &"FrozenSpores"
+		_: return &""
+
+func biome_upgrade_name(key: StringName) -> String:
+	match key:
+		&"forest": return "Dense Mycelium"
+		&"symbiosis": return "Symbiotic Bloom"
+		&"permafrost": return "Frozen Spores"
+		_: return ""
+
 func buy_biome_upgrade(id: StringName, key: StringName) -> bool:
 	if biome_available_points(key) < 1:
 		return false
-	if not biome_upgrade_system.buy_with_points(id, biome_available_points(key)):
-		return false
+	# Spend before buying: buy_with_points emits upgrades_changed synchronously,
+	# and views refresh points_spent() off that same signal — emitting before
+	# the spend landed showed the old (pre-purchase) point count until
+	# something else happened to trigger a second refresh.
 	biomes_data.spend_points(key, 1)
+	if not biome_upgrade_system.buy_with_points(id, 1):
+		biomes_data.spend_points(key, -1)  # refund: def had no room left to level
+		return false
 	return true
 
 # ---------------------------------------------------------------- perks

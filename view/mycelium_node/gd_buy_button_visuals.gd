@@ -3,9 +3,8 @@ extends PanelContainer
 
 @export var color_param: String
 @export var upgrade_button: Button
-@export var deactivated_color: Color
+@export var button_color : Color
 
-var button_color : Color
 var is_enabled : bool
 var is_button_pressed : bool
 func _ready() -> void:
