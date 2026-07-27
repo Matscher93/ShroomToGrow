@@ -157,7 +157,7 @@ func _gui_input(event: InputEvent) -> void:
 func _toggle_synergy() -> void:
 	vbox_buy.visible = not vbox_buy.visible
 	expansion_arrow.offset_transform_rotation = PI if vbox_buy.visible else 0.0 
-	if App.biomes_data.is_unlocked(&"symbiosis"):
+	if App.biomes_data.is_unlocked(&"forest"):
 		vbox_synergy.visible = vbox_buy.visible
 	else:
 		vbox_synergy.visible = false

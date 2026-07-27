@@ -31,6 +31,9 @@ var description: String:
 var biome_color: Color:
 	get: return _def.biome_color
 
+var biome_shader: Shader:
+	get: return _def.biome_shader
+
 var unlock_info_text: String:
 	get: return "Unlocks %s" % _def.display_name
 

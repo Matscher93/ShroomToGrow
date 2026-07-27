@@ -270,11 +270,11 @@ func unlock_biome(key: StringName) -> bool:
 ## data/upgrades/biomes/<key>/.
 func biome_upgrade_ids(key: StringName) -> Array[StringName]:
 	match key:
-		&"forest":
+		&"meadow":
 			return [&"DenseMycelium", &"ForestUpgrade2", &"ForestUpgrade3", &"ForestUpgrade4",
 				&"ForestUpgrade5", &"ForestUpgrade6", &"ForestUpgrade7", &"ForestUpgrade8",
 				&"ForestUpgrade9", &"ForestUpgrade10"]
-		&"symbiosis":
+		&"forest":
 			return [&"SymbioticBloom", &"SymbiosisUpgrade2", &"SymbiosisUpgrade3", &"SymbiosisUpgrade4",
 				&"SymbiosisUpgrade5", &"SymbiosisUpgrade6", &"SymbiosisUpgrade7", &"SymbiosisUpgrade8",
 				&"SymbiosisUpgrade9", &"SymbiosisUpgrade10"]

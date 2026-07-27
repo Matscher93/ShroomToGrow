@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dint58ceyo88r"]
 
 [ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="1_v3bgn"]
-[ext_resource type="Shader" uid="uid://dcv4q0ccwchsx" path="res://shaders/icons/biomes/sh_meadow.gdshader" id="3_1d2gj"]
+[ext_resource type="Shader" uid="uid://suf78e2uwfmi" path="res://shaders/icons/biomes/sh_forest.gdshader" id="3_xkh6a"]
 [ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_base_color_rect.gd" id="4_0ioeh"]
 [ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="5_0e0y6"]
 [ext_resource type="FontFile" uid="uid://c7knyl6l8hsfc" path="res://fonts/Space_Grotesk/SpaceGrotesk-Light.ttf" id="6_7h0wi"]
@@ -13,12 +13,12 @@
 [ext_resource type="Script" uid="uid://c3ouusiqjure6" path="res://view/base_views/gd_base_panel_container.gd" id="11_h61rx"]
 [ext_resource type="Script" uid="uid://618xwt11kdvi" path="res://view/biomes/gd_biome_panel.gd" id="12_biome"]
 [ext_resource type="Shader" uid="uid://djm4kfwj0ikno" path="res://view/tick_progress/sh_tick_progress.gdshader" id="12_uvy23"]
-[ext_resource type="PackedScene" path="res://view/biomes/sc_biome_upgrade_card.tscn" id="13_upgrade_card"]
+[ext_resource type="PackedScene" uid="uid://cvip1c5mqiyto" path="res://view/biomes/sc_biome_upgrade_card.tscn" id="13_upgrade_card"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
 resource_local_to_scene = true
 shader = ExtResource("1_v3bgn")
-shader_parameter/rect_size = Vector2(347, 276)
+shader_parameter/rect_size = Vector2(347, 355)
 shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 24.0
@@ -29,9 +29,11 @@ shader_parameter/border_alpha = 0.2
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_w86j4"]
 resource_local_to_scene = true
-shader = ExtResource("3_1d2gj")
+shader = ExtResource("3_xkh6a")
 shader_parameter/rect_size = Vector2(48, 48)
 shader_parameter/box_color = Color(0.49019608, 0.9411765, 0.8235294, 1)
+shader_parameter/trunk_color = Color(0.3321732, 0.19756943, 0.089644365, 1)
+shader_parameter/leaves_color = Color(1, 1, 1, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 16.0
 shader_parameter/highlight_radius = 0.7
@@ -171,6 +173,18 @@ font_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_go8p7"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0wcpl"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_n8emp"]
+resource_local_to_scene = true
+shader = ExtResource("1_v3bgn")
+shader_parameter/rect_size = Vector2(323, 71)
+shader_parameter/box_color = Color(0, 0, 0, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 16.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.1
+shader_parameter/border_alpha = 0.4
 
 [node name="biome_panel" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("level_icon", "lbl_biome_name", "lbl_biome_desc", "panel_level_badge", "lbl_level_badge", "image_notification", "expansion_arrow", "vbox_buy", "lbl_unlock_info", "panel_unlock_biome", "lbl_unlock_cost", "unlock_biome_button", "vbox_upgrades", "lbl_biome_progress", "image_biome_progress", "panel_biome_size", "lbl_size_level", "lbl_size_desc", "panel_buy_size", "lbl_size_cost", "size_buy_button", "lbl_upgrade_points", "grid_upgrade_slots", "upgrade_detail")]
 material = SubResource("ShaderMaterial_53xj8")
@@ -482,5 +496,6 @@ theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 columns = 5
 
-[node name="upgrade_detail" parent="MarginContainer/VBoxContainer/vbox_upgrades" instance=ExtResource("13_upgrade_card")]
+[node name="upgrade_detail" parent="MarginContainer/VBoxContainer/vbox_upgrades" unique_id=1879342892 instance=ExtResource("13_upgrade_card")]
+material = SubResource("ShaderMaterial_n8emp")
 layout_mode = 2

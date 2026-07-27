@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="BiomeDef" format=3 uid="uid://dip5pp7ugluxw"]
 
+[ext_resource type="Shader" uid="uid://b3gf2odk84c42" path="res://shaders/icons/biomes/sh_permafrost.gdshader" id="1_fqucp"]
 [ext_resource type="Script" uid="uid://beyspvlhwfx6a" path="res://model/biomes/gd_biome_def.gd" id="1_script"]
 
 [resource]
@@ -11,8 +12,8 @@ screen_type = 2
 xp_source = 2
 xp_label = "colonies sporated"
 biome_color = Color(0.654902, 0.78431374, 1, 1)
+biome_shader = ExtResource("1_fqucp")
 _unlock_cost_mantissa = 5.0
 _unlock_cost_exponent = 3
 _size_base_cost_mantissa = 5.0
 _size_base_cost_exponent = 2
-size_cost_growth = 1.15

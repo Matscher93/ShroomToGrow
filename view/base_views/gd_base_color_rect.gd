@@ -16,3 +16,12 @@ func _update_shader() -> void:
 func _set_color(in_color : Color) -> void:
 	if material:
 		material.set_shader_parameter(color_param, in_color)
+
+## Swaps the icon's shader (e.g. per-biome shape) on this ColorRect's own
+## ShaderMaterial instance. Assumes resource_local_to_scene = true so this
+## never bleeds into other instances sharing the same base .tscn.
+func _set_shader(in_shader: Shader) -> void:
+	var shader_material := material as ShaderMaterial
+	if shader_material and in_shader:
+		shader_material.shader = in_shader
+		_update_shader()

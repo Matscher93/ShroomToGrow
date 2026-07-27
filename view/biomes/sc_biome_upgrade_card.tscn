@@ -1,17 +1,16 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cvip1c5mqiyto"]
 
 [ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="1_v3bgn"]
 [ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="2_font"]
 [ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="3_font_bold"]
-[ext_resource type="Script" uid="uid://c3ouusiqjure6" path="res://view/base_views/gd_base_panel_container.gd" id="4_base_panel"]
 [ext_resource type="Script" uid="uid://dtkedj5m6urcc" path="res://view/mycelium_node/gd_buy_button_visuals.gd" id="5_buy_visuals"]
 [ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="6_base_button"]
-[ext_resource type="Script" path="res://view/biomes/gd_biome_upgrade_card.gd" id="7_card_script"]
+[ext_resource type="Script" uid="uid://biqu2dew8jxi" path="res://view/biomes/gd_biome_upgrade_card.gd" id="7_card_script"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_card"]
 resource_local_to_scene = true
 shader = ExtResource("1_v3bgn")
-shader_parameter/rect_size = Vector2(226, 52)
+shader_parameter/rect_size = Vector2(161, 71)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 16.0
@@ -24,14 +23,14 @@ shader_parameter/border_alpha = 0.4
 font = ExtResource("2_font")
 font_size = 12
 
-[sub_resource type="LabelSettings" id="LabelSettings_desc"]
-font = ExtResource("2_font")
-font_size = 11
-font_color = Color(1, 1, 1, 0.5882353)
-
 [sub_resource type="LabelSettings" id="LabelSettings_level"]
 font = ExtResource("2_font")
 font_size = 12
+font_color = Color(1, 1, 1, 0.5882353)
+
+[sub_resource type="LabelSettings" id="LabelSettings_desc"]
+font = ExtResource("2_font")
+font_size = 11
 font_color = Color(1, 1, 1, 0.5882353)
 
 [sub_resource type="LabelSettings" id="LabelSettings_effect"]
@@ -39,14 +38,10 @@ font = ExtResource("2_font")
 font_size = 12
 font_color = Color(1, 1, 1, 0.5882353)
 
-[sub_resource type="LabelSettings" id="LabelSettings_cost"]
-font = ExtResource("3_font_bold")
-font_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
-
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_buy"]
 resource_local_to_scene = true
 shader = ExtResource("1_v3bgn")
-shader_parameter/rect_size = Vector2(72, 36)
+shader_parameter/rect_size = Vector2(63, 55)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 11.0
@@ -54,6 +49,10 @@ shader_parameter/border_thickness = 1.0
 shader_parameter/additional_border_offset = 1.0
 shader_parameter/background_alpha = 0.2
 shader_parameter/border_alpha = 1.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_cost"]
+font = ExtResource("3_font_bold")
+font_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_normal"]
 
@@ -65,9 +64,8 @@ shader_parameter/border_alpha = 1.0
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_focus"]
 
-[node name="biome_upgrade_card" type="PanelContainer" node_paths=PackedStringArray("lbl_upgrade_name", "lbl_upgrade_desc", "lbl_upgrade_level", "lbl_upgrade_effect", "panel_buy_upgrade", "lbl_upgrade_cost", "upgrade_buy_button")]
+[node name="biome_upgrade_card" type="PanelContainer" unique_id=1195312682 node_paths=PackedStringArray("lbl_upgrade_name", "lbl_upgrade_desc", "lbl_upgrade_level", "lbl_upgrade_effect", "panel_buy_upgrade", "lbl_upgrade_cost", "upgrade_buy_button")]
 material = SubResource("ShaderMaterial_card")
-layout_mode = 2
 mouse_filter = 1
 script = ExtResource("7_card_script")
 color_param = "box_color"
@@ -79,54 +77,54 @@ panel_buy_upgrade = NodePath("MarginContainer/HBoxContainer/MarginContainer/pane
 lbl_upgrade_cost = NodePath("MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade/MarginContainer/HBox/lbl_upgrade_cost")
 upgrade_buy_button = NodePath("MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade/upgrade_buy_button")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=977061298]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=106139]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=737214330]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer" unique_id=1635300356]
 layout_mode = 2
 
-[node name="lbl_upgrade_name" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="lbl_upgrade_name" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=2021405909]
 layout_mode = 2
 text = "Upgrade"
 label_settings = SubResource("LabelSettings_name")
 
-[node name="lbl_upgrade_level" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer"]
+[node name="lbl_upgrade_level" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=1487430023]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Lv 0"
 label_settings = SubResource("LabelSettings_level")
 
-[node name="lbl_upgrade_desc" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+[node name="lbl_upgrade_desc" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer" unique_id=291350170]
 layout_mode = 2
 size_flags_horizontal = 3
-autowrap_mode = 3
 text = "Description"
 label_settings = SubResource("LabelSettings_desc")
+autowrap_mode = 3
 
-[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer" unique_id=242624851]
 layout_mode = 2
 
-[node name="lbl_upgrade_effect" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2"]
+[node name="lbl_upgrade_effect" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2" unique_id=11319924]
 layout_mode = 2
 text = "now +0%"
 label_settings = SubResource("LabelSettings_effect")
 
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/HBoxContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/HBoxContainer" unique_id=536929085]
 layout_mode = 2
 
-[node name="panel_buy_upgrade" type="PanelContainer" parent="MarginContainer/HBoxContainer/MarginContainer" node_paths=PackedStringArray("upgrade_button")]
+[node name="panel_buy_upgrade" type="PanelContainer" parent="MarginContainer/HBoxContainer/MarginContainer" unique_id=5646796 node_paths=PackedStringArray("upgrade_button")]
 modulate = Color(0.3, 0.3, 0.3, 1)
 material = SubResource("ShaderMaterial_buy")
 layout_mode = 2
@@ -135,23 +133,23 @@ script = ExtResource("5_buy_visuals")
 color_param = "box_color"
 upgrade_button = NodePath("upgrade_buy_button")
 
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade"]
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade" unique_id=2144809272]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 6
 
-[node name="HBox" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade/MarginContainer"]
+[node name="HBox" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade/MarginContainer" unique_id=398813165]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="lbl_upgrade_cost" type="Label" parent="MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade/MarginContainer/HBox"]
+[node name="lbl_upgrade_cost" type="Label" parent="MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade/MarginContainer/HBox" unique_id=1530721519]
 layout_mode = 2
 text = "1 pt"
 label_settings = SubResource("LabelSettings_cost")
 
-[node name="upgrade_buy_button" type="Button" parent="MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade"]
+[node name="upgrade_buy_button" type="Button" parent="MarginContainer/HBoxContainer/MarginContainer/panel_buy_upgrade" unique_id=241752384]
 propagate_maximum_size = true
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxEmpty_normal")

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BiomeDef" format=3 uid="uid://b7ibpbtyxjhiy"]
+
+[ext_resource type="Shader" uid="uid://dcv4q0ccwchsx" path="res://shaders/icons/biomes/sh_meadow.gdshader" id="1_1ot1h"]
+[ext_resource type="Script" uid="uid://beyspvlhwfx6a" path="res://model/biomes/gd_biome_def.gd" id="1_tfhgd"]
+
+[resource]
+script = ExtResource("1_tfhgd")
+key = &"meadow"
+display_name = "Meadow"
+description = "Where it all begins"
+screen_type = 1
+xp_label = "nodes grown"
+biome_color = Color(0.49019608, 0.9411765, 0.8235294, 1)
+biome_shader = ExtResource("1_1ot1h")
+always_unlocked = true
+_size_base_cost_exponent = 1
