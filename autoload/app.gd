@@ -285,14 +285,22 @@ func biome_upgrade_ids(key: StringName) -> Array[StringName]:
 		_:
 			return []
 
+## True once enough points have been spent overall in this biome — gates the
+## later, more powerful upgrades behind investment in the earlier ones.
+func is_biome_upgrade_unlocked(id: StringName, key: StringName) -> bool:
+	var def := biome_upgrade_system.def(id)
+	return def != null and biomes_data.points_spent(key) >= def.min_biome_points_spent
+
 func can_buy_biome_upgrade(id: StringName, key: StringName) -> bool:
 	if biome_available_points(key) < 1:
+		return false
+	if not is_biome_upgrade_unlocked(id, key):
 		return false
 	var def := biome_upgrade_system.def(id)
 	return def != null and (def.max_level <= 0 or biome_upgrade_system.level(id) < def.max_level)
 
 func buy_biome_upgrade(id: StringName, key: StringName) -> bool:
-	if biome_available_points(key) < 1:
+	if not can_buy_biome_upgrade(id, key):
 		return false
 	# Spend before buying: buy_with_points emits upgrades_changed synchronously,
 	# and views refresh points_spent() off that same signal — emitting before

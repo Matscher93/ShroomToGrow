@@ -5,12 +5,19 @@ extends PanelContainer
 ## unlock action, Biome Size, and its 10 point-bought upgrades. Spawned once
 ## per BiomeDef by BiomesPanel (gd_biomes_panel.gd), which sets biome_key
 ## right after instantiating; binds itself to App.biome_vms[biome_key] in
-## _ready. Upgrade cards are spawned at runtime (one per App.biome_upgrade_ids())
-## into vbox_upgrade_cards, same pattern as gd_nodes_panel.gd.
+## _ready. The 10 upgrades show as a 5x2 grid of small selectable slot
+## buttons (spawned at runtime, one per App.biome_upgrade_ids(), same pattern
+## as gd_nodes_panel.gd); picking one rebinds the single upgrade_detail card
+## (sc_biome_upgrade_card.tscn, embedded statically) to show its info and let
+## you buy levels for it.
 
 @export var color_param: String
 @export var biome_key: StringName
-@export var upgrade_card_scene: PackedScene
+
+const GRID_COLUMNS := 5
+const LOCKED_MODULATE := Color(1, 1, 1, 0.4)
+var _slot_group := ButtonGroup.new()
+var _slot_ids: Array[StringName] = []
 
 @export var level_icon: ColorRect
 @export var lbl_biome_name: Label
@@ -38,7 +45,8 @@ extends PanelContainer
 @export var size_buy_button: Button
 
 @export var lbl_upgrade_points: Label
-@export var vbox_upgrade_cards: VBoxContainer
+@export var grid_upgrade_slots: GridContainer
+@export var upgrade_detail: BiomeUpgradeCard
 
 var _vm: BiomeViewModel
 var _expanded := true
@@ -57,21 +65,56 @@ func _ready() -> void:
 	size_buy_button.pressed.connect(_on_buy_size_pressed)
 	App.biome_size_changed.connect(_on_biome_size_changed)
 	App.player_data.nutrients_changed.connect(_on_nutrients_changed)
+	App.biome_upgrade_system.upgrades_changed.connect(_refresh_grid_lock_state)
 
-	_spawn_upgrade_cards()
+	grid_upgrade_slots.columns = GRID_COLUMNS
+	_spawn_grid_slots()
 
 	if App.biome_vms.has(biome_key):
 		bind(App.biome_vms[biome_key])
 
-func _spawn_upgrade_cards() -> void:
-	for child in vbox_upgrade_cards.get_children():
-		vbox_upgrade_cards.remove_child(child)
+func _spawn_grid_slots() -> void:
+	for child in grid_upgrade_slots.get_children():
+		grid_upgrade_slots.remove_child(child)
 		child.queue_free()
-	for id in App.biome_upgrade_ids(biome_key):
-		var card = upgrade_card_scene.instantiate()
-		card.upgrade_id = id
-		card.biome_key = biome_key
-		vbox_upgrade_cards.add_child(card)
+	_slot_ids = App.biome_upgrade_ids(biome_key)
+	for i in range(_slot_ids.size()):
+		var id: StringName = _slot_ids[i]
+		var btn := Button.new()
+		btn.text = str(i + 1)
+		btn.custom_minimum_size = Vector2(36, 32)
+		btn.toggle_mode = true
+		btn.button_group = _slot_group
+		btn.add_theme_stylebox_override("normal", _slot_style(Color(1, 1, 1, 0.08)))
+		btn.add_theme_stylebox_override("hover", _slot_style(Color(1, 1, 1, 0.16)))
+		btn.add_theme_stylebox_override("pressed", _slot_style(Color(1, 1, 1, 0.32)))
+		btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		btn.toggled.connect(func(on: bool) -> void:
+			if on:
+				_on_slot_selected(id))
+		grid_upgrade_slots.add_child(btn)
+	if not _slot_ids.is_empty():
+		(grid_upgrade_slots.get_child(0) as Button).button_pressed = true
+		_on_slot_selected(_slot_ids[0])
+	_refresh_grid_lock_state()
+
+func _refresh_grid_lock_state() -> void:
+	for i in range(_slot_ids.size()):
+		var btn := grid_upgrade_slots.get_child(i) as Button
+		var unlocked := App.is_biome_upgrade_unlocked(_slot_ids[i], biome_key)
+		btn.modulate = Color.WHITE if unlocked else LOCKED_MODULATE
+
+func _slot_style(color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	return style
+
+func _on_slot_selected(id: StringName) -> void:
+	upgrade_detail.select_upgrade(id, biome_key)
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -110,6 +153,8 @@ func _exit_tree() -> void:
 		App.biome_size_changed.disconnect(_on_biome_size_changed)
 	if App.player_data.nutrients_changed.is_connected(_on_nutrients_changed):
 		App.player_data.nutrients_changed.disconnect(_on_nutrients_changed)
+	if App.biome_upgrade_system.upgrades_changed.is_connected(_refresh_grid_lock_state):
+		App.biome_upgrade_system.upgrades_changed.disconnect(_refresh_grid_lock_state)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
@@ -171,6 +216,7 @@ func _refresh_all() -> void:
 	level_icon._set_color(_vm.biome_color)
 	panel_level_badge._set_color(_vm.biome_color)
 	panel_buy_size._set_color(_vm.biome_color)
+	upgrade_detail._set_color(_vm.biome_color)
 	if material:
 		material.set_shader_parameter(color_param, _vm.biome_color)
 

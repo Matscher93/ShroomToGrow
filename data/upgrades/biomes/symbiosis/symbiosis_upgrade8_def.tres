@@ -10,3 +10,4 @@ id = &"SymbiosisUpgrade8"
 display_name = "Amplified Bond"
 description = "+7% Potency production, biome-wide, per level. Compounds with your own Potency upgrade levels. Paid with Forest level points, not nutrients."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
+min_biome_points_spent = 17

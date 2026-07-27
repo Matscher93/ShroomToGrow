@@ -10,3 +10,4 @@ id = &"SymbiosisUpgrade10"
 display_name = "Perfect Symbiosis"
 description = "+25% node production, biome-wide, per level. Paid with Forest level points, not nutrients."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
+min_biome_points_spent = 23

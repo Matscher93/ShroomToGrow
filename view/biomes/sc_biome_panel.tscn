@@ -172,7 +172,7 @@ font_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0wcpl"]
 
-[node name="biome_panel" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("level_icon", "lbl_biome_name", "lbl_biome_desc", "panel_level_badge", "lbl_level_badge", "image_notification", "expansion_arrow", "vbox_buy", "lbl_unlock_info", "panel_unlock_biome", "lbl_unlock_cost", "unlock_biome_button", "vbox_upgrades", "lbl_biome_progress", "image_biome_progress", "panel_biome_size", "lbl_size_level", "lbl_size_desc", "panel_buy_size", "lbl_size_cost", "size_buy_button", "lbl_upgrade_points", "vbox_upgrade_cards")]
+[node name="biome_panel" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("level_icon", "lbl_biome_name", "lbl_biome_desc", "panel_level_badge", "lbl_level_badge", "image_notification", "expansion_arrow", "vbox_buy", "lbl_unlock_info", "panel_unlock_biome", "lbl_unlock_cost", "unlock_biome_button", "vbox_upgrades", "lbl_biome_progress", "image_biome_progress", "panel_biome_size", "lbl_size_level", "lbl_size_desc", "panel_buy_size", "lbl_size_cost", "size_buy_button", "lbl_upgrade_points", "grid_upgrade_slots", "upgrade_detail")]
 material = SubResource("ShaderMaterial_53xj8")
 custom_minimum_size = Vector2(250, 50)
 offset_right = 40.0
@@ -180,7 +180,6 @@ offset_bottom = 40.0
 mouse_filter = 1
 script = ExtResource("12_biome")
 color_param = "box_color"
-upgrade_card_scene = ExtResource("13_upgrade_card")
 level_icon = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon")
 lbl_biome_name = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/lbl_biome_name")
 lbl_biome_desc = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBoxContainer/lbl_biome_desc")
@@ -203,7 +202,8 @@ panel_buy_size = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelCont
 lbl_size_cost = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/MarginContainer/panel_buy_size/MarginContainer/HBox/lbl_size_cost")
 size_buy_button = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/MarginContainer/panel_buy_size/size_buy_button")
 lbl_upgrade_points = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/vbox_upgrades/HBoxContainer/lbl_upgrade_pts")
-vbox_upgrade_cards = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/vbox_upgrade_cards")
+grid_upgrade_slots = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/grid_upgrade_slots")
+upgrade_detail = NodePath("MarginContainer/VBoxContainer/vbox_upgrades/upgrade_detail")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=394518787]
 layout_mode = 2
@@ -476,6 +476,11 @@ size_flags_vertical = 0
 text = "0 pts"
 label_settings = SubResource("LabelSettings_bj2ss")
 
-[node name="vbox_upgrade_cards" type="VBoxContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades" unique_id=1130098095]
+[node name="grid_upgrade_slots" type="GridContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades" unique_id=1130098095]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 5
+
+[node name="upgrade_detail" parent="MarginContainer/VBoxContainer/vbox_upgrades" instance=ExtResource("13_upgrade_card")]
+layout_mode = 2

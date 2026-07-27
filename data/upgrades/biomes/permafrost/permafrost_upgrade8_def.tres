@@ -10,3 +10,4 @@ id = &"PermafrostUpgrade8"
 display_name = "Frost Bloom"
 description = "+6% Potency production, biome-wide, per level. Compounds with your own Potency upgrade levels. Paid with Permafrost level points, not nutrients."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
+min_biome_points_spent = 17
