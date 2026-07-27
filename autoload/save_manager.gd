@@ -8,6 +8,7 @@ const TMP_PATH    := "user://save.tmp.json"
 const SAVE_VERSION := 1
 const AUTOSAVE_INTERVAL := 15.0  # seconds
 const MIN_OFFLINE_SECONDS := 60.0
+const MAX_OFFLINE_SECONDS := 86400.0  # 24h cap on offline income collection
 
 var last_savegame : Dictionary
 
@@ -92,6 +93,7 @@ func _apply_offline_progress(saved_at: float) -> void:
 	var elapsed := Time.get_unix_time_from_system() - saved_at
 	if elapsed <= MIN_OFFLINE_SECONDS:
 		return
+	elapsed = minf(elapsed, MAX_OFFLINE_SECONDS)
 	
 	var save_game_snapshots: Array[Dictionary]
 	# initial snapshot
@@ -117,7 +119,7 @@ func _apply_offline_progress(saved_at: float) -> void:
 	save_game_snapshots.append(_collect_data())
 	
 	App.offline_income_vm.set_save_data(save_game_snapshots, \
-		tick_counter, Time.get_unix_time_from_system() - saved_at)
+		tick_counter, minf(Time.get_unix_time_from_system() - saved_at, MAX_OFFLINE_SECONDS))
 	save_game()
 
 # ---------------------------------------------------------------- hooks
