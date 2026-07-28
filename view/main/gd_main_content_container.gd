@@ -20,7 +20,7 @@ func _check_safe_area() -> void:
 	if DisplayServer.get_display_safe_area() != _last_safe or DisplayServer.window_get_size() != _last_win:
 		_apply_safe_area()
 		_apply_ui_scale()
-		
+
 func _apply_safe_area() -> void:
 	if OS.get_name() == "Android" or OS.get_name() == "iOS":
 		var safe: Rect2i = DisplayServer.get_display_safe_area()
@@ -41,7 +41,7 @@ func _apply_safe_area() -> void:
 		add_theme_constant_override("margin_top",    int(t * sy))
 		add_theme_constant_override("margin_right",  int(r * sx))
 		add_theme_constant_override("margin_bottom", int(b * sy))
-	
+
 func _apply_ui_scale() -> void:
 	var dpi := DisplayServer.screen_get_dpi()
 	if dpi <= 0:

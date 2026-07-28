@@ -19,7 +19,7 @@ func _notification(what: int) -> void:
 func _update_shader() -> void:
 	if material:
 		material.set_shader_parameter("rect_size", size * get_global_transform().get_scale())
-		if(is_enabled):
+		if is_enabled:
 			material.set_shader_parameter(color_param, button_color)
 			modulate = Color.WHITE
 		else:

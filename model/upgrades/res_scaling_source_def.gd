@@ -1,4 +1,4 @@
-class_name ScalingSource
+class_name ScalingSourceDef
 extends Resource
 
 enum Kind { NONE, NODE_COUNT, STAT, RESOURCE, BIOME_SIZE }

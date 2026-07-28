@@ -120,9 +120,9 @@ func pow_float(float_exp: float) -> BigNumber:
 func gt(other: BigNumber) -> bool:   # self > other
 	if mantissa == 0.0 and other.mantissa == 0.0: return false
 	if mantissa < 0.0 and other.mantissa >= 0.0: return false
-	var min_exp = min(exponent, other.exponent)
-	var scaled_mantissa = mantissa * pow(10.0, float(exponent - min_exp))
-	var scaled_other_mantissa = other.mantissa * pow(10.0, float(other.exponent - min_exp))
+	var min_exp := min(exponent, other.exponent)
+	var scaled_mantissa := mantissa * pow(10.0, float(exponent - min_exp))
+	var scaled_other_mantissa := other.mantissa * pow(10.0, float(other.exponent - min_exp))
 	return scaled_mantissa > scaled_other_mantissa
 
 func lt(other: BigNumber)  -> bool: return other.gt(self)
@@ -153,9 +153,9 @@ func to_display(decimals: int = 1) -> String:
 
 ## Always scientific notation:  "1.234e56"
 func to_scientific(decimals: int = 2) -> String:
-	var length_mantissa = str(abs(int(mantissa))).length()
+	var length_mantissa := str(abs(int(mantissa))).length()
 	var scaled := mantissa / pow(10.0, float(length_mantissa - 1))
-	
+
 	return "%.*fe%d" % [decimals, scaled, exponent + length_mantissa - 1]
 
 ## Godot calls this for str(bignum) and print(bignum).

@@ -85,16 +85,16 @@ func _render_deltas(initial_nutrient: BigNumber, final_nutrient: BigNumber,
 		initial_node_counts: Array[BigNumber], final_node_count_fn: Callable) -> void:
 	nutrient_panel.set_currency_change(final_nutrient.sub(initial_nutrient))
 
-	var nodes = App.nodes.mycelium_nodes
+	var nodes := App.nodes.mycelium_nodes
 	_clear_node_change_list()
 
 	for i in range(nodes.size()):
-		var node = nodes[i]
+		var node := nodes[i]
 		var node_change: BigNumber = final_node_count_fn.call(i).sub(initial_node_counts[i])
 		if node_change.equals(BigNumber.from_value(0.0)):
 			continue
 
-		var node_scene_instance = mycelium_node_change_item.instantiate()
+		var node_scene_instance := mycelium_node_change_item.instantiate()
 		node_scene_instance.set_data(node, i, node_change)
 
 		vbox_node_change.add_child(node_scene_instance)
@@ -144,10 +144,9 @@ func _on_dismiss_pressed() -> void:
 	dismissed.emit()
 
 func _get_node_count(save_data: Dictionary, index: int) -> BigNumber:
-	var mycelium_nodes = save_data.get("mycelium_nodes", [])
-	var auto_nodes = BigNumber.from_save(mycelium_nodes[index].get("auto_nodes", BigNumber.from_value(0.0)))
-	return auto_nodes
-	
+	var mycelium_nodes: Array = save_data.get("mycelium_nodes", [])
+	return BigNumber.from_save(mycelium_nodes[index].get("auto_nodes", {}))
+
 func _get_nutrient_count(save_data: Dictionary) -> BigNumber:
-	var player_data = PlayerData.from_save(save_data.get("player_data", {}))
+	var player_data := PlayerData.from_save(save_data.get("player_data", {}))
 	return player_data.nutrients

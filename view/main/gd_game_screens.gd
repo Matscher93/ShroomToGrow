@@ -55,12 +55,12 @@ func _rebuild_nav_buttons() -> void:
 		child.queue_free()
 	button_dictionary.clear()
 
-	var all_screens = _vm.all_screen_data
+	var all_screens := _vm.all_screen_data
 	for screen_key in ScreenTypes.Types.size():
 		if not App.is_screen_unlocked(screen_key):
 			continue
-		var button_data = all_screens.get(screen_key)
-		var button = button_scene.instantiate()
+		var button_data := all_screens.get(screen_key)
+		var button := button_scene.instantiate()
 		button.set_button_text(button_data.screen_name)
 		button.pressed.connect(on_screen_selected.bind(screen_key))
 		button.set_selected(_vm.current_screen == screen_key)

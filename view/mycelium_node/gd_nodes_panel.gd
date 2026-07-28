@@ -13,7 +13,7 @@ func _ready() -> void:
 
 	_nodes = App.nodes.mycelium_nodes
 	for index in range(_nodes.size()):
-		var node_scene_instance = node_scene.instantiate()
+		var node_scene_instance := node_scene.instantiate()
 		node_scene_instance.node_level = index
 		vbox_nodes.add_child(node_scene_instance)
 		_nodes[index].manual_nodes_changed.connect(_update_visibility)

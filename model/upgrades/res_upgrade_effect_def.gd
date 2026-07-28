@@ -1,4 +1,4 @@
-class_name UpgradeEffect 
+class_name UpgradeEffectDef
 extends Resource
 
 enum Op { ADD, INCREASED, MORE }      # flat add, additive %, multiplicative %
@@ -11,7 +11,7 @@ enum LevelScaling { LINEAR, COMPOUND } # per_level*level  vs  (1+per_level)^leve
 @export var target: StringName = &""  # tag ("mycelium") or node id; empty = global
 @export var per_level: float = 0.0
 @export var level_scaling: LevelScaling = LevelScaling.LINEAR
-@export var dependency: ScalingSource  # extra multiplier on the effect magnitude, e.g. manual node count
+@export var dependency: ScalingSourceDef  # extra multiplier on the effect magnitude, e.g. manual node count
 
 ## This effect's own magnitude at the given upgrade level, before dependency scaling.
 func magnitude(lvl: int) -> BigNumber:

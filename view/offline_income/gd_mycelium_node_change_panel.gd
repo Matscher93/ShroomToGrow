@@ -27,8 +27,8 @@ func _update_shader() -> void:
 func set_data(node: MyceliumNode, i: int, node_change: BigNumber) -> void:
 		material.set_shader_parameter(color_param, node.color)
 		level_icon._set_color(node.color)
-		var color_level_text = node.level_font_color
-		var color_main_text = Color.from_hsv(color_level_text.h, 0.7, 0.8)
+		var color_level_text := node.level_font_color
+		var color_main_text := Color.from_hsv(color_level_text.h, 0.7, 0.8)
 
 		level_value.label_settings = level_value.label_settings.duplicate()
 		label_node_name.label_settings = label_node_name.label_settings.duplicate()

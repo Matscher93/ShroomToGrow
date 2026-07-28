@@ -1,4 +1,4 @@
-class_name UpgradeDef 
+class_name UpgradeDef
 extends Resource
 
 @export var id: StringName
@@ -18,7 +18,7 @@ var base_cost: BigNumber:
 
 @export var cost_growth: float = 1.15
 @export var cost_growth_exponent: float = 1.0  # >1 makes the cost curve steepen with level
-@export var effects: Array[UpgradeEffect] = []
+@export var effects: Array[UpgradeEffectDef] = []
 @export var unlocks: Array[StringName] = []
 
 ## Biome upgrades only: minimum total points spent in that biome (across all

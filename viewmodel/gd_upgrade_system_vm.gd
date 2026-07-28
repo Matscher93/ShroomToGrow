@@ -26,7 +26,7 @@ func def(id: StringName) -> UpgradeDef:
 func level(id: StringName) -> int:
 	return _levels.get(id, 0)
 
-## Marks the cache stale — call when something a ScalingSource depends on changes
+## Marks the cache stale — call when something a ScalingSourceDef depends on changes
 ## (e.g. manual node count) so cacheable (non-live) sources get re-evaluated.
 func invalidate() -> void:
 	_dirty = true
@@ -38,21 +38,21 @@ func effect_amount(id: StringName, ctx: ResolveContext) -> BigNumber:
 	if def == null or def.effects.is_empty():
 		return BigNumber.new(0.0, 0)
 	var lvl := level(id)
-	var e: UpgradeEffect = def.effects[0]
+	var e: UpgradeEffectDef = def.effects[0]
 	var mag := e.magnitude(lvl)
 	if e.dependency:
 		mag = mag.scale(e.dependency.evaluate(ctx))
 	return mag
 
 ## Marginal gain from this upgrade's own effect a single additional level would
-## add at the current level (ignores the ScalingSource dependency, so callers
+## add at the current level (ignores the ScalingSourceDef dependency, so callers
 ## can present it as the upgrade's per-level/per-unit rate).
 func next_level_delta(id: StringName) -> BigNumber:
 	var def: UpgradeDef = _defs.get(id)
 	if def == null or def.effects.is_empty():
 		return BigNumber.new(0.0, 0)
 	var lvl := level(id)
-	var e: UpgradeEffect = def.effects[0]
+	var e: UpgradeEffectDef = def.effects[0]
 	return e.magnitude(lvl + 1).sub(e.magnitude(lvl))
 
 ## Combines several upgrades' own effects into one overall % bonus, assuming
@@ -133,15 +133,15 @@ func from_save(data: Dictionary) -> void:
 	upgrades_changed.emit()
 
 # Effect authoring side: which single bucket does this effect write into?
-func _scope_key(scope: UpgradeEffect.Scope, target: StringName) -> String:
+func _scope_key(scope: UpgradeEffectDef.Scope, target: StringName) -> String:
 	match scope:
-		UpgradeEffect.Scope.GLOBAL:
+		UpgradeEffectDef.Scope.GLOBAL:
 			return _K_GLOBAL
-		UpgradeEffect.Scope.TAG:
+		UpgradeEffectDef.Scope.TAG:
 			if target.is_empty():
 				push_warning("TAG-scoped effect has no target; it will never apply.")
 			return _K_TAG + String(target)
-		UpgradeEffect.Scope.NODE:
+		UpgradeEffectDef.Scope.NODE:
 			if target.is_empty():
 				push_warning("NODE-scoped effect has no target; it will never apply.")
 			return _K_NODE + String(target)
@@ -175,9 +175,9 @@ func _rebuild(ctx: ResolveContext) -> void:
 				"more": BigNumber.from_value(1.0),
 			})
 			match e.op:
-				UpgradeEffect.Op.ADD:       agg.add  = agg.add.add(mag)
-				UpgradeEffect.Op.INCREASED: agg.inc  = agg.inc.add(mag)
-				UpgradeEffect.Op.MORE:      agg.more = agg.more.mul(BigNumber.from_value(1.0).add(mag))
+				UpgradeEffectDef.Op.ADD:       agg.add  = agg.add.add(mag)
+				UpgradeEffectDef.Op.INCREASED: agg.inc  = agg.inc.add(mag)
+				UpgradeEffectDef.Op.MORE:      agg.more = agg.more.mul(BigNumber.from_value(1.0).add(mag))
 			bucket[key] = agg
 			_cache[e.stat] = bucket
 	_dirty = false

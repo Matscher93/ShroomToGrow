@@ -9,7 +9,7 @@ var current_screen : ScreenTypes.Types:
 		if value != current_screen:
 			current_screen = value
 			screen_changed.emit(current_screen)
-			
+
 func _init(screens : Dictionary, initial_screen: ScreenTypes.Types) -> void:
 	screen_data = screens
 	current_screen = initial_screen

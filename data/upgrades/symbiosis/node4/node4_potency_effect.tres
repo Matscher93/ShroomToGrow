@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="UpgradeEffect" format=3 uid="uid://x0bi60x5gvpr"]
+[gd_resource type="Resource" script_class="UpgradeEffectDef" format=3 uid="uid://x0bi60x5gvpr"]
 
 [ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_1s53l"]
 

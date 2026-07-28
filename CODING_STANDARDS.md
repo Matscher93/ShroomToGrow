@@ -78,3 +78,28 @@ Don't construct a new instance and swap the reference, and don't manually copy f
 The default value passed to `.get(key, default)` must be the same *type* the caller goes on to use — e.g. `.get("player_data", {})`, not `.get("player_data", PlayerData.new())`, when the next step is `some_dict.get("field", ...)` on the result.
 
 A wrong-typed default is a latent crash that only fires on the corrupt/missing-data path, so it won't show up until it matters most.
+
+This applies just as much when the `.get()` result is immediately handed to a typed loader: `BigNumber.from_save(d.get("auto_nodes", BigNumber.new(0.0, 0)))` is wrong — `from_save(d: Dictionary)` expects a `Dictionary`, so a missing key hands it a `BigNumber` instead and crashes. The default there must be `{}` (or a full `{"m": 0.0, "e": 0}`), matching what `from_save` actually consumes — not what the *caller* eventually wants back.
+
+## Local variable typing
+
+Prefer `:=` (type inference) over untyped `var x = value` for any local with an initializer:
+
+```gdscript
+var total := a.add(b)          # yes
+var total = a.add(b)           # no — same value, but the type is now implicit
+```
+
+This is the dominant pattern in the codebase already — match it even for "obvious" types like string formatting results (`var label := "%s" % value`).
+
+## Conditionals
+
+No parentheses around `if`/`while`/`elif` conditions — `if condition:`, never `if(condition):`. GDScript isn't C; the parens are noise.
+
+## Leading-underscore parameters
+
+A `_`-prefixed parameter name (`_value`, `_delta`, `_game`) is a signal that the parameter is **unused** — most commonly in signal handlers that only care that *something* fired. Don't prefix a parameter that the function body actually reads; that's actively misleading to the next reader who trusts the convention. If a parameter starts unused and later gains a use, drop the underscore at the same time.
+
+## Whitespace
+
+No trailing whitespace on any line — including lines that are otherwise blank inside an indented block (a lone tab/space left over from an edit). Also no trailing whitespace after `class_name`/`extends` lines.

@@ -71,7 +71,7 @@ func save_game() -> void:
 
 	# 3. Replace the real file with the temp (overwrites the existing file).
 	DirAccess.rename_absolute(TMP_PATH, SAVE_PATH)
-	
+
 	last_savegame = data
 
 # ---------------------------------------------------------------- load
@@ -95,7 +95,7 @@ func _read(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return {}
 	var text := FileAccess.get_file_as_string(path)
-	var parsed = JSON.parse_string(text)
+	var parsed := JSON.parse_string(text)
 	return parsed if parsed is Dictionary else {}
 
 # ---------------------------------------------------------------- offline
@@ -132,8 +132,8 @@ func run_offline_progress_calculation() -> void:
 	var total_ticks_expected: int = maxi(1, int(elapsed / App.tick_timer.wait_time))
 	App.offline_income_vm.set_calc_progress(0, total_ticks_expected)
 
-	var tick_counter = 0
-	var snapshot_tick_counter = 0
+	var tick_counter := 0
+	var snapshot_tick_counter := 0
 	elapsed -= App.tick_timer.wait_time
 
 	# The real-time tick timer must not fire while we're manually driving
@@ -168,7 +168,7 @@ func run_offline_progress_calculation() -> void:
 # ---------------------------------------------------------------- hooks
 
 func _collect_data() -> Dictionary:
-	var save_state = {
+	var save_state := {
 		"player_data": App.player_data.to_save(),
 		"mycelium_nodes": get_mycelium_node_data(),
 		"upgrades": App.upgrade_system.to_save(),
@@ -178,12 +178,12 @@ func _collect_data() -> Dictionary:
 	}
 	return save_state
 
-func _apply_data(_game: Dictionary) -> void:
-	App.player_data.load_from_save(_game.get("player_data", {}))
-	load_mycelium_node_data(_game.get("mycelium_nodes", []))
-	App.upgrade_system.from_save(_game.get("upgrades", {}))
-	App.prestige_upgrade_system.from_save(_game.get("prestige_upgrades", {}))
-	var loaded_biomes_data := BiomesData.from_save(_game.get("biomes", {}))
+func _apply_data(game: Dictionary) -> void:
+	App.player_data.load_from_save(game.get("player_data", {}))
+	load_mycelium_node_data(game.get("mycelium_nodes", []))
+	App.upgrade_system.from_save(game.get("upgrades", {}))
+	App.prestige_upgrade_system.from_save(game.get("prestige_upgrades", {}))
+	var loaded_biomes_data := BiomesData.from_save(game.get("biomes", {}))
 	# ever_unlocked must be restored directly, not via unlock(), which would
 	# also mark the biome unlocked for the current run.
 	for key in loaded_biomes_data.ever_unlocked:
@@ -193,21 +193,21 @@ func _apply_data(_game: Dictionary) -> void:
 	App.biomes_data.spent_points = loaded_biomes_data.spent_points
 	App.biomes_data.size = loaded_biomes_data.size
 	App.resolve_context.biome_sizes = App.biomes_data.size.duplicate()
-	App.biome_upgrade_system.from_save(_game.get("biome_upgrades", {}))
+	App.biome_upgrade_system.from_save(game.get("biome_upgrades", {}))
 
 func get_mycelium_node_data() -> Array[Dictionary]:
 	var all_node_data: Array[Dictionary] = []
 	for node_data in App.mycelium_node_data:
 		all_node_data.append({
-			"manual_nodes": node_data._node.manual_nodes, 
+			"manual_nodes": node_data._node.manual_nodes,
 			"auto_nodes": node_data._node.auto_nodes.to_save()
 		})
 	return all_node_data
-	
-func load_mycelium_node_data(_nodes: Array) -> void:
+
+func load_mycelium_node_data(nodes: Array) -> void:
 	for i in range(App.mycelium_node_data.size()):
-		if(i < _nodes.size()):
-			var node_data = App.mycelium_node_data[i]
-			var loaded_data = _nodes[i]
+		if i < nodes.size():
+			var node_data := App.mycelium_node_data[i]
+			var loaded_data: Dictionary = nodes[i]
 			node_data._node.manual_nodes = loaded_data.get("manual_nodes", 0)
-			node_data._node.auto_nodes = BigNumber.from_save(loaded_data.get("auto_nodes", BigNumber.new(0.0,0)))
+			node_data._node.auto_nodes = BigNumber.from_save(loaded_data.get("auto_nodes", {}))

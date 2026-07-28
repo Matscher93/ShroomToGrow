@@ -12,4 +12,4 @@ extends Resource
 ## Every tier-node in this branch shares this same effect (independently
 ## leveled) — e.g. every Substrate node adds +15% node_production per level,
 ## and they all stack into the same UpgradeSystem stat bucket.
-@export var effect: UpgradeEffect
+@export var effect: UpgradeEffectDef

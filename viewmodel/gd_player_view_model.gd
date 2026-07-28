@@ -19,7 +19,7 @@ var nutrient_text: String:
 var biomass_text: String:
 	get:
 		return "%s" % _format_number(_model.biomass)
-		
+
 var water_text: String:
 	get:
 		return "%s" % _format_number(_model.water)

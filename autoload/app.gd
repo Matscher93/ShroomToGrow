@@ -62,7 +62,7 @@ func _ready() -> void:
 		biome_vms[def.key] = BiomeViewModel.new(def.key, def)
 
 	for node in nodes.mycelium_nodes:
-		var mycelium_data = MyceliumNodeData.new(player_data, node)
+		var mycelium_data := MyceliumNodeData.new(player_data, node)
 		mycelium_node_data.append(mycelium_data)
 		mycelium_node_vms.append(MyceliumNodeViewModel.new(player_data, mycelium_data))
 		_track_manual_count(node)
@@ -81,7 +81,7 @@ func _ready() -> void:
 	add_child(tick_timer)
 
 ## Recursively loads every UpgradeDef .tres under path (other resource types
-## in the tree, e.g. UpgradeEffect / ScalingSource, are skipped).
+## in the tree, e.g. UpgradeEffectDef / ScalingSourceDef, are skipped).
 func _load_upgrade_defs(path: String) -> Array[UpgradeDef]:
 	var defs: Array[UpgradeDef] = []
 	var dir := DirAccess.open(path)
@@ -116,7 +116,7 @@ func handle_tick() -> void:
 	player_data.tick_count += 1
 	for i in range(nodes.mycelium_nodes.size() -1, -1, -1):
 		var node := mycelium_node_vms[i]._mycelium_data._node
-		var node_change = node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
+		var node_change := node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
 		node_change = node_change.mul(node_production_bonus(StringName(str(node.node_id))))
 		if i != 0:
 			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes = \

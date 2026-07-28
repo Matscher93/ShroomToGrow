@@ -156,7 +156,7 @@ func _gui_input(event: InputEvent) -> void:
 
 func _toggle_synergy() -> void:
 	vbox_buy.visible = not vbox_buy.visible
-	expansion_arrow.offset_transform_rotation = PI if vbox_buy.visible else 0.0 
+	expansion_arrow.offset_transform_rotation = PI if vbox_buy.visible else 0.0
 	if App.biomes_data.is_unlocked(&"forest"):
 		vbox_synergy.visible = vbox_buy.visible
 	else:
@@ -177,16 +177,16 @@ func _set_color() -> void:
 		panel_buy_node._set_color(_vm._mycelium_data._node.color)
 		panel_potency._set_color(_vm._mycelium_data._node.color)
 		panel_synergy._set_color(_vm._mycelium_data._node.color)
-		var color_level_text = _vm._mycelium_data._node.level_font_color
-		var color_main_text = Color.from_hsv(color_level_text.h, 0.7, 0.8)
-		
+		var color_level_text := _vm._mycelium_data._node.level_font_color
+		var color_main_text := Color.from_hsv(color_level_text.h, 0.7, 0.8)
+
 		level_value.label_settings = level_value.label_settings.duplicate()
 		level_header.label_settings = level_header.label_settings.duplicate()
 		label_node_name.label_settings = label_node_name.label_settings.duplicate()
 		owned_nodes.label_settings = owned_nodes.label_settings.duplicate()
 		manual_nodes.label_settings = manual_nodes.label_settings.duplicate()
 		label_node_income.label_settings = label_node_income.label_settings.duplicate()
-		
+
 		level_value.label_settings.font_color = color_level_text
 		level_header.label_settings.font_color = color_level_text
 		label_node_name.label_settings.font_color = color_main_text

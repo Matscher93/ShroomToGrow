@@ -12,7 +12,7 @@ extends "res://view/offline_income/general_panel_background.gd"
 		if currency_def:
 			currency_def.changed.connect(_update_visuals)
 		_update_visuals()
-		
+
 func _validate_property(property: Dictionary) -> void:
 	if property.name != "currency_name" and property.name != "currency_change"\
 		and property.name != "color_param" and property.name != "icon_rect":
@@ -28,16 +28,16 @@ func _update_visuals() -> void:
 	_update_shader()
 	if material:
 		material.set_shader_parameter(color_param, currency_def.main_color)
-		
+
 	if currency_name:
 		currency_name.text = currency_def.currency_name
 		currency_name.label_settings = currency_name.label_settings.duplicate()
 		currency_name.label_settings.font_color = currency_def.label_color
-		
+
 	if currency_change:
 		currency_change.label_settings = currency_change.label_settings.duplicate()
 		currency_change.label_settings.font_color = currency_def.currency_color
-	
+
 	if icon_rect:
 		icon_rect._set_color(currency_def.main_color)
 

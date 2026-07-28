@@ -28,33 +28,33 @@ var owned_node_text: String:
 		return "%s" % [_mycelium_data._node.auto_nodes
 						.add(BigNumber.from_value(_mycelium_data._node.manual_nodes))
 						._to_string()]
-		
+
 var production_text: String:
 	get:
-		var production = _scaled_production()
+		var production := _scaled_production()
 		if production.equals(BigNumber.from_value(0.0)):
 			return ""
 
-		var source_text = "+%s / tick"
+		var source_text := "+%s / tick"
 		var unit_text: String
 		if _mycelium_data._node.node_id == 0:
 			unit_text = ("%s nutrients" if is_multiple else "%s nutrient") % [production._to_string()]
 		else:
-			var level_text = "LV%d" % [_mycelium_data._node.node_id]
+			var level_text := "LV%d" % [_mycelium_data._node.node_id]
 			unit_text = ("%s %s nodes" if is_multiple else "%s %s node") % [production._to_string(), level_text]
-		
+
 		return source_text % [unit_text]
-		
+
 var production_per_node_text: String:
 	get:
-		var source_text = _mycelium_data._node.desc
+		var source_text := _mycelium_data._node.desc
 		var unit_text: String
 		if _mycelium_data._node.node_id == 0:
 			unit_text = ("%s nutrients" if is_multiple else "%s nutrient") % [_bonus_production()._to_string()]
 		else:
-			var level_text = "LV%d" % [_mycelium_data._node.node_id]
+			var level_text := "LV%d" % [_mycelium_data._node.node_id]
 			unit_text = ("%s %s nodes" if is_multiple else "%s %s node") % [_bonus_production()._to_string(), level_text]
-		
+
 		return source_text % [unit_text]
 
 var production_text_short: String:
@@ -104,7 +104,7 @@ func _on_nutrients_changed(_value: BigNumber) -> void:
 func _on_auto_nodes_changed(_auto_nodes: BigNumber) -> void:
 	_notify(PROP_OWNED_NODE_TEXT)
 	_notify(PROP_PRODUCTION_TEXT)
-	
+
 func _on_manual_nodes_changed(_manual_nodes: int) -> void:
 	_notify(PROP_MANUAL_NODE_TEXT)
 	_notify(PROP_OWNED_NODE_TEXT)
