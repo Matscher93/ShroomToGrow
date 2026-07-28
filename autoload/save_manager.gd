@@ -139,10 +139,14 @@ func run_offline_progress_calculation() -> void:
 	# The real-time tick timer must not fire while we're manually driving
 	# handle_tick() below, or ticks would double up across the awaited frames.
 	App.tick_timer.stop()
+	# Upgrade levels/manual node counts can't change during this loop (nothing
+	# here buys anything), so the per-node bonus is invariant across ticks —
+	# compute it once instead of recomputing ~9 modify() calls/node/tick.
+	var bonuses := App.node_production_bonuses()
 	var batch_start := Time.get_ticks_msec()
 	while elapsed > 0.0:
 		elapsed -= App.tick_timer.wait_time
-		App.handle_tick()
+		App.handle_tick(bonuses)
 		tick_counter += 1
 		if snapshot_tick_counter >= snapshot_interval:
 			save_game_snapshots.append(_collect_data())

@@ -124,12 +124,31 @@ func _track_manual_count(node: MyceliumNode) -> void:
 		upgrade_system.invalidate()
 	)
 
-func handle_tick() -> void:
+## Per-node production multiplier, indexed like nodes.mycelium_nodes. Callers
+## driving many ticks back-to-back (offline catch-up) should compute this once
+## and pass it into handle_tick() instead of letting each tick recompute it —
+## node_production_bonus() is a chain of ~9 UpgradeSystem.modify() calls, and
+## redoing that per node per tick dominates the cost of a long catch-up loop.
+## Safe to hoist because its only live inputs are upgrade levels and manual
+## node counts, neither of which changes mid-loop (nothing in the loop buys
+## upgrades or nodes). If a future upgrade effect scales off a live
+## STAT/RESOURCE ScalingSourceDef dependency (see ResolveContext), that
+## assumption breaks and callers must recompute every tick instead.
+func node_production_bonuses() -> Array[BigNumber]:
+	var bonuses: Array[BigNumber] = []
+	for i in range(nodes.mycelium_nodes.size()):
+		var node := mycelium_node_vms[i]._mycelium_data._node
+		bonuses.append(node_production_bonus(StringName(str(node.node_id))))
+	return bonuses
+
+func handle_tick(bonuses: Array[BigNumber] = []) -> void:
 	player_data.tick_count += 1
+	if bonuses.is_empty():
+		bonuses = node_production_bonuses()
 	for i in range(nodes.mycelium_nodes.size() -1, -1, -1):
 		var node := mycelium_node_vms[i]._mycelium_data._node
 		var node_change := node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
-		node_change = node_change.mul(node_production_bonus(StringName(str(node.node_id))))
+		node_change = node_change.mul(bonuses[i])
 		if i != 0:
 			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes = \
 			mycelium_node_vms[i-1]._mycelium_data._node.auto_nodes.add(node_change)
