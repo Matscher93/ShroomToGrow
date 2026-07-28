@@ -16,6 +16,8 @@ var _total_offline_time: float
 @export var offline_income_button: PanelContainer
 @export var vbox_node_change: VBoxContainer
 @export var mycelium_node_change_item: PackedScene
+@export var offline_time_container: PanelContainer  # drives the tick_progress shader param while calculating
+@export var label_away_for: Label
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -27,17 +29,80 @@ func bind(vm: OfflineIncomeViewModel) -> void:
 		_vm.property_changed.disconnect(_on_property_changed)
 	_vm = vm
 	_vm.property_changed.connect(_on_property_changed)
-	_update_visuals()
+	_refresh()
 	offline_income_button.pressed.connect(_on_dismiss_pressed)
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(_delta: float) -> void:
 	pass
-	
+
 func _on_property_changed(property: StringName) -> void:
 	match property:
-		OfflineIncomeViewModel.PROP_SNAPSHOTS_CHANGED:
-			_update_visuals()
+		OfflineIncomeViewModel.PROP_SNAPSHOTS_CHANGED, OfflineIncomeViewModel.PROP_CALCULATING_CHANGED, \
+		OfflineIncomeViewModel.PROP_CALC_PROGRESS_CHANGED:
+			_refresh()
+
+## The popup spawns as soon as the offline calculation starts (so the player
+## sees it immediately instead of waiting on a blank screen), so collection
+## must stay blocked until the viewmodel has real data — but the resource and
+## node growth so far is shown live, reading straight off the live game state
+## that the offline tick loop is mutating in place.
+func _refresh() -> void:
+	offline_income_button.set_disabled(_vm.is_calculating)
+	label_away_for.visible = not _vm.is_calculating
+	if _vm.is_calculating:
+		if not _initial_state_captured:
+			_capture_initial_state()
+		var progress := float(_vm.calc_ticks_done) / float(max(1, _vm.calc_ticks_total))
+		_set_tick_progress(progress)
+		label_ticks.text = "%d / %d" % [_vm.calc_ticks_done, _vm.calc_ticks_total]
+		label_time.text = "Calculating… %d%%" % [roundi(progress * 100.0)]
+		_render_deltas(_initial_nutrients, App.player_data.nutrients, _initial_node_counts,
+			func(i: int) -> BigNumber: return App.mycelium_node_data[i]._node.auto_nodes)
+		return
+	_initial_state_captured = false
+	_set_tick_progress(1.0)
+	_update_visuals()
+
+## Snapshot of live state at the moment calculation starts, so growth-so-far
+## can be diffed against it every time progress is reported.
+var _initial_state_captured := false
+var _initial_nutrients: BigNumber
+var _initial_node_counts: Array[BigNumber]
+
+func _capture_initial_state() -> void:
+	_initial_state_captured = true
+	_initial_nutrients = App.player_data.nutrients
+	_initial_node_counts.clear()
+	for node_data in App.mycelium_node_data:
+		_initial_node_counts.append(node_data._node.auto_nodes)
+
+func _set_tick_progress(progress: float) -> void:
+	if offline_time_container and offline_time_container.material:
+		offline_time_container.material.set_shader_parameter("tick_progress", clampf(progress, 0.0, 1.0))
+
+func _render_deltas(initial_nutrient: BigNumber, final_nutrient: BigNumber,
+		initial_node_counts: Array[BigNumber], final_node_count_fn: Callable) -> void:
+	nutrient_panel.set_currency_change(final_nutrient.sub(initial_nutrient))
+
+	var nodes = App.nodes.mycelium_nodes
+	_clear_node_change_list()
+
+	for i in range(nodes.size()):
+		var node = nodes[i]
+		var node_change: BigNumber = final_node_count_fn.call(i).sub(initial_node_counts[i])
+		if node_change.equals(BigNumber.from_value(0.0)):
+			continue
+
+		var node_scene_instance = mycelium_node_change_item.instantiate()
+		node_scene_instance.set_data(node, i, node_change)
+
+		vbox_node_change.add_child(node_scene_instance)
+
+func _clear_node_change_list() -> void:
+	for child in vbox_node_change.get_children():
+		vbox_node_change.remove_child(child)
+		child.queue_free()
 
 func _update_visuals() -> void:
 	_snapshots = _vm.save_data_snapshots
@@ -47,30 +112,14 @@ func _update_visuals() -> void:
 	label_ticks.text = "%d" % [_total_offline_ticks]
 	label_time.text = format_duration(_total_offline_time)
 	if _snapshots.size() > 0:
-		var initial_nutrient = _get_nutrient_count(_snapshots[0])
-		var final_nutrient = _get_nutrient_count(_snapshots[_snapshots.size()-1])
-		nutrient_panel.set_currency_change(final_nutrient.sub(initial_nutrient))
-		
-		var nodes = App.nodes.mycelium_nodes
-		
-		for child in vbox_node_change.get_children():
-			vbox_node_change.remove_child(child)
-			child.queue_free()
-		
-		for i in range(nodes.size()):
-			var node = nodes[i]
-			var initial_node_count = _get_node_count(_snapshots[0], i)
-			var final_node_count = _get_node_count(_snapshots[_snapshots.size()-1], i)
-			var node_change = final_node_count.sub(initial_node_count)
-			if node_change.equals(BigNumber.from_value(0.0)):
-				continue
+		var initial_nutrient := _get_nutrient_count(_snapshots[0])
+		var initial_node_counts: Array[BigNumber] = []
+		for i in range(App.nodes.mycelium_nodes.size()):
+			initial_node_counts.append(_get_node_count(_snapshots[0], i))
+		var last_snapshot := _snapshots[_snapshots.size()-1]
+		_render_deltas(initial_nutrient, _get_nutrient_count(last_snapshot), initial_node_counts,
+			func(i: int) -> BigNumber: return _get_node_count(last_snapshot, i))
 
-			var node_scene_instance = mycelium_node_change_item.instantiate()
-			node_scene_instance.set_data(node, i, node_change)
-
-			vbox_node_change.add_child(node_scene_instance)
-
-	
 static func format_duration(total_seconds: float, max_units := 2) -> String:
 	var s := int(total_seconds)
 	if s <= 0:

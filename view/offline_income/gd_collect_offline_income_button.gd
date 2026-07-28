@@ -34,6 +34,9 @@ func set_selected(in_enabled : bool) -> void:
 func set_button_text(button_text: String) -> void:
 	_button.text = button_text
 
+func set_disabled(value: bool) -> void:
+	_button.disabled = value
+
 func _on_button_down() -> void:
 	is_button_pressed = true
 	_update_shader()

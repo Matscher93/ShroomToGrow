@@ -9,8 +9,15 @@ const SAVE_VERSION := 1
 const AUTOSAVE_INTERVAL := 15.0  # seconds
 const MIN_OFFLINE_SECONDS := 60.0
 const MAX_OFFLINE_SECONDS := 86400.0  # 24h cap on offline income collection
+const OFFLINE_CALC_FRAME_BUDGET_MSEC := 20.0  # yield to a frame once a batch exceeds this
+
+## Emitted when offline progress becomes newly pending outside of load_game()
+## (i.e. on app resume), so a live main_screen can react without a reload.
+signal offline_progress_pending
 
 var last_savegame : Dictionary
+var _pending_offline_saved_at := 0.0
+var _offline_calc_running := false
 
 func _ready() -> void:
 	# We want to run our own logic before the window closes.
@@ -37,7 +44,8 @@ func _notification(what: int) -> void:
 			save_game()
 		NOTIFICATION_APPLICATION_RESUMED, \
 		NOTIFICATION_APPLICATION_FOCUS_IN:
-			_apply_offline_progress(float(last_savegame.get("saved_at", 0.0)))
+			_pending_offline_saved_at = float(last_savegame.get("saved_at", 0.0))
+			offline_progress_pending.emit()
 # ---------------------------------------------------------------- save
 
 func save_game() -> void:
@@ -76,7 +84,12 @@ func load_game() -> void:
 		return  # fresh start
 
 	_apply_data(data.get("game", {}))
-	_apply_offline_progress(float(data.get("saved_at", 0.0)))
+	# Deferred: the offline catch-up loop is expensive (thousands of ticks for
+	# the 24h cap) and used to run synchronously here, in the autoload's own
+	# _ready(), blocking the game from starting at all. It's now kicked off
+	# by main_screen once the offline income screen actually checks for it,
+	# and timesliced across frames (see run_offline_progress_calculation()).
+	_pending_offline_saved_at = float(data.get("saved_at", 0.0))
 
 func _read(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
@@ -87,24 +100,46 @@ func _read(path: String) -> Dictionary:
 
 # ---------------------------------------------------------------- offline
 
-func _apply_offline_progress(saved_at: float) -> void:
-	if saved_at <= 0.0:
+## True once there's an unprocessed offline gap worth simulating. Cheap check
+## so callers (main_screen) can poll it without triggering any work.
+func has_pending_offline_progress() -> bool:
+	if _pending_offline_saved_at <= 0.0:
+		return false
+	var elapsed := Time.get_unix_time_from_system() - _pending_offline_saved_at
+	return elapsed > MIN_OFFLINE_SECONDS
+
+## Runs the offline catch-up tick loop, timesliced across frames so it never
+## holds a single frame long enough to drop below 30fps (~33ms/frame — we
+## yield well before that, at OFFLINE_CALC_FRAME_BUDGET_MSEC). Call this once
+## the offline income screen is ready to consume the result; it populates
+## App.offline_income_vm when done, which is what actually triggers the popup.
+func run_offline_progress_calculation() -> void:
+	if _offline_calc_running or not has_pending_offline_progress():
 		return
-	var elapsed := Time.get_unix_time_from_system() - saved_at
-	if elapsed <= MIN_OFFLINE_SECONDS:
-		return
-	elapsed = minf(elapsed, MAX_OFFLINE_SECONDS)
-	
+	_offline_calc_running = true
+	var saved_at := _pending_offline_saved_at
+	_pending_offline_saved_at = 0.0
+	App.offline_income_vm.set_calculating(true)
+
+	var elapsed := minf(Time.get_unix_time_from_system() - saved_at, MAX_OFFLINE_SECONDS)
+
 	var save_game_snapshots: Array[Dictionary]
 	# initial snapshot
 	save_game_snapshots.append(_collect_data())
-	
+
 	# limit snapshots to a manageable amount
 	var snapshot_interval: int = floor((elapsed/App.tick_timer.wait_time)/100)
-	
+	var total_ticks_expected: int = maxi(1, int(elapsed / App.tick_timer.wait_time))
+	App.offline_income_vm.set_calc_progress(0, total_ticks_expected)
+
 	var tick_counter = 0
 	var snapshot_tick_counter = 0
 	elapsed -= App.tick_timer.wait_time
+
+	# The real-time tick timer must not fire while we're manually driving
+	# handle_tick() below, or ticks would double up across the awaited frames.
+	App.tick_timer.stop()
+	var batch_start := Time.get_ticks_msec()
 	while elapsed > 0.0:
 		elapsed -= App.tick_timer.wait_time
 		App.handle_tick()
@@ -114,13 +149,21 @@ func _apply_offline_progress(saved_at: float) -> void:
 			snapshot_tick_counter = 0
 		else:
 			snapshot_tick_counter += 1
-	
+
+		if Time.get_ticks_msec() - batch_start >= OFFLINE_CALC_FRAME_BUDGET_MSEC:
+			App.offline_income_vm.set_calc_progress(tick_counter, total_ticks_expected)
+			await get_tree().process_frame
+			batch_start = Time.get_ticks_msec()
+	App.tick_timer.start()
+
 	# final snapshot after tick accumulation
 	save_game_snapshots.append(_collect_data())
-	
+
 	App.offline_income_vm.set_save_data(save_game_snapshots, \
 		tick_counter, minf(Time.get_unix_time_from_system() - saved_at, MAX_OFFLINE_SECONDS))
+	App.offline_income_vm.set_calculating(false)
 	save_game()
+	_offline_calc_running = false
 
 # ---------------------------------------------------------------- hooks
 
