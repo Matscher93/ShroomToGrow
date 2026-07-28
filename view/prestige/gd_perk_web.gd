@@ -93,7 +93,8 @@ func _refresh_all() -> void:
 func _refresh_button(id: StringName) -> void:
 	var btn: Button = _buttons[id]
 	var def: PerkDef = App.perk_defs[id]
-	var status := App.perk_status(id)
+	var vm: PerkViewModel = App.perk_vms[id]
+	var status := vm.status
 	var hue := 0.75
 	if def.branch_key != &"":
 		var branch := _branch_for(def.branch_key)
@@ -114,7 +115,7 @@ func _refresh_button(id: StringName) -> void:
 	for style_name in ["normal", "hover", "pressed", "disabled"]:
 		btn.add_theme_stylebox_override(style_name, sb)
 
-	btn.tooltip_text = "%s — Lv %d/%d" % [def.display_name, App.prestige_upgrade_system.level(id), def.max_level]
+	btn.tooltip_text = vm.tooltip_text
 
 # --- pan / zoom ---
 

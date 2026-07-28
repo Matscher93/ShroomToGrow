@@ -95,7 +95,7 @@ func _read(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return {}
 	var text := FileAccess.get_file_as_string(path)
-	var parsed := JSON.parse_string(text)
+	var parsed: Variant = JSON.parse_string(text)
 	return parsed if parsed is Dictionary else {}
 
 # ---------------------------------------------------------------- offline

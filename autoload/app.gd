@@ -31,6 +31,8 @@ var biome_vms: Dictionary = {}  # StringName -> BiomeViewModel
 
 var perk_branches := load("res://data/prestige/all_branches.tres") as PerkBranchList
 var perk_defs: Dictionary = {}  # StringName -> PerkDef
+var perk_vms: Dictionary = {}  # StringName -> PerkViewModel
+var prestige_vm: PrestigeViewModel
 
 const SYMBIOSIS_UPGRADES_PATH := "res://data/upgrades/symbiosis/"
 const PRESTIGE_UPGRADES_PATH := "res://data/upgrades/prestige/"
@@ -55,6 +57,8 @@ func _ready() -> void:
 	for perk in PerkTree.build(perk_branches):
 		prestige_upgrade_system.register(perk)
 		perk_defs[perk.id] = perk
+		perk_vms[perk.id] = PerkViewModel.new(perk.id, perk)
+	prestige_vm = PrestigeViewModel.new()
 
 	biomes_data = BiomesData.new()
 	_unlock_starting_biomes()

@@ -63,8 +63,6 @@ func _ready() -> void:
 
 	unlock_biome_button.pressed.connect(_on_unlock_pressed)
 	size_buy_button.pressed.connect(_on_buy_size_pressed)
-	App.biome_size_changed.connect(_on_biome_size_changed)
-	App.player_data.nutrients_changed.connect(_on_nutrients_changed)
 	App.biome_upgrade_system.upgrades_changed.connect(_refresh_grid_lock_state)
 
 	grid_upgrade_slots.columns = GRID_COLUMNS
@@ -149,10 +147,6 @@ func _exit_tree() -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
-	if App.biome_size_changed.is_connected(_on_biome_size_changed):
-		App.biome_size_changed.disconnect(_on_biome_size_changed)
-	if App.player_data.nutrients_changed.is_connected(_on_nutrients_changed):
-		App.player_data.nutrients_changed.disconnect(_on_nutrients_changed)
 	if App.biome_upgrade_system.upgrades_changed.is_connected(_refresh_grid_lock_state):
 		App.biome_upgrade_system.upgrades_changed.disconnect(_refresh_grid_lock_state)
 
@@ -182,13 +176,8 @@ func _on_property_changed(property: StringName) -> void:
 			lbl_upgrade_points.text = _vm.points_text
 		BiomeViewModel.PROP_HAS_POINTS:
 			image_notification.visible = _vm.has_points
-
-func _on_biome_size_changed(key: StringName) -> void:
-	if key == biome_key:
-		_refresh_size_section()
-
-func _on_nutrients_changed(_value: BigNumber) -> void:
-	_refresh_size_section()
+		BiomeViewModel.PROP_SIZE_LEVEL_TEXT, BiomeViewModel.PROP_SIZE_COST_TEXT, BiomeViewModel.PROP_CAN_BUY_SIZE:
+			_refresh_size_section()
 
 func _refresh_unlock_section() -> void:
 	vbox_buy.visible = not _vm.unlocked
@@ -199,11 +188,10 @@ func _refresh_unlock_section() -> void:
 		panel_unlock_biome.set_enabled(_vm.can_unlock)
 
 func _refresh_size_section() -> void:
-	lbl_size_level.text = "Lv %d" % App.biome_size(biome_key)
-	lbl_size_cost.text = App.biome_size_cost(biome_key)._to_string()
-	var can_buy := App.can_buy_biome_size(biome_key)
-	size_buy_button.disabled = not can_buy
-	panel_buy_size.set_enabled(can_buy)
+	lbl_size_level.text = _vm.size_level_text
+	lbl_size_cost.text = _vm.size_cost_text
+	size_buy_button.disabled = not _vm.can_buy_size
+	panel_buy_size.set_enabled(_vm.can_buy_size)
 
 func _set_progress_ratio(ratio: float) -> void:
 	if image_biome_progress.material:
@@ -238,4 +226,4 @@ func _on_unlock_pressed() -> void:
 	_vm.unlock()
 
 func _on_buy_size_pressed() -> void:
-	App.buy_biome_size(biome_key)
+	_vm.buy_size()

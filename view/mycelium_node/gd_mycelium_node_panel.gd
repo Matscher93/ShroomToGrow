@@ -32,8 +32,6 @@ extends PanelContainer
 @export var upgrade_button_synergy: Button
 @export var node_level: int = 0
 var _vm: MyceliumNodeViewModel
-var _potency_id: StringName
-var _synergy_id: StringName
 
 const TAP_CANCEL_DISTANCE := 10.0  # px — beyond this, a press is a scroll drag, not a tap
 var _press_active := false
@@ -45,15 +43,10 @@ func _ready() -> void:
 	vbox_buy.visible = false
 	expansion_arrow.offset_transform_rotation = 0.0
 	upgrade_button.pressed.connect(_on_upgrade_pressed)
-	_potency_id = StringName("NodePotency%d" % node_level)
-	_synergy_id = StringName("NodeSynergy%d" % node_level)
 	upgrade_button_potency.pressed.connect(_on_buy_potency_pressed)
 	upgrade_button_synergy.pressed.connect(_on_buy_synergy_pressed)
-	App.upgrade_system.upgrades_changed.connect(_refresh_upgrades)
-	App.player_data.nutrients_changed.connect(_on_nutrients_changed)
 	if node_level < App.mycelium_node_vms.size():
 		bind(App.mycelium_node_vms[node_level])
-	_refresh_upgrades()
 
 func bind(vm: MyceliumNodeViewModel) -> void:
 	if _vm:
@@ -66,10 +59,6 @@ func _exit_tree() -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
-	if App.upgrade_system.upgrades_changed.is_connected(_refresh_upgrades):
-		App.upgrade_system.upgrades_changed.disconnect(_refresh_upgrades)
-	if App.player_data.nutrients_changed.is_connected(_on_nutrients_changed):
-		App.player_data.nutrients_changed.disconnect(_on_nutrients_changed)
 
 # --- VM -> View ---
 
@@ -86,6 +75,30 @@ func _on_property_changed(property: StringName) -> void:
 		MyceliumNodeViewModel.PROP_PRODUCTION_TEXT:
 			label_node_income.text = _vm.production_text
 			label_node_desc.text = _vm.production_per_node_text
+		MyceliumNodeViewModel.PROP_TOTAL_YIELD_TEXT:
+			label_yield.text = _vm.total_yield_text
+		MyceliumNodeViewModel.PROP_POTENCY_LEVEL_TEXT:
+			label_potency_level.text = _vm.potency_level_text
+		MyceliumNodeViewModel.PROP_POTENCY_HEADER_TEXT:
+			label_potency_gain_header.text = _vm.potency_header_text
+		MyceliumNodeViewModel.PROP_POTENCY_ACCUMULATED_TEXT:
+			label_potency_accumulated.text = _vm.potency_accumulated_text
+		MyceliumNodeViewModel.PROP_POTENCY_COST_TEXT:
+			label_potency_cost.text = _vm.potency_cost_text
+		MyceliumNodeViewModel.PROP_POTENCY_CAN_BUY:
+			upgrade_button_potency.disabled = not _vm.potency_can_buy
+			panel_potency.set_enabled(_vm.potency_can_buy)
+		MyceliumNodeViewModel.PROP_SYNERGY_LEVEL_TEXT:
+			label_synergy_level.text = _vm.synergy_level_text
+		MyceliumNodeViewModel.PROP_SYNERGY_HEADER_TEXT:
+			label_synergy_gain_header.text = _vm.synergy_header_text
+		MyceliumNodeViewModel.PROP_SYNERGY_ACCUMULATED_TEXT:
+			label_synergy_accumulated.text = _vm.synergy_accumulated_text
+		MyceliumNodeViewModel.PROP_SYNERGY_COST_TEXT:
+			label_synergy_cost.text = _vm.synergy_cost_text
+		MyceliumNodeViewModel.PROP_SYNERGY_CAN_BUY:
+			upgrade_button_synergy.disabled = not _vm.synergy_can_buy
+			panel_synergy.set_enabled(_vm.synergy_can_buy)
 
 func _refresh_all() -> void:
 	label_buy_cost.text = _vm.buy_button_text
@@ -94,39 +107,25 @@ func _refresh_all() -> void:
 	manual_nodes.text = _vm.manual_node_text
 	label_node_income.text = _vm.production_text
 	level_value.text = "%d" % [node_level + 1]
-	label_node_name.text = _vm._mycelium_data._node.name
+	label_node_name.text = _vm.node_name
 	label_node_desc.text = _vm.production_per_node_text
+	label_yield.text = _vm.total_yield_text
+	_refresh_upgrade_labels()
 	_set_color()
 
-func _on_nutrients_changed(_value: BigNumber) -> void:
-	_refresh_upgrades()
-
-func _refresh_upgrades() -> void:
-	var us := App.upgrade_system
-	var nutrients := App.player_data.nutrients
-	var node_id := StringName(str(node_level))
-	_refresh_upgrade_track(us, nutrients, _potency_id,
-		label_potency_level, label_potency_gain_header, label_potency_accumulated, label_potency_cost,
-		panel_potency, upgrade_button_potency,
-		App.node_potency_bonus(node_id), App.node_potency_external_multiplier(node_id), "level")
-	_refresh_upgrade_track(us, nutrients, _synergy_id,
-		label_synergy_level, label_synergy_gain_header, label_synergy_accumulated, label_synergy_cost,
-		panel_synergy, upgrade_button_synergy,
-		App.node_synergy_bonus(node_id), App.node_synergy_external_multiplier(node_id), "manual node")
-	var total := App.node_production_bonus(node_id).sub(BigNumber.from_value(1.0))
-	label_yield.text = "+%s%%" % [total.scale(100.0)._to_string()]
-
-func _refresh_upgrade_track(us: UpgradeSystem, nutrients: BigNumber, id: StringName,
-		lvl_label: Label, header_label: Label, acc_label: Label, cost_label: Label,
-		buy_panel, button: Button, bonus: BigNumber, external_mult: BigNumber, unit: String) -> void:
-	var lvl := us.level(id)
-	lvl_label.text = "Lv %d" % lvl
-	header_label.text = "+%s%% / %s:" % [us.next_level_delta(id).mul(external_mult).scale(100.0)._to_string(), unit]
-	acc_label.text = "now +%s%%" % [bonus.sub(BigNumber.from_value(1.0)).scale(100.0)._to_string()]
-	cost_label.text = us.cost(id)._to_string() if us.has_def(id) else "--"
-	var can_buy := us.can_buy(id, nutrients)
-	button.disabled = not can_buy
-	buy_panel.set_enabled(can_buy)
+func _refresh_upgrade_labels() -> void:
+	label_potency_level.text = _vm.potency_level_text
+	label_potency_gain_header.text = _vm.potency_header_text
+	label_potency_accumulated.text = _vm.potency_accumulated_text
+	label_potency_cost.text = _vm.potency_cost_text
+	upgrade_button_potency.disabled = not _vm.potency_can_buy
+	panel_potency.set_enabled(_vm.potency_can_buy)
+	label_synergy_level.text = _vm.synergy_level_text
+	label_synergy_gain_header.text = _vm.synergy_header_text
+	label_synergy_accumulated.text = _vm.synergy_accumulated_text
+	label_synergy_cost.text = _vm.synergy_cost_text
+	upgrade_button_synergy.disabled = not _vm.synergy_can_buy
+	panel_synergy.set_enabled(_vm.synergy_can_buy)
 
 # --- View -> VM ---
 
@@ -134,10 +133,10 @@ func _on_upgrade_pressed() -> void:
 	_vm.buy_upgrade()
 
 func _on_buy_potency_pressed() -> void:
-	App.upgrade_system.buy(_potency_id, App.player_data)
+	_vm.buy_potency()
 
 func _on_buy_synergy_pressed() -> void:
-	App.upgrade_system.buy(_synergy_id, App.player_data)
+	_vm.buy_synergy()
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -157,7 +156,7 @@ func _gui_input(event: InputEvent) -> void:
 func _toggle_synergy() -> void:
 	vbox_buy.visible = not vbox_buy.visible
 	expansion_arrow.offset_transform_rotation = PI if vbox_buy.visible else 0.0
-	if App.biomes_data.is_unlocked(&"forest"):
+	if _vm.synergy_track_unlocked:
 		vbox_synergy.visible = vbox_buy.visible
 	else:
 		vbox_synergy.visible = false
@@ -172,12 +171,12 @@ func _update_shader() -> void:
 
 func _set_color() -> void:
 	if material:
-		material.set_shader_parameter(color_param, _vm._mycelium_data._node.color)
-		level_icon._set_color(_vm._mycelium_data._node.color)
-		panel_buy_node._set_color(_vm._mycelium_data._node.color)
-		panel_potency._set_color(_vm._mycelium_data._node.color)
-		panel_synergy._set_color(_vm._mycelium_data._node.color)
-		var color_level_text := _vm._mycelium_data._node.level_font_color
+		material.set_shader_parameter(color_param, _vm.node_color)
+		level_icon._set_color(_vm.node_color)
+		panel_buy_node._set_color(_vm.node_color)
+		panel_potency._set_color(_vm.node_color)
+		panel_synergy._set_color(_vm.node_color)
+		var color_level_text := _vm.node_level_font_color
 		var color_main_text := Color.from_hsv(color_level_text.h, 0.7, 0.8)
 
 		level_value.label_settings = level_value.label_settings.duplicate()

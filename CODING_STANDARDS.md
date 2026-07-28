@@ -55,6 +55,16 @@ Use a plain method only when the accessor needs a parameter (e.g. `get_screen_da
 
 `PROP_*` notification constants (the ones passed to `_notify()` / matched in `_on_property_changed`) are always `StringName` literals (`&"..."`), matching `property_changed(property: StringName)`'s signature — never plain `String`.
 
+## ViewModel-always
+
+Every `Control`-derived view that displays or mutates *dynamic* app state goes through a ViewModel — no direct `App.<system>.*` reads/writes, no direct model-signal subscriptions, for anything that changes at runtime (level, cost, unlocked/afford-check, etc). "ViewModels never touch nodes; Views never touch Models" (`viewmodel/gd_view_model.gd`) is not aspirational — every non-trivial view mixing VM binding with direct `App.*` access is a bug to fix, not a shortcut to take for the next screen.
+
+Static resource *registries* are the one exception — `App.biomes.biomes`, `App.nodes.mycelium_nodes`, `App.perk_defs` stay directly readable, but **only** for enumeration/spawning and genuinely static per-item fields (position, color, id, display name — anything fixed for the resource's lifetime). The moment a per-item read can change at runtime (level, cost, unlocked, can-afford), it goes through a VM instead of the registry entry, even if the registry entry technically has the field.
+
+Two lifecycles, pick based on shape:
+- **List of N items, all need live dynamic state at once** (e.g. every perk button repainting on any purchase): one persistent VM per item, stored in a `Dictionary` on `App`, built once in `App._ready()` — mirrors `App.biome_vms`, `App.perk_vms`. Never disposed by a consuming view; `App` owns the lifetime.
+- **Single "currently selected" detail panel over a big item set** (e.g. the biome-upgrade-card grid, the perk detail panel): create the VM fresh on selection, `dispose()` the previous one before replacing — mirrors `BiomeUpgradeCard.select_upgrade()`. Don't pre-allocate one VM per possible selection when only one is ever shown at a time.
+
 ## Reuse over duplication
 
 `view/base_views/` holds shared shader-panel boilerplate (`gd_base_color_rect.gd`, `gd_base_panel_container.gd`).
@@ -91,6 +101,8 @@ var total = a.add(b)           # no — same value, but the type is now implicit
 ```
 
 This is the dominant pattern in the codebase already — match it even for "obvious" types like string formatting results (`var label := "%s" % value`).
+
+Exception: don't use `:=` on a call that returns `Variant` — the global `min()`/`max()`, `JSON.parse_string()`, and `Dictionary.get()` on some typed dictionaries all fall into this. `:=` on those either fails to compile ("warning treated as error: variable type is being inferred from a Variant value") or silently degrades to `Variant` — give the variable an explicit type instead (`var min_exp: int = min(a, b)`, `var parsed: Variant = JSON.parse_string(text)`). Test with `godot --headless --path .` after converting a batch of `=` to `:=` — this class of error only shows up at parse time, not at a glance.
 
 ## Conditionals
 

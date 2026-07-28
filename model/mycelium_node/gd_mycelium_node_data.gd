@@ -29,4 +29,3 @@ func buy_upgrade() -> bool:
 	_player_data.nutrients = _player_data.nutrients.sub(upgrade_cost())
 	_node.manual_nodes += 1
 	return true
-

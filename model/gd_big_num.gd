@@ -120,7 +120,7 @@ func pow_float(float_exp: float) -> BigNumber:
 func gt(other: BigNumber) -> bool:   # self > other
 	if mantissa == 0.0 and other.mantissa == 0.0: return false
 	if mantissa < 0.0 and other.mantissa >= 0.0: return false
-	var min_exp := min(exponent, other.exponent)
+	var min_exp: int = min(exponent, other.exponent)
 	var scaled_mantissa := mantissa * pow(10.0, float(exponent - min_exp))
 	var scaled_other_mantissa := other.mantissa * pow(10.0, float(other.exponent - min_exp))
 	return scaled_mantissa > scaled_other_mantissa

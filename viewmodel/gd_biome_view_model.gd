@@ -4,11 +4,10 @@ extends ViewModel
 ## display. Owns formatting, derived/display state, and enabled/disabled
 ## logic. Holds references to the model; never to any Node.
 ##
-## The 10 per-biome upgrade cards and the Biome Size section read
-## App.biome_upgrade_system / App.biome_size* directly (no per-card VM,
-## mirrors how MyceliumNodePanel binds straight to App.upgrade_system) —
-## this VM only owns what's shared across the whole biome card: unlock
-## state, level/XP progress, and available points.
+## The 10 per-biome upgrade cards read App.biome_upgrade_system through their
+## own per-selection BiomeUpgradeViewModel (see BiomeUpgradeCard); this VM
+## owns what's shared across the whole biome card: unlock state, level/XP
+## progress, available points, and the Biome Size section.
 
 const PROP_UNLOCKED := &"unlocked"
 const PROP_CAN_UNLOCK := &"can_unlock"
@@ -17,6 +16,9 @@ const PROP_PROGRESS_TEXT := &"progress_text"
 const PROP_PROGRESS_RATIO := &"progress_ratio"
 const PROP_POINTS_TEXT := &"points_text"
 const PROP_HAS_POINTS := &"has_points"
+const PROP_SIZE_LEVEL_TEXT := &"size_level_text"
+const PROP_SIZE_COST_TEXT := &"size_cost_text"
+const PROP_CAN_BUY_SIZE := &"can_buy_size"
 
 var _key: StringName
 var _def: BiomeDef
@@ -69,6 +71,15 @@ var points_text: String:
 var has_points: bool:
 	get: return points_available >= 1
 
+var size_level_text: String:
+	get: return "Lv %d" % App.biome_size(_key)
+
+var size_cost_text: String:
+	get: return App.biome_size_cost(_key)._to_string()
+
+var can_buy_size: bool:
+	get: return App.can_buy_biome_size(_key)
+
 # --- Lifecycle ---
 
 func _init(key: StringName, def: BiomeDef) -> void:
@@ -84,6 +95,7 @@ func _init(key: StringName, def: BiomeDef) -> void:
 	App.player_data.biomass_changed.connect(_on_currency_changed)
 	for node in App.nodes.mycelium_nodes:                                  # XpSource.TOTAL_NODES
 		node.manual_nodes_changed.connect(_on_xp_source_changed)
+	App.biome_size_changed.connect(_on_biome_size_changed)
 
 func dispose() -> void:
 	App.biomes_data.biome_unlocked.disconnect(_on_biome_unlocked)
@@ -95,12 +107,16 @@ func dispose() -> void:
 	App.player_data.biomass_changed.disconnect(_on_currency_changed)
 	for node in App.nodes.mycelium_nodes:
 		node.manual_nodes_changed.disconnect(_on_xp_source_changed)
+	App.biome_size_changed.disconnect(_on_biome_size_changed)
 
 # --- Commands (called by the View on user input) ---
 
 func unlock() -> void:
 	App.unlock_biome(_key)
 	# Model signal (biome_unlocked) triggers the notifications below.
+
+func buy_size() -> bool:
+	return App.buy_biome_size(_key)
 
 # --- Model -> notification plumbing ---
 
@@ -127,3 +143,11 @@ func _on_xp_source_changed(_arg = null) -> void:
 
 func _on_currency_changed(_value: BigNumber) -> void:
 	_notify(PROP_CAN_UNLOCK)
+	_notify(PROP_CAN_BUY_SIZE)
+
+func _on_biome_size_changed(key: StringName) -> void:
+	if key != _key:
+		return
+	_notify(PROP_SIZE_LEVEL_TEXT)
+	_notify(PROP_SIZE_COST_TEXT)
+	_notify(PROP_CAN_BUY_SIZE)
