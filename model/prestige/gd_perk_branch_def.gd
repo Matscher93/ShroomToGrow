@@ -9,7 +9,13 @@ extends Resource
 @export var angle_degrees: float
 @export var hue: float
 
-## Every tier-node in this branch shares this same effect (independently
-## leveled) — e.g. every Substrate node adds +15% node_production per level,
-## and they all stack into the same UpgradeSystem stat bucket.
-@export var effect: UpgradeEffectDef
+## Effect for each tier (0-indexed: I, II, III, IV), independently leveled.
+## Most branches use a single shared effect — e.g. every Substrate node adds
+## +15% node_production per level, all stacking into the same UpgradeSystem
+## stat bucket. A branch can instead give each tier its own effect (e.g. one
+## targets Meadow, the next Forest); when a tier has no entry of its own,
+## effect_for_tier() falls back to the last one in the array.
+@export var effects: Array[UpgradeEffectDef] = []
+
+func effect_for_tier(tier: int) -> UpgradeEffectDef:
+	return effects[mini(tier, effects.size() - 1)]

@@ -38,6 +38,9 @@ const SYMBIOSIS_UPGRADES_PATH := "res://data/upgrades/symbiosis/"
 const PRESTIGE_UPGRADES_PATH := "res://data/upgrades/prestige/"
 const BIOME_UPGRADES_PATH := "res://data/upgrades/biomes/"
 
+const BASE_TICK_DURATION := 10.0
+const MIN_TICK_DURATION := 1.0  # floor so a stacked tick_rate discount can never hit/cross zero
+
 func _ready() -> void:
 	player_data = PlayerData.new()
 	player_vm = PlayerViewModel.new(player_data)
@@ -77,12 +80,17 @@ func _ready() -> void:
 	offline_income_vm = OfflineIncomeViewModel.new()
 
 	tick_timer = Timer.new()
-	tick_timer.wait_time = 10.0
+	tick_timer.wait_time = BASE_TICK_DURATION
 	tick_timer.autostart = true
 	tick_timer.timeout.connect(func() -> void:
 		handle_tick()
 	)
 	add_child(tick_timer)
+
+	upgrade_system.upgrades_changed.connect(_update_tick_duration)
+	biome_upgrade_system.upgrades_changed.connect(_update_tick_duration)
+	prestige_upgrade_system.upgrades_changed.connect(_update_tick_duration)
+	_update_tick_duration()
 
 ## Recursively loads every UpgradeDef .tres under path (other resource types
 ## in the tree, e.g. UpgradeEffectDef / ScalingSourceDef, are skipped).
@@ -190,6 +198,19 @@ func preview_biomass_gain() -> BigNumber:
 	gain = prestige_upgrade_system.modify(&"biomass_gain", gain, resolve_context)
 	return gain
 
+## Any upgrade in any system (symbiosis, biome upgrades, perks) that targets
+## the &"tick_rate" stat shortens the tick interval automatically — no
+## per-upgrade wiring needed when a new one is added.
+func tick_duration() -> float:
+	var duration := BigNumber.from_value(BASE_TICK_DURATION)
+	duration = upgrade_system.modify(&"tick_rate", duration, resolve_context)
+	duration = biome_upgrade_system.modify(&"tick_rate", duration, resolve_context)
+	duration = prestige_upgrade_system.modify(&"tick_rate", duration, resolve_context)
+	return maxf(MIN_TICK_DURATION, duration.to_float())
+
+func _update_tick_duration() -> void:
+	tick_timer.wait_time = tick_duration()
+
 ## Resets the current run (nutrients, water, tick_count, node purchases,
 ## symbiosis upgrades, biome unlocks) and converts it into biomass. Biome
 ## upgrades and prestige_upgrade_system are untouched — they persist across
@@ -248,9 +269,18 @@ func biome_xp(key: StringName) -> int:
 func biome_level(key: StringName) -> Dictionary:
 	return BiomeCalculator.level_for(biome_xp(key))
 
+## Level-derived points, plus any flat bonus from upgrades in any system that
+## target the &"biome_points" stat for this specific biome (e.g. a prestige
+## perk scoped to just Meadow) — no per-upgrade wiring needed when a new
+## bonus source is added.
 func biome_available_points(key: StringName) -> int:
 	var lvl: int = biome_level(key).level
-	return max(0, lvl - 1 - biomes_data.points_spent(key))
+	var base_points := lvl - 1
+	var bonus := upgrade_system.modify(&"biome_points", BigNumber.new(0.0, 0), resolve_context, [], key)
+	bonus = biome_upgrade_system.modify(&"biome_points", bonus, resolve_context, [], key)
+	bonus = prestige_upgrade_system.modify(&"biome_points", bonus, resolve_context, [], key)
+	var bonus_points := int(bonus.to_float())
+	return max(0, base_points + bonus_points - biomes_data.points_spent(key))
 
 func can_unlock_biome(key: StringName) -> bool:
 	var def := biome_def(key)

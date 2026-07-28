@@ -88,6 +88,7 @@ func _init(key: StringName, def: BiomeDef) -> void:
 
 	App.biomes_data.biome_unlocked.connect(_on_biome_unlocked)
 	App.biome_upgrade_system.upgrades_changed.connect(_on_points_source_changed)
+	App.prestige_upgrade_system.upgrades_changed.connect(_on_points_source_changed)  # bonus &"biome_points" perks
 	App.upgrade_system.upgrades_changed.connect(_on_xp_source_changed)      # XpSource.SYMBIOSIS_LEVELS
 	App.player_data.prestige_count_changed.connect(_on_xp_source_changed)  # XpSource.PRESTIGE_COUNT
 	App.player_data.nutrients_changed.connect(_on_currency_changed)
@@ -100,6 +101,7 @@ func _init(key: StringName, def: BiomeDef) -> void:
 func dispose() -> void:
 	App.biomes_data.biome_unlocked.disconnect(_on_biome_unlocked)
 	App.biome_upgrade_system.upgrades_changed.disconnect(_on_points_source_changed)
+	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_points_source_changed)
 	App.upgrade_system.upgrades_changed.disconnect(_on_xp_source_changed)
 	App.player_data.prestige_count_changed.disconnect(_on_xp_source_changed)
 	App.player_data.nutrients_changed.disconnect(_on_currency_changed)

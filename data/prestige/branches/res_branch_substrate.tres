@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://model/prestige/gd_perk_branch_def.gd" id="1_script"]
 [ext_resource type="Resource" path="res://data/prestige/branches/res_branch_substrate_effect.tres" id="2_effect"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
 
 [resource]
 script = ExtResource("1_script")
@@ -9,4 +10,4 @@ key = &"nut"
 label = "Substrate"
 angle_degrees = -90.0
 hue = 272.0
-effect = ExtResource("2_effect")
+effects = Array[ExtResource("3_effect_script")]([ExtResource("2_effect")])

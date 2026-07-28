@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="PerkBranchDef" format=3]
 
 [ext_resource type="Script" path="res://model/prestige/gd_perk_branch_def.gd" id="1_script"]
-[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_fruiting_effect.tres" id="2_effect"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_tempo_effect.tres" id="2_effect"]
 [ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
 
 [resource]
 script = ExtResource("1_script")
-key = &"bio"
-label = "Fruiting"
-angle_degrees = 30.0
-hue = 292.0
+key = &"tmp"
+label = "Tempo"
+angle_degrees = 100.0
+hue = 190.0
 effects = Array[ExtResource("3_effect_script")]([ExtResource("2_effect")])

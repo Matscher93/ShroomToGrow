@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PerkBranchDef" format=3]
+
+[ext_resource type="Script" path="res://model/prestige/gd_perk_branch_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_bounty_meadow_effect.tres" id="2_meadow"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_bounty_forest_effect.tres" id="3_forest"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_bounty_permafrost_effect.tres" id="4_permafrost"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="5_effect_script"]
+
+[resource]
+script = ExtResource("1_script")
+key = &"bnt"
+label = "Bounty"
+angle_degrees = 200.0
+hue = 45.0
+effects = Array[ExtResource("5_effect_script")]([ExtResource("2_meadow"), ExtResource("3_forest"), ExtResource("4_permafrost")])

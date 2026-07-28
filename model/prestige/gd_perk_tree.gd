@@ -53,7 +53,7 @@ static func _make_tier(branch: PerkBranchDef, tier: int, angle: float, parent_id
 	p.max_level = MAX_PERK_LEVEL
 	p.base_cost = BigNumber.from_value(TIER_COSTS[tier])
 	p.cost_growth = COST_GROWTH
-	p.effects = [branch.effect]
+	p.effects = [branch.effect_for_tier(tier)]
 	var r := RADII[tier]
 	p.world_x = CANVAS_CENTER + cos(angle) * r
 	p.world_y = CANVAS_CENTER + sin(angle) * r

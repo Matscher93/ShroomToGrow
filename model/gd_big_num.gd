@@ -102,6 +102,12 @@ func pow_int(p: int) -> BigNumber:
 func scale(factor: float) -> BigNumber:
 	return BigNumber.new(mantissa * factor, exponent)
 
+## Collapses back to a plain float. Only safe for values known to stay in
+## float range (e.g. tick duration, point counts) — anything that can grow
+## unbounded (nutrients, biomass) should stay a BigNumber and use to_display().
+func to_float() -> float:
+	return mantissa * pow(10.0, float(exponent))
+
 ## Real-exponent power via log10 space — unlike pow_int, handles fractional
 ## and arbitrarily large exponents without overflowing (e.g. cost curves with
 ## a growth exponent, or per-level compounding at high levels). Assumes a

@@ -4,7 +4,9 @@
 [ext_resource type="Script" path="res://model/prestige/gd_perk_branch_def.gd" id="2_def_script"]
 [ext_resource type="Resource" path="res://data/prestige/branches/res_branch_substrate.tres" id="3_substrate"]
 [ext_resource type="Resource" path="res://data/prestige/branches/res_branch_fruiting.tres" id="4_fruiting"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_tempo.tres" id="5_tempo"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_bounty.tres" id="6_bounty"]
 
 [resource]
 script = ExtResource("1_list_script")
-branches = Array[ExtResource("2_def_script")]([ExtResource("3_substrate"), ExtResource("4_fruiting")])
+branches = Array[ExtResource("2_def_script")]([ExtResource("3_substrate"), ExtResource("4_fruiting"), ExtResource("5_tempo"), ExtResource("6_bounty")])

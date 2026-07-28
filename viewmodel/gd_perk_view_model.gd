@@ -31,8 +31,12 @@ var tooltip_text: String:
 
 var detail_effect_text: String:
 	get:
-		return _def.description if _def.effects.is_empty() \
-			else "+%.0f%% %s per level" % [_def.effects[0].per_level * 100.0, _def.effects[0].stat]
+		if _def.effects.is_empty():
+			return _def.description
+		var effect := _def.effects[0]
+		if effect.op == UpgradeEffectDef.Op.ADD:
+			return "%+.1f %s per level" % [effect.per_level, effect.stat]
+		return "%+.0f%% %s per level" % [effect.per_level * 100.0, effect.stat]
 
 var detail_cost_text: String:
 	get:
