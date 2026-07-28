@@ -10,6 +10,8 @@ const OFFLINE_INCOME_SCENE := preload("res://view/offline_income/sc_offline_inco
 var _offline_popup_active := false
 
 func _ready() -> void:
+	add_child(ShaderWarmup.new())
+	add_child(MenuWarmup.new())
 	if App.offline_income_vm:
 		App.offline_income_vm.property_changed.connect(_on_offline_income_changed)
 		# SaveManager only records that offline progress is pending during
