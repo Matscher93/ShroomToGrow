@@ -34,12 +34,12 @@ var buy_button_text: String:
 
 var manual_node_text: String:
 	get:
-		return "%d" % [_mycelium_data._node.manual_nodes]
+		return "%d" % [_mycelium_data.node.manual_nodes]
 
 var owned_node_text: String:
 	get:
-		return "%s" % [_mycelium_data._node.auto_nodes
-						.add(BigNumber.from_value(_mycelium_data._node.manual_nodes))
+		return "%s" % [_mycelium_data.node.auto_nodes
+						.add(BigNumber.from_value(_mycelium_data.node.manual_nodes))
 						.to_display()]
 
 var production_text: String:
@@ -51,7 +51,7 @@ var production_text: String:
 
 var production_per_node_text: String:
 	get:
-		return _mycelium_data._node.desc % [_unit_text(_bonus_production())]
+		return _mycelium_data.node.desc % [_unit_text(_bonus_production())]
 
 var production_text_short: String:
 	get:
@@ -67,9 +67,9 @@ var can_buy_upgrade: bool:
 ## rendered "500 nutrient".
 func _unit_text(amount: BigNumber) -> String:
 	var plural := amount.gt(BigNumber.from_value(1.0))
-	if _mycelium_data._node.node_id == 0:
+	if _mycelium_data.node.node_id == 0:
 		return ("%s nutrients" if plural else "%s nutrient") % [amount.to_display()]
-	var level_text := "LV%d" % [_mycelium_data._node.node_id]
+	var level_text := "LV%d" % [_mycelium_data.node.node_id]
 	return ("%s %s nodes" if plural else "%s %s node") % [amount.to_display(), level_text]
 
 var total_yield_text: String:
@@ -81,13 +81,13 @@ var synergy_track_unlocked: bool:
 	get: return App.biomes_data.is_unlocked(&"forest")
 
 var node_name: String:
-	get: return _mycelium_data._node.name
+	get: return _mycelium_data.node.name
 
 var node_color: Color:
-	get: return _mycelium_data._node.color
+	get: return _mycelium_data.node.color
 
 var node_level_font_color: Color:
-	get: return _mycelium_data._node.level_font_color
+	get: return _mycelium_data.node.level_font_color
 
 # --- Potency track ---
 var potency_level_text: String:
@@ -135,10 +135,10 @@ func _init(player_data: PlayerData, mycelium_data: MyceliumNodeData) -> void:
 	_player_data = player_data
 	_player_data.nutrients_changed.connect(_on_nutrients_changed)
 	_mycelium_data = mycelium_data
-	_potency_id = StringName("NodePotency%d" % _mycelium_data._node.node_id)
-	_synergy_id = StringName("NodeSynergy%d" % _mycelium_data._node.node_id)
-	_mycelium_data._node.auto_nodes_changed.connect(_on_auto_nodes_changed)
-	_mycelium_data._node.manual_nodes_changed.connect(_on_manual_nodes_changed)
+	_potency_id = StringName("NodePotency%d" % _mycelium_data.node.node_id)
+	_synergy_id = StringName("NodeSynergy%d" % _mycelium_data.node.node_id)
+	_mycelium_data.node.auto_nodes_changed.connect(_on_auto_nodes_changed)
+	_mycelium_data.node.manual_nodes_changed.connect(_on_manual_nodes_changed)
 	App.upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
 	App.biome_upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
@@ -146,8 +146,8 @@ func _init(player_data: PlayerData, mycelium_data: MyceliumNodeData) -> void:
 
 func dispose() -> void:
 	_player_data.nutrients_changed.disconnect(_on_nutrients_changed)
-	_mycelium_data._node.auto_nodes_changed.disconnect(_on_auto_nodes_changed)
-	_mycelium_data._node.manual_nodes_changed.disconnect(_on_manual_nodes_changed)
+	_mycelium_data.node.auto_nodes_changed.disconnect(_on_auto_nodes_changed)
+	_mycelium_data.node.manual_nodes_changed.disconnect(_on_manual_nodes_changed)
 	App.upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
 	App.biome_upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
@@ -203,11 +203,11 @@ func _format_number(value: BigNumber) -> String:
 	return value.to_display()
 
 func _node_id_key() -> StringName:
-	return StringName(str(_mycelium_data._node.node_id))
+	return StringName(str(_mycelium_data.node.node_id))
 
 func _scaled_production() -> BigNumber:
-	var raw := _mycelium_data._node.auto_nodes.add(BigNumber.from_value(_mycelium_data._node.manual_nodes))
+	var raw := _mycelium_data.node.auto_nodes.add(BigNumber.from_value(_mycelium_data.node.manual_nodes))
 	return raw.mul(_bonus_production())
 
 func _bonus_production() -> BigNumber:
-	return App.node_production_bonus(StringName(str(_mycelium_data._node.node_id)))
+	return App.node_production_bonus(StringName(str(_mycelium_data.node.node_id)))

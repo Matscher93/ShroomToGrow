@@ -1,21 +1,25 @@
 class_name BiomeCalculator
 extends RefCounted
-## MODEL — pure calculation: biome XP and leveling. Reads live counters off
-## App (node counts, upgrade levels, prestige count) but performs no writes.
+## MODEL — pure calculation: biome XP and leveling. Performs no writes.
+##
+## Counters are passed in rather than read off the App autoload, which is what
+## previously made this untestable: autoloads don't exist outside a running
+## game, so anything referencing App can't even be compiled by a test harness.
 
 ## Sums manual_nodes only (not the auto-generated BigNumber tiers) so this
 ## always fits a plain int — "nodes grown" tracks purchases, not throughput.
-static func xp_for(def: BiomeDef) -> int:
+static func xp_for(def: BiomeDef, mycelium_nodes: Array[MyceliumNode],
+		symbiosis: UpgradeSystem, player_data: PlayerData) -> int:
 	match def.xp_source:
 		BiomeDef.XpSource.TOTAL_NODES:
 			var total := 0
-			for node in App.nodes.mycelium_nodes:
+			for node in mycelium_nodes:
 				total += node.manual_nodes
 			return total
 		BiomeDef.XpSource.SYMBIOSIS_LEVELS:
-			return App.upgrade_system.total_levels()
+			return symbiosis.total_levels()
 		BiomeDef.XpSource.PRESTIGE_COUNT:
-			return App.player_data.prestige_count * 10
+			return player_data.prestige_count * 10
 		_:
 			return 0
 

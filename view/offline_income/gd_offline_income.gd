@@ -56,7 +56,7 @@ func _refresh() -> void:
 		label_ticks.text = "%d / %d" % [_vm.calc_ticks_done, _vm.calc_ticks_total]
 		label_time.text = "Calculating… %d%%" % [roundi(progress * 100.0)]
 		_render_deltas(_initial_nutrients, App.player_data.nutrients, _initial_node_counts,
-			func(i: int) -> BigNumber: return App.mycelium_node_data[i]._node.auto_nodes)
+			func(i: int) -> BigNumber: return App.mycelium_node_data[i].node.auto_nodes)
 		return
 	_initial_state_captured = false
 	_set_tick_progress(1.0)
@@ -73,7 +73,7 @@ func _capture_initial_state() -> void:
 	_initial_nutrients = App.player_data.nutrients
 	_initial_node_counts.clear()
 	for node_data in App.mycelium_node_data:
-		_initial_node_counts.append(node_data._node.auto_nodes)
+		_initial_node_counts.append(node_data.node.auto_nodes)
 
 func _set_tick_progress(progress: float) -> void:
 	if offline_time_container and offline_time_container.material:

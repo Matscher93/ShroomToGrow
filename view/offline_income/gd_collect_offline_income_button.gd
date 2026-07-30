@@ -23,7 +23,7 @@ func _update_shader() -> void:
 		material.set_shader_parameter("rect_size", size * get_global_transform().get_scale())
 		material.set_shader_parameter(color_param, button_color)
 
-func _set_color(in_color : Color) -> void:
+func set_shader_color(in_color : Color) -> void:
 	button_color = in_color
 	_update_shader()
 

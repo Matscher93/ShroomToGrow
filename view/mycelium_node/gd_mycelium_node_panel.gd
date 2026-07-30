@@ -117,7 +117,7 @@ func _refresh_all() -> void:
 	label_node_desc.text = _vm.production_per_node_text
 	label_yield.text = _vm.total_yield_text
 	_refresh_upgrade_labels()
-	_set_color()
+	_apply_colors()
 
 func _refresh_upgrade_labels() -> void:
 	label_potency_level.text = _vm.potency_level_text
@@ -175,13 +175,13 @@ func _update_shader() -> void:
 	if material:
 		material.set_shader_parameter("rect_size", size * get_global_transform().get_scale())
 
-func _set_color() -> void:
+func _apply_colors() -> void:
 	if material:
 		material.set_shader_parameter(color_param, _vm.node_color)
-		level_icon._set_color(_vm.node_color)
-		panel_buy_node._set_color(_vm.node_color)
-		panel_potency._set_color(_vm.node_color)
-		panel_synergy._set_color(_vm.node_color)
+		level_icon.set_shader_color(_vm.node_color)
+		panel_buy_node.set_shader_color(_vm.node_color)
+		panel_potency.set_shader_color(_vm.node_color)
+		panel_synergy.set_shader_color(_vm.node_color)
 		var color_level_text := _vm.node_level_font_color
 		var color_main_text := Color.from_hsv(color_level_text.h, 0.7, 0.8)
 

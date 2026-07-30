@@ -49,10 +49,10 @@ func _update_shader() -> void:
 	if material:
 		material.set_shader_parameter("rect_size", size * get_global_transform().get_scale())
 
-func _set_color(in_color: Color) -> void:
+func set_shader_color(in_color: Color) -> void:
 	if material:
 		material.set_shader_parameter(color_param, in_color)
-	panel_buy_upgrade._set_color(in_color)
+	panel_buy_upgrade.set_shader_color(in_color)
 
 func select_upgrade(id: StringName, key: StringName) -> void:
 	upgrade_id = id

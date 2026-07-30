@@ -39,7 +39,7 @@ func _update_visuals() -> void:
 		currency_change.label_settings.font_color = currency_def.currency_color
 
 	if icon_rect:
-		icon_rect._set_color(currency_def.main_color)
+		icon_rect.set_shader_color(currency_def.main_color)
 
 func set_currency_change(change: BigNumber) -> void:
 	currency_change.text = "+%s" % [change.to_display()]

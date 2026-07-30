@@ -225,8 +225,8 @@ func get_mycelium_node_data() -> Array[Dictionary]:
 	var all_node_data: Array[Dictionary] = []
 	for node_data in App.mycelium_node_data:
 		all_node_data.append({
-			"manual_nodes": node_data._node.manual_nodes,
-			"auto_nodes": node_data._node.auto_nodes.to_save()
+			"manual_nodes": node_data.node.manual_nodes,
+			"auto_nodes": node_data.node.auto_nodes.to_save()
 		})
 	return all_node_data
 
@@ -235,5 +235,5 @@ func load_mycelium_node_data(nodes: Array) -> void:
 		if i < nodes.size():
 			var node_data := App.mycelium_node_data[i]
 			var loaded_data: Dictionary = nodes[i]
-			node_data._node.manual_nodes = loaded_data.get("manual_nodes", 0)
-			node_data._node.auto_nodes = BigNumber.from_save(loaded_data.get("auto_nodes", {}))
+			node_data.node.manual_nodes = loaded_data.get("manual_nodes", 0)
+			node_data.node.auto_nodes = BigNumber.from_save(loaded_data.get("auto_nodes", {}))

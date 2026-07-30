@@ -42,8 +42,8 @@ func _update_visuals() -> void:
 func _update_colors() -> void:
 	var child := get_node_or_null("ColorRect")
 	if is_instance_valid(child):
-		image_background._set_color(currency_def.main_color)
-		image_header._set_color(currency_def.main_color)
+		image_background.set_shader_color(currency_def.main_color)
+		image_header.set_shader_color(currency_def.main_color)
 		label_title.label_settings.font_color = currency_def.label_color
 		label_amount.label_settings.font_color = currency_def.currency_color
 

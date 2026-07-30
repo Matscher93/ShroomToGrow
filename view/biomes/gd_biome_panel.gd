@@ -209,11 +209,11 @@ func _set_progress_ratio(ratio: float) -> void:
 func _refresh_all() -> void:
 	lbl_biome_name.text = _vm.display_name
 	lbl_biome_desc.text = _vm.description
-	level_icon._set_shader(_vm.biome_shader)
-	level_icon._set_color(_vm.biome_color)
-	panel_level_badge._set_color(_vm.biome_color)
-	panel_buy_size._set_color(_vm.biome_color)
-	upgrade_detail._set_color(_vm.biome_color)
+	level_icon.set_icon_shader(_vm.biome_shader)
+	level_icon.set_shader_color(_vm.biome_color)
+	panel_level_badge.set_shader_color(_vm.biome_color)
+	panel_buy_size.set_shader_color(_vm.biome_color)
+	upgrade_detail.set_shader_color(_vm.biome_color)
 	if material:
 		material.set_shader_parameter(color_param, _vm.biome_color)
 

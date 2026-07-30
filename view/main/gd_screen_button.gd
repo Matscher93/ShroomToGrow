@@ -29,7 +29,7 @@ func _update_shader() -> void:
 			material.set_shader_parameter(color_param, button_color)
 			modulate = Color.GRAY
 
-func _set_color(in_color : Color) -> void:
+func set_shader_color(in_color : Color) -> void:
 	button_color = in_color
 	_update_shader()
 
