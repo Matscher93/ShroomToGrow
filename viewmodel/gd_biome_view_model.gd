@@ -47,7 +47,7 @@ var can_unlock: bool:
 	get: return App.can_unlock_biome(_key)
 
 var unlock_cost_text: String:
-	get: return _def.unlock_cost._to_string()
+	get: return _def.unlock_cost.to_display()
 
 var level_text: String:
 	get: return "Lv %d" % App.biome_level(_key).level
@@ -75,7 +75,7 @@ var size_level_text: String:
 	get: return "Lv %d" % App.biome_size(_key)
 
 var size_cost_text: String:
-	get: return App.biome_size_cost(_key)._to_string()
+	get: return App.biome_size_cost(_key).to_display()
 
 var can_buy_size: bool:
 	get: return App.can_buy_biome_size(_key)
@@ -90,12 +90,14 @@ func _init(key: StringName, def: BiomeDef) -> void:
 	App.biome_upgrade_system.upgrades_changed.connect(_on_points_source_changed)
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_points_source_changed)  # bonus &"biome_points" perks
 	App.upgrade_system.upgrades_changed.connect(_on_xp_source_changed)      # XpSource.SYMBIOSIS_LEVELS
-	App.player_data.prestige_count_changed.connect(_on_xp_source_changed)  # XpSource.PRESTIGE_COUNT
+	# unbind(1) drops the value these signals carry, so the handler can stay
+	# parameterless instead of taking an untyped throwaway.
+	App.player_data.prestige_count_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.PRESTIGE_COUNT
 	App.player_data.nutrients_changed.connect(_on_currency_changed)
 	App.player_data.water_changed.connect(_on_currency_changed)
 	App.player_data.biomass_changed.connect(_on_currency_changed)
 	for node in App.nodes.mycelium_nodes:                                  # XpSource.TOTAL_NODES
-		node.manual_nodes_changed.connect(_on_xp_source_changed)
+		node.manual_nodes_changed.connect(_on_xp_source_changed.unbind(1))
 	App.biome_size_changed.connect(_on_biome_size_changed)
 
 func dispose() -> void:
@@ -103,12 +105,12 @@ func dispose() -> void:
 	App.biome_upgrade_system.upgrades_changed.disconnect(_on_points_source_changed)
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_points_source_changed)
 	App.upgrade_system.upgrades_changed.disconnect(_on_xp_source_changed)
-	App.player_data.prestige_count_changed.disconnect(_on_xp_source_changed)
+	App.player_data.prestige_count_changed.disconnect(_on_xp_source_changed.unbind(1))
 	App.player_data.nutrients_changed.disconnect(_on_currency_changed)
 	App.player_data.water_changed.disconnect(_on_currency_changed)
 	App.player_data.biomass_changed.disconnect(_on_currency_changed)
 	for node in App.nodes.mycelium_nodes:
-		node.manual_nodes_changed.disconnect(_on_xp_source_changed)
+		node.manual_nodes_changed.disconnect(_on_xp_source_changed.unbind(1))
 	App.biome_size_changed.disconnect(_on_biome_size_changed)
 
 # --- Commands (called by the View on user input) ---
@@ -136,7 +138,7 @@ func _on_points_source_changed() -> void:
 	_notify(PROP_POINTS_TEXT)
 	_notify(PROP_HAS_POINTS)
 
-func _on_xp_source_changed(_arg = null) -> void:
+func _on_xp_source_changed() -> void:
 	_notify(PROP_LEVEL_TEXT)
 	_notify(PROP_PROGRESS_TEXT)
 	_notify(PROP_PROGRESS_RATIO)

@@ -29,7 +29,9 @@ func _ready() -> void:
 	for id in App.perk_defs:
 		_spawn_button(App.perk_defs[id])
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_changed)
-	App.player_data.biomass_changed.connect(_on_changed)
+	# unbind(1) drops biomass_changed's BigNumber argument, so the handler can
+	# stay parameterless instead of taking an untyped throwaway.
+	App.player_data.biomass_changed.connect(_on_changed.unbind(1))
 	resized.connect(_center_on_core)
 	call_deferred("_center_on_core")
 	_refresh_all()
@@ -39,8 +41,8 @@ func _exit_tree() -> void:
 	Input.set_emulate_mouse_from_touch(true)
 	if App.prestige_upgrade_system.upgrades_changed.is_connected(_on_changed):
 		App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
-	if App.player_data.biomass_changed.is_connected(_on_changed):
-		App.player_data.biomass_changed.disconnect(_on_changed)
+	if App.player_data.biomass_changed.is_connected(_on_changed.unbind(1)):
+		App.player_data.biomass_changed.disconnect(_on_changed.unbind(1))
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
@@ -55,7 +57,7 @@ func _notification(what: int) -> void:
 func _update_touch_emulation() -> void:
 	Input.set_emulate_mouse_from_touch(not is_visible_in_tree())
 
-func _on_changed(_arg = null) -> void:
+func _on_changed() -> void:
 	_refresh_all()
 
 func _center_on_core() -> void:

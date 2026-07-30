@@ -47,7 +47,7 @@ var detail_cost_text: String:
 			return "Locked — unlock its parent first"
 		if level >= max_level:
 			return "Maxed"
-		return "Cost: %s biomass" % App.prestige_upgrade_system.cost(_id)._to_string()
+		return "Cost: %s biomass" % App.prestige_upgrade_system.cost(_id).to_display()
 
 var detail_buy_text: String:
 	get:
@@ -66,11 +66,13 @@ func _init(id: StringName, def: PerkDef) -> void:
 	_id = id
 	_def = def
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_changed)
-	App.player_data.biomass_changed.connect(_on_changed)
+	# unbind(1) drops biomass_changed's BigNumber argument, so the handler can
+	# stay parameterless instead of taking an untyped throwaway.
+	App.player_data.biomass_changed.connect(_on_changed.unbind(1))
 
 func dispose() -> void:
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
-	App.player_data.biomass_changed.disconnect(_on_changed)
+	App.player_data.biomass_changed.disconnect(_on_changed.unbind(1))
 
 # --- Commands (called by the View on user input) ---
 
@@ -79,5 +81,5 @@ func buy() -> bool:
 
 # --- Model -> notification plumbing ---
 
-func _on_changed(_arg = null) -> void:
+func _on_changed() -> void:
 	_notify(PROP_CHANGED)

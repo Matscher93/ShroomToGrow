@@ -1,4 +1,5 @@
 class_name PerkTree
+extends RefCounted
 ## MODEL — pure generator: turns a PerkBranchList into the full set of PerkDefs.
 ## Cost/effect/name/description all come straight from the authored
 ## PerkNodeDefs; the only thing generated is where each node sits, derived from

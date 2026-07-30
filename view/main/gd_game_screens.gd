@@ -82,13 +82,13 @@ func _rebuild_nav_buttons() -> void:
 			continue  # screen type with no definition authored — nothing to show
 		var button := button_scene.instantiate()
 		button.set_button_text(button_data.screen_name)
-		button.pressed.connect(on_screen_selected.bind(screen_key))
+		button.pressed.connect(_on_screen_selected.bind(screen_key))
 		button.set_selected(_vm.current_screen == screen_key)
 
 		button_dictionary[screen_key] = button
 		button_container.add_child(button)
 
-func on_screen_selected(selected_screen : ScreenTypes.Types) -> void:
+func _on_screen_selected(selected_screen: ScreenTypes.Types) -> void:
 	_vm.set_current_screen(selected_screen)
 	for button_key in button_dictionary:
 		button_dictionary.get(button_key).set_selected(_vm.current_screen == button_key)

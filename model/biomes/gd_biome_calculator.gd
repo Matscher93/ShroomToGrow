@@ -1,4 +1,5 @@
 class_name BiomeCalculator
+extends RefCounted
 ## MODEL — pure calculation: biome XP and leveling. Reads live counters off
 ## App (node counts, upgrade levels, prestige count) but performs no writes.
 

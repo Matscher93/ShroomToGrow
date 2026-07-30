@@ -1,7 +1,8 @@
 class_name BigNumber
+extends RefCounted
 
 ## Arbitrary-large number for idle/incremental games.
-## Stored as  mantissa * 10^exponent,  where  1.0 ≤ |mantissa| < 1000.0
+## Stored as  mantissa * 10^exponent,  where  1.0 ≤ |mantissa| < 10.0
 ##
 ## GDScript has no operator overloading, so arithmetic uses method calls:
 ##   var a := BigNumber.from_value(1_000_000.0)   # 1 M
@@ -12,8 +13,11 @@ class_name BigNumber
 var mantissa: float  ## Normalised to [1.0, 10.0)  (or 0)
 var exponent: int    ## Power of 10
 
-## Suffix table: one entry per 3 exponent steps.
-## Extend as needed — currently covers up to 10^(23*3) = 10^69.
+## Suffix table: one entry per 3 exponent steps, ending at Decillion.
+## 12 entries cover exponents 0..35, i.e. everything below 10^36 — values at or
+## above that fall back to scientific notation. Deliberate: plain suffixed
+## numbers are wanted all the way to decillion, and only past it. Extend this
+## table (Ud, Dd, Td, ...) to push the scientific cutoff higher.
 const SUFFIXES: Array[String] = [
 	"",    "K",   "M",   "B",   "T",
 	"Qa",  "Qi",  "Sx",  "Sp",  "Oc",  "No",
@@ -174,7 +178,7 @@ func to_display(decimals: int = 1) -> String:
 		# inside [1, 1000) — the suffix picked by idx is always the right one.
 		var scaled := mantissa * pow(10.0, float(exponent - idx * 3))
 		if idx == 0:
-			return "%.1f" % scaled           # plain float, no suffix
+			return "%.*f" % [decimals, scaled]   # plain float, no suffix
 		return "%.*f%s" % [decimals, scaled, SUFFIXES[idx]]
 	# Beyond the suffix table → scientific notation
 	return to_scientific()

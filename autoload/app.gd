@@ -349,7 +349,7 @@ func buy_biome_upgrade(id: StringName, key: StringName) -> bool:
 	# the spend landed showed the old (pre-purchase) point count until
 	# something else happened to trigger a second refresh.
 	biomes_data.spend_points(key, 1)
-	if not biome_upgrade_system.buy_with_points(id, 1):
+	if not biome_upgrade_system.buy_with_points(id, true):
 		biomes_data.spend_points(key, -1)  # refund: def had no room left to level
 		return false
 	return true

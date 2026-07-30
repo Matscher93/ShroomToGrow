@@ -11,7 +11,7 @@ const PROP_PENDING_CHANGED := &"pending_changed"
 var sporate_text: String:
 	get:
 		var pending := App.preview_biomass_gain()
-		return "Sporate (+%s biomass · resets colony, keeps perks)" % pending._to_string()
+		return "Sporate (+%s biomass · resets colony, keeps perks)" % pending.to_display()
 
 var sporate_enabled: bool:
 	get: return App.can_prestige()
@@ -19,13 +19,15 @@ var sporate_enabled: bool:
 # --- Lifecycle ---
 
 func _init() -> void:
-	App.player_data.biomass_changed.connect(_on_changed)
-	App.player_data.nutrients_changed.connect(_on_changed)
+	# unbind(1) drops the BigNumber argument the currency signals carry, so the
+	# handler can stay parameterless instead of taking an untyped throwaway.
+	App.player_data.biomass_changed.connect(_on_changed.unbind(1))
+	App.player_data.nutrients_changed.connect(_on_changed.unbind(1))
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_changed)
 
 func dispose() -> void:
-	App.player_data.biomass_changed.disconnect(_on_changed)
-	App.player_data.nutrients_changed.disconnect(_on_changed)
+	App.player_data.biomass_changed.disconnect(_on_changed.unbind(1))
+	App.player_data.nutrients_changed.disconnect(_on_changed.unbind(1))
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
 
 # --- Commands (called by the View on user input) ---
@@ -35,5 +37,5 @@ func sporate() -> void:
 
 # --- Model -> notification plumbing ---
 
-func _on_changed(_arg = null) -> void:
+func _on_changed() -> void:
 	_notify(PROP_PENDING_CHANGED)

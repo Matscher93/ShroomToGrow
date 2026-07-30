@@ -21,11 +21,13 @@ func _ready() -> void:
 		var node_scene_instance := node_scene.instantiate()
 		node_scene_instance.node_level = index
 		vbox_nodes.add_child(node_scene_instance)
-		_nodes[index].manual_nodes_changed.connect(_update_visibility)
-		_nodes[index].auto_nodes_changed.connect(_update_visibility)
+		# unbind(1) drops the value these signals carry, so the handler can stay
+		# parameterless instead of taking an untyped throwaway.
+		_nodes[index].manual_nodes_changed.connect(_update_visibility.unbind(1))
+		_nodes[index].auto_nodes_changed.connect(_update_visibility.unbind(1))
 	_update_visibility()
 
-func _update_visibility(_value = null) -> void:
+func _update_visibility() -> void:
 	for index in range(_nodes.size()):
 		vbox_nodes.get_child(index).visible = _nodes[index].has_nodes() \
 			or (index > 0 and _nodes[index - 1].has_nodes())

@@ -50,4 +50,4 @@ func _on_water_changed(_value: BigNumber) -> void:
 # --- Formatting (replace with your BigNumber formatter) ---
 
 func _format_number(value: BigNumber) -> String:
-	return value._to_string()
+	return value.to_display()

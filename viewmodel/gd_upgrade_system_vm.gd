@@ -88,15 +88,20 @@ func buy(id: StringName, player_data: PlayerData, currency: StringName = &"nutri
 	upgrades_changed.emit()
 	return true
 
-## Level up an upgrade paid for with a flat point budget (e.g. biome level
-## points) instead of a BigNumber currency — always costs exactly 1 point.
-func buy_with_points(id: StringName, available_points: int) -> bool:
+## Level up an upgrade paid for with a point budget (e.g. biome level points)
+## instead of a BigNumber currency — always costs exactly 1 point.
+##
+## The point itself is spent by the caller, which owns the budget; this only
+## needs to know whether one was available. It used to take the caller's point
+## count as an int and compare it against 1 without ever deducting anything,
+## which read like it did the spending.
+func buy_with_points(id: StringName, has_point_available: bool) -> bool:
 	var def: UpgradeDef = _defs.get(id)
 	if def == null:
 		return false
 	if def.max_level > 0 and level(id) >= def.max_level:
 		return false
-	if available_points < 1:
+	if not has_point_available:
 		return false
 	_levels[id] = level(id) + 1
 	_dirty = true

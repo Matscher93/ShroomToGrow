@@ -40,7 +40,7 @@ var owned_node_text: String:
 	get:
 		return "%s" % [_mycelium_data._node.auto_nodes
 						.add(BigNumber.from_value(_mycelium_data._node.manual_nodes))
-						._to_string()]
+						.to_display()]
 
 var production_text: String:
 	get:
@@ -55,7 +55,7 @@ var production_per_node_text: String:
 
 var production_text_short: String:
 	get:
-		return "+%s/tick" % [_scaled_production()._to_string()]
+		return "+%s/tick" % [_scaled_production().to_display()]
 
 var can_buy_upgrade: bool:
 	get:
@@ -75,7 +75,7 @@ func _unit_text(amount: BigNumber) -> String:
 var total_yield_text: String:
 	get:
 		var total := App.node_production_bonus(_node_id_key()).sub(BigNumber.from_value(1.0))
-		return "+%s%%" % [total.scale(100.0)._to_string()]
+		return "+%s%%" % [total.scale(100.0).to_display()]
 
 var synergy_track_unlocked: bool:
 	get: return App.biomes_data.is_unlocked(&"forest")
@@ -96,15 +96,15 @@ var potency_level_text: String:
 var potency_header_text: String:
 	get:
 		var mult := App.node_potency_external_multiplier(_node_id_key())
-		return "+%s%% / level:" % [App.upgrade_system.next_level_delta(_potency_id).mul(mult).scale(100.0)._to_string()]
+		return "+%s%% / level:" % [App.upgrade_system.next_level_delta(_potency_id).mul(mult).scale(100.0).to_display()]
 
 var potency_accumulated_text: String:
 	get:
 		var bonus := App.node_potency_bonus(_node_id_key())
-		return "now +%s%%" % [bonus.sub(BigNumber.from_value(1.0)).scale(100.0)._to_string()]
+		return "now +%s%%" % [bonus.sub(BigNumber.from_value(1.0)).scale(100.0).to_display()]
 
 var potency_cost_text: String:
-	get: return App.upgrade_system.cost(_potency_id)._to_string() if App.upgrade_system.has_def(_potency_id) else "--"
+	get: return App.upgrade_system.cost(_potency_id).to_display() if App.upgrade_system.has_def(_potency_id) else "--"
 
 var potency_can_buy: bool:
 	get: return App.upgrade_system.can_buy(_potency_id, _player_data.nutrients)
@@ -116,15 +116,15 @@ var synergy_level_text: String:
 var synergy_header_text: String:
 	get:
 		var mult := App.node_synergy_external_multiplier(_node_id_key())
-		return "+%s%% / manual node:" % [App.upgrade_system.next_level_delta(_synergy_id).mul(mult).scale(100.0)._to_string()]
+		return "+%s%% / manual node:" % [App.upgrade_system.next_level_delta(_synergy_id).mul(mult).scale(100.0).to_display()]
 
 var synergy_accumulated_text: String:
 	get:
 		var bonus := App.node_synergy_bonus(_node_id_key())
-		return "now +%s%%" % [bonus.sub(BigNumber.from_value(1.0)).scale(100.0)._to_string()]
+		return "now +%s%%" % [bonus.sub(BigNumber.from_value(1.0)).scale(100.0).to_display()]
 
 var synergy_cost_text: String:
-	get: return App.upgrade_system.cost(_synergy_id)._to_string() if App.upgrade_system.has_def(_synergy_id) else "--"
+	get: return App.upgrade_system.cost(_synergy_id).to_display() if App.upgrade_system.has_def(_synergy_id) else "--"
 
 var synergy_can_buy: bool:
 	get: return App.upgrade_system.can_buy(_synergy_id, _player_data.nutrients)
@@ -200,7 +200,7 @@ func _on_upgrades_changed() -> void:
 # --- Formatting ---
 
 func _format_number(value: BigNumber) -> String:
-	return value._to_string()
+	return value.to_display()
 
 func _node_id_key() -> StringName:
 	return StringName(str(_mycelium_data._node.node_id))

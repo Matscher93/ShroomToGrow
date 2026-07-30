@@ -31,7 +31,7 @@ var level_text: String:
 var effect_text: String:
 	get:
 		var amount := App.biome_upgrade_system.effect_amount(_id, App.resolve_context)
-		return "now +%s%%" % [amount.scale(100.0)._to_string()]
+		return "now +%s%%" % [amount.scale(100.0).to_display()]
 
 var can_buy: bool:
 	get: return App.can_buy_biome_upgrade(_id, _key)
