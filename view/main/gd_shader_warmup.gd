@@ -15,10 +15,23 @@ const SCAN_ROOT := "res://"
 const SKIP_DIRS := ["addons"]
 
 func _ready() -> void:
+	# The rect has to be on-screen and non-transparent, or there is no draw call
+	# and so no pipeline compile — which is the entire point of this class. It
+	# used to sit at (-100, -100) with modulate.a = 0.0: off-screen items are
+	# culled and zero-alpha ones are skipped, so it warmed nothing.
+	#
+	# Hiding it is done by depth, not by transparency: a negative layer puts this
+	# whole CanvasLayer behind the main screen, which draws over it. 2D has no
+	# occlusion culling, so being covered doesn't cost the draw call the warmup
+	# needs. Swapping a shader per frame at 1% alpha *on top* read as a flicker.
+	# Alpha stays low as a second defence: the safe-area insets can leave the
+	# top-left corner of the main screen transparent on mobile. Non-zero, or the
+	# draw is skipped and we're back to warming nothing.
+	layer = -100
 	var rect := ColorRect.new()
 	rect.size = Vector2(4, 4)
-	rect.position = Vector2(-100, -100)
-	rect.modulate.a = 0.0
+	rect.position = Vector2.ZERO
+	rect.modulate.a = 0.01
 	add_child(rect)
 	for shader_path in _find_shaders(SCAN_ROOT):
 		var mat := ShaderMaterial.new()

@@ -13,6 +13,7 @@ xp_source = 2
 xp_label = "colonies sporated"
 biome_color = Color(0.654902, 0.78431374, 1, 1)
 biome_shader = ExtResource("1_fqucp")
+upgrade_ids = Array[StringName]([&"FrozenSpores", &"PermafrostUpgrade2", &"PermafrostUpgrade3", &"PermafrostUpgrade4", &"PermafrostUpgrade5", &"PermafrostUpgrade6", &"PermafrostUpgrade7", &"PermafrostUpgrade8", &"PermafrostUpgrade9", &"PermafrostUpgrade10"])
 _unlock_cost_mantissa = 5.0
 _unlock_cost_exponent = 3
 _size_base_cost_mantissa = 5.0

@@ -95,9 +95,11 @@ func _refresh_all() -> void:
 		lines.refresh(world.scale.x)
 
 func _refresh_button(id: StringName) -> void:
-	var btn: PerkNode = _buttons[id]
-	var def: PerkDef = App.perk_defs[id]
-	var vm: PerkViewModel = App.perk_vms[id]
+	var btn: PerkNode = _buttons.get(id)
+	var def: PerkDef = App.perk_defs.get(id)
+	var vm: PerkViewModel = App.perk_vms.get(id)
+	if btn == null or def == null or vm == null:
+		return
 	btn.refresh(vm, id == _selected_id)
 	btn.set_zoom(world.scale.x)
 

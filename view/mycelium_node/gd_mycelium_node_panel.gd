@@ -42,6 +42,12 @@ func _ready() -> void:
 	vbox_synergy.visible = false
 	vbox_buy.visible = false
 	expansion_arrow.offset_transform_rotation = 0.0
+
+	# App is an autoload, and autoloads aren't instantiated for @tool scripts
+	# running in the editor — everything below needs the live game state.
+	if Engine.is_editor_hint():
+		return
+
 	upgrade_button.pressed.connect(_on_upgrade_pressed)
 	upgrade_button_potency.pressed.connect(_on_buy_potency_pressed)
 	upgrade_button_synergy.pressed.connect(_on_buy_synergy_pressed)

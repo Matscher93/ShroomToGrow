@@ -318,25 +318,14 @@ func unlock_biome(key: StringName) -> bool:
 	biomes_data.unlock(key)
 	return true
 
-## Each biome ships 10 upgrades, bought with that biome's own level points.
-## Add more by extending this map alongside new .tres defs under
-## data/upgrades/biomes/<key>/.
+## Each biome's point-bought upgrades, in grid-slot order. Authored on the
+## BiomeDef itself (data/biomes/res_biome_*.tres) — adding one is a data edit
+## next to the new UpgradeDef .tres, with no code change here.
 func biome_upgrade_ids(key: StringName) -> Array[StringName]:
-	match key:
-		&"meadow":
-			return [&"DenseMycelium", &"ForestUpgrade2", &"ForestUpgrade3", &"ForestUpgrade4",
-				&"ForestUpgrade5", &"ForestUpgrade6", &"ForestUpgrade7", &"ForestUpgrade8",
-				&"ForestUpgrade9", &"ForestUpgrade10"]
-		&"forest":
-			return [&"SymbioticBloom", &"SymbiosisUpgrade2", &"SymbiosisUpgrade3", &"SymbiosisUpgrade4",
-				&"SymbiosisUpgrade5", &"SymbiosisUpgrade6", &"SymbiosisUpgrade7", &"SymbiosisUpgrade8",
-				&"SymbiosisUpgrade9", &"SymbiosisUpgrade10"]
-		&"permafrost":
-			return [&"FrozenSpores", &"PermafrostUpgrade2", &"PermafrostUpgrade3", &"PermafrostUpgrade4",
-				&"PermafrostUpgrade5", &"PermafrostUpgrade6", &"PermafrostUpgrade7", &"PermafrostUpgrade8",
-				&"PermafrostUpgrade9", &"PermafrostUpgrade10"]
-		_:
-			return []
+	var def := biome_def(key)
+	if def == null:
+		return []
+	return def.upgrade_ids
 
 ## True once enough points have been spent overall in this biome — gates the
 ## later, more powerful upgrades behind investment in the earlier ones.

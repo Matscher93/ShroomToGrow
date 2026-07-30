@@ -24,8 +24,14 @@ var _vm: BiomeUpgradeViewModel
 
 func _ready() -> void:
 	_update_shader()
-	upgrade_buy_button.pressed.connect(_on_buy_pressed)
 	lbl_upgrade_cost.text = "1 pt"
+
+	# select_upgrade() builds a ViewModel that reads the App autoload, which
+	# isn't instantiated for @tool scripts running in the editor.
+	if Engine.is_editor_hint():
+		return
+
+	upgrade_buy_button.pressed.connect(_on_buy_pressed)
 	if upgrade_id != &"":
 		select_upgrade(upgrade_id, biome_key)
 

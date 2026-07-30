@@ -8,6 +8,11 @@ extends PanelContainer
 @export var biome_scene: PackedScene
 
 func _ready() -> void:
+	# App is an autoload, and autoloads aren't instantiated for @tool scripts
+	# running in the editor — the biome list only exists at runtime.
+	if Engine.is_editor_hint():
+		return
+
 	for child in vbox_items.get_children():
 		vbox_items.remove_child(child)
 		child.queue_free()

@@ -9,6 +9,7 @@ var _vm: OfflineIncomeViewModel
 var _snapshots: Array[Dictionary]
 var _total_offline_ticks: int
 var _total_offline_time: float
+var _node_change_rows: Array[MyceliumNodeChangePanel] = []
 
 @export var label_ticks: Label
 @export var label_time: Label
@@ -30,11 +31,8 @@ func bind(vm: OfflineIncomeViewModel) -> void:
 	_vm = vm
 	_vm.property_changed.connect(_on_property_changed)
 	_refresh()
-	offline_income_button.pressed.connect(_on_dismiss_pressed)
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(_delta: float) -> void:
-	pass
+	if not offline_income_button.pressed.is_connected(_on_dismiss_pressed):
+		offline_income_button.pressed.connect(_on_dismiss_pressed)
 
 func _on_property_changed(property: StringName) -> void:
 	match property:
@@ -81,28 +79,42 @@ func _set_tick_progress(progress: float) -> void:
 	if offline_time_container and offline_time_container.material:
 		offline_time_container.material.set_shader_parameter("tick_progress", clampf(progress, 0.0, 1.0))
 
+## Rows are built once, on first render, and then updated and shown/hidden in
+## place. This runs on every reported progress batch (~every 20ms) for the whole
+## catch-up loop, so tearing the list down and re-instantiating a scene per node
+## each time was allocation churn inside the exact loop the frame budget in
+## SaveManager is trying to protect.
 func _render_deltas(initial_nutrient: BigNumber, final_nutrient: BigNumber,
 		initial_node_counts: Array[BigNumber], final_node_count_fn: Callable) -> void:
 	nutrient_panel.set_currency_change(final_nutrient.sub(initial_nutrient))
 
 	var nodes := App.nodes.mycelium_nodes
-	_clear_node_change_list()
+	_ensure_node_change_rows(nodes.size())
 
+	var zero := BigNumber.from_value(0.0)
 	for i in range(nodes.size()):
-		var node := nodes[i]
+		var row := _node_change_rows[i]
 		var node_change: BigNumber = final_node_count_fn.call(i).sub(initial_node_counts[i])
-		if node_change.equals(BigNumber.from_value(0.0)):
+		if node_change.equals(zero):
+			row.visible = false
 			continue
+		row.visible = true
+		row.set_data(nodes[i], i, node_change)
 
-		var node_scene_instance := mycelium_node_change_item.instantiate()
-		node_scene_instance.set_data(node, i, node_change)
+func _ensure_node_change_rows(count: int) -> void:
+	# sc_offline_income.tscn authors placeholder rows into vbox_node_change so
+	# the popup can be laid out in the editor. They have to go before the real
+	# rows are added, or the list renders the placeholders followed by the
+	# actual node changes.
+	if _node_change_rows.is_empty():
+		for child in vbox_node_change.get_children():
+			vbox_node_change.remove_child(child)
+			child.queue_free()
 
-		vbox_node_change.add_child(node_scene_instance)
-
-func _clear_node_change_list() -> void:
-	for child in vbox_node_change.get_children():
-		vbox_node_change.remove_child(child)
-		child.queue_free()
+	while _node_change_rows.size() < count:
+		var row: MyceliumNodeChangePanel = mycelium_node_change_item.instantiate()
+		vbox_node_change.add_child(row)
+		_node_change_rows.append(row)
 
 func _update_visuals() -> void:
 	_snapshots = _vm.save_data_snapshots
@@ -143,8 +155,12 @@ static func format_duration(total_seconds: float, max_units := 2) -> String:
 func _on_dismiss_pressed() -> void:
 	dismissed.emit()
 
+## A snapshot taken before a node tier was added carries fewer entries than the
+## live node list, so an out-of-range tier simply had nothing then — zero.
 func _get_node_count(save_data: Dictionary, index: int) -> BigNumber:
 	var mycelium_nodes: Array = save_data.get("mycelium_nodes", [])
+	if index < 0 or index >= mycelium_nodes.size():
+		return BigNumber.new(0.0, 0)
 	return BigNumber.from_save(mycelium_nodes[index].get("auto_nodes", {}))
 
 func _get_nutrient_count(save_data: Dictionary) -> BigNumber:

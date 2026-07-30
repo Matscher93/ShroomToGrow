@@ -70,7 +70,14 @@ func save_game() -> void:
 		DirAccess.copy_absolute(SAVE_PATH, BACKUP_PATH)
 
 	# 3. Replace the real file with the temp (overwrites the existing file).
-	DirAccess.rename_absolute(TMP_PATH, SAVE_PATH)
+	# If this fails the on-disk save is still the *previous* one, so
+	# last_savegame must not be advanced — offline progress is measured from
+	# its saved_at, and claiming a write that didn't land would silently drop
+	# everything since the last successful save.
+	var rename_error := DirAccess.rename_absolute(TMP_PATH, SAVE_PATH)
+	if rename_error != OK:
+		push_error("Save failed: could not replace %s (error %d)" % [SAVE_PATH, rename_error])
+		return
 
 	last_savegame = data
 
@@ -83,6 +90,9 @@ func load_game() -> void:
 	if data.is_empty():
 		return  # fresh start
 
+	if not _migrate(data):
+		return
+
 	_apply_data(data.get("game", {}))
 	# Deferred: the offline catch-up loop is expensive (thousands of ticks for
 	# the 24h cap) and used to run synchronously here, in the autoload's own
@@ -90,6 +100,23 @@ func load_game() -> void:
 	# by main_screen once the offline income screen actually checks for it,
 	# and timesliced across frames (see run_offline_progress_calculation()).
 	_pending_offline_saved_at = float(data.get("saved_at", 0.0))
+
+## Brings an older save up to SAVE_VERSION in place, and refuses one written by
+## a newer build than this one. Returns false if the save must not be applied.
+##
+## SAVE_VERSION was previously written on save and never read back, so a save
+## from a future build would have been applied field-by-field anyway, silently
+## reinterpreting whatever had changed. Add a migration step per version bump.
+func _migrate(data: Dictionary) -> bool:
+	var version := int(data.get("version", 0))
+	if version > SAVE_VERSION:
+		push_error("Save is version %d but this build only understands %d — refusing to load it rather than corrupt it." % [version, SAVE_VERSION])
+		return false
+	if version < SAVE_VERSION:
+		# No migration steps needed yet: version 0 (unversioned) and version 1
+		# have the same shape. Handle each older version explicitly here.
+		push_warning("Migrating save from version %d to %d." % [version, SAVE_VERSION])
+	return true
 
 func _read(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
@@ -123,17 +150,17 @@ func run_offline_progress_calculation() -> void:
 
 	var elapsed := minf(Time.get_unix_time_from_system() - saved_at, MAX_OFFLINE_SECONDS)
 
+	# Only the endpoints are ever read (the popup diffs snapshot[0] against
+	# snapshot[-1]), so nothing is captured mid-loop — a _collect_data() call
+	# serializes player data, every node and all three upgrade systems, and
+	# doing that per tick dominated the catch-up loop for no visible result.
 	var save_game_snapshots: Array[Dictionary]
-	# initial snapshot
 	save_game_snapshots.append(_collect_data())
 
-	# limit snapshots to a manageable amount
-	var snapshot_interval: int = floor((elapsed/App.tick_timer.wait_time)/100)
 	var total_ticks_expected: int = maxi(1, int(elapsed / App.tick_timer.wait_time))
 	App.offline_income_vm.set_calc_progress(0, total_ticks_expected)
 
 	var tick_counter := 0
-	var snapshot_tick_counter := 0
 	elapsed -= App.tick_timer.wait_time
 
 	# The real-time tick timer must not fire while we're manually driving
@@ -148,11 +175,6 @@ func run_offline_progress_calculation() -> void:
 		elapsed -= App.tick_timer.wait_time
 		App.handle_tick(bonuses)
 		tick_counter += 1
-		if snapshot_tick_counter >= snapshot_interval:
-			save_game_snapshots.append(_collect_data())
-			snapshot_tick_counter = 0
-		else:
-			snapshot_tick_counter += 1
 
 		if Time.get_ticks_msec() - batch_start >= OFFLINE_CALC_FRAME_BUDGET_MSEC:
 			App.offline_income_vm.set_calc_progress(tick_counter, total_ticks_expected)

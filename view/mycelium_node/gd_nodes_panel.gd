@@ -7,6 +7,11 @@ extends PanelContainer
 var _nodes: Array[MyceliumNode] = []
 
 func _ready() -> void:
+	# App is an autoload, and autoloads aren't instantiated for @tool scripts
+	# running in the editor — the node list only exists at runtime.
+	if Engine.is_editor_hint():
+		return
+
 	for child in vbox_nodes.get_children():
 		vbox_nodes.remove_child(child)
 		child.queue_free()

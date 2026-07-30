@@ -6,7 +6,14 @@ var _vm : ScreensViewModel
 @export var button_scene: PackedScene
 
 var button_dictionary: Dictionary[ScreenTypes.Types, PanelContainer]
-var _current_screen_instance: Node = null
+
+## Screens are built once and then shown/hidden, never freed on switch. They
+## used to be queue_free()'d and re-instantiated every time a tab was tapped,
+## which threw away all of that screen's view state on each switch — the perk
+## web's pan/zoom and selected perk, expanded biome cards, scroll positions —
+## and paid for a full scene instantiate + _ready + first layout each time.
+var _screen_instances: Dictionary[ScreenTypes.Types, Control] = {}
+var _current_screen_instance: Control = null
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -39,15 +46,26 @@ func _on_biome_unlocked(_key: StringName) -> void:
 	_rebuild_nav_buttons()
 
 func update_visuals() -> void:
+	_show_screen(_vm.current_screen)
+	_rebuild_nav_buttons()
+
+## Reveals a screen, instantiating it on first visit only.
+func _show_screen(screen_type: ScreenTypes.Types) -> void:
 	if _current_screen_instance:
-		_current_screen_instance.queue_free()
+		_current_screen_instance.visible = false
 		_current_screen_instance = null
 
-	var screen_data := _vm.get_screen_data(_vm.current_screen)
-	_current_screen_instance = screen_data.screen_scene.instantiate()
-	screen_container.add_child(_current_screen_instance)
+	if not _screen_instances.has(screen_type):
+		var screen_data := _vm.get_screen_data(screen_type)
+		if screen_data == null or screen_data.screen_scene == null:
+			push_error("No screen scene registered for screen type %d." % screen_type)
+			return
+		var instance := screen_data.screen_scene.instantiate() as Control
+		screen_container.add_child(instance)
+		_screen_instances[screen_type] = instance
 
-	_rebuild_nav_buttons()
+	_current_screen_instance = _screen_instances[screen_type]
+	_current_screen_instance.visible = true
 
 func _rebuild_nav_buttons() -> void:
 	for child in button_container.get_children():
@@ -60,6 +78,8 @@ func _rebuild_nav_buttons() -> void:
 		if not App.is_screen_unlocked(screen_key):
 			continue
 		var button_data: ScreenDefinition = all_screens.get(screen_key)
+		if button_data == null:
+			continue  # screen type with no definition authored — nothing to show
 		var button := button_scene.instantiate()
 		button.set_button_text(button_data.screen_name)
 		button.pressed.connect(on_screen_selected.bind(screen_key))

@@ -22,15 +22,17 @@ var _vm_change: MyceliumNodeViewModel
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	_update_colors()
+
+	# App is an autoload, and autoloads aren't instantiated for @tool scripts
+	# running in the editor — the ViewModels only exist at runtime.
+	if Engine.is_editor_hint():
+		return
+
 	if App.player_vm:
 		bind(App.player_vm)
 		if App.mycelium_node_vms.size() > 0:
 			bind_change(App.mycelium_node_vms[0])
 		_refresh_all()
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(_delta: float) -> void:
-	pass
 
 func _update_visuals() -> void:
 	_update_colors()

@@ -15,6 +15,13 @@ enum XpSource { TOTAL_NODES, SYMBIOSIS_LEVELS, PRESTIGE_COUNT }
 @export var biome_color: Color
 @export var biome_shader: Shader  ## assigned to a ColorRect's material to render biome's icon
 
+## This biome's point-bought upgrades, in the order their grid slots appear.
+## Each entry must match an UpgradeDef.id under data/upgrades/biomes/. Note the
+## folder and id names lag a biome rename by one (Meadow's upgrades are named
+## Forest*, Forest's are named Symbiosis*) — the ids here are what actually
+## binds them, so trust this list over the folder a .tres happens to sit in.
+@export var upgrade_ids: Array[StringName] = []
+
 ## True for the starter biome(s) — unlocked from a fresh save, no cost/currency needed.
 @export var always_unlocked: bool = false
 @export var unlock_currency: CurrencyTypes.Types = CurrencyTypes.Types.NUTRIENTS

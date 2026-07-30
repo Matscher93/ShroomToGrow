@@ -47,28 +47,11 @@ var production_text: String:
 		var production := _scaled_production()
 		if production.equals(BigNumber.from_value(0.0)):
 			return ""
-
-		var source_text := "+%s / tick"
-		var unit_text: String
-		if _mycelium_data._node.node_id == 0:
-			unit_text = ("%s nutrients" if is_multiple else "%s nutrient") % [production._to_string()]
-		else:
-			var level_text := "LV%d" % [_mycelium_data._node.node_id]
-			unit_text = ("%s %s nodes" if is_multiple else "%s %s node") % [production._to_string(), level_text]
-
-		return source_text % [unit_text]
+		return "+%s / tick" % [_unit_text(production)]
 
 var production_per_node_text: String:
 	get:
-		var source_text := _mycelium_data._node.desc
-		var unit_text: String
-		if _mycelium_data._node.node_id == 0:
-			unit_text = ("%s nutrients" if is_multiple else "%s nutrient") % [_bonus_production()._to_string()]
-		else:
-			var level_text := "LV%d" % [_mycelium_data._node.node_id]
-			unit_text = ("%s %s nodes" if is_multiple else "%s %s node") % [_bonus_production()._to_string(), level_text]
-
-		return source_text % [unit_text]
+		return _mycelium_data._node.desc % [_unit_text(_bonus_production())]
 
 var production_text_short: String:
 	get:
@@ -78,9 +61,16 @@ var can_buy_upgrade: bool:
 	get:
 		return _mycelium_data.can_afford_upgrade()
 
-var is_multiple: bool:
-	get:
-		return _bonus_production().gt(BigNumber.from_value(1.0))
+## Pluralised against the number actually being shown. This used to be a
+## parameterless `is_multiple` reading the production *multiplier* rather than
+## the amount next to the noun, so a node producing 500 with a 1.0x bonus
+## rendered "500 nutrient".
+func _unit_text(amount: BigNumber) -> String:
+	var plural := amount.gt(BigNumber.from_value(1.0))
+	if _mycelium_data._node.node_id == 0:
+		return ("%s nutrients" if plural else "%s nutrient") % [amount.to_display()]
+	var level_text := "LV%d" % [_mycelium_data._node.node_id]
+	return ("%s %s nodes" if plural else "%s %s node") % [amount.to_display(), level_text]
 
 var total_yield_text: String:
 	get:

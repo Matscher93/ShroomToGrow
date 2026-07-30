@@ -1,20 +1,25 @@
 class_name ResolveContext
 extends RefCounted
+## MODEL — the live inputs a ScalingSourceDef can scale an upgrade effect by.
+##
+## Everything here must be *player-action driven*, not per-tick: UpgradeSystem
+## resolves these into a cache that is only rebuilt on invalidate(), so a value
+## that moved every tick would be read stale. Whoever writes a field is also
+## responsible for invalidating the affected systems (see App._track_manual_count
+## and App.buy_biome_size).
+##
+## node_counts / resources / stat_snapshot used to live here for the STAT and
+## RESOURCE scaling kinds. Nothing ever wrote them, so those kinds resolved to
+## 0.0 and silently zeroed any effect that depended on one; both they and the
+## fields are gone (see ScalingSourceDef.Kind).
 
-var node_counts: Dictionary = {}      # tier -> total
-var manual_counts: Dictionary = {}    # tier -> hand-bought   (track this separately in NodeManager)
-var resources: Dictionary = {}        # resource -> current amount
-var stat_snapshot: Dictionary = {}    # stat -> LAST tick's resolved value  ← the cycle-breaker
+var manual_counts: Dictionary = {}    # node tier -> hand-bought count
 var biome_sizes: Dictionary = {}      # biome key -> purchased size
 
-func node_count(tier: StringName, manual_only: bool) -> float:
-	return float((manual_counts if manual_only else node_counts).get(tier, 0))
+## Hand-bought nodes only. Auto-generated nodes deliberately don't count — they
+## grow every tick, which is exactly what this cache can't represent.
+func node_count(tier: StringName) -> float:
+	return float(manual_counts.get(tier, 0))
 
 func biome_size(key: StringName) -> float:
 	return float(biome_sizes.get(key, 0))
-
-func stat_value(stat: StringName) -> float:
-	return stat_snapshot.get(stat, 0.0)
-
-func resource_amount(res: StringName) -> float:
-	return resources.get(res, 0.0)

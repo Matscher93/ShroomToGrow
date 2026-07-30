@@ -8,23 +8,28 @@ signal water_changed(value: BigNumber)
 signal tick_count_changed(value: int)
 signal prestige_count_changed(value: int)
 
+## The BigNumber setters below guard with same_value(), not ==: BigNumber is a
+## RefCounted, so == is an identity check that is false for every freshly built
+## instance — which is all of them, since its arithmetic never mutates in place.
+## That made these guards dead, and every assignment emitted, fanning the signal
+## out to every bound ViewModel once per tick even when the value hadn't moved.
 var nutrients: BigNumber = BigNumber.from_value(1.0):
 	set(value):
-		if nutrients == value:
+		if value == null or nutrients.same_value(value):
 			return
 		nutrients = value
 		nutrients_changed.emit(nutrients)
 
 var biomass: BigNumber = BigNumber.from_value(0.0):
 	set(value):
-		if biomass == value:
+		if value == null or biomass.same_value(value):
 			return
 		biomass = value
 		biomass_changed.emit(biomass)
 
 var water: BigNumber = BigNumber.from_value(0.0):
 	set(value):
-		if water == value:
+		if value == null or water.same_value(value):
 			return
 		water = value
 		water_changed.emit(water)

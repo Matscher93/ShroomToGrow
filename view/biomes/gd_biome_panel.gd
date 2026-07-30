@@ -61,11 +61,17 @@ func _ready() -> void:
 
 	lbl_size_desc.text = "Scales size-dependent upgrades"
 
+	grid_upgrade_slots.columns = GRID_COLUMNS
+
+	# App is an autoload, and autoloads aren't instantiated for @tool scripts
+	# running in the editor — everything below needs the live game state.
+	if Engine.is_editor_hint():
+		return
+
 	unlock_biome_button.pressed.connect(_on_unlock_pressed)
 	size_buy_button.pressed.connect(_on_buy_size_pressed)
 	App.biome_upgrade_system.upgrades_changed.connect(_refresh_grid_lock_state)
 
-	grid_upgrade_slots.columns = GRID_COLUMNS
 	_spawn_grid_slots()
 
 	if App.biome_vms.has(biome_key):
@@ -147,6 +153,8 @@ func _exit_tree() -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
+	if Engine.is_editor_hint():
+		return
 	if App.biome_upgrade_system.upgrades_changed.is_connected(_refresh_grid_lock_state):
 		App.biome_upgrade_system.upgrades_changed.disconnect(_refresh_grid_lock_state)
 

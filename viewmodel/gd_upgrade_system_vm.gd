@@ -126,9 +126,16 @@ func to_save() -> Dictionary:
 			data[String(id)] = lvl
 	return data
 
+## Levels for ids this system doesn't know are dropped, not stored: a renamed or
+## deleted UpgradeDef (or a data directory that failed to load) would otherwise
+## leave an id in _levels that _rebuild() has no def for.
 func from_save(data: Dictionary) -> void:
 	for key in data:
-		_levels[StringName(key)] = int(data[key])
+		var id := StringName(key)
+		if not _defs.has(id):
+			push_warning("Save contains unknown upgrade '%s' — dropping its level." % key)
+			continue
+		_levels[id] = int(data[key])
 	_dirty = true
 	upgrades_changed.emit()
 
@@ -163,7 +170,10 @@ func _rebuild(ctx: ResolveContext) -> void:
 	for id in _levels:
 		var lvl: int = _levels[id]
 		if lvl <= 0: continue
-		for e in (_defs[id] as UpgradeDef).effects:
+		var upgrade_def: UpgradeDef = _defs.get(id)
+		if upgrade_def == null:
+			continue
+		for e in upgrade_def.effects:
 			var mag: BigNumber = e.magnitude(lvl)
 			if e.dependency:
 				mag = mag.scale(e.dependency.evaluate(ctx))
