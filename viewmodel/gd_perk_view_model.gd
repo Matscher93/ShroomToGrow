@@ -26,6 +26,9 @@ var level: int:
 var owned: bool:
 	get: return level > 0
 
+var level_text: String:
+	get: return "%d/%d" % [level, max_level]
+
 var tooltip_text: String:
 	get: return "%s — Lv %d/%d" % [_def.display_name, level, max_level]
 

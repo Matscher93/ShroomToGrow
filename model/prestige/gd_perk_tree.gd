@@ -1,60 +1,82 @@
 class_name PerkTree
-## MODEL — pure generator: turns a PerkBranchList into the full set of
-## PerkDefs (positions, ids, parent links). Every branch gets the same
-## fixed shape — core -> I -> II -> {III·A, III·B} -> IV·A / IV·B — so
-## adding a branch later is authoring data, not writing code.
+## MODEL — pure generator: turns a PerkBranchList into the full set of PerkDefs.
+## Cost/effect/name/description all come straight from the authored
+## PerkNodeDefs; the only thing generated is where each node sits, derived from
+## how deep it hangs off the core and how many siblings it shares a parent with.
+## Branches can be any shape — chain as long as you like, fork as often as you
+## like — without touching this file.
 
 const CANVAS_CENTER := 520.0
-const RADII: Array[float] = [150.0, 250.0, 355.0, 460.0]  # index = tier
-const FORK_SPREAD_DEG := 13.0
-const TIER_COSTS: Array[float] = [2.0, 4.0, 8.0, 16.0]
-const ROMAN: Array[String] = ["I", "II", "III", "IV"]
-const MAX_PERK_LEVEL := 5
-const COST_GROWTH := 1.6
+const ROOT_RADIUS := 150.0
+const DEPTH_RADIUS_STEP := 103.0
+const SIBLING_SPREAD_DEG := 26.0
 
 static func build(branch_list: PerkBranchList) -> Array[PerkDef]:
-	var perks: Array[PerkDef] = [_make_core()]
+	var perks: Array[PerkDef] = [_make_core(branch_list.core)]
 	for branch in branch_list.branches:
 		perks.append_array(_build_branch(branch))
 	return perks
 
-static func _make_core() -> PerkDef:
+static func _make_core(core: PerkNodeDef) -> PerkDef:
 	var p := PerkDef.new()
 	p.id = &"core"
 	p.branch_key = &""
 	p.parent_id = &""
-	p.display_name = "Sporation"
-	p.description = "The first bloom. Every arm of the mycelial web grows outward from here."
-	p.max_level = 1
-	p.base_cost = BigNumber.from_value(1.0)
-	p.cost_growth = COST_GROWTH
+	p.display_name = core.display_name
+	p.description = core.description
+	p.max_level = core.max_level
+	p.base_cost = BigNumber.from_value(core.base_cost)
+	p.cost_growth = core.cost_growth
+	p.effects = core.effects
 	p.world_x = CANVAS_CENTER
 	p.world_y = CANVAS_CENTER
 	return p
 
 static func _build_branch(branch: PerkBranchDef) -> Array[PerkDef]:
-	var angle := deg_to_rad(branch.angle_degrees)
-	var spread := deg_to_rad(FORK_SPREAD_DEG)
-	var p1 := _make_tier(branch, 0, angle, &"core", "")
-	var p2 := _make_tier(branch, 1, angle, p1.id, "")
-	var p3a := _make_tier(branch, 2, angle - spread, p2.id, "·A")
-	var p3b := _make_tier(branch, 2, angle + spread, p2.id, "·B")
-	var p4a := _make_tier(branch, 3, angle - spread * 1.5, p3a.id, "·A")
-	var p4b := _make_tier(branch, 3, angle + spread * 1.5, p3b.id, "·B")
-	return [p1, p2, p3a, p3b, p4a, p4b]
+	var children_by_parent: Dictionary = {}  # StringName parent_key -> Array[PerkNodeDef]
+	var seen: Dictionary = {}
+	for node in branch.nodes:
+		if seen.has(node.key):
+			push_error("Perk branch '%s' has two nodes keyed '%s' — skipping the second." % [branch.key, node.key])
+			continue
+		seen[node.key] = true
+		if not children_by_parent.has(node.parent_key):
+			children_by_parent[node.parent_key] = []
+		children_by_parent[node.parent_key].append(node)
 
-static func _make_tier(branch: PerkBranchDef, tier: int, angle: float, parent_id: StringName, suffix: String) -> PerkDef:
+	for parent_key in children_by_parent:
+		if parent_key != &"" and not seen.has(parent_key):
+			push_error("Perk branch '%s': parent '%s' does not exist — its children are unreachable." % [branch.key, parent_key])
+
+	var perks: Array[PerkDef] = []
+	_place_children(branch, children_by_parent, &"", &"core", deg_to_rad(branch.angle_degrees), 0, perks)
+	return perks
+
+static func _place_children(branch: PerkBranchDef, children_by_parent: Dictionary, parent_key: StringName,
+		parent_id: StringName, parent_angle: float, depth: int, out: Array[PerkDef]) -> void:
+	var siblings: Array = children_by_parent.get(parent_key, [])
+	var spread := deg_to_rad(SIBLING_SPREAD_DEG)
+	for i in siblings.size():
+		var node: PerkNodeDef = siblings[i]
+		var angle := parent_angle + spread * (float(i) - (siblings.size() - 1) / 2.0)
+		out.append(_make_perk(branch, node, parent_id, angle, depth))
+		_place_children(branch, children_by_parent, node.key, _perk_id(branch, node), angle, depth + 1, out)
+
+static func _make_perk(branch: PerkBranchDef, node: PerkNodeDef, parent_id: StringName, angle: float, depth: int) -> PerkDef:
 	var p := PerkDef.new()
-	p.id = StringName("%s%s%s" % [branch.key, ROMAN[tier], suffix])
+	p.id = _perk_id(branch, node)
 	p.branch_key = branch.key
 	p.parent_id = parent_id
-	p.display_name = "%s %s%s" % [branch.label, ROMAN[tier], suffix]
-	p.description = "%s node — kept through every sporation." % branch.label
-	p.max_level = MAX_PERK_LEVEL
-	p.base_cost = BigNumber.from_value(TIER_COSTS[tier])
-	p.cost_growth = COST_GROWTH
-	p.effects = [branch.effect_for_tier(tier)]
-	var r := RADII[tier]
+	p.display_name = node.display_name
+	p.description = node.description
+	p.max_level = node.max_level
+	p.base_cost = BigNumber.from_value(node.base_cost)
+	p.cost_growth = node.cost_growth
+	p.effects = branch.effects_for(node)
+	var r := ROOT_RADIUS + DEPTH_RADIUS_STEP * depth
 	p.world_x = CANVAS_CENTER + cos(angle) * r
 	p.world_y = CANVAS_CENTER + sin(angle) * r
 	return p
+
+static func _perk_id(branch: PerkBranchDef, node: PerkNodeDef) -> StringName:
+	return StringName("%s%s" % [branch.key, node.key])

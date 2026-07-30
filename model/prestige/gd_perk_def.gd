@@ -2,7 +2,8 @@ class_name PerkDef
 extends UpgradeDef
 ## MODEL — one node in the mycelial web. IS-A UpgradeDef (cost/level/effects
 ## all reused as-is) plus the tree/graph metadata PerkTree needs to place and
-## connect it. Never hand-authored — PerkTree.build() generates these.
+## connect it. Never hand-authored — PerkTree.build() generates one of these
+## per authored PerkNodeDef.
 
 @export var parent_id: StringName  ## &"" for the core node
 @export var branch_key: StringName ## &"" for the core node

@@ -1,12 +1,23 @@
-[gd_resource type="Resource" script_class="PerkBranchList" format=3]
+[gd_resource type="Resource" script_class="PerkBranchList" format=3 uid="uid://b8kah50e8dhyv"]
 
-[ext_resource type="Script" path="res://model/prestige/gd_perk_branch_list.gd" id="1_list_script"]
-[ext_resource type="Script" path="res://model/prestige/gd_perk_branch_def.gd" id="2_def_script"]
-[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_substrate.tres" id="3_substrate"]
-[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_fruiting.tres" id="4_fruiting"]
-[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_tempo.tres" id="5_tempo"]
-[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_bounty.tres" id="6_bounty"]
+[ext_resource type="Script" uid="uid://dc02bva2ktqma" path="res://model/prestige/gd_perk_branch_list.gd" id="1_list_script"]
+[ext_resource type="Script" uid="uid://bidkvks0jdm2w" path="res://model/prestige/gd_perk_branch_def.gd" id="2_def_script"]
+[ext_resource type="Resource" uid="uid://bd31y837jka1r" path="res://data/prestige/branches/res_branch_substrate.tres" id="3_substrate"]
+[ext_resource type="Resource" uid="uid://cnp1l7elbhh1j" path="res://data/prestige/branches/res_branch_fruiting.tres" id="4_fruiting"]
+[ext_resource type="Resource" uid="uid://gje53niigq8a" path="res://data/prestige/branches/res_branch_tempo.tres" id="5_tempo"]
+[ext_resource type="Resource" uid="uid://b8sy4ecxidvpy" path="res://data/prestige/branches/res_branch_bounty.tres" id="6_bounty"]
+[ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="7_node_script"]
+[ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="8_effect_script"]
+
+[sub_resource type="Resource" id="core"]
+script = ExtResource("7_node_script")
+key = &"core"
+display_name = "Sporation"
+description = "The first bloom. Every arm of the mycelial web grows outward from here."
+max_level = 1
+base_cost = 1.0
 
 [resource]
 script = ExtResource("1_list_script")
+core = SubResource("core")
 branches = Array[ExtResource("2_def_script")]([ExtResource("3_substrate"), ExtResource("4_fruiting"), ExtResource("5_tempo"), ExtResource("6_bounty")])

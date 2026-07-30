@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://br7oobkddhcfv"]
+
+[ext_resource type="Script" uid="uid://2b07kljd04cn" path="res://view/prestige/gd_perk_connector.gd" id="1_connector_script"]
+[ext_resource type="Shader" uid="uid://cyfe27oioeygi" path="res://view/prestige/sh_line.gdshader" id="1_xk2jl"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_275kr"]
+resource_local_to_scene = true
+shader = ExtResource("1_xk2jl")
+shader_parameter/speed = 1.0
+shader_parameter/scale = 1.0
+shader_parameter/branch_color = Color(1, 1, 1, 1)
+shader_parameter/glow_thickness = 0.01
+shader_parameter/glow_falloff = 250.0
+shader_parameter/glow_strength = 0.2
+shader_parameter/rect_size = Vector2(0, 0)
+
+[node name="PerkConnector" type="Line2D" unique_id=1223504441]
+material = SubResource("ShaderMaterial_275kr")
+width = 50.0
+texture_mode = 1
+script = ExtResource("1_connector_script")
+locked_color = Color(0.3, 0.3, 0.3, 0.19607843)
+available_color = Color(0.55, 0.55, 0.55, 0.5019608)
+owned_color = Color(1, 1, 1, 0.8509804)
+locked_width = 25.0
+available_width = 25.0
+owned_width = 25.0
+available_speed = 0.5

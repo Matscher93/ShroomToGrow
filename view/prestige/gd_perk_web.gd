@@ -1,22 +1,24 @@
 class_name PerkWeb
 extends Control
-## VIEW — pannable/zoomable canvas for the mycelial web. Spawns one plain
-## Button per PerkDef at its precomputed world position, drags/zooms the
-## whole "world" node, and repaints PerkLines underneath on any change.
-## No shader/theme work — flat StyleBoxFlat colored by branch hue, functional
-## scaffold matching the rest of the current-gen UI.
+## VIEW — pannable/zoomable canvas for the mycelial web. Spawns one
+## PerkNode per PerkDef at its precomputed world position, drags/zooms the
+## whole "world" node, and refreshes PerkLines underneath on any change.
+## Node shape/style lives in sc_perk_node.tscn (see gd_perk_node.gd) — this
+## class only positions nodes and tints them by branch hue.
 
 signal perk_selected(id: StringName)
 
 @export var world: Node2D
 @export var lines: PerkLines
+@export var node_scene: PackedScene
 
 const NODE_SIZE := 40.0
 const MIN_SCALE := 0.35
 const MAX_SCALE := 2.5
 const ZOOM_STEP := 1.15
 
-var _buttons: Dictionary = {}  # StringName -> Button
+var _buttons: Dictionary = {}  # StringName -> PerkNode
+var _selected_id: StringName = &"core"
 var _dragging := false
 var _drag_last := Vector2.ZERO
 var _touches: Dictionary = {}  # int finger index -> Vector2 last local position
@@ -65,22 +67,24 @@ func _center_on_core() -> void:
 # --- building ---
 
 func _spawn_button(def: PerkDef) -> void:
-	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(NODE_SIZE, NODE_SIZE)
-	btn.size = Vector2(NODE_SIZE, NODE_SIZE)
+	var btn: PerkNode = node_scene.instantiate()
 	btn.position = Vector2(def.world_x, def.world_y) - Vector2(NODE_SIZE, NODE_SIZE) / 2.0
-	btn.text = "✦" if def.branch_key == &"" else String(def.id).trim_prefix(String(def.branch_key))
-	btn.tooltip_text = def.display_name
-	btn.focus_mode = Control.FOCUS_NONE
-	btn.pressed.connect(func() -> void: perk_selected.emit(def.id))
+	btn.bind(def)
+	btn.pressed.connect(func() -> void: _select(def.id); perk_selected.emit(def.id))
 	world.add_child(btn)
 	_buttons[def.id] = btn
 
-func _branch_for(key: StringName) -> PerkBranchDef:
-	for b in App.perk_branches.branches:
-		if b.key == key:
-			return b
-	return null
+# --- selection ---
+
+func _select(id: StringName) -> void:
+	if _selected_id == id:
+		return
+	var previous := _selected_id
+	_selected_id = id
+	if _buttons.has(previous):
+		_refresh_button(previous)
+	if _buttons.has(id):
+		_refresh_button(id)
 
 # --- refresh ---
 
@@ -88,34 +92,21 @@ func _refresh_all() -> void:
 	for id in _buttons:
 		_refresh_button(id)
 	if lines:
-		lines.refresh()
+		lines.refresh(world.scale.x)
 
 func _refresh_button(id: StringName) -> void:
-	var btn: Button = _buttons[id]
+	var btn: PerkNode = _buttons[id]
 	var def: PerkDef = App.perk_defs[id]
 	var vm: PerkViewModel = App.perk_vms[id]
-	var status := vm.status
-	var hue := 0.75
-	if def.branch_key != &"":
-		var branch := _branch_for(def.branch_key)
-		if branch:
-			hue = branch.hue / 360.0
+	btn.refresh(vm, id == _selected_id)
+	btn.set_zoom(world.scale.x)
 
-	var sb := StyleBoxFlat.new()
-	sb.set_corner_radius_all(999)
-	match status:
-		"owned":
-			sb.bg_color = Color.from_hsv(hue, 0.6, 0.9)
-			sb.set_border_width_all(2)
-			sb.border_color = Color.from_hsv(hue, 0.35, 1.0)
-		"available":
-			sb.bg_color = Color.from_hsv(hue, 0.45, 0.55)
-		_:
-			sb.bg_color = Color(0.16, 0.15, 0.19)
-	for style_name in ["normal", "hover", "pressed", "disabled"]:
-		btn.add_theme_stylebox_override(style_name, sb)
-
-	btn.tooltip_text = vm.tooltip_text
+	if vm.status == "locked":
+		btn.set_color(Color.WHITE)
+		return
+	var hue := App.perk_branches.hue_for(def.branch_key) / 360.0
+	var color := Color.from_hsv(hue, 0.6, 0.9) if vm.status == "owned" else Color.from_hsv(hue, 0.45, 0.55)
+	btn.set_color(color)
 
 # --- pan / zoom ---
 
@@ -168,3 +159,7 @@ func _zoom_by(factor: float, anchor: Vector2) -> void:
 	var actual_factor := new_scale / world.scale.x
 	world.position = anchor - (anchor - world.position) * actual_factor
 	world.scale = Vector2(new_scale, new_scale)
+	for id in _buttons:
+		_buttons[id].set_zoom(new_scale)
+	if lines:
+		lines.refresh(world.scale.x)

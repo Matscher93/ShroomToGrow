@@ -1,8 +1,55 @@
-[gd_resource type="Resource" script_class="PerkBranchDef" format=3]
+[gd_resource type="Resource" script_class="PerkBranchDef" format=3 uid="uid://gje53niigq8a"]
 
-[ext_resource type="Script" path="res://model/prestige/gd_perk_branch_def.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://bidkvks0jdm2w" path="res://model/prestige/gd_perk_branch_def.gd" id="1_script"]
 [ext_resource type="Resource" path="res://data/prestige/branches/res_branch_tempo_effect.tres" id="2_effect"]
-[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+[ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+[ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="4_node_script"]
+
+[sub_resource type="Resource" id="node_1"]
+script = ExtResource("4_node_script")
+key = &"I"
+display_name = "Tempo I"
+description = "Tempo node — kept through every sporation."
+
+[sub_resource type="Resource" id="node_2"]
+script = ExtResource("4_node_script")
+key = &"II"
+parent_key = &"I"
+display_name = "Tempo II"
+description = "Tempo node — kept through every sporation."
+base_cost = 4.0
+
+[sub_resource type="Resource" id="node_3a"]
+script = ExtResource("4_node_script")
+key = &"III·A"
+parent_key = &"II"
+display_name = "Tempo III·A"
+description = "Tempo node — kept through every sporation."
+base_cost = 8.0
+
+[sub_resource type="Resource" id="node_3b"]
+script = ExtResource("4_node_script")
+key = &"III·B"
+parent_key = &"II"
+display_name = "Tempo III·B"
+description = "Tempo node — kept through every sporation."
+base_cost = 8.0
+
+[sub_resource type="Resource" id="node_4a"]
+script = ExtResource("4_node_script")
+key = &"IV·A"
+parent_key = &"III·A"
+display_name = "Tempo IV·A"
+description = "Tempo node — kept through every sporation."
+base_cost = 16.0
+
+[sub_resource type="Resource" id="node_4b"]
+script = ExtResource("4_node_script")
+key = &"IV·B"
+parent_key = &"III·B"
+display_name = "Tempo IV·B"
+description = "Tempo node — kept through every sporation."
+base_cost = 16.0
 
 [resource]
 script = ExtResource("1_script")
@@ -10,4 +57,5 @@ key = &"tmp"
 label = "Tempo"
 angle_degrees = 100.0
 hue = 190.0
-effects = Array[ExtResource("3_effect_script")]([ExtResource("2_effect")])
+default_effects = Array[ExtResource("3_effect_script")]([ExtResource("2_effect")])
+nodes = Array[ExtResource("4_node_script")]([SubResource("node_1"), SubResource("node_2"), SubResource("node_3a"), SubResource("node_3b"), SubResource("node_4a"), SubResource("node_4b")])

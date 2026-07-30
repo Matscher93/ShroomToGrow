@@ -3,6 +3,8 @@
 [ext_resource type="Script" path="res://view/prestige/gd_prestige_panel.gd" id="1_panel_script"]
 [ext_resource type="Script" path="res://view/prestige/gd_perk_web.gd" id="2_web_script"]
 [ext_resource type="Script" path="res://view/prestige/gd_perk_lines.gd" id="3_lines_script"]
+[ext_resource type="PackedScene" path="res://view/prestige/sc_perk_node.tscn" id="4_node_scene"]
+[ext_resource type="PackedScene" path="res://view/prestige/sc_perk_connector.tscn" id="5_connector_scene"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
 
@@ -43,11 +45,13 @@ custom_minimum_size = Vector2(0, 320)
 script = ExtResource("2_web_script")
 world = NodePath("World")
 lines = NodePath("World/Lines")
+node_scene = ExtResource("4_node_scene")
 
 [node name="World" type="Node2D" parent="VBox/WebClip"]
 
 [node name="Lines" type="Node2D" parent="VBox/WebClip/World"]
 script = ExtResource("3_lines_script")
+connector_scene = ExtResource("5_connector_scene")
 
 [node name="DetailPanel" type="PanelContainer" parent="VBox"]
 layout_mode = 2

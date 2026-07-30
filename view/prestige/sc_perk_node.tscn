@@ -1,0 +1,99 @@
+[gd_scene format=3 uid="uid://d1suqi2wn1dyk"]
+
+[ext_resource type="Shader" uid="uid://bypeqlrrl5wyi" path="res://view/prestige/sh_perk_node.gdshader" id="1_dm6pt"]
+[ext_resource type="Script" uid="uid://bcxdtkah1q88p" path="res://view/prestige/gd_perk_node.gd" id="1_node_script"]
+[ext_resource type="Script" uid="uid://c3ouusiqjure6" path="res://view/base_views/gd_base_panel_container.gd" id="3_bskuh"]
+[ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="3_cfe0a"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_xk2jl"]
+resource_local_to_scene = true
+shader = ExtResource("1_dm6pt")
+shader_parameter/button_color = Color(1, 0.90000004, 0, 1)
+shader_parameter/locked_color = Color(0.19607843, 0.19607843, 0.19607843, 0.78431374)
+shader_parameter/available_color = Color(0.49019608, 0.49019608, 0.49019608, 0.78431374)
+shader_parameter/unlocked_color = Color(0.5882353, 0.5882353, 0.5882353, 1)
+shader_parameter/selected_color = Color(1, 1, 1, 1)
+shader_parameter/ring_thickness = 1.0
+shader_parameter/rect_size = Vector2(40, 40)
+shader_parameter/scale = 1.0
+shader_parameter/status = 0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(1, 1, 1, 1)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_normal"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pressed"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hover"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_disabled"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_focus"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_dm6pt"]
+font = ExtResource("3_cfe0a")
+outline_color = Color(0, 0, 0, 1)
+shadow_size = 2
+shadow_color = Color(0, 0, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_level"]
+font = ExtResource("3_cfe0a")
+font_size = 12
+font_color = Color(0.78431374, 0.78431374, 0.78431374, 1)
+outline_color = Color(0, 0, 0, 1)
+shadow_size = 2
+shadow_color = Color(0, 0, 0, 1)
+
+[node name="PerkNode" type="Control" unique_id=262367594 node_paths=PackedStringArray("background", "button", "name_label", "level_label")]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_node_script")
+background = NodePath("Background")
+button = NodePath("Background/Button")
+name_label = NodePath("NameLabel")
+level_label = NodePath("LevelLabel")
+locked_ring_thickness = 2.0
+available_ring_thickness = 2.0
+unlocked_ring_thickness = 2.0
+selected_ring_thickness = 3.0
+
+[node name="Background" type="PanelContainer" parent="." unique_id=1050952749]
+material = SubResource("ShaderMaterial_xk2jl")
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+script = ExtResource("3_bskuh")
+
+[node name="Button" type="Button" parent="Background" unique_id=1114551300]
+layout_mode = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_normal")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_pressed")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_hover")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_disabled")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_focus")
+
+[node name="NameLabel" type="Label" parent="." unique_id=228279080]
+layout_mode = 0
+offset_left = -20.0
+offset_top = 44.0
+offset_right = 60.0
+offset_bottom = 64.0
+text = "asdf"
+label_settings = SubResource("LabelSettings_dm6pt")
+horizontal_alignment = 1
+
+[node name="LevelLabel" type="Label" parent="." unique_id=228279081]
+layout_mode = 0
+offset_left = -20.0
+offset_top = 64.0
+offset_right = 60.0
+offset_bottom = 80.0
+text = "0/0"
+label_settings = SubResource("LabelSettings_level")
+horizontal_alignment = 1

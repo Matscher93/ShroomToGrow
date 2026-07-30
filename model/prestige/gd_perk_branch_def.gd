@@ -1,21 +1,20 @@
 class_name PerkBranchDef
 extends Resource
-## MODEL — one arm of the mycelial web. Adding a new branch is just adding
-## one of these (+ its effect) to all_branches.tres — PerkTree generates the
-## 6-node tier chain and UpgradeSystem picks the effect up automatically.
+## MODEL — one arm of the mycelial web: its direction/colour plus the perks
+## that grow along it. Shape is free-form — nodes chain and fork purely by
+## their parent_key, and PerkTree lays them out from that.
 
 @export var key: StringName
 @export var label: String
 @export var angle_degrees: float
 @export var hue: float
 
-## Effect for each tier (0-indexed: I, II, III, IV), independently leveled.
-## Most branches use a single shared effect — e.g. every Substrate node adds
-## +15% node_production per level, all stacking into the same UpgradeSystem
-## stat bucket. A branch can instead give each tier its own effect (e.g. one
-## targets Meadow, the next Forest); when a tier has no entry of its own,
-## effect_for_tier() falls back to the last one in the array.
-@export var effects: Array[UpgradeEffectDef] = []
+## Used by any node that declares no effects of its own — e.g. every Substrate
+## node adds +15% node_production per level into the same UpgradeSystem stat
+## bucket, so only the branch needs to say so.
+@export var default_effects: Array[UpgradeEffectDef] = []
 
-func effect_for_tier(tier: int) -> UpgradeEffectDef:
-	return effects[mini(tier, effects.size() - 1)]
+@export var nodes: Array[PerkNodeDef] = []
+
+func effects_for(node: PerkNodeDef) -> Array[UpgradeEffectDef]:
+	return node.effects if not node.effects.is_empty() else default_effects
