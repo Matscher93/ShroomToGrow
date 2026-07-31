@@ -44,8 +44,7 @@ func _notification(what: int) -> void:
 			save_game()
 		NOTIFICATION_APPLICATION_RESUMED, \
 		NOTIFICATION_APPLICATION_FOCUS_IN:
-			_pending_offline_saved_at = float(last_savegame.get("saved_at", 0.0))
-			offline_progress_pending.emit()
+			_arm_offline_progress(float(last_savegame.get("saved_at", 0.0)), true)
 # ---------------------------------------------------------------- save
 
 func save_game() -> void:
@@ -99,7 +98,7 @@ func load_game() -> void:
 	# _ready(), blocking the game from starting at all. It's now kicked off
 	# by main_screen once the offline income screen actually checks for it,
 	# and timesliced across frames (see run_offline_progress_calculation()).
-	_pending_offline_saved_at = float(data.get("saved_at", 0.0))
+	_arm_offline_progress(float(data.get("saved_at", 0.0)), false)
 
 ## Brings an older save up to SAVE_VERSION in place, and refuses one written by
 ## a newer build than this one. Returns false if the save must not be applied.
@@ -126,6 +125,37 @@ func _read(path: String) -> Dictionary:
 	return parsed if parsed is Dictionary else {}
 
 # ---------------------------------------------------------------- offline
+
+## Records the timestamp a later catch-up should measure from, and (optionally)
+## tells a live main_screen about it. Android sends both APPLICATION_RESUMED and
+## FOCUS_IN for one resume, and FOCUS_IN again at app start, so this runs several
+## times per actual resume — everything here has to be idempotent.
+##
+## Two things it deliberately refuses to do:
+##   * arm while a catch-up is running. That run already took ownership of the
+##     gap (it zeroes _pending_offline_saved_at up front); re-arming from the
+##     pre-resume save_at behind its back is what made the finished run look
+##     like it still had pending work, replaying the whole gap a second time and
+##     spawning a second popup.
+##   * keep a gap too short to ever be shown. A stale sub-threshold timestamp
+##     would silently cross MIN_OFFLINE_SECONDS as wall-clock advanced and turn
+##     a later refresh into a bogus catch-up mid-session.
+func _arm_offline_progress(saved_at: float, notify: bool) -> void:
+	if _offline_calc_running:
+		return
+	if saved_at <= 0.0:
+		return  # nothing saved yet this session — don't clobber an armed gap with 0
+	if Time.get_unix_time_from_system() - saved_at <= MIN_OFFLINE_SECONDS:
+		_pending_offline_saved_at = 0.0
+		return
+	_pending_offline_saved_at = saved_at
+	if notify:
+		offline_progress_pending.emit()
+
+## Whether a catch-up loop is currently mid-flight, so callers don't stack a
+## second one on top of it.
+func is_offline_calc_running() -> bool:
+	return _offline_calc_running
 
 ## True once there's an unprocessed offline gap worth simulating. Cheap check
 ## so callers (main_screen) can poll it without triggering any work.

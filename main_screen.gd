@@ -27,6 +27,12 @@ func _on_offline_income_changed(property: StringName) -> void:
 	_check_pending_offline_income()
 
 func _check_pending_offline_income() -> void:
+	# A catch-up already in flight owns the pending gap — it reports its own
+	# progress into the viewmodel, and the popup is already up. Starting from
+	# here again (this runs on every snapshots_changed, including the one the
+	# finishing run emits) would replay the same offline gap.
+	if SaveManager.is_offline_calc_running():
+		return
 	if SaveManager.has_pending_offline_progress():
 		# Show the popup right away — it starts in its "calculating" state
 		# (collect button blocked) and updates itself once the timesliced
@@ -44,7 +50,12 @@ func _show_offline_income_popup() -> void:
 	_offline_popup_active = true
 	var popup := popup_layer.show_popup(OFFLINE_INCOME_SCENE)
 	popup.dismissed.connect(func() -> void:
-		App.offline_income_vm.clear()
+		# Tear the popup down *before* clearing the viewmodel: clear() notifies
+		# synchronously, which lands back in _check_pending_offline_income(), and
+		# with the popup still marked active that check could start a catch-up
+		# whose popup then gets freed out from under it — the loop kept burning
+		# its frame budget on ticks with nothing on screen.
 		popup_layer.clear()
 		_offline_popup_active = false
+		App.offline_income_vm.clear()
 	, CONNECT_ONE_SHOT)
