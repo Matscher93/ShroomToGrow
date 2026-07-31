@@ -45,8 +45,6 @@ var owned_node_text: String:
 var production_text: String:
 	get:
 		var production := _scaled_production()
-		if production.equals(BigNumber.from_value(0.0)):
-			return ""
 		return "+%s / tick" % [_unit_text(production)]
 
 var production_per_node_text: String:
@@ -96,7 +94,8 @@ var potency_level_text: String:
 var potency_header_text: String:
 	get:
 		var mult := App.node_potency_external_multiplier(_node_id_key())
-		return "+%s%% / level:" % [App.upgrade_system.next_level_delta(_potency_id).mul(mult).scale(100.0).to_display()]
+		var delta := App.upgrade_system.next_level_delta(_potency_id, App.resolve_context)
+		return "+%s%% / level:" % [delta.mul(mult).scale(100.0).to_display()]
 
 var potency_accumulated_text: String:
 	get:
@@ -116,7 +115,8 @@ var synergy_level_text: String:
 var synergy_header_text: String:
 	get:
 		var mult := App.node_synergy_external_multiplier(_node_id_key())
-		return "+%s%% / manual node:" % [App.upgrade_system.next_level_delta(_synergy_id).mul(mult).scale(100.0).to_display()]
+		var delta := App.upgrade_system.next_level_delta(_synergy_id, App.resolve_context)
+		return "+%s%% / level:" % [delta.mul(mult).scale(100.0).to_display()]
 
 var synergy_accumulated_text: String:
 	get:

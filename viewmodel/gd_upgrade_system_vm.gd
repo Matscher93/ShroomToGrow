@@ -45,15 +45,20 @@ func effect_amount(id: StringName, ctx: ResolveContext) -> BigNumber:
 	return mag
 
 ## Marginal gain from this upgrade's own effect a single additional level would
-## add at the current level (ignores the ScalingSourceDef dependency, so callers
-## can present it as the upgrade's per-level/per-unit rate).
-func next_level_delta(id: StringName) -> BigNumber:
+## add at the current level, ScalingSourceDef dependency included. This used to
+## skip the dependency and leave callers to label the result as a per-unit rate,
+## which meant an effect scaled by a dependency the player couldn't see from the
+## panel advertised a gain it would never deliver.
+func next_level_delta(id: StringName, ctx: ResolveContext) -> BigNumber:
 	var def: UpgradeDef = _defs.get(id)
 	if def == null or def.effects.is_empty():
 		return BigNumber.new(0.0, 0)
 	var lvl := level(id)
 	var e: UpgradeEffectDef = def.effects[0]
-	return e.magnitude(lvl + 1).sub(e.magnitude(lvl))
+	var delta := e.magnitude(lvl + 1).sub(e.magnitude(lvl))
+	if e.dependency:
+		delta = delta.scale(e.dependency.evaluate(ctx))
+	return delta
 
 ## Combines several upgrades' own effects into one overall % bonus, assuming
 ## each contributes multiplicatively (op MORE) — e.g. potency * synergy.

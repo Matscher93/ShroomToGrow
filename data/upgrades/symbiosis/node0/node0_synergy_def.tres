@@ -8,7 +8,7 @@
 script = ExtResource("3_pwhhd")
 id = &"NodeSynergy0"
 display_name = "Mycelium Synergy"
-description = "increases mycelium production by 10% each level"
+description = "increases mycelium production by 1% each level, scaled by symbiosis biome size"
 cost_growth_exponent = 1.5
 effects = Array[ExtResource("1_mij1d")]([ExtResource("2_mij1d")])
 metadata/_custom_type_script = "uid://cvpufn4k21esd"
