@@ -8,6 +8,6 @@
 script = ExtResource("3_def_script")
 id = &"ForestUpgrade4"
 display_name = "Canopy Cover"
-description = "+8% node production, biome-wide, per level. Scales with this biome's Size. Paid with Meadow level points, not nutrients."
+description = "+8% node production, per level. Scales with this biome's Size."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
 min_biome_points_spent = 5

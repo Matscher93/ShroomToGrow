@@ -1,8 +1,8 @@
 class_name PerkBranchDef
 extends Resource
 ## MODEL — one arm of the mycelial web: its direction/colour plus the perks
-## that grow along it. Shape is free-form — nodes chain and fork purely by
-## their parent_key, and PerkTree lays them out from that.
+## that grow along it. Shape is free-form — each node nests its own children,
+## and PerkTree lays the branch out from that nesting.
 
 @export var key: StringName
 @export var label: String
@@ -14,7 +14,8 @@ extends Resource
 ## bucket, so only the branch needs to say so.
 @export var default_effects: Array[UpgradeEffectDef] = []
 
-@export var nodes: Array[PerkNodeDef] = []
+## The nodes hanging straight off the core; everything deeper hangs off these.
+@export var roots: Array[PerkNodeDef] = []
 
 func effects_for(node: PerkNodeDef) -> Array[UpgradeEffectDef]:
 	return node.effects if not node.effects.is_empty() else default_effects

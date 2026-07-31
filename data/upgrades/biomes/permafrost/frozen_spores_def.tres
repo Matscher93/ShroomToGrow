@@ -8,5 +8,5 @@
 script = ExtResource("3_def_script")
 id = &"FrozenSpores"
 display_name = "Frozen Spores"
-description = "+25% biomass gained on prestige, per level. Paid with Permafrost level points, not nutrients."
+description = "+25% biomass gained on prestige, per level."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

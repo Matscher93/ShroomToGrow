@@ -8,6 +8,6 @@
 script = ExtResource("3_def_script")
 id = &"SymbiosisUpgrade4"
 display_name = "Partnered Growth"
-description = "+10% node production, biome-wide, per level. Scales with this biome's Size. Paid with Forest level points, not nutrients."
+description = "+10% node production, per level. Scales with this biome's Size."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
 min_biome_points_spent = 5

@@ -11,7 +11,7 @@
 
 [sub_resource type="Resource" id="core"]
 script = ExtResource("7_node_script")
-key = &"core"
+id = &"core"
 display_name = "Sporation"
 description = "The first bloom. Every arm of the mycelial web grows outward from here."
 max_level = 1

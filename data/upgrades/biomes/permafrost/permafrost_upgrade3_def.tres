@@ -8,5 +8,5 @@
 script = ExtResource("3_def_script")
 id = &"PermafrostUpgrade3"
 display_name = "Dormant Vigor"
-description = "+10% node production, biome-wide, per level. Paid with Permafrost level points, not nutrients."
+description = "+10% node production, per level."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

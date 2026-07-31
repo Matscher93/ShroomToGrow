@@ -5,7 +5,25 @@ extends Node
 const SAVE_PATH   := "user://save.json"
 const BACKUP_PATH := "user://save.bak.json"
 const TMP_PATH    := "user://save.tmp.json"
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
+
+## v1 -> v2: perk ids stopped being "<branch key><roman numeral>" and became
+## the hand-authored, tree-wide unique PerkNodeDef.id. Without this remap
+## UpgradeSystem.from_save() would drop every perk level as unknown.
+const PERK_IDS_V1_TO_V2 := {
+	"nutI": "substrate_1", "nutII": "substrate_2",
+	"nutIII·A": "substrate_3a", "nutIII·B": "substrate_3b",
+	"nutIV·A": "substrate_4a", "nutIV·B": "substrate_4b",
+	"bioI": "fruiting_1", "bioII": "fruiting_2",
+	"bioIII·A": "fruiting_3a", "bioIII·B": "fruiting_3b",
+	"bioIV·A": "fruiting_4a", "bioIV·B": "fruiting_4b",
+	"tmpI": "tempo_1", "tmpII": "tempo_2",
+	"tmpIII·A": "tempo_3a", "tmpIII·B": "tempo_3b",
+	"tmpIV·A": "tempo_4a", "tmpIV·B": "tempo_4b",
+	"bntI": "bounty_1", "bntII": "bounty_2",
+	"bntIII·A": "bounty_3a", "bntIII·B": "bounty_3b",
+	"bntIV·A": "bounty_4a", "bntIV·B": "bounty_4b",
+}
 const AUTOSAVE_INTERVAL := 15.0  # seconds
 const MIN_OFFLINE_SECONDS := 60.0
 const MAX_OFFLINE_SECONDS := 86400.0  # 24h cap on offline income collection
@@ -112,10 +130,25 @@ func _migrate(data: Dictionary) -> bool:
 		push_error("Save is version %d but this build only understands %d — refusing to load it rather than corrupt it." % [version, SAVE_VERSION])
 		return false
 	if version < SAVE_VERSION:
-		# No migration steps needed yet: version 0 (unversioned) and version 1
-		# have the same shape. Handle each older version explicitly here.
 		push_warning("Migrating save from version %d to %d." % [version, SAVE_VERSION])
+	# Version 0 (unversioned) and version 1 have the same shape, so both start
+	# their migration here. Handle each older version explicitly.
+	if version < 2:
+		_migrate_perk_ids_to_v2(data)
+	data["version"] = SAVE_VERSION
 	return true
+
+## Rewrites the prestige upgrade keys of a pre-v2 save in place; anything not in
+## the table (a perk added since, or an id already migrated) is left alone.
+func _migrate_perk_ids_to_v2(data: Dictionary) -> void:
+	if not data.has("game"):
+		return
+	var game: Dictionary = data["game"]
+	var perks: Dictionary = game.get("prestige_upgrades", {})
+	var migrated := {}
+	for key in perks:
+		migrated[PERK_IDS_V1_TO_V2.get(key, key)] = perks[key]
+	game["prestige_upgrades"] = migrated
 
 func _read(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):

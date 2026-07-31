@@ -8,6 +8,6 @@
 script = ExtResource("3_def_script")
 id = &"ForestUpgrade9"
 display_name = "Woodland Chorus"
-description = "+6% Synergy production, biome-wide, per level. Compounds with your own Synergy upgrade levels. Scales with this biome's Size. Paid with Meadow level points, not nutrients."
+description = "+6% Synergy production, per level. Compounds with a nodes Synergy upgrade levels. Scales with this biome's Size."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
 min_biome_points_spent = 20

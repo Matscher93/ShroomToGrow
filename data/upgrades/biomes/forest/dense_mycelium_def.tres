@@ -8,5 +8,5 @@
 script = ExtResource("3_def_script")
 id = &"DenseMycelium"
 display_name = "Dense Mycelium"
-description = "+15% node production, biome-wide, per level. Paid with Meadow level points, not nutrients."
+description = "+15% node production, per level."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

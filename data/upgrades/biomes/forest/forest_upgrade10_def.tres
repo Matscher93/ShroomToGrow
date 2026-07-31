@@ -8,6 +8,6 @@
 script = ExtResource("3_def_script")
 id = &"ForestUpgrade10"
 display_name = "Ancient Grove"
-description = "+20% node production, biome-wide, per level. Paid with Meadow level points, not nutrients."
+description = "+20% node production, per level."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
 min_biome_points_spent = 23

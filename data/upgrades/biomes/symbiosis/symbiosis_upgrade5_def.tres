@@ -8,6 +8,6 @@
 script = ExtResource("3_def_script")
 id = &"SymbiosisUpgrade5"
 display_name = "Cross-Pollination"
-description = "+5% Potency production, biome-wide, per level. Compounds with your own Potency upgrade levels. Scales with this biome's Size. Paid with Forest level points, not nutrients."
+description = "+5% Potency production, per level. Compounds with a nodes Potency upgrade levels. Scales with this biome's Size."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
 min_biome_points_spent = 8

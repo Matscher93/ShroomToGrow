@@ -5,51 +5,50 @@
 [ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
 [ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="4_node_script"]
 
-[sub_resource type="Resource" id="node_1"]
-script = ExtResource("4_node_script")
-key = &"I"
-display_name = "Substrate I"
-description = "Substrate node — kept through every sporation."
-
-[sub_resource type="Resource" id="node_2"]
-script = ExtResource("4_node_script")
-key = &"II"
-parent_key = &"I"
-display_name = "Substrate II"
-description = "Substrate node — kept through every sporation."
-base_cost = 4.0
-
-[sub_resource type="Resource" id="node_3a"]
-script = ExtResource("4_node_script")
-key = &"III·A"
-parent_key = &"II"
-display_name = "Substrate III·A"
-description = "Substrate node — kept through every sporation."
-base_cost = 8.0
-
-[sub_resource type="Resource" id="node_3b"]
-script = ExtResource("4_node_script")
-key = &"III·B"
-parent_key = &"II"
-display_name = "Substrate III·B"
-description = "Substrate node — kept through every sporation."
-base_cost = 8.0
-
 [sub_resource type="Resource" id="node_4a"]
 script = ExtResource("4_node_script")
-key = &"IV·A"
-parent_key = &"III·A"
+id = &"substrate_4a"
 display_name = "Substrate IV·A"
 description = "Substrate node — kept through every sporation."
 base_cost = 16.0
 
 [sub_resource type="Resource" id="node_4b"]
 script = ExtResource("4_node_script")
-key = &"IV·B"
-parent_key = &"III·B"
+id = &"substrate_4b"
 display_name = "Substrate IV·B"
 description = "Substrate node — kept through every sporation."
 base_cost = 16.0
+
+[sub_resource type="Resource" id="node_3a"]
+script = ExtResource("4_node_script")
+id = &"substrate_3a"
+children = Array[ExtResource("4_node_script")]([SubResource("node_4a")])
+display_name = "Substrate III·A"
+description = "Substrate node — kept through every sporation."
+base_cost = 8.0
+
+[sub_resource type="Resource" id="node_3b"]
+script = ExtResource("4_node_script")
+id = &"substrate_3b"
+children = Array[ExtResource("4_node_script")]([SubResource("node_4b")])
+display_name = "Substrate III·B"
+description = "Substrate node — kept through every sporation."
+base_cost = 8.0
+
+[sub_resource type="Resource" id="node_2"]
+script = ExtResource("4_node_script")
+id = &"substrate_2"
+children = Array[ExtResource("4_node_script")]([SubResource("node_3a"), SubResource("node_3b")])
+display_name = "Substrate II"
+description = "Substrate node — kept through every sporation."
+base_cost = 4.0
+
+[sub_resource type="Resource" id="node_1"]
+script = ExtResource("4_node_script")
+id = &"substrate_1"
+children = Array[ExtResource("4_node_script")]([SubResource("node_2")])
+display_name = "Substrate I"
+description = "Substrate node — kept through every sporation."
 
 [resource]
 script = ExtResource("1_script")
@@ -58,4 +57,4 @@ label = "Substrate"
 angle_degrees = -90.0
 hue = 272.0
 default_effects = Array[ExtResource("3_effect_script")]([ExtResource("2_effect")])
-nodes = Array[ExtResource("4_node_script")]([SubResource("node_1"), SubResource("node_2"), SubResource("node_3a"), SubResource("node_3b"), SubResource("node_4a"), SubResource("node_4b")])
+roots = Array[ExtResource("4_node_script")]([SubResource("node_1")])

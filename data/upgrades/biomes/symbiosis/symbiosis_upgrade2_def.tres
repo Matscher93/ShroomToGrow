@@ -8,5 +8,5 @@
 script = ExtResource("3_def_script")
 id = &"SymbiosisUpgrade2"
 display_name = "Shared Nutrients"
-description = "+5% Potency production, biome-wide, per level. Compounds with your own Potency upgrade levels. Paid with Forest level points, not nutrients."
+description = "+5% Potency production, per level. Compounds with a nodes Potency upgrade levels."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

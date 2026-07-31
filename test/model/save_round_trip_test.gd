@@ -115,3 +115,39 @@ func test_node_reads_authored_backing_fields() -> void:
 	node._auto_nodes_mantissa = 2.5
 	node._auto_nodes_exponent = 4
 	assert_float(node.auto_nodes.to_float()).is_equal_approx(25000.0, EPS)
+
+# ─── SaveManager migrations ──────────────────────────────────────────────────
+
+func test_v1_perk_ids_are_remapped_and_the_save_is_stamped_v2() -> void:
+	# Perk ids used to be "<branch key><roman numeral>"; UpgradeSystem.from_save()
+	# drops levels it has no def for, so a missed remap silently wipes the tree.
+	var data := {"version": 1, "game": {"prestige_upgrades": {"nutI": 2, "bntIII·A": 1, "core": 1}}}
+
+	assert_bool(SaveManager._migrate(data)).is_true()
+
+	assert_int(int(data["version"])).is_equal(SaveManager.SAVE_VERSION)
+	assert_dict(data["game"]["prestige_upgrades"]).is_equal({
+		"substrate_1": 2, "bounty_3a": 1, "core": 1,
+	})
+
+func test_migrated_perk_ids_are_all_known_to_the_built_tree() -> void:
+	var ids := {}
+	for perk in PerkTree.build(load("res://data/prestige/all_branches.tres") as PerkBranchList):
+		ids[String(perk.id)] = true
+	for old_id: String in SaveManager.PERK_IDS_V1_TO_V2:
+		assert_bool(ids.has(SaveManager.PERK_IDS_V1_TO_V2[old_id])) \
+			.override_failure_message("v1 perk '%s' migrates to an id no longer in the tree." % old_id) \
+			.is_true()
+
+func test_migration_leaves_unknown_and_already_current_perk_ids_alone() -> void:
+	var data := {"version": 0, "game": {"prestige_upgrades": {"substrate_1": 3, "not_a_perk": 1}}}
+
+	assert_bool(SaveManager._migrate(data)).is_true()
+
+	assert_dict(data["game"]["prestige_upgrades"]).is_equal({"substrate_1": 3, "not_a_perk": 1})
+
+func test_a_save_from_a_newer_build_is_refused() -> void:
+	assert_bool(SaveManager._migrate({"version": SaveManager.SAVE_VERSION + 1})).is_false()
+
+func test_migration_tolerates_a_save_with_no_game_section() -> void:
+	assert_bool(SaveManager._migrate({"version": 1})).is_true()

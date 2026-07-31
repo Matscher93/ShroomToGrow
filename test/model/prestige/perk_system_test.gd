@@ -27,6 +27,12 @@ func test_authored_tree_builds_more_than_the_core() -> void:
 	assert_int(_defs.size()).is_greater(1)
 	assert_object(_perks.perk_def(&"core")).is_not_null()
 
+func test_every_authored_perk_id_is_unique_tree_wide() -> void:
+	# Ids are the save keys, so two branches sharing one would collapse into a
+	# single perk here rather than fail loudly at load time.
+	var built := PerkTree.build(load("res://data/prestige/all_branches.tres") as PerkBranchList)
+	assert_int(_defs.size()).is_equal(built.size())
+
 func test_core_is_available_from_the_start() -> void:
 	assert_str(_perks.status(&"core")).is_equal(PerkSystem.STATUS_AVAILABLE)
 

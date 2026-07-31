@@ -8,5 +8,5 @@
 script = ExtResource("3_def_script")
 id = &"SymbiosisUpgrade3"
 display_name = "Mutual Aid"
-description = "+5% Synergy production, biome-wide, per level. Compounds with your own Synergy upgrade levels. Paid with Forest level points, not nutrients."
+description = "+5% Synergy production, per level. Compounds with a nodes Synergy upgrade levels."
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

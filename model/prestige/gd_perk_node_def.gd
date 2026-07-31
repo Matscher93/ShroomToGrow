@@ -2,14 +2,16 @@ class_name PerkNodeDef
 extends Resource
 ## MODEL — one hand-authored perk in a branch. Everything the designer tunes
 ## per node lives here; PerkTree turns these into PerkDefs and computes where
-## they sit on the web from the parent links alone.
+## they sit on the web from the nesting alone.
 
-## Unique within its branch. The perk's runtime id is branch_key + key,
-## so renaming a key orphans that perk's saved level.
-@export var key: StringName
-## Key of the node this one grows out of, within the same branch.
-## &"" attaches it straight to the core.
-@export var parent_key: StringName
+## Unique across the whole perk tree, and used verbatim as the perk's runtime
+## id — so renaming one orphans that perk's saved level (see SaveManager's
+## migration table).
+@export var id: StringName
+
+## The perks that grow out of this one. Like every other data resource here, a
+## node points at its descendants; nothing points back up at its parent.
+@export var children: Array[PerkNodeDef] = []
 
 @export var display_name: String
 @export_multiline var description: String
