@@ -415,7 +415,7 @@ label_settings = SubResource("LabelSettings_mf8ia")
 [node name="lbl_size_level" type="Label" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer" unique_id=1268803312]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "—"
+text = "-"
 label_settings = SubResource("LabelSettings_62e3x")
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/VBoxContainer/vbox_upgrades/PanelContainerBiomeSize/MarginContainer/HBoxContainer/VBoxContainer" unique_id=60741339]

@@ -51,6 +51,7 @@ layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
+mouse_filter = 1
 script = ExtResource("1_node_script")
 background = NodePath("Background")
 button = NodePath("Background/Button")
@@ -66,12 +67,14 @@ material = SubResource("ShaderMaterial_xk2jl")
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
+mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 script = ExtResource("3_bskuh")
 
 [node name="Button" type="Button" parent="Background" unique_id=1114551300]
 layout_mode = 2
 focus_mode = 0
+mouse_filter = 1
 theme_override_styles/normal = SubResource("StyleBoxEmpty_normal")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_pressed")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_hover")

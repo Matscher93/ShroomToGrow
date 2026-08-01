@@ -5,10 +5,105 @@
 [ext_resource type="Script" uid="uid://vgkknnn4vq2b" path="res://view/prestige/gd_perk_lines.gd" id="3_lines_script"]
 [ext_resource type="PackedScene" uid="uid://d1suqi2wn1dyk" path="res://view/prestige/sc_perk_node.tscn" id="4_node_scene"]
 [ext_resource type="PackedScene" uid="uid://br7oobkddhcfv" path="res://view/prestige/sc_perk_connector.tscn" id="5_connector_scene"]
+[ext_resource type="PackedScene" uid="uid://y1nkfda6pvis" path="res://view/offline_income/sc_collect_offline_income_button.tscn" id="6_button_scene"]
+[ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="7_qe6gy"]
+[ext_resource type="Script" uid="uid://p7c3cm6dxbjy" path="res://view/offline_income/general_panel_background.gd" id="8_6hxqy"]
+[ext_resource type="Shader" uid="uid://dnsivvo2gt6vf" path="res://view/prestige/sh_web_fade.gdshader" id="9_webfade"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
 
-[node name="biomes" type="PanelContainer" unique_id=563082709 node_paths=PackedStringArray("sporate_button", "perk_web", "detail_name", "detail_effect", "detail_cost", "buy_button")]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_webfade"]
+resource_local_to_scene = true
+shader = ExtResource("9_webfade")
+shader_parameter/rect_min = Vector2(0, 0)
+shader_parameter/rect_max = Vector2(1, 1)
+shader_parameter/fade_size = Vector2(0.05, 0.05)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2mo3i"]
+resource_local_to_scene = true
+shader = ExtResource("7_qe6gy")
+shader_parameter/rect_size = Vector2(700, 60)
+shader_parameter/box_color = Color(0.61960787, 0.44313726, 0.9019608, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 18.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 1.0
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="Shader" id="Shader_6hxqy"]
+code = "shader_type canvas_item;
+
+#include \"res://shaders/sdf_lib.gdshaderinc\"
+#include \"res://shaders/sdf_operations.gdshaderinc\"
+#include \"res://shaders/sdf_spatial_manip.gdshaderinc\"
+
+uniform vec2 rect_size;
+uniform vec4 box_color : source_color;
+uniform vec2 box_extends = vec2(0.4);
+uniform float corner_radius = 20;
+uniform float border_thickness = 1.0;
+uniform float additional_border_offset = 0.0;
+uniform float background_alpha = 0.2;
+uniform float border_alpha = 0.3;
+
+void vertex() {
+}
+
+void fragment() {
+	vec2 p = SpatialManipulation_CenterUVs(UV) * rect_size; 
+	
+	float d = SDF_RoundedRectangle(
+		p, 
+		box_extends*rect_size-border_thickness-additional_border_offset, 
+		vec4(corner_radius * 2.0)
+	);
+	float outline = Operation_Outline(d, border_thickness);
+	
+	float d_sharpened = Operation_HardShape(d);
+	float outline_sharpened = Operation_HardShape(outline);
+	
+    COLOR = vec4(box_color.rgb, mix(background_alpha*d_sharpened,border_alpha,outline_sharpened));
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lj0vt"]
+resource_local_to_scene = true
+shader = SubResource("Shader_6hxqy")
+shader_parameter/rect_size = Vector2(700, 144)
+shader_parameter/box_color = Color(0.61960787, 0.44313726, 0.9019608, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 24.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 1.0
+shader_parameter/border_alpha = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_x2ilw"]
+resource_local_to_scene = true
+shader = ExtResource("7_qe6gy")
+shader_parameter/rect_size = Vector2(700, 144)
+shader_parameter/box_color = Color(0.047984995, 0.0343, 0.07, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 24.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.9
+shader_parameter/border_alpha = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tc4bh"]
+resource_local_to_scene = true
+shader = ExtResource("7_qe6gy")
+shader_parameter/rect_size = Vector2(668, 60)
+shader_parameter/box_color = Color(0.61960787, 0.44313726, 0.9019608, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 18.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 1.0
+shader_parameter/border_alpha = 1.0
+
+[node name="prestige_screen" type="PanelContainer" unique_id=563082709 node_paths=PackedStringArray("sporate_button", "perk_web", "detail_name", "detail_effect", "detail_level", "buy_button")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -17,27 +112,22 @@ grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxEmpty_lxikg")
 script = ExtResource("1_panel_script")
 sporate_button = NodePath("TopBar/SporateButton")
-perk_web = NodePath("VBox/WebClip")
-detail_name = NodePath("DetailPanel/DetailBox/DetailName")
-detail_effect = NodePath("DetailPanel/DetailBox/DetailEffect")
-detail_cost = NodePath("DetailPanel/DetailBox/DetailCost")
-buy_button = NodePath("DetailPanel/DetailBox/BuyButton")
+perk_web = NodePath("MarginContainer/VBox/WebClip")
+detail_name = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailName")
+detail_effect = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailEffect")
+detail_level = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/DetailLevel")
+buy_button = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton")
 
-[node name="TopBar" type="HBoxContainer" parent="." unique_id=590918908]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=503072458]
 layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 10
+theme_override_constants/margin_left = -20
+theme_override_constants/margin_right = -20
 
-[node name="SporateButton" type="Button" parent="TopBar" unique_id=1080585047]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Sporate"
-
-[node name="VBox" type="VBoxContainer" parent="." unique_id=1191467551]
+[node name="VBox" type="VBoxContainer" parent="MarginContainer" unique_id=1191467551]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="WebClip" type="Control" parent="VBox" unique_id=899835685 node_paths=PackedStringArray("world", "lines")]
+[node name="WebClip" type="Control" parent="MarginContainer/VBox" unique_id=899835685 node_paths=PackedStringArray("world", "lines")]
 custom_minimum_size = Vector2(0, 320)
 layout_mode = 2
 size_flags_vertical = 3
@@ -46,30 +136,84 @@ world = NodePath("World")
 lines = NodePath("World/Lines")
 node_scene = ExtResource("4_node_scene")
 
-[node name="World" type="Node2D" parent="VBox/WebClip" unique_id=548923965]
+[node name="World" type="CanvasGroup" parent="MarginContainer/VBox/WebClip" unique_id=548923965]
+material = SubResource("ShaderMaterial_webfade")
 
-[node name="Lines" type="Node2D" parent="VBox/WebClip/World" unique_id=286516047]
+[node name="Lines" type="Node2D" parent="MarginContainer/VBox/WebClip/World" unique_id=286516047]
 script = ExtResource("3_lines_script")
 connector_scene = ExtResource("5_connector_scene")
 
-[node name="DetailPanel" type="PanelContainer" parent="." unique_id=1808081107]
+[node name="TopBar" type="HBoxContainer" parent="." unique_id=590918908]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="SporateButton" parent="TopBar" unique_id=1183978066 instance=ExtResource("6_button_scene")]
+material = SubResource("ShaderMaterial_2mo3i")
+layout_mode = 2
+button_color = Color(0.61960787, 0.44313726, 0.9019608, 1)
+disabled_color = Color(0.13709998, 0.098000005, 0.2, 1)
+text_color = Color(1, 1, 1, 1)
+disabled_text_color = Color(0.24, 0.24, 0.24, 1)
+
+[node name="PanelContainer_Info2" type="PanelContainer" parent="." unique_id=187074852]
+material = SubResource("ShaderMaterial_lj0vt")
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_vertical = 8
+mouse_filter = 2
+script = ExtResource("8_6hxqy")
 
-[node name="DetailBox" type="VBoxContainer" parent="DetailPanel" unique_id=1579384017]
+[node name="PanelContainer_Info" type="PanelContainer" parent="PanelContainer_Info2" unique_id=1119387063]
+material = SubResource("ShaderMaterial_x2ilw")
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+size_flags_vertical = 8
+mouse_filter = 2
+script = ExtResource("8_6hxqy")
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer_Info2/PanelContainer_Info" unique_id=1753439807]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="DetailBox" type="VBoxContainer" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer" unique_id=1579384017]
+layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="DetailName" type="Label" parent="DetailPanel/DetailBox" unique_id=1907360131]
+[node name="HeaderRow" type="HBoxContainer" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox" unique_id=1713716694]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="TextBox" type="VBoxContainer" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow" unique_id=1713716695]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="DetailName" type="Label" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox" unique_id=1907360131]
 layout_mode = 2
 text = "Sporation"
 
-[node name="DetailEffect" type="Label" parent="DetailPanel/DetailBox" unique_id=982891348]
+[node name="DetailEffect" type="Label" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox" unique_id=982891348]
 layout_mode = 2
+autowrap_mode = 3
 
-[node name="DetailCost" type="Label" parent="DetailPanel/DetailBox" unique_id=1713716694]
+[node name="DetailLevel" type="Label" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow" unique_id=1713716696]
 layout_mode = 2
+text = "0/5"
+horizontal_alignment = 2
 
-[node name="BuyButton" type="Button" parent="DetailPanel/DetailBox" unique_id=1002414006]
+[node name="BuyButton" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox" unique_id=1355565357 instance=ExtResource("6_button_scene")]
+material = SubResource("ShaderMaterial_tc4bh")
 layout_mode = 2
-text = "Buy"
+button_color = Color(0.61960787, 0.44313726, 0.9019608, 1)
+disabled_color = Color(0.13709998, 0.098000005, 0.2, 1)
+text_color = Color(1, 1, 1, 1)
+disabled_text_color = Color(0.24, 0.24, 0.24, 1)

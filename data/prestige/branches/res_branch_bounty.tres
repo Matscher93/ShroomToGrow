@@ -11,7 +11,7 @@
 script = ExtResource("6_node_script")
 id = &"bounty_4a"
 display_name = "Bounty IV·A"
-description = "Bounty node — kept through every sporation."
+description = "Bounty node - kept through every sporation."
 _base_cost_mantissa = 1.6
 _base_cost_exponent = 1
 
@@ -19,7 +19,7 @@ _base_cost_exponent = 1
 script = ExtResource("6_node_script")
 id = &"bounty_4b"
 display_name = "Bounty IV·B"
-description = "Bounty node — kept through every sporation."
+description = "Bounty node - kept through every sporation."
 _base_cost_mantissa = 1.6
 _base_cost_exponent = 1
 
@@ -28,7 +28,7 @@ script = ExtResource("6_node_script")
 id = &"bounty_3a"
 children = Array[ExtResource("6_node_script")]([SubResource("node_4a")])
 display_name = "Bounty III·A"
-description = "Bounty node — kept through every sporation."
+description = "Bounty node - kept through every sporation."
 _base_cost_mantissa = 8.0
 _base_cost_exponent = 0
 
@@ -37,7 +37,7 @@ script = ExtResource("6_node_script")
 id = &"bounty_3b"
 children = Array[ExtResource("6_node_script")]([SubResource("node_4b")])
 display_name = "Bounty III·B"
-description = "Bounty node — kept through every sporation."
+description = "Bounty node - kept through every sporation."
 _base_cost_mantissa = 8.0
 _base_cost_exponent = 0
 
@@ -46,7 +46,7 @@ script = ExtResource("6_node_script")
 id = &"bounty_2"
 children = Array[ExtResource("6_node_script")]([SubResource("node_3a"), SubResource("node_3b")])
 display_name = "Bounty II"
-description = "Bounty node — kept through every sporation."
+description = "Bounty node - kept through every sporation."
 _base_cost_mantissa = 4.0
 _base_cost_exponent = 0
 effects = Array[ExtResource("5_effect_script")]([ExtResource("3_forest")])
@@ -56,7 +56,7 @@ script = ExtResource("6_node_script")
 id = &"bounty_1"
 children = Array[ExtResource("6_node_script")]([SubResource("node_2")])
 display_name = "Bounty I"
-description = "Bounty node — kept through every sporation."
+description = "Bounty node - kept through every sporation."
 effects = Array[ExtResource("5_effect_script")]([ExtResource("2_meadow")])
 
 [resource]

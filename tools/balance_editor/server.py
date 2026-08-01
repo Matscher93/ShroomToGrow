@@ -54,7 +54,7 @@ def run_godot(args: list[str]) -> dict:
             done = subprocess.run(command, cwd=PROJECT_ROOT, capture_output=True,
                                   text=True, timeout=300)
         except FileNotFoundError:
-            raise GodotError(f"{GODOT_BIN} not found — set GODOT_BIN")
+            raise GodotError(f"{GODOT_BIN} not found - set GODOT_BIN")
         except subprocess.TimeoutExpired:
             raise GodotError("godot timed out after 300s")
         if not out_path.exists():
@@ -83,7 +83,7 @@ def build_patch(name: str, header: list[str], rows: list[list[str]]) -> dict:
     """Diffs submitted rows against the snapshot, keyed by res_path."""
     current = table(name)
     if header != current["header"]:
-        raise ValueError(f"{name}: columns do not match the snapshot — reload first")
+        raise ValueError(f"{name}: columns do not match the snapshot - reload first")
     by_path = {row[0]: row for row in current["rows"]}
     patch: dict[str, dict[str, str]] = {}
     for row in rows:
@@ -91,7 +91,7 @@ def build_patch(name: str, header: list[str], rows: list[list[str]]) -> dict:
             raise ValueError(f"{name}: row '{row[0]}' has {len(row)} of {len(header)} fields")
         was = by_path.get(row[0])
         if was is None:
-            raise ValueError(f"{name}: unknown row {row[0]} — reload first")
+            raise ValueError(f"{name}: unknown row {row[0]} - reload first")
         changed = {header[i]: row[i] for i in range(1, len(header)) if row[i] != was[i]}
         if changed:
             patch[row[0]] = changed
@@ -230,7 +230,7 @@ def open_now(url: str) -> None:
     try:
         webbrowser.open(url)
     except Exception as error:                # a headless box has no browser
-        print(f"could not open a browser ({error}) — go to {url}", file=sys.stderr)
+        print(f"could not open a browser ({error}) - go to {url}", file=sys.stderr)
 
 
 def running_editor(url: str) -> dict | None:
@@ -245,7 +245,7 @@ def running_editor(url: str) -> dict | None:
 
 def stop_servers() -> None:
     """shutdown() must not run on the thread serving requests, so it is deferred
-    a moment — which also lets the response reach the browser first."""
+    a moment - which also lets the response reach the browser first."""
     def go() -> None:
         time.sleep(0.2)
         for server in _servers:
@@ -255,7 +255,7 @@ def stop_servers() -> None:
 
 def open_browser(url: str) -> None:
     """Opens the page once the socket is accepting. The listening socket exists
-    from bind(), so the request queues until serve_forever() picks it up — but
+    from bind(), so the request queues until serve_forever() picks it up - but
     the call is threaded anyway, since a browser launch can block for seconds."""
     def go() -> None:
         time.sleep(0.3)
@@ -270,7 +270,7 @@ def main() -> None:
         server_v6 = bind(ServerV6, "::1")
     except OSError:
         # Re-running the script is the obvious way to ask for the page, so treat
-        # it as that rather than as an error — but only if the editor already
+        # it as that rather than as an error - but only if the editor already
         # there is serving this same project.
         running = running_editor(url)
         if running is None:
@@ -284,7 +284,7 @@ def main() -> None:
             print(f"  {running.get('project')}", file=sys.stderr)
             print(f"use another port: PORT={PORT + 1} python3 {__file__}", file=sys.stderr)
             raise SystemExit(1)
-        print(f"already running on {url} — opening that one", flush=True)
+        print(f"already running on {url} - opening that one", flush=True)
         if OPEN_BROWSER:
             open_now(url)
         return
@@ -305,7 +305,7 @@ def main() -> None:
     if OPEN_BROWSER:
         open_browser(url)
     else:
-        print("opening index.html as a file:// page cannot reach the API — use that URL",
+        print("opening index.html as a file:// page cannot reach the API - use that URL",
               flush=True)
     try:
         server.serve_forever()

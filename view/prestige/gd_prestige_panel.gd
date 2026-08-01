@@ -5,12 +5,12 @@ extends PanelContainer
 ## selected perk's PerkViewModel (App.perk_vms, one per perk, owned by App).
 ## Those are never disposed here, only the view's own listener is swapped.
 
-@export var sporate_button: Button
+@export var sporate_button: PanelContainer
 @export var perk_web: PerkWeb
 @export var detail_name: Label
 @export var detail_effect: Label
-@export var detail_cost: Label
-@export var buy_button: Button
+@export var detail_level: Label
+@export var buy_button: PanelContainer
 
 var _vm: PrestigeViewModel
 var _detail_vm: PerkViewModel
@@ -63,14 +63,14 @@ func _on_buy_pressed() -> void:
 	_detail_vm.buy()
 
 func _refresh_sporate() -> void:
-	sporate_button.text = _vm.sporate_text
-	sporate_button.disabled = not _vm.sporate_enabled
+	sporate_button.set_button_text(_vm.sporate_text)
+	sporate_button.set_disabled(not _vm.sporate_enabled)
 
 func _refresh_detail() -> void:
 	if _detail_vm == null:
 		return
-	detail_name.text = _detail_vm.tooltip_text
+	detail_name.text = _detail_vm.display_name
 	detail_effect.text = _detail_vm.detail_effect_text
-	detail_cost.text = _detail_vm.detail_cost_text
-	buy_button.text = _detail_vm.detail_buy_text
-	buy_button.disabled = not _detail_vm.can_buy
+	detail_level.text = _detail_vm.level_text
+	buy_button.set_button_text(_detail_vm.detail_buy_text)
+	buy_button.set_disabled(not _detail_vm.can_buy)

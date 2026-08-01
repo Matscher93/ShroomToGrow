@@ -102,7 +102,7 @@ static func create(data_dir: String, request: Dictionary, dry_run: bool) -> Dict
 
 	var link: Dictionary = request.get("link", {})
 	if link.is_empty():
-		return _failed("'link' is required — an unreferenced sub-resource is dropped on save")
+		return _failed("'link' is required - an unreferenced sub-resource is dropped on save")
 
 	var file_path: String = request.get("in_file", "")
 	if not ResourceLoader.exists(file_path):
@@ -202,7 +202,7 @@ static func _create_file(data_dir: String, request: Dictionary, dry_run: bool) -
 	var table_name: String = request.get("table", "")
 	var script_path: String = existing.get(table_name, {}).get("script", "")
 	if script_path.is_empty():
-		return _failed("unknown table '%s' — no resource of that class exists to copy the script from"
+		return _failed("unknown table '%s' - no resource of that class exists to copy the script from"
 			% table_name)
 	var script: Script = load(script_path)
 	if script == null:
@@ -360,7 +360,7 @@ static func _identity_clash(
 			continue
 		var value := encode_value(res.get(name), properties[name])
 		if value.is_empty():
-			return "'%s' must be set — it is this resource's identity" % name
+			return "'%s' must be set - it is this resource's identity" % name
 		var column := header.find(String(name))
 		if column == -1:
 			continue
@@ -613,7 +613,7 @@ static func apply(patch: Dictionary, dry_run: bool) -> Dictionary:
 				continue
 			var decoded: Variant = decode_value(text, column, old_value)
 			if decoded == null and column.type != TYPE_NIL and column.type != TYPE_OBJECT:
-				errors.append("%s.%s — cannot parse '%s'" % [res_path, name, text])
+				errors.append("%s.%s - cannot parse '%s'" % [res_path, name, text])
 				continue
 			res.set(name, decoded)
 			changes.append("%s.%s: %s -> %s" % [res_path, name, old_text, text])

@@ -27,7 +27,6 @@ shader_parameter/border_alpha = 1.0
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ysgxa"]
 
 [node name="offline_income_button" type="PanelContainer" unique_id=436266803 node_paths=PackedStringArray("_button")]
-modulate = Color(0.74509805, 0.74509805, 0.74509805, 1)
 material = SubResource("ShaderMaterial_2oahe")
 custom_minimum_size = Vector2(0, 60)
 offset_right = 40.0
@@ -50,11 +49,6 @@ custom_minimum_size = Vector2(0, 24)
 propagate_maximum_size = true
 layout_mode = 2
 mouse_filter = 1
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_colors/font_focus_color = Color(0, 0, 0, 1)
-theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
-theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
-theme_override_colors/font_hover_pressed_color = Color(0, 0, 0, 1)
 theme_override_fonts/font = ExtResource("3_ctoay")
 theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("StyleBoxEmpty_ta4mn")

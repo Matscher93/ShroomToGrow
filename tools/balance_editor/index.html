@@ -415,7 +415,7 @@ try {
 function saveWidths() {
   try {
     localStorage.setItem(WIDTHS_KEY, JSON.stringify(state.widths));
-  } catch (error) { /* private mode — widths just won't survive the reload */ }
+  } catch (error) { /* private mode - widths just won't survive the reload */ }
 }
 
 /** Width a column gets before anyone drags it: its widest cell, within reason. */
@@ -519,7 +519,7 @@ async function api(path, options) {
       location.protocol === "file:"
         ? `This page was opened as a file (${location.href}), so ${path} is not reachable. `
           + "Open http://127.0.0.1:8765 instead."
-        : `Cannot reach ${new URL(path, location.href).href} — is server.py still running? (${error.message})`
+        : `Cannot reach ${new URL(path, location.href).href} - is server.py still running? (${error.message})`
     );
   }
   const payload = await response.json();
@@ -560,7 +560,7 @@ function makeControl(meta, value, allowMultiline) {
     const select = document.createElement("select");
     const options = meta.type === "bool" ? ["false", "true"] : (meta.options || []);
     for (const option of options) select.append(new Option(option, option));
-    // Never silently rewrite a value the property does not offer — show it.
+    // Never silently rewrite a value the property does not offer - show it.
     if (!options.includes(value)) select.append(new Option(`${value} (unknown)`, value));
     select.value = value;
     return select;
@@ -581,7 +581,7 @@ function makeControl(meta, value, allowMultiline) {
   return input;
 }
 
-/** A number field left empty would be written as 0 — a silent balance change.
+/** A number field left empty would be written as 0 - a silent balance change.
  * Restore the last good value instead, when the field is left. */
 function guardNumeric(input, initial) {
   let lastGood = initial;
@@ -592,14 +592,14 @@ function guardNumeric(input, initial) {
     if (input.value !== "" && !Number.isNaN(Number(input.value))) return;
     input.value = lastGood;
     input.dispatchEvent(new Event("input"));
-    log(`empty number ignored — kept ${lastGood}`);
+    log(`empty number ignored - kept ${lastGood}`);
   });
 }
 
 /** Godot writes colours as #rrggbbaa (Color.to_html), and reads #rrggbb too. */
 const COLOR_RE = /^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
-/** A column counts as colour only if every value it has is one — never a stray hex-looking id. */
+/** A column counts as colour only if every value it has is one - never a stray hex-looking id. */
 function colorColumns(header, rows) {
   const columns = new Set();
   header.forEach((column, index) => {
@@ -727,14 +727,14 @@ function renderGrid() {
   el.grid.replaceChildren(head, ...body, ...suggestions.values());
   el.grid.style.width = `${widths.reduce((total, width) => total + width, 0)}px`;
   const shown = body.length;
-  setStatus(`${state.current} — ${shown}/${data.rows.length} rows${isDirty(state.current) ? " · unsaved" : ""}`);
+  setStatus(`${state.current} - ${shown}/${data.rows.length} rows${isDirty(state.current) ? " · unsaved" : ""}`);
 }
 
 /* ---------------------------------------------------------------- references
  * Three kinds live in this data:
- *   path  — a cell holding "res://…", alone or "|"-separated (effects, nodes)
- *   dict  — a JSON cell whose values are "res://…" (Screens.screens)
- *   key   — a cell holding another row's id/key, not its path
+ *   path  - a cell holding "res://…", alone or "|"-separated (effects, nodes)
+ *   dict  - a JSON cell whose values are "res://…" (Screens.screens)
+ *   key   - a cell holding another row's id/key, not its path
  * Only the key kind cannot be detected from the value, so it is declared here.
  * Add a row to this table to teach the graph a new key-based reference.
  */
@@ -755,7 +755,7 @@ const KEY_REFS = [
 
 /** Extra rules for path columns. Detection is automatic; these only narrow what
  * may be picked. `sameFile` keeps a perk inside its own branch .tres, `acyclic`
- * refuses a target that already reaches this row — a node cannot contain one of
+ * refuses a target that already reaches this row - a node cannot contain one of
  * its own ancestors. */
 const PATH_REFS = [
   { file: "PerkNodeDef", column: "children", sameFile: true, acyclic: true, list: true,
@@ -1012,7 +1012,7 @@ function editCell(rowIndex, columnIndex, value, td, input) {
   writeCell(state.current, rowIndex, columnIndex, value);
   markCell(td, rowIndex, columnIndex, input);
   renderFileList();
-  setStatus(`${state.current}${isDirty(state.current) ? " — unsaved" : " — no changes"}`);
+  setStatus(`${state.current}${isDirty(state.current) ? " - unsaved" : " - no changes"}`);
 }
 
 /* ------------------------------------------------------------ graph drawing */
@@ -1119,7 +1119,7 @@ function renderGraph() {
       "marker-end": "url(#arrow)",
     });
     path.append(svgEl("title"));
-    path.lastChild.textContent = `${edge.column} — click to remove this reference`;
+    path.lastChild.textContent = `${edge.column} - click to remove this reference`;
     path.onclick = () => {
       applyRef(edge, null);
       log(`removed ${edge.column} → ${edge.part} (unsaved; revert in the table view)`);
@@ -1187,7 +1187,7 @@ function chip(label, missing, onOpen, onRemove) {
 
 /** The row itself plus everything that reaches it through `column`, directly or
  * transitively. Since `children` edges run parent → child, that set is the row's
- * ancestors — adopting one as a child would close a loop. */
+ * ancestors - adopting one as a child would close a loop. */
 function selfAndUpstream(path, column) {
   const blocked = new Set([path]);
   const queue = [path];
@@ -1231,7 +1231,7 @@ function candidatesFor(entry, column) {
       seen.add(value);
       const target = rowIndexOf(row[0]);
       const name = labelOf(target);
-      out.push({ value, label: name && name !== value ? `${value} — ${name}` : value });
+      out.push({ value, label: name && name !== value ? `${value} - ${name}` : value });
     }
     return out;
   }
@@ -1319,7 +1319,7 @@ function fieldEditor(entry, columnIndex) {
     writeCell(entry.file, entry.rowIndex, columnIndex, input.value);
     sync();
     renderFileList();
-    setStatus(`${entry.file}${isDirty(entry.file) ? " — unsaved" : " — no changes"}`);
+    setStatus(`${entry.file}${isDirty(entry.file) ? " - unsaved" : " - no changes"}`);
   });
   // Only once the field is left, so the node label refreshes without the
   // panel rebuilding itself out from under the cursor on every keystroke.
@@ -1498,7 +1498,7 @@ function createRow(entry, column, rule) {
 
 async function createChild(entry, column, rule, id, path) {
   if (!id) {
-    log("give the new resource an id first — ids are runtime keys, and save keys for perks", true);
+    log("give the new resource an id first - ids are runtime keys, and save keys for perks", true);
     return;
   }
   if (rule.createsFile && !path) {
@@ -1508,7 +1508,7 @@ async function createChild(entry, column, rule, id, path) {
   // Creating writes to disk and re-reads every table, which would throw away
   // anything still staged in the page.
   if (anyDirty()) {
-    log("save or revert your edits first — creating re-reads every table", true);
+    log("save or revert your edits first - creating re-reads every table", true);
     return;
   }
   try {
@@ -1544,7 +1544,7 @@ function identityValues(table, id) {
  * destroyed alongside. */
 async function deleteResource(path) {
   if (anyDirty()) {
-    log("save or revert your edits first — deleting re-reads every table", true);
+    log("save or revert your edits first - deleting re-reads every table", true);
     return;
   }
   let preview;
@@ -1608,7 +1608,7 @@ function setView(view) {
   document.querySelector(".table-wrap").hidden = view !== "table";
   el.graphView.hidden = view !== "graph";
   // The grid is not kept up to date while the graph is showing, so rebuild it
-  // on the way back — graph edits and file switches both land here.
+  // on the way back - graph edits and file switches both land here.
   if (view === "graph") renderGraph();
   else renderGrid();
 }
@@ -1719,7 +1719,7 @@ el.quit.onclick = async () => {
   setTimeout(() => {
     document.body.replaceChildren(Object.assign(document.createElement("div"), {
       className: "stopped",
-      textContent: "Server stopped — you can close this tab.",
+      textContent: "Server stopped - you can close this tab.",
     }));
   }, 400);
 };

@@ -11,11 +11,15 @@ signal perk_selected(id: StringName)
 @export var world: Node2D
 @export var lines: PerkLines
 @export var node_scene: PackedScene
+## Width of the alpha falloff at the clip edges, in pixels. sh_web_fade.gdshader
+## on "world" wants it in screen UV, so it is converted per axis on update.
+@export var edge_fade_pixels: float = 48.0
 
 const NODE_SIZE := 40.0
 const MIN_SCALE := 0.35
 const MAX_SCALE := 2.5
 const ZOOM_STEP := 1.15
+const TAP_CANCEL_DISTANCE := 10.0  # px, beyond this a press is a pan, not a tap
 
 var _buttons: Dictionary = {}  # StringName -> PerkNode
 var _selected_id: StringName = &"core"
@@ -23,6 +27,8 @@ var _dragging := false
 var _drag_last := Vector2.ZERO
 var _touches: Dictionary = {}  # int finger index -> Vector2 last local position
 var _pinch_prev_dist := -1.0
+var _press_start := Vector2.ZERO
+var _gesture_moved := false
 
 func _ready() -> void:
 	clip_contents = true
@@ -33,7 +39,9 @@ func _ready() -> void:
 	# parameterless.
 	App.player_data.biomass_changed.connect(_on_changed.unbind(1))
 	resized.connect(_center_on_core)
+	item_rect_changed.connect(_update_edge_fade)
 	call_deferred("_center_on_core")
+	call_deferred("_update_edge_fade")
 	_refresh_all()
 	_update_touch_emulation()
 
@@ -47,6 +55,22 @@ func _exit_tree() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
 		_update_touch_emulation()
+		_update_edge_fade()
+
+## The fade lives in screen UV (see sh_web_fade.gdshader), so it has to be
+## recomputed whenever this control's place on screen changes. Screens are
+## cached and hidden rather than freed, so a rebind after a screen switch counts.
+func _update_edge_fade() -> void:
+	if world == null or not (world.material is ShaderMaterial):
+		return
+	var viewport_size := get_viewport_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return
+	var rect := get_global_rect()
+	var material: ShaderMaterial = world.material
+	material.set_shader_parameter("rect_min", rect.position / viewport_size)
+	material.set_shader_parameter("rect_max", rect.end / viewport_size)
+	material.set_shader_parameter("fade_size", Vector2(edge_fade_pixels, edge_fade_pixels) / viewport_size)
 
 ## Android/iOS synthesize InputEventMouseMotion from touch by default, which
 ## would double-drive world.position alongside the ScreenDrag handling below and
@@ -71,11 +95,22 @@ func _spawn_button(def: PerkDef) -> void:
 	var btn: PerkNode = node_scene.instantiate()
 	btn.position = Vector2(def.world_x, def.world_y) - Vector2(NODE_SIZE, NODE_SIZE) / 2.0
 	btn.bind(def)
-	btn.pressed.connect(func() -> void: _select(def.id); perk_selected.emit(def.id))
+	btn.pressed.connect(func() -> void: _on_node_pressed(def.id))
 	world.add_child(btn)
 	_buttons[def.id] = btn
 
 # --- selection ---
+
+## The nodes' Buttons pass their input through so a press that starts on a node
+## still pans the web. They emit pressed on release regardless, and Godot routes
+## that release to the Button before it bubbles here, so the pan/zoom flag has to
+## be raised while the gesture is still moving and only cleared on the next
+## press. Same tap-vs-drag rule as gd_biome_panel.gd.
+func _on_node_pressed(id: StringName) -> void:
+	if _gesture_moved:
+		return
+	_select(id)
+	perk_selected.emit(id)
 
 func _select(id: StringName) -> void:
 	if _selected_id == id:
@@ -119,6 +154,9 @@ func _gui_input(event: InputEvent) -> void:
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			_dragging = mb.pressed
 			_drag_last = mb.position
+			if mb.pressed:
+				_press_start = mb.position
+				_gesture_moved = false
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
 			_zoom_by(ZOOM_STEP, mb.position)
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
@@ -127,9 +165,17 @@ func _gui_input(event: InputEvent) -> void:
 		var mm := event as InputEventMouseMotion
 		world.position += mm.position - _drag_last
 		_drag_last = mm.position
+		if mm.position.distance_to(_press_start) > TAP_CANCEL_DISTANCE:
+			_gesture_moved = true
 	elif event is InputEventScreenTouch:
 		var st := event as InputEventScreenTouch
 		if st.pressed:
+			if _touches.is_empty():
+				_press_start = st.position
+				_gesture_moved = false
+			else:
+				# Second finger down means a pinch, never a tap.
+				_gesture_moved = true
 			_touches[st.index] = st.position
 		else:
 			_touches.erase(st.index)
@@ -140,6 +186,8 @@ func _gui_input(event: InputEvent) -> void:
 		# Position delta, not sd.relative, to match the mouse-drag path above.
 		var prev: Vector2 = _touches.get(sd.index, sd.position)
 		_touches[sd.index] = sd.position
+		if sd.position.distance_to(_press_start) > TAP_CANCEL_DISTANCE:
+			_gesture_moved = true
 		if _touches.size() >= 2:
 			_update_pinch()
 		else:
@@ -158,6 +206,7 @@ func _update_pinch() -> void:
 	_pinch_prev_dist = dist
 
 func _zoom_by(factor: float, anchor: Vector2) -> void:
+	_gesture_moved = true
 	var new_scale := clampf(world.scale.x * factor, MIN_SCALE, MAX_SCALE)
 	var actual_factor := new_scale / world.scale.x
 	world.position = anchor - (anchor - world.position) * actual_factor

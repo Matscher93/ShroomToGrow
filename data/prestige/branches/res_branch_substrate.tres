@@ -9,7 +9,7 @@
 script = ExtResource("4_node_script")
 id = &"substrate_4a"
 display_name = "Substrate IV·A"
-description = "Substrate node — kept through every sporation."
+description = "Substrate node - kept through every sporation."
 _base_cost_mantissa = 1.6
 _base_cost_exponent = 1
 
@@ -17,7 +17,7 @@ _base_cost_exponent = 1
 script = ExtResource("4_node_script")
 id = &"substrate_4b"
 display_name = "Substrate IV·B"
-description = "Substrate node — kept through every sporation."
+description = "Substrate node - kept through every sporation."
 _base_cost_mantissa = 1.6
 _base_cost_exponent = 1
 
@@ -26,7 +26,7 @@ script = ExtResource("4_node_script")
 id = &"substrate_3a"
 children = Array[ExtResource("4_node_script")]([SubResource("node_4a")])
 display_name = "Substrate III·A"
-description = "Substrate node — kept through every sporation."
+description = "Substrate node - kept through every sporation."
 _base_cost_mantissa = 8.0
 _base_cost_exponent = 0
 
@@ -35,7 +35,7 @@ script = ExtResource("4_node_script")
 id = &"substrate_3b"
 children = Array[ExtResource("4_node_script")]([SubResource("node_4b")])
 display_name = "Substrate III·B"
-description = "Substrate node — kept through every sporation."
+description = "Substrate node - kept through every sporation."
 _base_cost_mantissa = 8.0
 _base_cost_exponent = 0
 
@@ -44,7 +44,7 @@ script = ExtResource("4_node_script")
 id = &"substrate_2"
 children = Array[ExtResource("4_node_script")]([SubResource("node_3a"), SubResource("node_3b")])
 display_name = "Substrate II"
-description = "Substrate node — kept through every sporation."
+description = "Substrate node - kept through every sporation."
 _base_cost_mantissa = 4.0
 _base_cost_exponent = 0
 
@@ -53,7 +53,7 @@ script = ExtResource("4_node_script")
 id = &"substrate_1"
 children = Array[ExtResource("4_node_script")]([SubResource("node_2")])
 display_name = "Substrate I"
-description = "Substrate node — kept through every sporation."
+description = "Substrate node - kept through every sporation."
 
 [resource]
 script = ExtResource("1_script")

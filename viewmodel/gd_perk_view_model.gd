@@ -30,7 +30,7 @@ var level_text: String:
 	get: return "%d/%d" % [level, max_level]
 
 var tooltip_text: String:
-	get: return "%s — Lv %d/%d" % [_def.display_name, level, max_level]
+	get: return "%s | Lv %d/%d" % [_def.display_name, level, max_level]
 
 var detail_effect_text: String:
 	get:
@@ -41,21 +41,17 @@ var detail_effect_text: String:
 			return "%+.1f %s per level" % [effect.per_level, effect.stat]
 		return "%+.0f%% %s per level" % [effect.per_level * 100.0, effect.stat]
 
-var detail_cost_text: String:
-	get:
-		if status == "locked":
-			return "Locked — unlock its parent first"
-		if level >= max_level:
-			return "Maxed"
-		return "Cost: %s biomass" % App.prestige_upgrade_system.cost(_id).to_display()
-
+## the buy button carries the price, so the cost stays visible even while the perk
+## is locked - "Locked" only prefixes it, it never replaces it. A maxed perk has no
+## next level to price, so it's the one case without a cost.
 var detail_buy_text: String:
 	get:
-		if status == "locked":
-			return "Locked"
 		if level >= max_level:
 			return "Maxed"
-		return "Buy"
+		var cost_text := "%s biomass" % App.prestige_upgrade_system.cost(_id).to_display()
+		if status == "locked":
+			return "Locked | %s" % cost_text
+		return "Buy | %s" % cost_text
 
 var can_buy: bool:
 	get: return App.can_buy_perk(_id)

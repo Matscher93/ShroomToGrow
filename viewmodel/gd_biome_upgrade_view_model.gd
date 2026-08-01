@@ -22,7 +22,7 @@ var desc_text: String:
 		if App.is_biome_upgrade_unlocked(_id, _key):
 			return def.description if def else ""
 		var needed := def.min_biome_points_spent if def else 0
-		return "Locked — requires %d points spent in this biome." % needed
+		return "Locked - requires %d points spent in this biome." % needed
 
 var level_text: String:
 	get: return "Lv %d" % App.biome_upgrade_system.level(_id)
