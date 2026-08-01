@@ -49,10 +49,15 @@ func node_potency_external_multiplier(node_id: StringName) -> BigNumber:
 func node_synergy_external_multiplier(node_id: StringName) -> BigNumber:
 	return stack_external(&"synergy_production", BigNumber.from_value(1.0), node_id)
 
+## The potency and synergy tracks on their own, without the &"node_production"
+## multipliers stacked on top. Displayed next to the total so the player can see
+## what their own symbiosis levels contribute.
+func node_symbiosis_bonus(node_id: StringName) -> BigNumber:
+	return node_potency_bonus(node_id).mul(node_synergy_bonus(node_id))
+
 ## Shared by the tick loop and the display ViewModels so they can't drift.
 func node_production_bonus(node_id: StringName) -> BigNumber:
-	var base := node_potency_bonus(node_id).mul(node_synergy_bonus(node_id))
-	return stack(&"node_production", base, node_id)
+	return stack(&"node_production", node_symbiosis_bonus(node_id), node_id)
 
 # ---------------------------------------------------------------- global stats
 

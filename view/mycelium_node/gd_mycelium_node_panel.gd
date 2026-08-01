@@ -18,6 +18,7 @@ extends PanelContainer
 @export var vbox_buy: VBoxContainer
 @export var expansion_arrow: ColorRect
 @export var label_yield: Label
+@export var label_total_yield: Label
 @export var label_potency_level: Label
 @export var label_potency_gain_header: Label
 @export var label_potency_accumulated: Label
@@ -81,8 +82,10 @@ func _on_property_changed(property: StringName) -> void:
 		MyceliumNodeViewModel.PROP_PRODUCTION_TEXT:
 			label_node_income.text = _vm.production_text
 			label_node_desc.text = _vm.production_per_node_text
+		MyceliumNodeViewModel.PROP_SYMBIOSIS_YIELD_TEXT:
+			label_yield.text = _vm.symbiosis_yield_text
 		MyceliumNodeViewModel.PROP_TOTAL_YIELD_TEXT:
-			label_yield.text = _vm.total_yield_text
+			label_total_yield.text = _vm.total_yield_text
 		MyceliumNodeViewModel.PROP_POTENCY_LEVEL_TEXT:
 			label_potency_level.text = _vm.potency_level_text
 		MyceliumNodeViewModel.PROP_POTENCY_HEADER_TEXT:
@@ -115,7 +118,8 @@ func _refresh_all() -> void:
 	level_value.text = "%d" % [node_level + 1]
 	label_node_name.text = _vm.node_name
 	label_node_desc.text = _vm.production_per_node_text
-	label_yield.text = _vm.total_yield_text
+	label_yield.text = _vm.symbiosis_yield_text
+	label_total_yield.text = _vm.total_yield_text
 	_refresh_upgrade_labels()
 	_apply_colors()
 

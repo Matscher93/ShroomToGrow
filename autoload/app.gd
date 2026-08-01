@@ -216,6 +216,9 @@ func node_potency_external_multiplier(node_id: StringName) -> BigNumber:
 func node_synergy_external_multiplier(node_id: StringName) -> BigNumber:
 	return production_system.node_synergy_external_multiplier(node_id)
 
+func node_symbiosis_bonus(node_id: StringName) -> BigNumber:
+	return production_system.node_symbiosis_bonus(node_id)
+
 func node_production_bonus(node_id: StringName) -> BigNumber:
 	return production_system.node_production_bonus(node_id)
 

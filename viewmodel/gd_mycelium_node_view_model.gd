@@ -10,6 +10,7 @@ const PROP_OWNED_NODE_TEXT := &"owned_node_text"
 const PROP_CAN_BUY := &"can_buy_upgrade"
 const PROP_PRODUCTION_TEXT := &"production_text"
 const PROP_PRODUCTION_PER_NODE_TEXT := &"production_per_node_text"
+const PROP_SYMBIOSIS_YIELD_TEXT := &"symbiosis_yield_text"
 const PROP_TOTAL_YIELD_TEXT := &"total_yield_text"
 const PROP_POTENCY_LEVEL_TEXT := &"potency_level_text"
 const PROP_POTENCY_HEADER_TEXT := &"potency_header_text"
@@ -75,6 +76,13 @@ func _unit_text(amount: BigNumber) -> String:
 		return ("%s nutrients" if plural else "%s nutrient") % [amount.to_display()]
 	var level_text := "LV%d" % [_mycelium_data.node.node_id]
 	return ("%s %s nodes" if plural else "%s %s node") % [amount.to_display(), level_text]
+
+## Potency times synergy only, so the player can tell their own symbiosis levels
+## apart from the biome and perk multipliers folded into the total below.
+var symbiosis_yield_text: String:
+	get:
+		var symbiosis := App.node_symbiosis_bonus(_node_id_key()).sub(BigNumber.from_value(1.0))
+		return "+%s%%" % [symbiosis.scale(100.0).to_display()]
 
 var total_yield_text: String:
 	get:
@@ -199,6 +207,7 @@ func _on_upgrades_changed() -> void:
 	_notify(PROP_BUY_TEXT)
 	_notify(PROP_CAN_BUY)
 	_notify(PROP_PRODUCTION_TEXT)
+	_notify(PROP_SYMBIOSIS_YIELD_TEXT)
 	_notify(PROP_TOTAL_YIELD_TEXT)
 	_notify(PROP_POTENCY_LEVEL_TEXT)
 	_notify(PROP_POTENCY_HEADER_TEXT)

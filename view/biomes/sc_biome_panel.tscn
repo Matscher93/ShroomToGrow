@@ -174,7 +174,7 @@ font_color = Color(0.9490196, 0.8901961, 0.72156864, 1)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0wcpl"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_n8emp"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_xkh6a"]
 resource_local_to_scene = true
 shader = ExtResource("1_v3bgn")
 shader_parameter/rect_size = Vector2(323, 71)
@@ -295,6 +295,7 @@ size_flags_horizontal = 8
 size_flags_vertical = 0
 offset_transform_enabled = true
 offset_transform_position = Vector2(5, -5)
+mouse_filter = 2
 
 [node name="Control3" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=566303540]
 custom_minimum_size = Vector2(5, 0)
@@ -497,5 +498,5 @@ theme_override_constants/v_separation = 6
 columns = 5
 
 [node name="upgrade_detail" parent="MarginContainer/VBoxContainer/vbox_upgrades" unique_id=1879342892 instance=ExtResource("13_upgrade_card")]
-material = SubResource("ShaderMaterial_n8emp")
+material = SubResource("ShaderMaterial_xkh6a")
 layout_mode = 2

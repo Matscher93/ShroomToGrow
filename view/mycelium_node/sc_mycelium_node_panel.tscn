@@ -15,7 +15,7 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
 resource_local_to_scene = true
 shader = ExtResource("1_an5pq")
-shader_parameter/rect_size = Vector2(250, 72)
+shader_parameter/rect_size = Vector2(322, 295)
 shader_parameter/box_color = Color(0.14509805, 0.45882353, 0.41568628, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 24.0
@@ -117,7 +117,7 @@ font_color = Color(1, 1, 1, 0.5882353)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_8wed3"]
 shader = ExtResource("1_an5pq")
-shader_parameter/rect_size = Vector2(262, 52)
+shader_parameter/rect_size = Vector2(302, 52)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 16.0
@@ -148,7 +148,7 @@ font_color = Color(1, 1, 1, 0.5882353)
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_qglmv"]
 resource_local_to_scene = true
 shader = ExtResource("1_an5pq")
-shader_parameter/rect_size = Vector2(111, 34)
+shader_parameter/rect_size = Vector2(111, 36)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 11.0
@@ -203,7 +203,7 @@ font_color = Color(1, 1, 1, 0.5882353)
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ud6rb"]
 resource_local_to_scene = true
 shader = ExtResource("1_an5pq")
-shader_parameter/rect_size = Vector2(111, 34)
+shader_parameter/rect_size = Vector2(111, 36)
 shader_parameter/box_color = Color(0, 0, 0, 1)
 shader_parameter/box_extends = Vector2(1, 1)
 shader_parameter/corner_radius = 11.0
@@ -212,7 +212,7 @@ shader_parameter/additional_border_offset = 1.0
 shader_parameter/background_alpha = 0.2
 shader_parameter/border_alpha = 1.0
 
-[node name="mycelium_node" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "owned_nodes", "manual_nodes", "level_value", "level_header", "label_node_name", "label_node_desc", "label_node_income", "label_buy_cost", "panel_buy_node", "level_icon", "vbox_synergy", "vbox_buy", "expansion_arrow", "label_yield", "label_potency_level", "label_potency_gain_header", "label_potency_accumulated", "label_potency_cost", "panel_potency", "upgrade_button_potency", "label_synergy_level", "label_synergy_gain_header", "label_synergy_accumulated", "label_synergy_cost", "panel_synergy", "upgrade_button_synergy")]
+[node name="mycelium_node" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "owned_nodes", "manual_nodes", "level_value", "level_header", "label_node_name", "label_node_desc", "label_node_income", "label_buy_cost", "panel_buy_node", "level_icon", "vbox_synergy", "vbox_buy", "expansion_arrow", "label_yield", "label_total_yield", "label_potency_level", "label_potency_gain_header", "label_potency_accumulated", "label_potency_cost", "panel_potency", "upgrade_button_potency", "label_synergy_level", "label_synergy_gain_header", "label_synergy_accumulated", "label_synergy_cost", "panel_synergy", "upgrade_button_synergy")]
 material = SubResource("ShaderMaterial_53xj8")
 custom_minimum_size = Vector2(250, 50)
 offset_right = 40.0
@@ -235,6 +235,7 @@ vbox_synergy = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy")
 vbox_buy = NodePath("MarginContainer/VBoxContainer/vbox_buy")
 expansion_arrow = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/ColorRect")
 label_yield = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/MarginContainer/HBoxContainer2/lbl_yield")
+label_total_yield = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/MarginContainerTotal/HBoxContainerTotal/lbl_total_yield")
 label_potency_level = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer/lbl_potency_level")
 label_potency_gain_header = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_potency_gain_header")
 label_potency_accumulated = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/PanelContainerPotency/MarginContainer/HBoxContainer/VBoxContainer/HBoxContainer2/lbl_potency_gain_amount")
@@ -381,7 +382,6 @@ offset_transform_pivot = Vector2(0.5, 0.5)
 mouse_filter = 2
 
 [node name="vbox_buy" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=175159022]
-visible = false
 layout_mode = 2
 
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/vbox_buy" unique_id=767526356]
@@ -440,7 +440,6 @@ alignment = 0
 script = ExtResource("9_7yqcm")
 
 [node name="vbox_synergy" type="VBoxContainer" parent="MarginContainer/VBoxContainer/vbox_buy" unique_id=994649677]
-visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
 
@@ -452,12 +451,40 @@ custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
 color = Color(1, 1, 1, 0.078431375)
 
+[node name="MarginContainerTotal" type="MarginContainer" parent="MarginContainer/VBoxContainer/vbox_buy/vbox_synergy" unique_id=1358190673]
+layout_mode = 2
+
+[node name="HBoxContainerTotal" type="HBoxContainer" parent="MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/MarginContainerTotal" unique_id=187371908]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="lbl_total_header" type="Label" parent="MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/MarginContainerTotal/HBoxContainerTotal" unique_id=566350086]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+text = "Total Boost"
+label_settings = SubResource("LabelSettings_bj2ss")
+uppercase = true
+
+[node name="lbl_total_yield" type="Label" parent="MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/MarginContainerTotal/HBoxContainerTotal" unique_id=2082653394]
+layout_mode = 2
+text = "1"
+label_settings = SubResource("LabelSettings_sj03d")
+horizontal_alignment = 2
+
+[node name="lbl_total_yield_footer" type="Label" parent="MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/MarginContainerTotal/HBoxContainerTotal" unique_id=2094200592]
+propagate_maximum_size = true
+layout_mode = 2
+text = "yield"
+label_settings = SubResource("LabelSettings_x61oj")
+horizontal_alignment = 2
+
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/vbox_buy/vbox_synergy" unique_id=1358190672]
 layout_mode = 2
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/MarginContainer" unique_id=187371907]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 4
 
 [node name="lbl_level_header" type="Label" parent="MarginContainer/VBoxContainer/vbox_buy/vbox_synergy/MarginContainer/HBoxContainer2" unique_id=566350085]
 layout_mode = 2
