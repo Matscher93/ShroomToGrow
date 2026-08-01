@@ -10,14 +10,16 @@ script = ExtResource("4_node_script")
 id = &"fruiting_4a"
 display_name = "Fruiting IV·A"
 description = "Fruiting node — kept through every sporation."
-base_cost = 16.0
+_base_cost_mantissa = 1.6
+_base_cost_exponent = 1
 
 [sub_resource type="Resource" id="node_4b"]
 script = ExtResource("4_node_script")
 id = &"fruiting_4b"
 display_name = "Fruiting IV·B"
 description = "Fruiting node — kept through every sporation."
-base_cost = 16.0
+_base_cost_mantissa = 1.6
+_base_cost_exponent = 1
 
 [sub_resource type="Resource" id="node_3a"]
 script = ExtResource("4_node_script")
@@ -25,7 +27,8 @@ id = &"fruiting_3a"
 children = Array[ExtResource("4_node_script")]([SubResource("node_4a")])
 display_name = "Fruiting III·A"
 description = "Fruiting node — kept through every sporation."
-base_cost = 8.0
+_base_cost_mantissa = 8.0
+_base_cost_exponent = 0
 
 [sub_resource type="Resource" id="node_3b"]
 script = ExtResource("4_node_script")
@@ -33,7 +36,8 @@ id = &"fruiting_3b"
 children = Array[ExtResource("4_node_script")]([SubResource("node_4b")])
 display_name = "Fruiting III·B"
 description = "Fruiting node — kept through every sporation."
-base_cost = 8.0
+_base_cost_mantissa = 8.0
+_base_cost_exponent = 0
 
 [sub_resource type="Resource" id="node_2"]
 script = ExtResource("4_node_script")
@@ -41,7 +45,8 @@ id = &"fruiting_2"
 children = Array[ExtResource("4_node_script")]([SubResource("node_3a"), SubResource("node_3b")])
 display_name = "Fruiting II"
 description = "Fruiting node — kept through every sporation."
-base_cost = 4.0
+_base_cost_mantissa = 4.0
+_base_cost_exponent = 0
 
 [sub_resource type="Resource" id="node_1"]
 script = ExtResource("4_node_script")

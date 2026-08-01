@@ -15,7 +15,8 @@ id = &"core"
 display_name = "Sporation"
 description = "The first bloom. Every arm of the mycelial web grows outward from here."
 max_level = 1
-base_cost = 1.0
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 0
 
 [resource]
 script = ExtResource("1_list_script")

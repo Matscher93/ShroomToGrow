@@ -17,7 +17,17 @@ extends Resource
 @export_multiline var description: String
 @export var max_level: int = 5
 
-@export var base_cost: float = 2.0
+# BigNumber, split into exportable parts — same trick as UpgradeDef, so deep
+# branches can be priced past float range. Use base_cost (below) to read/write
+# as a BigNumber.
+@export var _base_cost_mantissa: float = 2.0
+@export var _base_cost_exponent: int = 0
+var base_cost: BigNumber:
+	get: return BigNumber.new(_base_cost_mantissa, _base_cost_exponent)
+	set(value):
+		_base_cost_mantissa = value.mantissa
+		_base_cost_exponent = value.exponent
+
 @export var cost_growth: float = 1.6
 
 ## Empty falls back to the branch's default_effects — most branches give every
