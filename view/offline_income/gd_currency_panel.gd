@@ -17,7 +17,7 @@ func _validate_property(property: Dictionary) -> void:
 	if property.name != "currency_name" and property.name != "currency_change"\
 		and property.name != "color_param" and property.name != "icon_rect":
 		return
-	# Editable only when this scene is the one open on its own in the editor.
+	# Editable only when this scene is open on its own in the editor.
 	if Engine.is_editor_hint() and get_tree().edited_scene_root != self:
 		property.usage &= ~PROPERTY_USAGE_EDITOR
 

@@ -1,6 +1,6 @@
 class_name OfflineIncomeViewModel
 extends ViewModel
-## VIEWMODEL — tracks save game snapshots shown in the offline income viewmodel
+## VIEWMODEL: tracks the save snapshots the offline income popup diffs.
 
 const PROP_SNAPSHOTS_CHANGED := &"snapshots_changed"
 const PROP_CALCULATING_CHANGED := &"calculating_changed"
@@ -19,26 +19,24 @@ func set_save_data(in_save_data_snapshots: Array[Dictionary], in_total_offline_t
 	_offline_time = in_offline_time
 	_notify(PROP_SNAPSHOTS_CHANGED)
 
-## Lets the popup show up immediately when the (timesliced) offline catch-up
-## starts, rather than only once it finishes, while blocking collection until
-## the result is actually ready.
+## Lets the popup appear as soon as the timesliced catch-up starts rather than
+## when it finishes, while blocking collection until the result is ready.
 func set_calculating(value: bool) -> void:
 	if _is_calculating == value:
 		return
 	_is_calculating = value
 	_notify(PROP_CALCULATING_CHANGED)
 
-## Reported once per timesliced batch while the offline catch-up loop runs,
-## so the popup can show live progress instead of a static "calculating" state.
+## Reported once per timesliced batch while the catch-up loop runs, so the popup
+## shows live progress instead of a static "calculating" state.
 func set_calc_progress(ticks_done: int, ticks_total: int) -> void:
 	_calc_ticks_done = ticks_done
 	_calc_ticks_total = ticks_total
 	_notify(PROP_CALC_PROGRESS_CHANGED)
 
-## Called once the player collects the popup. total_offline_ticks otherwise
-## keeps its last completed value forever, so any later check for "is there
-## something to show" (e.g. the next app resume, even with nothing new to
-## report) would misread leftover data from this run as a fresh one.
+## Called once the player collects the popup. Without this, total_offline_ticks
+## keeps its last value forever and a later "is there something to show" check
+## (the next app resume) misreads leftover data as a fresh run.
 func clear() -> void:
 	_save_data_snapshots = []
 	_total_offline_ticks = 0

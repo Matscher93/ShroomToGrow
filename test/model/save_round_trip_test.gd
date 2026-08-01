@@ -2,8 +2,8 @@ extends GdUnitTestSuite
 ## Save/load round-trip for every model that persists state.
 ##
 ## The save format is the one thing a player cannot recover from if it breaks,
-## and its failure modes only show up on the corrupt/missing-data path — which
-## is exactly when it matters most.
+## and its failure modes only show up on the corrupt or missing-data path, which
+## is when it matters most.
 
 const EPS := 0.000001
 
@@ -95,8 +95,8 @@ func test_node_backing_fields_track_the_cached_value() -> void:
 	assert_int(node._auto_nodes_exponent).is_equal(node.auto_nodes.exponent)
 
 func test_setting_an_equal_value_does_not_emit() -> void:
-	# == on a RefCounted is an identity check, so this guard used to be dead and
-	# every assignment fanned a signal out to every bound ViewModel.
+	# == on a RefCounted is an identity check, which would make this guard dead
+	# and fan a signal out to every bound ViewModel on each assignment.
 	var node := MyceliumNode.new()
 	var emitted: Array[int] = [0]
 	node.auto_nodes_changed.connect(func(_v: BigNumber) -> void: emitted[0] += 1)
@@ -119,8 +119,8 @@ func test_node_reads_authored_backing_fields() -> void:
 # ─── SaveManager migrations ──────────────────────────────────────────────────
 
 func test_v1_perk_ids_are_remapped_and_the_save_is_stamped_v2() -> void:
-	# Perk ids used to be "<branch key><roman numeral>"; UpgradeSystem.from_save()
-	# drops levels it has no def for, so a missed remap silently wipes the tree.
+	# Perk ids used to be "<branch key><roman numeral>". UpgradeSystem.from_save()
+	# drops levels it has no def for, so a missed remap wipes the tree.
 	var data := {"version": 1, "game": {"prestige_upgrades": {"nutI": 2, "bntIII·A": 1, "core": 1}}}
 
 	assert_bool(SaveManager._migrate(data)).is_true()

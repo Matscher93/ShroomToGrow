@@ -1,7 +1,7 @@
 class_name PopupLayer
 extends MarginContainer
-## VIEW — generic host for transient popups. At most one popup lives here
-## at a time; showing a new one clears whatever's currently up.
+## VIEW: generic host for transient popups. At most one lives here at a time,
+## showing a new one clears whatever is up.
 
 var _current: Node = null
 

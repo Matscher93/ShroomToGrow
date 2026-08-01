@@ -13,11 +13,9 @@ extends RefCounted
 var mantissa: float  ## Normalised to [1.0, 10.0)  (or 0)
 var exponent: int    ## Power of 10
 
-## Suffix table: one entry per 3 exponent steps, ending at Decillion.
-## 12 entries cover exponents 0..35, i.e. everything below 10^36 — values at or
-## above that fall back to scientific notation. Deliberate: plain suffixed
-## numbers are wanted all the way to decillion, and only past it. Extend this
-## table (Ud, Dd, Td, ...) to push the scientific cutoff higher.
+## Suffix table: one entry per 3 exponent steps, ending at Decillion. 12 entries
+## cover exponents 0..35, anything at or above 10^36 falls back to scientific
+## notation. Extend the table (Ud, Dd, Td, ...) to push that cutoff higher.
 const SUFFIXES: Array[String] = [
 	"",    "K",   "M",   "B",   "T",
 	"Qa",  "Qi",  "Sx",  "Sp",  "Oc",  "No",
@@ -45,9 +43,8 @@ func copy() -> BigNumber:
 	return BigNumber.new(mantissa, exponent)
 
 # Keeps mantissa in [1, 10) by shifting the exponent, so every value has exactly
-# one representation. The looser [1, 1000) this used to allow meant 1000 could be
-# either (1.0, 3) or (100.0, 1): equals() compared exponents and so called those
-# two unequal, and gt() couldn't use the exponent alone to order two numbers.
+# one representation. A looser range would let 1000 be either (1.0, 3) or
+# (100.0, 1), breaking equals() and exponent-only ordering in gt().
 func _normalize() -> void:
 	if mantissa == 0.0:
 		exponent = 0
@@ -90,7 +87,7 @@ func div(other: BigNumber) -> BigNumber:
 		return BigNumber.new(0.0, 0)
 	return BigNumber.new(mantissa / other.mantissa, exponent - other.exponent)
 
-## Integer exponentiation via fast squaring — handy for upgrade cost curves.
+## Integer exponentiation via fast squaring, for upgrade cost curves.
 ## e.g.  base_cost.pow_int(level)
 func pow_int(p: int) -> BigNumber:
 	if p == 0: return BigNumber.new(1.0, 0)
@@ -109,16 +106,16 @@ func pow_int(p: int) -> BigNumber:
 func scale(factor: float) -> BigNumber:
 	return BigNumber.new(mantissa * factor, exponent)
 
-## Collapses back to a plain float. Only safe for values known to stay in
-## float range (e.g. tick duration, point counts) — anything that can grow
-## unbounded (nutrients, biomass) should stay a BigNumber and use to_display().
+## Collapses back to a plain float. Only safe for values that stay in float
+## range (tick duration, point counts). Anything unbounded (nutrients, biomass)
+## stays a BigNumber and uses to_display().
 func to_float() -> float:
 	return mantissa * pow(10.0, float(exponent))
 
-## Real-exponent power via log10 space — unlike pow_int, handles fractional
-## and arbitrarily large exponents without overflowing (e.g. cost curves with
-## a growth exponent, or per-level compounding at high levels). Assumes a
-## positive base (true for growth rates like cost_growth / 1+per_level).
+## Real-exponent power via log10 space. Unlike pow_int it handles fractional and
+## arbitrarily large exponents without overflowing (cost curves with a growth
+## exponent, per-level compounding). Assumes a positive base, true for growth
+## rates like cost_growth and 1+per_level.
 func pow_float(float_exp: float) -> BigNumber:
 	if mantissa <= 0.0:
 		return BigNumber.new(0.0, 0)
@@ -135,17 +132,16 @@ func gt(other: BigNumber) -> bool:   # self > other
 	var self_negative := mantissa < 0.0
 	var other_negative := other.mantissa < 0.0
 	if self_negative != other_negative:
-		return other_negative        # exactly one is negative; self wins iff that's the other
+		return other_negative        # exactly one is negative, self wins iff that's the other
 	if mantissa == 0.0:
 		return other_negative        # 0 beats a negative, loses to a positive
 	if other.mantissa == 0.0:
 		return not self_negative
 	# Same sign, both non-zero. Normalisation keeps |mantissa| in [1, 10), so
 	# 10^e <= |value| < 10^(e+1) and a differing exponent decides on its own.
-	# The old version scaled both mantissas into a common exponent first, which
-	# overflowed to INF once the exponents were a few hundred apart — and
-	# INF > INF is false, so gt() returned false for values that were genuinely
-	# greater, silently inverting affordability checks late in a run.
+	# Do not scale both mantissas to a common exponent instead: that overflows to
+	# INF a few hundred exponents apart, and INF > INF is false, which inverts
+	# affordability checks late in a run.
 	if exponent != other.exponent:
 		return (exponent > other.exponent) != self_negative
 	return mantissa > other.mantissa
@@ -157,11 +153,10 @@ func lte(other: BigNumber) -> bool: return not gt(other)
 func equals(other: BigNumber) -> bool:
 	return exponent == other.exponent and is_equal_approx(mantissa, other.mantissa)
 
-## Exact field-for-field comparison, for "did this actually change?" guards in
-## property setters. Unlike equals() it never treats two distinct values as the
-## same, so a real (if tiny) gain can't be swallowed by an approximate compare.
-## Being a RefCounted, == on two BigNumbers is an identity check and is useless
-## for this — every arithmetic result is a fresh instance.
+## Exact field-for-field comparison, for "did this change?" guards in property
+## setters. Unlike equals() it never treats two distinct values as the same, so
+## a tiny but real gain can't be swallowed by an approximate compare. == is no
+## use here: BigNumber is RefCounted and every result is a fresh instance.
 func same_value(other: BigNumber) -> bool:
 	return other != null and exponent == other.exponent and mantissa == other.mantissa
 
@@ -174,18 +169,18 @@ func to_display(decimals: int = 1) -> String:
 	@warning_ignore("integer_division")
 	var idx := floori(exponent / 3)
 	if idx >= 0 and idx < SUFFIXES.size():
-		# exponent - idx*3 is 0, 1 or 2, and |mantissa| < 10, so scaled stays
-		# inside [1, 1000) — the suffix picked by idx is always the right one.
+		# exponent - idx*3 is 0, 1 or 2 and |mantissa| < 10, so scaled stays
+		# inside [1, 1000) and the suffix idx picks is always right.
 		var scaled := mantissa * pow(10.0, float(exponent - idx * 3))
 		if idx == 0:
 			return "%.*f" % [decimals, scaled]   # plain float, no suffix
 		return "%.*f%s" % [decimals, scaled, SUFFIXES[idx]]
-	# Beyond the suffix table → scientific notation
+	# Beyond the suffix table, use scientific notation
 	return to_scientific()
 
 ## Always scientific notation:  "1.234e56"
-## Normalisation already guarantees |mantissa| < 10, so it is the scientific
-## coefficient as-is — no re-scaling needed.
+## Normalisation guarantees |mantissa| < 10, so it is already the scientific
+## coefficient and needs no re-scaling.
 func to_scientific(decimals: int = 2) -> String:
 	return "%.*fe%d" % [decimals, mantissa, exponent]
 

@@ -1,8 +1,8 @@
 extends GdUnitTestSuite
 ## Unit tests for BiomeCalculator (model/biomes/gd_biome_calculator.gd).
 ##
-## Its counters used to be read off the App autoload, which made this class
-## impossible to test at all: autoloads do not exist outside a running game.
+## Counters are injected rather than read off the App autoload, which does not
+## exist outside a running game and made this class untestable.
 
 func test_levels_start_at_one() -> void:
 	var info := BiomeCalculator.level_for(0)
@@ -27,7 +27,7 @@ func test_requirement_grows_each_level() -> void:
 	assert_int(later).is_greater(first)
 
 func test_high_xp_stays_bounded() -> void:
-	# Log growth: the loop must stay short even at absurd xp.
+	# Exponential growth: the loop must stay short even at absurd xp.
 	assert_int(BiomeCalculator.level_for(1_000_000_000).level).is_greater(1)
 
 func test_total_nodes_source_sums_manual_nodes() -> void:

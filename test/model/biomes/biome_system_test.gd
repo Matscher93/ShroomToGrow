@@ -1,8 +1,7 @@
 extends GdUnitTestSuite
 ## Unit tests for BiomeSystem (model/biomes/gd_biome_system.gd), driven by the
-## real authored biome data so the rules and the .tres content are checked
-## together — test_upgrade_ids_resolve_to_real_defs is the integrity check that
-## the hardcoded id map used to need.
+## real authored biome data, so the rules and the .tres content are checked
+## together. test_upgrade_ids_resolve_to_real_defs is the integrity check.
 
 const EPS := 0.000001
 
@@ -107,7 +106,7 @@ func test_biome_points_bonus_flows_through_the_production_stack() -> void:
 	# permafrost scores off PRESTIGE_COUNT, which is 0 on a fresh PlayerData.
 	assert_int(_system.available_points(&"permafrost")).is_zero()
 	# meadow scores off TOTAL_NODES, so it already has points from the authored
-	# node data — capture that rather than assuming a value.
+	# node data, so capture that rather than assuming a value.
 	var meadow_before := _system.available_points(&"meadow")
 
 	var e := UpgradeEffectDef.new()

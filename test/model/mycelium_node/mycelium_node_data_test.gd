@@ -1,7 +1,7 @@
 extends GdUnitTestSuite
 ## Unit tests for MyceliumNodeData (model/mycelium_node/gd_mycelium_node_data.gd),
-## focused on the perk gate on the higher tiers. Built with its dependencies
-## injected, no App autoload involved.
+## focused on the perk gate on the higher tiers. Dependencies are injected, no
+## App autoload involved.
 
 var _player: PlayerData
 var _prestige: UpgradeSystem
@@ -35,7 +35,7 @@ func test_gated_tier_cannot_be_bought_before_its_perk_is_owned() -> void:
 	var data := MyceliumNodeData.new(_player, node, _prestige)
 
 	assert_bool(data.is_unlocked()).is_false()
-	# Affordability is unaffected — only the gate blocks the purchase.
+	# Affordability is unaffected, only the gate blocks the purchase.
 	assert_bool(data.can_afford_upgrade()).is_true()
 	assert_bool(data.can_buy_upgrade()).is_false()
 	assert_bool(data.buy_upgrade()).is_false()
@@ -52,8 +52,8 @@ func test_gated_tier_opens_once_its_perk_is_owned() -> void:
 	assert_int(node.manual_nodes).is_equal(1)
 
 func test_every_authored_unlock_perk_id_exists_in_the_perk_tree() -> void:
-	# The id is the only thing binding a node tier to its perk, so a typo here
-	# would lock that tier forever with nothing able to open it.
+	# The id is the only thing binding a node tier to its perk, so a typo locks
+	# that tier forever with nothing able to open it.
 	var nodes := load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes
 	var branches := load("res://data/prestige/all_branches.tres") as PerkBranchList
 	var perk_ids := {}

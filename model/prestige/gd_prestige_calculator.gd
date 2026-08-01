@@ -1,6 +1,6 @@
 class_name PrestigeCalculator
 extends RefCounted
-## MODEL — pure calculation, no state. Formula is a placeholder; will be tuned.
+## MODEL: pure calculation, no state. Formula is a placeholder, needs tuning.
 
 static func calculate_biomass_gain(tick_count: int, nutrients: BigNumber) -> BigNumber:
 	var magnitude := float(nutrients.exponent)

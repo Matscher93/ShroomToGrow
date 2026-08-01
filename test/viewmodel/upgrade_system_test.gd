@@ -91,8 +91,8 @@ func test_buy_respects_max_level() -> void:
 	assert_int(system.level(&"Capped")).is_equal(2)
 
 func test_buy_with_points_takes_a_bool() -> void:
-	# The parameter used to be the caller's point count, compared against 1 but
-	# never deducted — it read as if this method did the spending.
+	# The parameter is a flag, not a point count: the caller owns the budget and
+	# does the spending itself.
 	var system := UpgradeSystem.new()
 	system.register(_upgrade(&"Pointed", [], 2))
 
@@ -199,14 +199,14 @@ func test_save_only_records_bought_levels() -> void:
 	assert_dict(saved).has_size(1)
 
 func test_load_drops_unknown_ids_instead_of_crashing() -> void:
-	# A renamed or deleted UpgradeDef used to leave an id in _levels that
-	# _rebuild() had no def for, erroring on every single cache rebuild.
+	# A renamed or deleted UpgradeDef must not leave an id in _levels that
+	# _rebuild() has no def for, which errors on every cache rebuild.
 	var system := UpgradeSystem.new()
 	system.register(_upgrade(&"Known", [_effect(&"stat", 1.0, UpgradeEffectDef.Op.INCREASED)]))
 	system.from_save({"Known": 1, "DeletedUpgrade": 7})
 
 	assert_int(system.level(&"Known")).is_equal(1)
 	assert_int(system.level(&"DeletedUpgrade")).is_zero()
-	# The call that used to fail.
+	# The rebuild that would error on an unknown id.
 	var out := system.modify(&"stat", BigNumber.from_value(1.0), ResolveContext.new())
 	assert_float(out.to_float()).is_equal_approx(2.0, EPS)

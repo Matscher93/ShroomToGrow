@@ -1,8 +1,8 @@
 extends GdUnitTestSuite
 ## Unit tests for ProductionSystem (model/gd_production_system.gd).
 ##
-## Built with its dependencies injected and no App autoload in sight — that is
-## the whole point of the extraction.
+## Built with its dependencies injected and no App autoload, which is the point
+## of the extraction.
 
 const EPS := 0.000001
 

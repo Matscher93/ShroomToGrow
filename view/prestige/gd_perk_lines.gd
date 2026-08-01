@@ -1,11 +1,11 @@
 class_name PerkLines
 extends Node2D
-## VIEW — spawns/repositions one PerkConnector per parent->child edge of the
-## mycelial web, beneath the perk buttons. Connector color/width per owned
-## state lives in sc_perk_connector.tscn (see gd_perk_connector.gd).
+## VIEW: spawns and repositions one PerkConnector per parent->child edge of the
+## mycelial web, beneath the perk buttons. Connector color and width per owned
+## state live in sc_perk_connector.tscn (see gd_perk_connector.gd).
 
 @export var connector_scene: PackedScene
-## Saturation/value the branch hue is expanded to; the per-status color and
+## Saturation and value the branch hue is expanded to. The per-status color and
 ## alpha authored on PerkConnector still modulate this.
 @export var branch_saturation: float = 0.6
 @export var branch_value: float = 0.9
@@ -26,8 +26,8 @@ func refresh(zoom: float) -> void:
 			add_child(connector)
 			_connectors[id] = connector
 		var status: String = App.perk_vms[id].status
-		# The edge belongs to the child, so it takes the child's branch hue —
-		# that keeps the four arms distinct right down from the core.
+		# The edge belongs to the child, so it takes the child's branch hue,
+		# which keeps the four arms distinct right down from the core.
 		var hue := App.perk_branches.hue_for(def.branch_key) / 360.0
 		var branch_color := Color.from_hsv(hue, branch_saturation, branch_value)
 		connector.bind(Vector2(parent.world_x, parent.world_y), Vector2(def.world_x, def.world_y), status, zoom, branch_color)

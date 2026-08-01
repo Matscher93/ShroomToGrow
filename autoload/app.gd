@@ -1,10 +1,10 @@
 extends Node
-## AUTOLOAD "App" — the composition root.
+## AUTOLOAD "App": the composition root.
 ## Owns the Models and ViewModels for the app's lifetime.
 ## Register in Project Settings > Autoload as "App".
 ##
-## Models and VMs are RefCounted, so this autoload holding references
-## is what keeps them alive. Views come and go with the scene tree.
+## Models and VMs are RefCounted, so this autoload's references keep them alive.
+## Views come and go with the scene tree.
 
 signal biome_size_changed(key: StringName)
 
@@ -25,11 +25,10 @@ var prestige_upgrade_system: UpgradeSystem
 var biome_upgrade_system: UpgradeSystem
 var resolve_context := ResolveContext.new()
 
-## Game rules, split out of this file by domain. Each is constructed with the
-## state it needs and holds no reference back to App, so each can be built and
-## exercised without the autoload existing. App keeps a delegating method per
-## public entry point (see the bottom of this file) so the ViewModels binding to
-## App.* didn't have to change.
+## Game rules, split out by domain. Each is constructed with the state it needs
+## and holds no reference back to App, so it can be built and exercised without
+## the autoload existing. App keeps a delegating method per public entry point
+## (bottom of this file) so ViewModels can keep binding to App.*.
 var production_system: ProductionSystem
 var biome_system: BiomeSystem
 var perk_system: PerkSystem
@@ -48,7 +47,7 @@ const PRESTIGE_UPGRADES_PATH := "res://data/upgrades/prestige/"
 const BIOME_UPGRADES_PATH := "res://data/upgrades/biomes/"
 
 const BASE_TICK_DURATION := 10.0
-const MIN_TICK_DURATION := 1.0  # floor so a stacked tick_rate discount can never hit/cross zero
+const MIN_TICK_DURATION := 1.0  # floor so a stacked tick_rate discount can't reach zero
 
 func _ready() -> void:
 	player_data = PlayerData.new()
@@ -74,7 +73,7 @@ func _ready() -> void:
 		perk_defs[perk.id] = perk
 	perk_system = PerkSystem.new(perk_defs, prestige_upgrade_system, player_data)
 	# Built after perk_system: PerkViewModel reads perk state through App, which
-	# forwards to it, so it has to exist before the first VM is constructed.
+	# forwards to it, so it must exist before the first VM is constructed.
 	for id in perk_defs:
 		perk_vms[id] = PerkViewModel.new(id, perk_defs[id])
 	prestige_vm = PrestigeViewModel.new()
@@ -111,8 +110,8 @@ func _ready() -> void:
 	prestige_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	_update_tick_duration()
 
-## Recursively loads every UpgradeDef .tres under path (other resource types
-## in the tree, e.g. UpgradeEffectDef / ScalingSourceDef, are skipped).
+## Recursively loads every UpgradeDef .tres under path. Other resource types in
+## the tree (UpgradeEffectDef, ScalingSourceDef) are skipped.
 func _load_upgrade_defs(path: String) -> Array[UpgradeDef]:
 	var defs: Array[UpgradeDef] = []
 	var dir := DirAccess.open(path)
@@ -126,8 +125,8 @@ func _load_upgrade_defs(path: String) -> Array[UpgradeDef]:
 		if dir.current_is_dir():
 			defs.append_array(_load_upgrade_defs(full_path))
 		elif file_name.ends_with(".tres") or file_name.ends_with(".tres.remap"):
-			# Exported/packed builds list resources as "<name>.tres.remap" —
-			# the real resource lives at the path with ".remap" stripped.
+			# Packed builds list resources as "<name>.tres.remap". The real
+			# resource lives at the path with ".remap" stripped.
 			var res := load(full_path.trim_suffix(".remap"))
 			if res is UpgradeDef:
 				defs.append(res)
@@ -144,14 +143,12 @@ func _track_manual_count(node: MyceliumNode) -> void:
 	)
 
 ## Per-node production multiplier, indexed like nodes.mycelium_nodes. Callers
-## driving many ticks back-to-back (offline catch-up) should compute this once
-## and pass it into handle_tick() instead of letting each tick recompute it —
-## node_production_bonus() is a chain of ~9 UpgradeSystem.modify() calls, and
-## redoing that per node per tick dominates the cost of a long catch-up loop.
-## Safe to hoist because its only live inputs are upgrade levels and manual
-## node counts, neither of which changes mid-loop (nothing in the loop buys
-## upgrades or nodes). Every ScalingSourceDef kind is player-action driven by
-## construction (see ResolveContext), so nothing here can go stale mid-loop.
+## driving many ticks back-to-back (offline catch-up) compute this once and pass
+## it into handle_tick(): node_production_bonus() is a chain of ~9
+## UpgradeSystem.modify() calls, and redoing it per node per tick dominates a
+## long catch-up loop. Safe to hoist because its only live inputs are upgrade
+## levels and manual node counts, and every ScalingSourceDef kind is
+## player-action driven (see ResolveContext), so nothing goes stale mid-loop.
 func node_production_bonuses() -> Array[BigNumber]:
 	var bonuses: Array[BigNumber] = []
 	for i in range(nodes.mycelium_nodes.size()):
@@ -179,8 +176,8 @@ func can_prestige() -> bool:
 	return preview_biomass_gain().gt(BigNumber.new(0.0, 0))
 
 ## Resets the current run (nutrients, water, tick_count, node purchases,
-## symbiosis upgrades, biome unlocks) and converts it into biomass. Perks
-## (prestige_upgrade_system) are untouched — they persist across prestiges.
+## symbiosis upgrades, biome unlocks) and converts it into biomass. Perks in
+## prestige_upgrade_system are untouched, they persist across prestiges.
 func prestige() -> void:
 	player_data.biomass = player_data.biomass.add(preview_biomass_gain())
 	player_data.nutrients = BigNumber.from_value(1.0)
@@ -200,9 +197,9 @@ func _update_tick_duration() -> void:
 	tick_timer.wait_time = tick_duration()
 
 # ---------------------------------------------------------------------------
-# Delegators. The rules themselves live in ProductionSystem / BiomeSystem /
-# PerkSystem — those hold no App reference and can be built standalone. These
-# thin forwards keep App the single entry point the ViewModels already bind to.
+# Delegators. The rules live in ProductionSystem / BiomeSystem / PerkSystem,
+# which hold no App reference and can be built standalone. These thin forwards
+# keep App the single entry point the ViewModels bind to.
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------- production

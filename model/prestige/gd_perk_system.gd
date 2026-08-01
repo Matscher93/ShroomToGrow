@@ -1,10 +1,10 @@
 class_name PerkSystem
 extends RefCounted
-## MODEL — perk availability and purchase rules over the prestige upgrade track.
+## MODEL: perk availability and purchase rules over the prestige upgrade track.
 ##
-## The tree's shape lives in PerkTree (which generates the PerkDefs) and its
-## levels live in the prestige UpgradeSystem; this only answers "can this be
-## bought, and what does it cost". Holds no App reference.
+## Shape lives in PerkTree (which generates the PerkDefs), levels live in the
+## prestige UpgradeSystem. This only answers "can this be bought, and what does
+## it cost". Holds no App reference.
 
 const STATUS_OWNED := "owned"
 const STATUS_AVAILABLE := "available"

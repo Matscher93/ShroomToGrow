@@ -1,13 +1,13 @@
 class_name BiomeCalculator
 extends RefCounted
-## MODEL — pure calculation: biome XP and leveling. Performs no writes.
+## MODEL: pure calculation of biome XP and leveling. Performs no writes.
 ##
-## Counters are passed in rather than read off the App autoload, which is what
-## previously made this untestable: autoloads don't exist outside a running
-## game, so anything referencing App can't even be compiled by a test harness.
+## Counters are passed in rather than read off the App autoload: autoloads don't
+## exist outside a running game, so anything referencing App can't be compiled
+## by a test harness.
 
-## Sums manual_nodes only (not the auto-generated BigNumber tiers) so this
-## always fits a plain int — "nodes grown" tracks purchases, not throughput.
+## Sums manual_nodes only, not the auto-generated BigNumber tiers, so it always
+## fits a plain int. "nodes grown" tracks purchases, not throughput.
 static func xp_for(def: BiomeDef, mycelium_nodes: Array[MyceliumNode],
 		symbiosis: UpgradeSystem, player_data: PlayerData) -> int:
 	match def.xp_source:
@@ -23,8 +23,8 @@ static func xp_for(def: BiomeDef, mycelium_nodes: Array[MyceliumNode],
 		_:
 			return 0
 
-## Level 1 starts at xp=0; each level needs floor(prev_need*1.55) more XP.
-## Bounded by log growth, so this loop stays short even at very high xp.
+## Level 1 starts at xp=0, each level needs floor(prev_need*1.55) more XP.
+## Growth is exponential, so this loop stays short even at very high xp.
 static func level_for(xp: int) -> Dictionary:
 	var lvl := 1
 	var need := 6

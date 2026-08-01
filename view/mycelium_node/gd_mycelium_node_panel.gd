@@ -33,7 +33,7 @@ extends PanelContainer
 @export var node_level: int = 0
 var _vm: MyceliumNodeViewModel
 
-const TAP_CANCEL_DISTANCE := 10.0  # px — beyond this, a press is a scroll drag, not a tap
+const TAP_CANCEL_DISTANCE := 10.0  # px, beyond this a press is a scroll drag, not a tap
 var _press_active := false
 var _press_start := Vector2.ZERO
 
@@ -43,8 +43,8 @@ func _ready() -> void:
 	vbox_buy.visible = false
 	expansion_arrow.offset_transform_rotation = 0.0
 
-	# App is an autoload, and autoloads aren't instantiated for @tool scripts
-	# running in the editor — everything below needs the live game state.
+	# Autoloads aren't instantiated for @tool scripts in the editor, and
+	# everything below needs the live game state from App.
 	if Engine.is_editor_hint():
 		return
 
@@ -153,9 +153,9 @@ func _gui_input(event: InputEvent) -> void:
 			_press_active = false
 			_toggle_synergy()
 	elif event is InputEventMouseMotion and _press_active:
-		# Android/iOS synthesize mouse motion from touch — a real scroll drag
-		# starts as a press here too, so cancel the tap once it moves enough
-		# to be a scroll rather than a tap.
+		# Android/iOS synthesize mouse motion from touch, so a scroll drag
+		# starts as a press here too. Cancel the tap once it moves far enough
+		# to be a scroll.
 		if event.position.distance_to(_press_start) > TAP_CANCEL_DISTANCE:
 			_press_active = false
 

@@ -5,12 +5,12 @@ extends RefCounted
 ## snapshot, and writes edits back into those same files.
 ##
 ## Nothing here regenerates a resource. `apply()` loads the file a row belongs
-## to, sets properties on that live instance and re-saves it — which is what
-## keeps the uid, the `[ext_resource]` links and the element type of typed
-## arrays (`Array[UpgradeEffectDef]`) intact.
+## to, sets properties on that live instance and re-saves it, which keeps the
+## uid, the `[ext_resource]` links and the element type of typed arrays
+## (`Array[UpgradeEffectDef]`) intact.
 ##
-## The snapshot is deliberately tabular — one table per resource class, one
-## column per `@export` property — because that is the shape the editor renders.
+## The snapshot is tabular (one table per resource class, one column per
+## `@export` property) because that is the shape the editor renders.
 
 const KEY_COLUMN := "res_path"
 const LIST_SEPARATOR := "|"
@@ -185,10 +185,10 @@ static func create(data_dir: String, request: Dictionary, dry_run: bool) -> Dict
 ##     "values": { … },
 ##     "link": { "res_path": …, "column": …, "index": … } }   # optional
 ##
-## Unlike a sub-resource, a file survives on its own — upgrades are found by a
+## Unlike a sub-resource, a file survives on its own. Upgrades are found by a
 ## directory walk ([app.gd] _load_upgrade_defs), so a link is optional here. For
-## every other class an unlinked file is simply never loaded, which the caller
-## is told about rather than silently allowed.
+## every other class an unlinked file is never loaded, which the caller is told
+## about rather than silently allowed.
 static func _create_file(data_dir: String, request: Dictionary, dry_run: bool) -> Dictionary:
 	var path: String = request.get("path", "")
 	if not path.begins_with(data_dir):
@@ -226,7 +226,7 @@ static func _create_file(data_dir: String, request: Dictionary, dry_run: bool) -
 
 	var link: Dictionary = request.get("link", {})
 	var changes: Array = ["created %s" % path]
-	# Only the upgrade tree is found by a directory walk; everything else has to be
+	# Only the upgrade tree is found by a directory walk. Everything else must be
 	# pointed at by something or the game never loads it.
 	var orphan := link.is_empty() and table_name not in [
 		"UpgradeDef", "UpgradeEffectDef", "ScalingSourceDef"]
@@ -243,17 +243,17 @@ static func _create_file(data_dir: String, request: Dictionary, dry_run: bool) -
 		if made != OK:
 			return _failed("could not create %s (%s)" % [directory, error_string(made)])
 
-	# FLAG_CHANGE_PATH so the in-memory resource takes on its new path. Without it
-	# res.resource_path stays empty, and linking it into another file would embed a
-	# second copy as a [sub_resource] instead of referencing the file just written.
+	# FLAG_CHANGE_PATH so the in-memory resource takes its new path. Without it
+	# res.resource_path stays empty, and linking it into another file embeds a
+	# second copy as a [sub_resource] instead of referencing the file written.
 	var err := ResourceSaver.save(res, path, ResourceSaver.FLAG_CHANGE_PATH)
 	if err != OK:
 		return _failed("%s: save failed (%s)" % [path, error_string(err)])
 	if res.resource_path != path:
 		res.take_over_path(path)
 
-	# Outside the editor the saver cannot mint a uid, so the file would be written
-	# without one and every uid:// reference to it later would dangle.
+	# Outside the editor the saver can't mint a uid, so the file gets written
+	# without one and every later uid:// reference to it dangles.
 	var uid := ResourceUID.create_id()
 	ResourceUID.add_id(uid, path)
 	var uid_text := ResourceUID.id_to_text(uid)
@@ -276,7 +276,7 @@ static func _create_file(data_dir: String, request: Dictionary, dry_run: bool) -
 
 ## Inserts an already-saved resource into another resource's list or slot.
 ## A list of StringName (BiomeDef.upgrade_ids) takes the identity value, not the
-## path — the same distinction the graph draws between key and path references.
+## path, the same distinction the graph draws between key and path references.
 static func _link_resource(res: Resource, link: Dictionary, extra_uids: Dictionary) -> Dictionary:
 	var owner_path: String = link.get("res_path", "")
 	var owner_file := owner_path.get_slice("::", 0)
@@ -346,8 +346,8 @@ static func _failed(message: String) -> Dictionary:
 	return {"path": "", "changes": [], "saved": 0, "errors": [message]}
 
 
-## Ids double as runtime keys — for perks they are save keys, so a duplicate
-## would quietly merge two perks' saved levels. Checked before anything is written.
+## Ids double as runtime keys, and for perks as save keys, so a duplicate merges
+## two perks' saved levels. Checked before anything is written.
 static func _identity_clash(
 		table: Dictionary,
 		res: Resource,
@@ -445,8 +445,8 @@ static func delete(data_dir: String, request: Dictionary, dry_run: bool) -> Dict
 		changes.append("would also destroy %s" % path)
 	changes.append("deleted %s" % target_path)
 
-	# A preview never fails — the caller needs to see the collateral in order to
-	# decide whether to confirm it.
+	# A preview never fails, the caller needs to see the collateral to decide
+	# whether to confirm it.
 	if dry_run:
 		return {"path": target_path, "changes": changes, "collateral": collateral,
 			"needs_force": needs_force, "saved": 0, "errors": []}
@@ -486,7 +486,7 @@ static func delete(data_dir: String, request: Dictionary, dry_run: bool) -> Dict
 
 ## Every place `target` is pointed at, as { res_path, column, kind }.
 ## `kind` is "object" for a direct reference and "key" for one stored as the
-## target's id — BiomeDef.upgrade_ids holds ids, not paths.
+## target's id, since BiomeDef.upgrade_ids holds ids, not paths.
 static func _referrers(target: Resource) -> Array[Dictionary]:
 	var found: Array[Dictionary] = []
 	var identity := ""
@@ -551,8 +551,8 @@ static func _unlink(referrer: Dictionary, target: Resource) -> void:
 			holder.set(column, dict)
 
 
-## Sub-resource paths still reachable from the file's root — i.e. the ones a
-## save would actually write out.
+## Sub-resource paths still reachable from the file's root, i.e. the ones a save
+## would write out.
 static func _reachable_subresources(file_path: String) -> Dictionary:
 	var root: Resource = _open_files.get(file_path)
 	if root == null:
@@ -714,7 +714,7 @@ static func encode_value(value: Variant, column: Dictionary) -> String:
 
 
 ## Decodes a text field back into a property value. `current` is the value
-## already on the resource — arrays are mutated in place so a typed array keeps
+## already on the resource. Arrays are mutated in place so a typed array keeps
 ## its element type.
 static func decode_value(text: String, column: Dictionary, current: Variant) -> Variant:
 	if column.hint == PROPERTY_HINT_ENUM:
@@ -775,7 +775,7 @@ static func _split_list(text: String) -> PackedStringArray:
 
 
 ## `hint_string` is either "A,B,C" or "A:0,B:1,C:4" when the enum has explicit
-## values — `ScalingSourceDef.Kind` skips ordinals, so both forms occur.
+## values. `ScalingSourceDef.Kind` skips ordinals, so both forms occur.
 static func _enum_entries(hint_string: String) -> Dictionary[String, int]:
 	var entries: Dictionary[String, int] = {}
 	var next := 0
@@ -803,8 +803,8 @@ static func _enum_name(hint_string: String, value: int) -> String:
 
 
 ## Accepts the exported label ("Node Count"), the GDScript identifier
-## ("NODE_COUNT") or the raw ordinal — a spreadsheet edit shouldn't have to
-## reproduce Godot's capitalisation exactly.
+## ("NODE_COUNT") or the raw ordinal, so a spreadsheet edit doesn't have to
+## reproduce Godot's capitalisation.
 static func _enum_value(hint_string: String, text: String) -> Variant:
 	var entries := _enum_entries(hint_string)
 	var key := text.strip_edges()
@@ -858,9 +858,8 @@ static func _load_file(file_path: String) -> Resource:
 			return null
 		_open_files[file_path] = res
 		# Indexed before anything is written. Decoding a reference list clears the
-		# array it is about to rebuild, and a node reachable only through that array
-		# would vanish from the object graph mid-import — which is how an edited
-		# child list ended up as Array[…]([null, …]).
+		# array it is about to rebuild, so a node reachable only through that
+		# array would vanish from the object graph mid-import.
 		var found: Array[Resource] = []
 		var seen: Dictionary[int, bool] = {}
 		_expand_subresources(res, file_path, found, seen)
@@ -884,11 +883,10 @@ static func _find_in_file(file_path: String, res_path: String) -> Resource:
 ## Resolves a reference written in a CSV back to a resource.
 ##
 ## A sub-resource path ("file.tres::node_4a") cannot go through ResourceLoader:
-## it returns null unless that exact sub-resource happens to be in the cache
-## already, which silently turns an edited child list into
-## `Array[…]([null, …])`. Sub-resources are therefore resolved through the file
-## that owns them — which is also the instance this import is editing, so a node
-## moved between parents keeps its identity instead of being duplicated.
+## it returns null unless that sub-resource is already cached, which turns an
+## edited child list into `Array[…]([null, …])`. Sub-resources resolve through
+## the file that owns them, which is also the instance this import is editing, so
+## a node moved between parents keeps its identity instead of being duplicated.
 static func _load_ref(path: String) -> Resource:
 	if not "::" in path:
 		return ResourceLoader.load(path)
@@ -901,12 +899,11 @@ static func _normalise_enum_key(text: String) -> String:
 
 ## Puts back the `uid="uid://…"` attributes that a headless save drops.
 ##
-## `ResourceSaver` resolves a path to its uid through a hook that only the
-## editor installs, so outside the editor every `[gd_resource]` and
-## `[ext_resource]` line is written without one. The registries under res://data
-## key their entries by uid, so losing them breaks lookups. Only lines that
-## carried a uid before the save get one back, which keeps the diff to the
-## fields that actually changed. Inside the editor this is a no-op.
+## `ResourceSaver` resolves a path to its uid through a hook only the editor
+## installs, so outside it every `[gd_resource]` and `[ext_resource]` line is
+## written without one. The registries under res://data key their entries by uid,
+## so losing them breaks lookups. Only lines that carried a uid before the save
+## get one back, keeping the diff to the changed fields. A no-op in the editor.
 static func _restore_uids(
 		file_path: String,
 		original_text: String,
@@ -919,8 +916,8 @@ static func _restore_uids(
 
 	var path_re := RegEx.create_from_string('path="([^"]*)"')
 	var uid_re := RegEx.create_from_string('uid="([^"]*)"')
-	# Seeded with the uids of files this save is the first to reference, which by
-	# definition have no line in the original text to copy from.
+	# Seeded with the uids of files this save is the first to reference, which
+	# have no line in the original text to copy from.
 	var uid_by_path: Dictionary[String, String] = {}
 	for path: String in extra_uids:
 		uid_by_path[path] = str(extra_uids[path])
@@ -963,7 +960,7 @@ static func _restore_uids(
 
 ## Appends `res` and every resource stored *inside* the same file (Godot's
 ## `[sub_resource]` blocks, addressed as "file.tres::id") to `out`. Resources in
-## other files are skipped — the directory walk reaches them on their own.
+## other files are skipped, the directory walk reaches them on their own.
 static func _expand_subresources(
 		res: Resource,
 		file_path: String,

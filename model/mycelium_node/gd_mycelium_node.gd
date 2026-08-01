@@ -14,14 +14,10 @@ signal auto_nodes_changed(value: BigNumber)
 		manual_nodes = value
 		manual_nodes_changed.emit(manual_nodes)
 
-# BigNumber can't be @export'ed, so the authored/persisted value lives in these
-# two plain fields. The BigNumber itself is cached rather than rebuilt on every
-# read: auto_nodes is read several times per node per tick by the tick loop and
-# the bound ViewModels, and a getter that allocates made that the hottest
-# allocation site in the offline catch-up loop. The cache is built lazily on
-# first read so a .tres deserialising straight into the backing fields is picked
-# up correctly, and BigNumber arithmetic always returns new instances, so
-# holding this reference can't be invalidated from the outside.
+# BigNumber can't be @export'ed, so the persisted value lives in two plain
+# fields. The BigNumber is cached lazily (first read, after .tres load) instead
+# of rebuilt per read: the tick loop and bound ViewModels read auto_nodes many
+# times per tick, and an allocating getter dominated offline catch-up.
 @export var _auto_nodes_mantissa: float = 0.0
 @export var _auto_nodes_exponent: int = 1
 var _auto_nodes_cache: BigNumber
@@ -53,16 +49,15 @@ var initial_cost: BigNumber:
 		_initial_cost_mantissa = value.mantissa
 		_initial_cost_exponent = value.exponent
 
-## Perk that has to be owned before this tier can be bought at all. Empty means
-## the tier is available from a fresh save (the first three). Mirrors BiomeDef
-## keeping its own unlock requirement as data on the resource — the perk itself
-## carries no effect, its purchased level *is* the unlock.
+## Perk required before this tier can be bought. Empty means available on a
+## fresh save (the first three). The perk carries no effect, its purchased
+## level *is* the unlock.
 @export var unlock_perk_id: StringName = &""
 
 @export var color: Color
 @export var level_font_color: Color
 @export var cost_increase_per_level: float = 1.5
-@export var cost_growth_exponent: float = 1.2  # >1 makes the buy-cost curve steepen with manual_nodes
+@export var cost_growth_exponent: float = 1.2  # >1 steepens the buy-cost curve with manual_nodes
 
 func has_nodes() -> bool:
 	return manual_nodes > 0 or auto_nodes.gt(BigNumber.from_value(0.0))

@@ -1,12 +1,10 @@
 extends PanelContainer
-## VIEW — prestige screen: biomass + sporate bar on top, the pannable perk
-## web in the middle, a floating detail/buy panel on the bottom for
-## whichever perk is currently selected. Sporate section binds to
-## App.prestige_vm; the detail panel rebinds to the selected perk's
-## persistent PerkViewModel (App.perk_vms — one per perk, owned by App,
-## never disposed here — only the view's own listener is swapped).
+## VIEW: prestige screen. Biomass and sporate bar on top, pannable perk web in
+## the middle, floating detail/buy panel at the bottom for the selected perk.
+## Sporate section binds to App.prestige_vm. The detail panel rebinds to the
+## selected perk's PerkViewModel (App.perk_vms, one per perk, owned by App).
+## Those are never disposed here, only the view's own listener is swapped.
 
-@export var biomass_label: Label
 @export var sporate_button: Button
 @export var perk_web: PerkWeb
 @export var detail_name: Label
@@ -65,7 +63,6 @@ func _on_buy_pressed() -> void:
 	_detail_vm.buy()
 
 func _refresh_sporate() -> void:
-	biomass_label.text = App.player_vm.biomass_text
 	sporate_button.text = _vm.sporate_text
 	sporate_button.disabled = not _vm.sporate_enabled
 

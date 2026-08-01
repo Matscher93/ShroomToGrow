@@ -1,8 +1,8 @@
 extends PanelContainer
 
 ## Emitted when the player dismisses the popup (collect button pressed).
-## The PopupLayer that spawned this instance owns freeing it — this view
-## never queue_frees itself, so it can't desync PopupLayer's tracked ref.
+## The PopupLayer that spawned this instance owns freeing it. This view never
+## queue_frees itself, so it can't desync PopupLayer's tracked ref.
 signal dismissed
 
 var _vm: OfflineIncomeViewModel
@@ -17,10 +17,9 @@ var _node_change_rows: Array[MyceliumNodeChangePanel] = []
 @export var offline_income_button: PanelContainer
 @export var vbox_node_change: VBoxContainer
 @export var mycelium_node_change_item: PackedScene
-@export var offline_time_container: PanelContainer  # drives the tick_progress shader param while calculating
+@export var offline_time_container: PanelContainer  # drives tick_progress's shader param while calculating
 @export var label_away_for: Label
 
-# Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	if App.offline_income_vm:
 		bind(App.offline_income_vm)
@@ -40,11 +39,10 @@ func _on_property_changed(property: StringName) -> void:
 		OfflineIncomeViewModel.PROP_CALC_PROGRESS_CHANGED:
 			_refresh()
 
-## The popup spawns as soon as the offline calculation starts (so the player
-## sees it immediately instead of waiting on a blank screen), so collection
-## must stay blocked until the viewmodel has real data — but the resource and
-## node growth so far is shown live, reading straight off the live game state
-## that the offline tick loop is mutating in place.
+## The popup spawns as soon as the offline calculation starts, so the player sees
+## it instead of a blank screen. Collection stays blocked until the viewmodel has
+## real data, but growth so far is shown live, read straight off the game state
+## the offline tick loop is mutating in place.
 func _refresh() -> void:
 	offline_income_button.set_disabled(_vm.is_calculating)
 	label_away_for.visible = not _vm.is_calculating
@@ -62,8 +60,8 @@ func _refresh() -> void:
 	_set_tick_progress(1.0)
 	_update_visuals()
 
-## Snapshot of live state at the moment calculation starts, so growth-so-far
-## can be diffed against it every time progress is reported.
+## Snapshot of live state when calculation starts, so growth so far can be
+## diffed against it every time progress is reported.
 var _initial_state_captured := false
 var _initial_nutrients: BigNumber
 var _initial_node_counts: Array[BigNumber]
@@ -79,11 +77,10 @@ func _set_tick_progress(progress: float) -> void:
 	if offline_time_container and offline_time_container.material:
 		offline_time_container.material.set_shader_parameter("tick_progress", clampf(progress, 0.0, 1.0))
 
-## Rows are built once, on first render, and then updated and shown/hidden in
-## place. This runs on every reported progress batch (~every 20ms) for the whole
-## catch-up loop, so tearing the list down and re-instantiating a scene per node
-## each time was allocation churn inside the exact loop the frame budget in
-## SaveManager is trying to protect.
+## Rows are built once on first render, then updated and shown or hidden in
+## place. This runs on every progress batch (~every 20ms) for the whole catch-up
+## loop, so rebuilding the list each time would be allocation churn inside the
+## loop SaveManager's frame budget is protecting.
 func _render_deltas(initial_nutrient: BigNumber, final_nutrient: BigNumber,
 		initial_node_counts: Array[BigNumber], final_node_count_fn: Callable) -> void:
 	nutrient_panel.set_currency_change(final_nutrient.sub(initial_nutrient))
@@ -103,9 +100,8 @@ func _render_deltas(initial_nutrient: BigNumber, final_nutrient: BigNumber,
 
 func _ensure_node_change_rows(count: int) -> void:
 	# sc_offline_income.tscn authors placeholder rows into vbox_node_change so
-	# the popup can be laid out in the editor. They have to go before the real
-	# rows are added, or the list renders the placeholders followed by the
-	# actual node changes.
+	# the popup can be laid out in the editor. They must go before the real rows
+	# are added, or the list renders placeholders followed by node changes.
 	if _node_change_rows.is_empty():
 		for child in vbox_node_change.get_children():
 			vbox_node_change.remove_child(child)
@@ -155,8 +151,8 @@ static func format_duration(total_seconds: float, max_units := 2) -> String:
 func _on_dismiss_pressed() -> void:
 	dismissed.emit()
 
-## A snapshot taken before a node tier was added carries fewer entries than the
-## live node list, so an out-of-range tier simply had nothing then — zero.
+## A snapshot taken before a node tier existed carries fewer entries than the
+## live node list, so an out-of-range tier had nothing then: zero.
 func _get_node_count(save_data: Dictionary, index: int) -> BigNumber:
 	var mycelium_nodes: Array = save_data.get("mycelium_nodes", [])
 	if index < 0 or index >= mycelium_nodes.size():

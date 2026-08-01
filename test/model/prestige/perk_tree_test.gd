@@ -1,5 +1,5 @@
 extends GdUnitTestSuite
-## Unit tests for PerkTree (model/prestige/gd_perk_tree.gd) — the layout rules,
+## Unit tests for PerkTree (model/prestige/gd_perk_tree.gd): the layout rules,
 ## checked against the real authored branches.
 
 const EPS := 0.0001
@@ -21,11 +21,11 @@ func test_branches_are_spread_evenly_around_the_core() -> void:
 	var expected := deg_to_rad(PerkTree.BRANCH_START_DEG)
 	for branch in _branches.branches:
 		assert_int(branch.roots.size()).override_failure_message(
-			"Branch '%s' has %d roots — this test assumes one per branch." \
+			"Branch '%s' has %d roots, this test assumes one per branch." \
 				% [branch.key, branch.roots.size()]).is_equal(1)
 		var root: PerkDef = _perks[branch.roots[0].id]
-		# Wrapped, so a branch past 180° compares against the same angle the
-		# atan2 above reports rather than its unwrapped twin.
+		# Wrapped so a branch past 180 degrees compares against the angle
+		# atan2 reports rather than its unwrapped twin.
 		assert_float(wrapf(_angle_of(root) - expected, -PI, PI)) \
 			.is_equal_approx(0.0, EPS)
 		expected += step

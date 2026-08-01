@@ -1,15 +1,15 @@
 extends Node
-## Autoload (Project Settings > Globals). Robust save for a game that can die
-## at any moment: clean quit, crash, power loss, or OS suspend on mobile.
+## Autoload (Project Settings > Globals). Save that survives the game dying at
+## any moment: clean quit, crash, power loss or OS suspend on mobile.
 
 const SAVE_PATH   := "user://save.json"
 const BACKUP_PATH := "user://save.bak.json"
 const TMP_PATH    := "user://save.tmp.json"
 const SAVE_VERSION := 2
 
-## v1 -> v2: perk ids stopped being "<branch key><roman numeral>" and became
-## the hand-authored, tree-wide unique PerkNodeDef.id. Without this remap
-## UpgradeSystem.from_save() would drop every perk level as unknown.
+## v1 -> v2: perk ids went from "<branch key><roman numeral>" to the authored
+## PerkNodeDef.id. Without this remap UpgradeSystem.from_save() drops every perk
+## level as unknown.
 const PERK_IDS_V1_TO_V2 := {
 	"nutI": "substrate_1", "nutII": "substrate_2",
 	"nutIII·A": "substrate_3a", "nutIII·B": "substrate_3b",
@@ -29,8 +29,8 @@ const MIN_OFFLINE_SECONDS := 60.0
 const MAX_OFFLINE_SECONDS := 86400.0  # 24h cap on offline income collection
 const OFFLINE_CALC_FRAME_BUDGET_MSEC := 20.0  # yield to a frame once a batch exceeds this
 
-## Emitted when offline progress becomes newly pending outside of load_game()
-## (i.e. on app resume), so a live main_screen can react without a reload.
+## Emitted when offline progress becomes pending outside of load_game(), i.e. on
+## app resume, so a live main_screen can react without a reload.
 signal offline_progress_pending
 
 var last_savegame : Dictionary
@@ -38,7 +38,7 @@ var _pending_offline_saved_at := 0.0
 var _offline_calc_running := false
 
 func _ready() -> void:
-	# We want to run our own logic before the window closes.
+	# Run our own logic before the window closes.
 	get_tree().set_auto_accept_quit(false)
 
 	var t := Timer.new()
@@ -58,7 +58,7 @@ func _notification(what: int) -> void:
 			save_game()
 			get_tree().quit()
 		NOTIFICATION_APPLICATION_PAUSED, \
-		NOTIFICATION_APPLICATION_FOCUS_OUT: # mobile: may get killed after this
+		NOTIFICATION_APPLICATION_FOCUS_OUT: # mobile, may get killed after this
 			save_game()
 		NOTIFICATION_APPLICATION_RESUMED, \
 		NOTIFICATION_APPLICATION_FOCUS_IN:
@@ -80,16 +80,15 @@ func save_game() -> void:
 	f.store_string(JSON.stringify(data))
 	f.flush()
 	f.close()
-	f = null  # important — see the gotcha note below
+	f = null  # release the handle before the rename below
 
 	# 2. Rotate the current good save to backup.
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.copy_absolute(SAVE_PATH, BACKUP_PATH)
 
-	# 3. Replace the real file with the temp (overwrites the existing file).
-	# If this fails the on-disk save is still the *previous* one, so
-	# last_savegame must not be advanced — offline progress is measured from
-	# its saved_at, and claiming a write that didn't land would silently drop
+	# 3. Replace the real file with the temp. If this fails the on-disk save is
+	# still the previous one, so last_savegame must not advance: offline progress
+	# is measured from its saved_at, and claiming a write that didn't land drops
 	# everything since the last successful save.
 	var rename_error := DirAccess.rename_absolute(TMP_PATH, SAVE_PATH)
 	if rename_error != OK:
@@ -103,7 +102,7 @@ func save_game() -> void:
 func load_game() -> void:
 	var data := _read(SAVE_PATH)
 	if data.is_empty():
-		data = _read(BACKUP_PATH)  # fall back if primary is missing/corrupt
+		data = _read(BACKUP_PATH)  # primary is missing or corrupt
 	if data.is_empty():
 		return  # fresh start
 
@@ -111,35 +110,29 @@ func load_game() -> void:
 		return
 
 	_apply_data(data.get("game", {}))
-	# Deferred: the offline catch-up loop is expensive (thousands of ticks for
-	# the 24h cap) and used to run synchronously here, in the autoload's own
-	# _ready(), blocking the game from starting at all. It's now kicked off
-	# by main_screen once the offline income screen actually checks for it,
-	# and timesliced across frames (see run_offline_progress_calculation()).
+	# Deferred: the catch-up loop is thousands of ticks at the 24h cap, enough to
+	# block startup if run here. main_screen kicks it off once the offline income
+	# screen checks for it, timesliced (see run_offline_progress_calculation()).
 	_arm_offline_progress(float(data.get("saved_at", 0.0)), false)
 
-## Brings an older save up to SAVE_VERSION in place, and refuses one written by
-## a newer build than this one. Returns false if the save must not be applied.
-##
-## SAVE_VERSION was previously written on save and never read back, so a save
-## from a future build would have been applied field-by-field anyway, silently
-## reinterpreting whatever had changed. Add a migration step per version bump.
+## Brings an older save up to SAVE_VERSION in place and refuses one written by a
+## newer build. Returns false if the save must not be applied. Add a migration
+## step per version bump.
 func _migrate(data: Dictionary) -> bool:
 	var version := int(data.get("version", 0))
 	if version > SAVE_VERSION:
-		push_error("Save is version %d but this build only understands %d — refusing to load it rather than corrupt it." % [version, SAVE_VERSION])
+		push_error("Save is version %d but this build only understands %d, refusing to load it rather than corrupt it." % [version, SAVE_VERSION])
 		return false
 	if version < SAVE_VERSION:
 		push_warning("Migrating save from version %d to %d." % [version, SAVE_VERSION])
-	# Version 0 (unversioned) and version 1 have the same shape, so both start
-	# their migration here. Handle each older version explicitly.
+	# Version 0 (unversioned) and version 1 share a shape, so both start here.
 	if version < 2:
 		_migrate_perk_ids_to_v2(data)
 	data["version"] = SAVE_VERSION
 	return true
 
-## Rewrites the prestige upgrade keys of a pre-v2 save in place; anything not in
-## the table (a perk added since, or an id already migrated) is left alone.
+## Rewrites the prestige upgrade keys of a pre-v2 save in place. Keys not in the
+## table (a perk added since, or an id already migrated) are left alone.
 func _migrate_perk_ids_to_v2(data: Dictionary) -> void:
 	if not data.has("game"):
 		return
@@ -159,25 +152,22 @@ func _read(path: String) -> Dictionary:
 
 # ---------------------------------------------------------------- offline
 
-## Records the timestamp a later catch-up should measure from, and (optionally)
-## tells a live main_screen about it. Android sends both APPLICATION_RESUMED and
-## FOCUS_IN for one resume, and FOCUS_IN again at app start, so this runs several
-## times per actual resume — everything here has to be idempotent.
+## Records the timestamp a later catch-up measures from and optionally tells a
+## live main_screen about it. Android sends both APPLICATION_RESUMED and FOCUS_IN
+## per resume, plus FOCUS_IN at app start, so this must be idempotent.
 ##
 ## Two things it deliberately refuses to do:
-##   * arm while a catch-up is running. That run already took ownership of the
-##     gap (it zeroes _pending_offline_saved_at up front); re-arming from the
-##     pre-resume save_at behind its back is what made the finished run look
-##     like it still had pending work, replaying the whole gap a second time and
-##     spawning a second popup.
-##   * keep a gap too short to ever be shown. A stale sub-threshold timestamp
-##     would silently cross MIN_OFFLINE_SECONDS as wall-clock advanced and turn
-##     a later refresh into a bogus catch-up mid-session.
+##   * arm while a catch-up is running. That run owns the gap (it zeroes
+##     _pending_offline_saved_at up front), so re-arming from the pre-resume
+##     saved_at replays the whole gap and spawns a second popup.
+##   * keep a gap too short to be shown. A stale sub-threshold timestamp would
+##     cross MIN_OFFLINE_SECONDS as wall-clock advances and turn a later refresh
+##     into a bogus mid-session catch-up.
 func _arm_offline_progress(saved_at: float, notify: bool) -> void:
 	if _offline_calc_running:
 		return
 	if saved_at <= 0.0:
-		return  # nothing saved yet this session — don't clobber an armed gap with 0
+		return  # nothing saved yet this session, don't clobber an armed gap with 0
 	if Time.get_unix_time_from_system() - saved_at <= MIN_OFFLINE_SECONDS:
 		_pending_offline_saved_at = 0.0
 		return
@@ -185,13 +175,12 @@ func _arm_offline_progress(saved_at: float, notify: bool) -> void:
 	if notify:
 		offline_progress_pending.emit()
 
-## Whether a catch-up loop is currently mid-flight, so callers don't stack a
-## second one on top of it.
+## Whether a catch-up loop is mid-flight, so callers don't stack a second one.
 func is_offline_calc_running() -> bool:
 	return _offline_calc_running
 
-## True once there's an unprocessed offline gap worth simulating. Cheap check
-## so callers (main_screen) can poll it without triggering any work.
+## True once there's an unprocessed offline gap worth simulating. Cheap enough
+## for main_screen to poll without triggering work.
 func has_pending_offline_progress() -> bool:
 	if _pending_offline_saved_at <= 0.0:
 		return false
@@ -199,10 +188,10 @@ func has_pending_offline_progress() -> bool:
 	return elapsed > MIN_OFFLINE_SECONDS
 
 ## Runs the offline catch-up tick loop, timesliced across frames so it never
-## holds a single frame long enough to drop below 30fps (~33ms/frame — we
-## yield well before that, at OFFLINE_CALC_FRAME_BUDGET_MSEC). Call this once
-## the offline income screen is ready to consume the result; it populates
-## App.offline_income_vm when done, which is what actually triggers the popup.
+## holds one long enough to drop below 30fps (33ms/frame, we yield well before
+## that at OFFLINE_CALC_FRAME_BUDGET_MSEC). Call once the offline income screen
+## is ready to consume the result. Populates App.offline_income_vm when done,
+## which is what triggers the popup.
 func run_offline_progress_calculation() -> void:
 	if _offline_calc_running or not has_pending_offline_progress():
 		return
@@ -213,10 +202,10 @@ func run_offline_progress_calculation() -> void:
 
 	var elapsed := minf(Time.get_unix_time_from_system() - saved_at, MAX_OFFLINE_SECONDS)
 
-	# Only the endpoints are ever read (the popup diffs snapshot[0] against
-	# snapshot[-1]), so nothing is captured mid-loop — a _collect_data() call
-	# serializes player data, every node and all three upgrade systems, and
-	# doing that per tick dominated the catch-up loop for no visible result.
+	# Only the endpoints are read (the popup diffs snapshot[0] against
+	# snapshot[-1]), so nothing is captured mid-loop. _collect_data() serializes
+	# player data, every node and all three upgrade systems, which per tick would
+	# dominate the catch-up loop for no visible result.
 	var save_game_snapshots: Array[Dictionary]
 	save_game_snapshots.append(_collect_data())
 
@@ -226,12 +215,12 @@ func run_offline_progress_calculation() -> void:
 	var tick_counter := 0
 	elapsed -= App.tick_timer.wait_time
 
-	# The real-time tick timer must not fire while we're manually driving
-	# handle_tick() below, or ticks would double up across the awaited frames.
+	# The real-time tick timer must not fire while handle_tick() is driven
+	# manually below, or ticks double up across the awaited frames.
 	App.tick_timer.stop()
-	# Upgrade levels/manual node counts can't change during this loop (nothing
-	# here buys anything), so the per-node bonus is invariant across ticks —
-	# compute it once instead of recomputing ~9 modify() calls/node/tick.
+	# Nothing here buys anything, so upgrade levels and manual node counts are
+	# fixed for the loop and the per-node bonus is invariant. Compute it once
+	# instead of ~9 modify() calls per node per tick.
 	var bonuses := App.node_production_bonuses()
 	var batch_start := Time.get_ticks_msec()
 	while elapsed > 0.0:
@@ -273,8 +262,8 @@ func _apply_data(game: Dictionary) -> void:
 	App.upgrade_system.from_save(game.get("upgrades", {}))
 	App.prestige_upgrade_system.from_save(game.get("prestige_upgrades", {}))
 	var loaded_biomes_data := BiomesData.from_save(game.get("biomes", {}))
-	# ever_unlocked must be restored directly, not via unlock(), which would
-	# also mark the biome unlocked for the current run.
+	# Restore ever_unlocked directly, not via unlock(), which would also mark the
+	# biome unlocked for the current run.
 	for key in loaded_biomes_data.ever_unlocked:
 		App.biomes_data.ever_unlocked[key] = true
 	for key in loaded_biomes_data.unlocked:

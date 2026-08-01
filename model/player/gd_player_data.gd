@@ -1,6 +1,6 @@
 class_name PlayerData
 extends RefCounted
-## MODEL — pure state and game rules. Knows nothing about ViewModels or UI.
+## MODEL: pure state and game rules. Knows nothing about ViewModels or UI.
 
 signal nutrients_changed(value: BigNumber)
 signal biomass_changed(value: BigNumber)
@@ -8,11 +8,10 @@ signal water_changed(value: BigNumber)
 signal tick_count_changed(value: int)
 signal prestige_count_changed(value: int)
 
-## The BigNumber setters below guard with same_value(), not ==: BigNumber is a
-## RefCounted, so == is an identity check that is false for every freshly built
-## instance — which is all of them, since its arithmetic never mutates in place.
-## That made these guards dead, and every assignment emitted, fanning the signal
-## out to every bound ViewModel once per tick even when the value hadn't moved.
+## The BigNumber setters below guard with same_value(), not ==. BigNumber is a
+## RefCounted, so == is an identity check, false for every freshly built
+## instance, and its arithmetic never mutates in place. With ==, the guards are
+## dead and every assignment emits to every bound ViewModel once per tick.
 var nutrients: BigNumber = BigNumber.from_value(1.0):
 	set(value):
 		if value == null or nutrients.same_value(value):
@@ -49,7 +48,7 @@ var prestige_count: int = 0:
 		prestige_count_changed.emit(prestige_count)
 
 ## Single source of truth for which fields round-trip through a save file.
-## Add a new field here (and nowhere else) to have it saved/loaded.
+## Add a new field here, and nowhere else, to have it saved and loaded.
 const _BIG_NUMBER_FIELDS: Array[String] = ["nutrients", "biomass", "water"]
 const _PLAIN_FIELDS: Array[String] = ["tick_count", "prestige_count"]
 
@@ -61,18 +60,18 @@ func to_save() -> Dictionary:
 		save_state[field] = get(field)
 	return save_state
 
-## Applies a save dict onto this instance in place, going through each
-## field's setter (so *_changed signals fire as usual). Use this — instead of
-## replacing App.player_data outright — because ViewModels already hold a
-## reference to it; swapping the instance would silently orphan them.
+## Applies a save dict onto this instance in place through each field's setter,
+## so *_changed signals fire as usual. Use this rather than replacing
+## App.player_data: ViewModels hold a reference, swapping the instance orphans
+## them.
 func load_from_save(d: Dictionary) -> void:
 	for field in _BIG_NUMBER_FIELDS:
 		set(field, BigNumber.from_save(d.get(field, {})))
 	for field in _PLAIN_FIELDS:
 		set(field, d.get(field, 0))
 
-## Builds a fresh, disconnected PlayerData from a save dict — for reading a
-## past snapshot's values (e.g. offline-income deltas), not for live state.
+## Builds a fresh, disconnected PlayerData from a save dict. For reading a past
+## snapshot's values (e.g. offline-income deltas), not for live state.
 static func from_save(d: Dictionary) -> PlayerData:
 	var player_data := PlayerData.new()
 	player_data.load_from_save(d)

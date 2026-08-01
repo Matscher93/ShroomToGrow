@@ -1,12 +1,11 @@
 @tool
 class_name BiomeUpgradeCard
 extends PanelContainer
-## VIEW — the detail panel for whichever biome upgrade is currently selected
-## in the 5x2 grid (BiomePanel/gd_biome_panel.gd). Embedded once, statically,
-## per biome card; BiomePanel calls select_upgrade() whenever a grid slot is
-## picked, which rebinds a fresh BiomeUpgradeViewModel for that upgrade_id
-## (disposing the previous one) — mirrors how PrestigePanel rebinds a
-## PerkViewModel per selection.
+## VIEW: the detail panel for the biome upgrade selected in the 5x2 grid
+## (BiomePanel/gd_biome_panel.gd). Embedded statically, once per biome card.
+## BiomePanel calls select_upgrade() when a grid slot is picked, which binds a
+## fresh BiomeUpgradeViewModel and disposes the previous one, mirroring how
+## PrestigePanel rebinds a PerkViewModel per selection.
 
 @export var color_param: String
 @export var upgrade_id: StringName
@@ -26,8 +25,8 @@ func _ready() -> void:
 	_update_shader()
 	lbl_upgrade_cost.text = "1 pt"
 
-	# select_upgrade() builds a ViewModel that reads the App autoload, which
-	# isn't instantiated for @tool scripts running in the editor.
+	# select_upgrade() builds a ViewModel reading the App autoload, which isn't
+	# instantiated for @tool scripts in the editor.
 	if Engine.is_editor_hint():
 		return
 

@@ -1,14 +1,14 @@
 class_name BiomesData
 extends RefCounted
-## MODEL — pure state: which biomes are unlocked, and how many upgrade
-## points have been spent in each. Knows nothing about cost, XP, or UI.
+## MODEL: pure state. Which biomes are unlocked and how many upgrade points are
+## spent in each. Knows nothing about cost, XP or UI.
 
 signal biome_unlocked(key: StringName)
 
-var unlocked: Dictionary = {}       # StringName -> bool (true entries only matter) — cleared on prestige
-var ever_unlocked: Dictionary = {}  # StringName -> bool — permanent, survives prestige reset
+var unlocked: Dictionary = {}       # StringName -> bool, only true entries matter, cleared on prestige
+var ever_unlocked: Dictionary = {}  # StringName -> bool, permanent, survives prestige reset
 var spent_points: Dictionary = {}   # StringName -> int
-var size: Dictionary = {}           # StringName -> int, purchased Biome Size — cleared on prestige
+var size: Dictionary = {}           # StringName -> int, purchased Biome Size, cleared on prestige
 
 func is_unlocked(key: StringName) -> bool:
 	return unlocked.get(key, false)
@@ -19,8 +19,8 @@ func biome_size(key: StringName) -> int:
 func increase_size(key: StringName) -> void:
 	size[key] = biome_size(key) + 1
 
-## True once a biome has been unlocked at least once, even across a prestige
-## reset. Used to keep its bottom-bar tab reachable; does not grant features.
+## True once a biome has been unlocked at least once, across prestige resets.
+## Keeps its bottom-bar tab reachable, does not grant features.
 func is_ever_unlocked(key: StringName) -> bool:
 	return ever_unlocked.get(key, false)
 
@@ -70,8 +70,8 @@ static func from_save(d: Dictionary) -> BiomesData:
 	for key in ever_unlocked_in:
 		if ever_unlocked_in[key]:
 			data.ever_unlocked[StringName(key)] = true
-	# Older saves predate ever_unlocked — backfill from unlocked so tabs
-	# already reached before this feature shipped don't vanish.
+	# Older saves predate ever_unlocked, so backfill from unlocked to keep
+	# tabs reached before this feature shipped.
 	for key in data.unlocked:
 		if data.unlocked[key]:
 			data.ever_unlocked[key] = true

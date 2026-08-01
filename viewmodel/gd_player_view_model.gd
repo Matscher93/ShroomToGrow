@@ -1,8 +1,8 @@
 class_name PlayerViewModel
 extends ViewModel
-## VIEWMODEL — adapts PlayerData for display and exposes commands.
-## Owns formatting, derived/display state, and enabled/disabled logic.
-## Holds a reference to the model; never to any Node.
+## VIEWMODEL: adapts PlayerData for display and exposes commands.
+## Owns formatting, derived state and enabled/disabled logic.
+## References the model, never a Node.
 
 const PROP_NUTRIENT_TEXT := &"nutrient_text"
 const PROP_BIOMASS_TEXT := &"biomass_text"
@@ -10,7 +10,7 @@ const PROP_WATER_TEXT := &"water_text"
 
 var _model: PlayerData
 
-# --- Read-only display properties the View binds to ---
+# --- Read-only display properties bound by the View ---
 
 var nutrient_text: String:
 	get:
@@ -47,7 +47,7 @@ func _on_biomass_changed(_value: BigNumber) -> void:
 func _on_water_changed(_value: BigNumber) -> void:
 	_notify(PROP_WATER_TEXT)
 
-# --- Formatting (replace with your BigNumber formatter) ---
+# --- Formatting ---
 
 func _format_number(value: BigNumber) -> String:
 	return value.to_display()

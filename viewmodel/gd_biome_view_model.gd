@@ -1,13 +1,13 @@
 class_name BiomeViewModel
 extends ViewModel
-## VIEWMODEL — adapts one BiomeDef + the shared biome/upgrade state for
-## display. Owns formatting, derived/display state, and enabled/disabled
-## logic. Holds references to the model; never to any Node.
+## VIEWMODEL: adapts one BiomeDef plus the shared biome/upgrade state for
+## display. Owns formatting, derived state and enabled/disabled logic.
+## References the model, never a Node.
 ##
-## The 10 per-biome upgrade cards read App.biome_upgrade_system through their
-## own per-selection BiomeUpgradeViewModel (see BiomeUpgradeCard); this VM
-## owns what's shared across the whole biome card: unlock state, level/XP
-## progress, available points, and the Biome Size section.
+## The 10 per-biome upgrade cards read App.biome_upgrade_system through their own
+## per-selection BiomeUpgradeViewModel (see BiomeUpgradeCard). This VM owns what
+## is shared across the biome card: unlock state, level and XP progress,
+## available points and the Biome Size section.
 
 const PROP_UNLOCKED := &"unlocked"
 const PROP_CAN_UNLOCK := &"can_unlock"
@@ -39,7 +39,7 @@ var biome_shader: Shader:
 var unlock_info_text: String:
 	get: return "Unlocks %s" % _def.display_name
 
-# --- Read-only display properties the View binds to ---
+# --- Read-only display properties bound by the View ---
 var unlocked: bool:
 	get: return App.biomes_data.is_unlocked(_key)
 
@@ -90,8 +90,8 @@ func _init(key: StringName, def: BiomeDef) -> void:
 	App.biome_upgrade_system.upgrades_changed.connect(_on_points_source_changed)
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_points_source_changed)  # bonus &"biome_points" perks
 	App.upgrade_system.upgrades_changed.connect(_on_xp_source_changed)      # XpSource.SYMBIOSIS_LEVELS
-	# unbind(1) drops the value these signals carry, so the handler can stay
-	# parameterless instead of taking an untyped throwaway.
+	# unbind(1) drops the value these signals carry, so the handler stays
+	# parameterless.
 	App.player_data.prestige_count_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.PRESTIGE_COUNT
 	App.player_data.nutrients_changed.connect(_on_currency_changed)
 	App.player_data.water_changed.connect(_on_currency_changed)
@@ -113,11 +113,11 @@ func dispose() -> void:
 		node.manual_nodes_changed.disconnect(_on_xp_source_changed.unbind(1))
 	App.biome_size_changed.disconnect(_on_biome_size_changed)
 
-# --- Commands (called by the View on user input) ---
+# --- Commands (called by the View on input) ---
 
 func unlock() -> void:
 	App.unlock_biome(_key)
-	# Model signal (biome_unlocked) triggers the notifications below.
+	# The biome_unlocked model signal triggers the notifications below.
 
 func buy_size() -> bool:
 	return App.buy_biome_size(_key)

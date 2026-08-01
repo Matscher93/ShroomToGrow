@@ -1,12 +1,12 @@
 @tool
 class_name PerkConnector
 extends Line2D
-## VIEW — single parent->child edge in the mycelial web. Color/width per
-## owned state are exported here / authored in sc_perk_connector.tscn so
-## they can be restyled in the editor without touching PerkLines.
+## VIEW: single parent->child edge in the mycelial web. Color and width per
+## owned state are authored in sc_perk_connector.tscn so they can be restyled in
+## the editor without touching PerkLines.
 ##
 ## The status colors are multiplied by the branch hue in sh_line.gdshader, so
-## keep them near-neutral — they carry brightness, the branch carries hue.
+## keep them near-neutral: they carry brightness, the branch carries hue.
 
 @export var locked_color: Color = Color(0.35, 0.35, 0.35, 0.5)
 @export var available_color: Color = Color(0.6, 0.6, 0.6, 0.75)
@@ -39,5 +39,5 @@ func bind(from: Vector2, to: Vector2, status: String, zoom: float, branch_color:
 		material.set_shader_parameter("branch_color", branch_color)
 		# The quad the shader rasterizes, in world units: segment length by
 		# stroke width. UV is normalized over it, so the shader needs this to
-		# turn its own units back into pixels (e.g. the glow falloff).
+		# turn its units back into pixels, e.g. for the glow falloff.
 		material.set_shader_parameter("rect_size", Vector2(from.distance_to(to), width))

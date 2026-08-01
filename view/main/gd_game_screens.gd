@@ -7,15 +7,13 @@ var _vm : ScreensViewModel
 
 var button_dictionary: Dictionary[ScreenTypes.Types, PanelContainer]
 
-## Screens are built once and then shown/hidden, never freed on switch. They
-## used to be queue_free()'d and re-instantiated every time a tab was tapped,
-## which threw away all of that screen's view state on each switch — the perk
-## web's pan/zoom and selected perk, expanded biome cards, scroll positions —
-## and paid for a full scene instantiate + _ready + first layout each time.
+## Screens are built once and then shown/hidden, never freed on switch. Freeing
+## them would throw away view state on every tab tap (the perk web's pan, zoom
+## and selection, expanded biome cards, scroll positions) and pay for a full
+## instantiate, _ready and first layout each time.
 var _screen_instances: Dictionary[ScreenTypes.Types, Control] = {}
 var _current_screen_instance: Control = null
 
-# Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	if App.screens_vm:
 		bind(App.screens_vm)
@@ -40,8 +38,8 @@ func _on_property_changed(property: StringName) -> void:
 		ScreensViewModel.PROP_SCREEN_CHANGED_TEXT:
 			update_visuals()
 
-## Unlocking a biome can reveal a new nav button — rebuild buttons only,
-## the currently active screen's content/state stays untouched.
+## Unlocking a biome can reveal a new nav button. Rebuilds buttons only, the
+## active screen's content and state stay untouched.
 func _on_biome_unlocked(_key: StringName) -> void:
 	_rebuild_nav_buttons()
 
@@ -79,7 +77,7 @@ func _rebuild_nav_buttons() -> void:
 			continue
 		var button_data: ScreenDefinition = all_screens.get(screen_key)
 		if button_data == null:
-			continue  # screen type with no definition authored — nothing to show
+			continue  # screen type with no definition authored, nothing to show
 		var button := button_scene.instantiate()
 		button.set_button_text(button_data.screen_name)
 		button.pressed.connect(_on_screen_selected.bind(screen_key))

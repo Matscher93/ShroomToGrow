@@ -19,12 +19,11 @@ extends MarginContainer
 var _vm: PlayerViewModel
 var _vm_change: MyceliumNodeViewModel
 
-# Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	_update_colors()
 
-	# App is an autoload, and autoloads aren't instantiated for @tool scripts
-	# running in the editor — the ViewModels only exist at runtime.
+	# Autoloads aren't instantiated for @tool scripts in the editor, so the
+	# ViewModels only exist at runtime.
 	if Engine.is_editor_hint():
 		return
 

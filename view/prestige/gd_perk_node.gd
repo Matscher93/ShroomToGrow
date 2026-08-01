@@ -1,11 +1,10 @@
 @tool
 class_name PerkNode
 extends Control
-## VIEW — single perk node in the mycelial web: a circular button (drawn by
-## sh_perk_node.gdshader on "background") plus non-interactive name and
-## level (X/Y) labels beneath it. PerkWeb positions/sizes this root against
-## NODE_SIZE, which matches "background" exactly — the labels just hang off
-## the bottom.
+## VIEW: single perk node in the mycelial web. A circular button (drawn by
+## sh_perk_node.gdshader on "background") plus non-interactive name and level
+## labels beneath it. PerkWeb positions and sizes this root against NODE_SIZE,
+## which matches "background" exactly, so the labels hang off the bottom.
 
 signal pressed
 
@@ -54,9 +53,9 @@ func set_color(color: Color) -> void:
 	if background.material is ShaderMaterial:
 		background.material.set_shader_parameter("button_color", color)
 
-## PerkWeb zooms "world", so the shader only ever sees unit-size UVs — it needs
-## the canvas zoom to keep screen-space detail consistent (same reason
-## PerkConnector forwards it to sh_line.gdshader).
+## PerkWeb zooms "world", so the shader only sees unit-size UVs and needs the
+## canvas zoom to keep screen-space detail consistent. Same reason PerkConnector
+## forwards it to sh_line.gdshader.
 func set_zoom(zoom: float) -> void:
 	if background.material is ShaderMaterial:
 		background.material.set_shader_parameter("scale", zoom)

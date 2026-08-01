@@ -7,8 +7,8 @@ extends PanelContainer
 var _nodes: Array[MyceliumNode] = []
 
 func _ready() -> void:
-	# App is an autoload, and autoloads aren't instantiated for @tool scripts
-	# running in the editor — the node list only exists at runtime.
+	# Autoloads aren't instantiated for @tool scripts in the editor, so the
+	# node list only exists at runtime.
 	if Engine.is_editor_hint():
 		return
 
@@ -21,8 +21,8 @@ func _ready() -> void:
 		var node_scene_instance := node_scene.instantiate()
 		node_scene_instance.node_level = index
 		vbox_nodes.add_child(node_scene_instance)
-		# unbind(1) drops the value these signals carry, so the handler can stay
-		# parameterless instead of taking an untyped throwaway.
+		# unbind(1) drops the value these signals carry, so the handler stays
+		# parameterless.
 		_nodes[index].manual_nodes_changed.connect(_update_visibility.unbind(1))
 		_nodes[index].auto_nodes_changed.connect(_update_visibility.unbind(1))
 	_update_visibility()

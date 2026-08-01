@@ -1,17 +1,16 @@
 class_name BiomeUpgradeViewModel
 extends ViewModel
-## VIEWMODEL — adapts one biome upgrade (App.biome_upgrade_system entry) for
-## display. Created fresh whenever BiomeUpgradeCard.select_upgrade() picks a
-## new grid slot, disposed on reselect — mirrors how the detail panel in
-## PrestigePanel rebinds a PerkViewModel per selection. Holds references to
-## the model; never to any Node.
+## VIEWMODEL: adapts one biome upgrade (App.biome_upgrade_system entry) for
+## display. Created fresh whenever BiomeUpgradeCard.select_upgrade() picks a new
+## grid slot, disposed on reselect, mirroring how PrestigePanel's detail panel
+## rebinds a PerkViewModel per selection. References the model, never a Node.
 
 const PROP_CHANGED := &"changed"
 
 var _id: StringName
 var _key: StringName
 
-# --- Read-only display properties the View binds to ---
+# --- Read-only display properties bound by the View ---
 var name_text: String:
 	get:
 		var def := App.biome_upgrade_system.def(_id)
@@ -46,7 +45,7 @@ func _init(id: StringName, key: StringName) -> void:
 func dispose() -> void:
 	App.biome_upgrade_system.upgrades_changed.disconnect(_on_changed)
 
-# --- Commands (called by the View on user input) ---
+# --- Commands (called by the View on input) ---
 
 func buy() -> bool:
 	return App.buy_biome_upgrade(_id, _key)

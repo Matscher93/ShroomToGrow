@@ -1,77 +1,75 @@
 [gd_scene format=3 uid="uid://caas4emc1u2wh"]
 
-[ext_resource type="Script" path="res://view/prestige/gd_prestige_panel.gd" id="1_panel_script"]
-[ext_resource type="Script" path="res://view/prestige/gd_perk_web.gd" id="2_web_script"]
-[ext_resource type="Script" path="res://view/prestige/gd_perk_lines.gd" id="3_lines_script"]
-[ext_resource type="PackedScene" path="res://view/prestige/sc_perk_node.tscn" id="4_node_scene"]
-[ext_resource type="PackedScene" path="res://view/prestige/sc_perk_connector.tscn" id="5_connector_scene"]
+[ext_resource type="Script" uid="uid://c04d6jttwnc6k" path="res://view/prestige/gd_prestige_panel.gd" id="1_panel_script"]
+[ext_resource type="Script" uid="uid://dnltc2u76pb6c" path="res://view/prestige/gd_perk_web.gd" id="2_web_script"]
+[ext_resource type="Script" uid="uid://vgkknnn4vq2b" path="res://view/prestige/gd_perk_lines.gd" id="3_lines_script"]
+[ext_resource type="PackedScene" uid="uid://d1suqi2wn1dyk" path="res://view/prestige/sc_perk_node.tscn" id="4_node_scene"]
+[ext_resource type="PackedScene" uid="uid://br7oobkddhcfv" path="res://view/prestige/sc_perk_connector.tscn" id="5_connector_scene"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
 
-[node name="biomes" type="PanelContainer" node_paths=PackedStringArray("biomass_label", "sporate_button", "perk_web", "detail_name", "detail_effect", "detail_cost", "buy_button")]
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="biomes" type="PanelContainer" unique_id=563082709 node_paths=PackedStringArray("sporate_button", "perk_web", "detail_name", "detail_effect", "detail_cost", "buy_button")]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxEmpty_lxikg")
 script = ExtResource("1_panel_script")
-biomass_label = NodePath("VBox/TopBar/BiomassLabel")
-sporate_button = NodePath("VBox/TopBar/SporateButton")
+sporate_button = NodePath("TopBar/SporateButton")
 perk_web = NodePath("VBox/WebClip")
-detail_name = NodePath("VBox/DetailPanel/DetailBox/DetailName")
-detail_effect = NodePath("VBox/DetailPanel/DetailBox/DetailEffect")
-detail_cost = NodePath("VBox/DetailPanel/DetailBox/DetailCost")
-buy_button = NodePath("VBox/DetailPanel/DetailBox/BuyButton")
+detail_name = NodePath("DetailPanel/DetailBox/DetailName")
+detail_effect = NodePath("DetailPanel/DetailBox/DetailEffect")
+detail_cost = NodePath("DetailPanel/DetailBox/DetailCost")
+buy_button = NodePath("DetailPanel/DetailBox/BuyButton")
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="TopBar" type="HBoxContainer" parent="." unique_id=590918908]
 layout_mode = 2
-size_flags_vertical = 3
-
-[node name="TopBar" type="HBoxContainer" parent="VBox"]
-layout_mode = 2
+size_flags_vertical = 0
 theme_override_constants/separation = 10
 
-[node name="BiomassLabel" type="Label" parent="VBox/TopBar"]
-layout_mode = 2
-text = "0"
-
-[node name="SporateButton" type="Button" parent="VBox/TopBar"]
+[node name="SporateButton" type="Button" parent="TopBar" unique_id=1080585047]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Sporate"
 
-[node name="WebClip" type="Control" node_paths=PackedStringArray("world", "lines") parent="VBox"]
+[node name="VBox" type="VBoxContainer" parent="." unique_id=1191467551]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="WebClip" type="Control" parent="VBox" unique_id=899835685 node_paths=PackedStringArray("world", "lines")]
 custom_minimum_size = Vector2(0, 320)
+layout_mode = 2
+size_flags_vertical = 3
 script = ExtResource("2_web_script")
 world = NodePath("World")
 lines = NodePath("World/Lines")
 node_scene = ExtResource("4_node_scene")
 
-[node name="World" type="Node2D" parent="VBox/WebClip"]
+[node name="World" type="Node2D" parent="VBox/WebClip" unique_id=548923965]
 
-[node name="Lines" type="Node2D" parent="VBox/WebClip/World"]
+[node name="Lines" type="Node2D" parent="VBox/WebClip/World" unique_id=286516047]
 script = ExtResource("3_lines_script")
 connector_scene = ExtResource("5_connector_scene")
 
-[node name="DetailPanel" type="PanelContainer" parent="VBox"]
+[node name="DetailPanel" type="PanelContainer" parent="." unique_id=1808081107]
 layout_mode = 2
+size_flags_vertical = 8
 
-[node name="DetailBox" type="VBoxContainer" parent="VBox/DetailPanel"]
+[node name="DetailBox" type="VBoxContainer" parent="DetailPanel" unique_id=1579384017]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="DetailName" type="Label" parent="VBox/DetailPanel/DetailBox"]
+[node name="DetailName" type="Label" parent="DetailPanel/DetailBox" unique_id=1907360131]
 layout_mode = 2
 text = "Sporation"
 
-[node name="DetailEffect" type="Label" parent="VBox/DetailPanel/DetailBox"]
+[node name="DetailEffect" type="Label" parent="DetailPanel/DetailBox" unique_id=982891348]
 layout_mode = 2
-text = ""
 
-[node name="DetailCost" type="Label" parent="VBox/DetailPanel/DetailBox"]
+[node name="DetailCost" type="Label" parent="DetailPanel/DetailBox" unique_id=1713716694]
 layout_mode = 2
-text = ""
 
-[node name="BuyButton" type="Button" parent="VBox/DetailPanel/DetailBox"]
+[node name="BuyButton" type="Button" parent="DetailPanel/DetailBox" unique_id=1002414006]
 layout_mode = 2
 text = "Buy"

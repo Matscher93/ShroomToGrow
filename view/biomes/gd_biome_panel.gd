@@ -1,15 +1,15 @@
 @tool
 class_name BiomePanel
 extends PanelContainer
-## VIEW — one biome's card: name/desc, current level badge, XP progress,
-## unlock action, Biome Size, and its 10 point-bought upgrades. Spawned once
-## per BiomeDef by BiomesPanel (gd_biomes_panel.gd), which sets biome_key
-## right after instantiating; binds itself to App.biome_vms[biome_key] in
-## _ready. The 10 upgrades show as a 5x2 grid of small selectable slot
-## buttons (spawned at runtime, one per App.biome_upgrade_ids(), same pattern
-## as gd_nodes_panel.gd); picking one rebinds the single upgrade_detail card
-## (sc_biome_upgrade_card.tscn, embedded statically) to show its info and let
-## you buy levels for it.
+## VIEW: one biome's card. Name and description, level badge, XP progress,
+## unlock action, Biome Size and its 10 point-bought upgrades. Spawned once per
+## BiomeDef by BiomesPanel (gd_biomes_panel.gd), which sets biome_key right after
+## instantiating. Binds itself to App.biome_vms[biome_key] in _ready.
+##
+## The upgrades show as a 5x2 grid of selectable slot buttons, spawned at runtime
+## one per App.biome_upgrade_ids() (same pattern as gd_nodes_panel.gd). Picking
+## one rebinds the statically embedded upgrade_detail card
+## (sc_biome_upgrade_card.tscn) to show its info and sell levels.
 
 @export var color_param: String
 @export var biome_key: StringName
@@ -51,7 +51,7 @@ var _slot_ids: Array[StringName] = []
 var _vm: BiomeViewModel
 var _expanded := true
 
-const TAP_CANCEL_DISTANCE := 10.0  # px — beyond this, a press is a scroll drag, not a tap
+const TAP_CANCEL_DISTANCE := 10.0  # px, beyond this a press is a scroll drag, not a tap
 var _press_active := false
 var _press_start := Vector2.ZERO
 
@@ -63,8 +63,8 @@ func _ready() -> void:
 
 	grid_upgrade_slots.columns = GRID_COLUMNS
 
-	# App is an autoload, and autoloads aren't instantiated for @tool scripts
-	# running in the editor — everything below needs the live game state.
+	# Autoloads aren't instantiated for @tool scripts in the editor, and
+	# everything below needs the live game state from App.
 	if Engine.is_editor_hint():
 		return
 
@@ -129,9 +129,9 @@ func _gui_input(event: InputEvent) -> void:
 			_press_active = false
 			_toggle_upgrades()
 	elif event is InputEventMouseMotion and _press_active:
-		# Android/iOS synthesize mouse motion from touch — a real scroll drag
-		# starts as a press here too, so cancel the tap once it moves enough
-		# to be a scroll rather than a tap.
+		# Android/iOS synthesize mouse motion from touch, so a scroll drag
+		# starts as a press here too. Cancel the tap once it moves far enough
+		# to be a scroll.
 		if event.position.distance_to(_press_start) > TAP_CANCEL_DISTANCE:
 			_press_active = false
 

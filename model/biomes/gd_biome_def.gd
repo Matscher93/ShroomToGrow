@@ -1,7 +1,7 @@
 class_name BiomeDef
 extends Resource
-## MODEL — static definition of one biome: what it unlocks, what it costs,
-## and where its XP comes from. Parallel to MyceliumNode / UpgradeDef.
+## MODEL: static definition of one biome. What it unlocks, what it costs and
+## where its XP comes from. Parallel to MyceliumNode / UpgradeDef.
 
 enum XpSource { TOTAL_NODES, SYMBIOSIS_LEVELS, PRESTIGE_COUNT }
 
@@ -10,19 +10,18 @@ enum XpSource { TOTAL_NODES, SYMBIOSIS_LEVELS, PRESTIGE_COUNT }
 @export_multiline var description: String
 @export var screen_type: ScreenTypes.Types
 @export var xp_source: XpSource
-@export var xp_label: String  ## e.g. "nodes grown" — used in level-progress display
+@export var xp_label: String  ## e.g. "nodes grown", shown in the level-progress display
 
 @export var biome_color: Color
-@export var biome_shader: Shader  ## assigned to a ColorRect's material to render biome's icon
+@export var biome_shader: Shader  ## set on a ColorRect's material to render the biome icon
 
-## This biome's point-bought upgrades, in the order their grid slots appear.
-## Each entry must match an UpgradeDef.id under data/upgrades/biomes/. Note the
-## folder and id names lag a biome rename by one (Meadow's upgrades are named
-## Forest*, Forest's are named Symbiosis*) — the ids here are what actually
-## binds them, so trust this list over the folder a .tres happens to sit in.
+## This biome's point-bought upgrades, in grid-slot order. Each entry must match
+## an UpgradeDef.id under data/upgrades/biomes/. Folder and id names lag a biome
+## rename by one (Meadow's upgrades are named Forest*, Forest's are named
+## Symbiosis*), so trust this list over the folder a .tres sits in.
 @export var upgrade_ids: Array[StringName] = []
 
-## True for the starter biome(s) — unlocked from a fresh save, no cost/currency needed.
+## True for starter biomes: unlocked on a fresh save, no cost or currency needed.
 @export var always_unlocked: bool = false
 @export var unlock_currency: CurrencyTypes.Types = CurrencyTypes.Types.NUTRIENTS
 

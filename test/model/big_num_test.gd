@@ -1,9 +1,8 @@
 extends GdUnitTestSuite
 ## Unit tests for BigNumber (model/gd_big_num.gd).
 ##
-## This is the highest bug-density file in the project: normalisation, gt() and
-## equals() each shipped a real defect. Every test below that names a "used to"
-## behaviour is a regression guard for one of them.
+## Normalisation, gt() and equals() have each shipped a real defect. Every test
+## below naming a "used to" behaviour is a regression guard for one of them.
 
 const EPS := 0.000001
 
@@ -93,8 +92,8 @@ func test_pow_float_handles_huge_exponents() -> void:
 
 func test_gt_past_float_range() -> void:
 	# Both operands used to be scaled into a shared exponent, overflowing to INF.
-	# INF > INF is false, so this returned false for a genuinely greater value —
-	# silently inverting affordability checks late in a run.
+	# INF > INF is false, so this returned false for a genuinely greater value,
+	# inverting affordability checks late in a run.
 	var huge := BigNumber.new(1.0, 400)
 	var big := BigNumber.new(1.0, 390)
 	assert_bool(huge.gt(big)).is_true()
@@ -143,7 +142,7 @@ func test_equals_across_construction_paths() -> void:
 
 func test_same_value_is_exact_not_approximate() -> void:
 	# same_value backs the "did this change?" guards in the property setters, so
-	# it must never call two distinct values equal — a real gain would be lost.
+	# it must never call two distinct values equal or a real gain is lost.
 	var a := BigNumber.from_value(100.0)
 	assert_bool(a.same_value(BigNumber.from_value(100.0))).is_true()
 	assert_bool(a.same_value(BigNumber.from_value(100.001))).is_false()

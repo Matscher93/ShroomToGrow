@@ -1,8 +1,8 @@
 class_name MyceliumNodeViewModel
 extends ViewModel
-## VIEWMODEL — adapts PlayerData for display and exposes commands.
-## Owns formatting, derived/display state, and enabled/disabled logic.
-## Holds a reference to the model; never to any Node.
+## VIEWMODEL: adapts PlayerData for display and exposes commands.
+## Owns formatting, derived state and enabled/disabled logic.
+## References the model, never a Node.
 
 const PROP_BUY_TEXT := &"buy_button_text"
 const PROP_MANUAL_NODE_TEXT := &"manual_node_text"
@@ -27,7 +27,7 @@ var _mycelium_data: MyceliumNodeData
 var _potency_id: StringName
 var _synergy_id: StringName
 
-# --- Read-only display properties the View binds to ---
+# --- Read-only display properties bound by the View ---
 var buy_button_text: String:
 	get:
 		if not _mycelium_data.is_unlocked():
@@ -61,16 +61,14 @@ var can_buy_upgrade: bool:
 	get:
 		return _mycelium_data.can_buy_upgrade()
 
-## False while this tier still waits on its unlock perk — the panel stays
-## visible, but nothing on it can be bought.
+## False while this tier waits on its unlock perk. The panel stays visible,
+## but nothing on it can be bought.
 var is_unlocked: bool:
 	get:
 		return _mycelium_data.is_unlocked()
 
-## Pluralised against the number actually being shown. This used to be a
-## parameterless `is_multiple` reading the production *multiplier* rather than
-## the amount next to the noun, so a node producing 500 with a 1.0x bonus
-## rendered "500 nutrient".
+## Pluralised against the amount actually shown, not the production multiplier:
+## 500 nutrients at a 1.0x bonus would otherwise render "500 nutrient".
 func _unit_text(amount: BigNumber) -> String:
 	var plural := amount.gt(BigNumber.from_value(1.0))
 	if _mycelium_data.node.node_id == 0:
@@ -160,11 +158,11 @@ func dispose() -> void:
 	App.biome_upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
 
-# --- Commands (called by the View on user input) ---
+# --- Commands (called by the View on input) ---
 
 func buy_upgrade() -> void:
 	_mycelium_data.buy_upgrade()
-	# Model signals will trigger the notifications below.
+	# Model signals trigger the notifications below.
 
 func buy_potency() -> bool:
 	if not is_unlocked:
@@ -176,11 +174,11 @@ func buy_synergy() -> bool:
 		return false
 	return App.upgrade_system.buy(_synergy_id, _player_data)
 
-# --- Model -> notification plumbing ---
+# --- Model to notification plumbing ---
 
 func _on_nutrients_changed(_value: BigNumber) -> void:
 	_notify(PROP_CAN_BUY)
-	_notify(PROP_BUY_TEXT)  # cost affordability display may change
+	_notify(PROP_BUY_TEXT)  # affordability display may change
 	_notify(PROP_POTENCY_CAN_BUY)
 	_notify(PROP_SYNERGY_CAN_BUY)
 
@@ -196,8 +194,8 @@ func _on_manual_nodes_changed(_manual_nodes: int) -> void:
 	_notify(PROP_CAN_BUY)
 
 func _on_upgrades_changed() -> void:
-	# Buying the unlock perk lands here too, so the buy panel has to re-read
-	# both its label and its enabled state.
+	# Buying the unlock perk lands here too, so the buy panel re-reads both its
+	# label and its enabled state.
 	_notify(PROP_BUY_TEXT)
 	_notify(PROP_CAN_BUY)
 	_notify(PROP_PRODUCTION_TEXT)

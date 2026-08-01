@@ -7,8 +7,8 @@ extends SceneTree
 ##   godot --headless --script tools/gd_balance_cli.gd -- create --request=FILE --out=FILE [--dry-run]
 ##   godot --headless --script tools/gd_balance_cli.gd -- delete --request=FILE --out=FILE [--dry-run]
 ##
-## Both commands write their result as JSON to --out, because stdout carries the
-## engine banner and any autoload noise. Exit code is non-zero on error.
+## Results go to --out as JSON, because stdout carries the engine banner and any
+## autoload noise. Exit code is non-zero on error.
 
 const BalanceDataScript := preload("res://tools/gd_balance_data.gd")
 

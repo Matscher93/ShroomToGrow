@@ -1,11 +1,10 @@
 class_name BiomeSystem
 extends RefCounted
-## MODEL — every rule about biomes: unlocking, XP/levels, the point budget,
-## the point-bought upgrades, and Biome Size.
+## MODEL: every rule about biomes. Unlocking, XP and levels, the point budget,
+## the point-bought upgrades and Biome Size.
 ##
-## Extracted from App, which had grown to hold this alongside the composition
-## root and the tick loop. Holds only its inputs, no App reference, so it can be
-## built and exercised in isolation.
+## Holds only its inputs, no App reference, so it can be built and exercised in
+## isolation.
 
 var _biomes: BiomeList
 var _biomes_data: BiomesData
@@ -45,9 +44,9 @@ func biome_def_for_screen(screen_type: int) -> BiomeDef:
 			return def
 	return null
 
-## Gates bottom-bar tab visibility only. Once a biome has ever been unlocked,
-## its screen stays reachable across prestige resets — feature access inside
-## that screen (buying, etc.) is gated separately on biomes_data.is_unlocked.
+## Gates bottom-bar tab visibility only. Once ever unlocked, a biome's screen
+## stays reachable across prestige resets. Feature access inside that screen is
+## gated separately on biomes_data.is_unlocked.
 func is_screen_unlocked(screen_type: int) -> bool:
 	if screen_type == ScreenTypes.Types.BIOMES:
 		return true
@@ -70,8 +69,8 @@ func biome_xp(key: StringName) -> int:
 func biome_level(key: StringName) -> Dictionary:
 	return BiomeCalculator.level_for(biome_xp(key))
 
-## Level-derived points, plus any flat bonus from upgrades in any track that
-## target the &"biome_points" stat for this specific biome.
+## Level-derived points plus any flat bonus from upgrades in any track that
+## target the &"biome_points" stat for this biome.
 func available_points(key: StringName) -> int:
 	var lvl: int = biome_level(key).level
 	var base_points := lvl - 1
@@ -105,8 +104,8 @@ func upgrade_ids(key: StringName) -> Array[StringName]:
 		return []
 	return def.upgrade_ids
 
-## True once enough points have been spent overall in this biome — gates the
-## later, more powerful upgrades behind investment in the earlier ones.
+## True once enough points are spent in this biome. Gates the later, stronger
+## upgrades behind investment in the earlier ones.
 func is_upgrade_unlocked(id: StringName, key: StringName) -> bool:
 	var def := _biome_upgrades.def(id)
 	return def != null and _biomes_data.points_spent(key) >= def.min_biome_points_spent
@@ -122,13 +121,12 @@ func can_buy_upgrade(id: StringName, key: StringName) -> bool:
 func buy_upgrade(id: StringName, key: StringName) -> bool:
 	if not can_buy_upgrade(id, key):
 		return false
-	# Spend before buying: buy_with_points emits upgrades_changed synchronously,
-	# and views refresh points_spent() off that same signal — emitting before
-	# the spend landed showed the old (pre-purchase) point count until
-	# something else happened to trigger a second refresh.
+	# Spend before buying: buy_with_points emits upgrades_changed synchronously
+	# and views refresh points_spent() off that signal, so spending after would
+	# show the pre-purchase count until something forced a second refresh.
 	_biomes_data.spend_points(key, 1)
 	if not _biome_upgrades.buy_with_points(id, true):
-		_biomes_data.spend_points(key, -1)  # refund: def had no room left to level
+		_biomes_data.spend_points(key, -1)  # refund, def had no room left to level
 		return false
 	return true
 
@@ -149,8 +147,8 @@ func can_buy_size(key: StringName) -> bool:
 		return false
 	return _player_data.nutrients.gte(size_cost(key))
 
-## Caller is responsible for announcing the change (App re-emits
-## biome_size_changed), since views bind to App rather than to this system.
+## Caller announces the change (App re-emits biome_size_changed), since views
+## bind to App rather than to this system.
 func buy_size(key: StringName) -> bool:
 	if not can_buy_size(key):
 		return false

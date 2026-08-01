@@ -1,10 +1,10 @@
 class_name PerkWeb
 extends Control
-## VIEW — pannable/zoomable canvas for the mycelial web. Spawns one
-## PerkNode per PerkDef at its precomputed world position, drags/zooms the
-## whole "world" node, and refreshes PerkLines underneath on any change.
-## Node shape/style lives in sc_perk_node.tscn (see gd_perk_node.gd) — this
-## class only positions nodes and tints them by branch hue.
+## VIEW: pannable, zoomable canvas for the mycelial web. Spawns one PerkNode per
+## PerkDef at its precomputed world position, drags and zooms the whole "world"
+## node, and refreshes PerkLines underneath on any change. Node shape and style
+## live in sc_perk_node.tscn (see gd_perk_node.gd), this class only positions
+## nodes and tints them by branch hue.
 
 signal perk_selected(id: StringName)
 
@@ -29,8 +29,8 @@ func _ready() -> void:
 	for id in App.perk_defs:
 		_spawn_button(App.perk_defs[id])
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_changed)
-	# unbind(1) drops biomass_changed's BigNumber argument, so the handler can
-	# stay parameterless instead of taking an untyped throwaway.
+	# unbind(1) drops biomass_changed's BigNumber, so the handler stays
+	# parameterless.
 	App.player_data.biomass_changed.connect(_on_changed.unbind(1))
 	resized.connect(_center_on_core)
 	call_deferred("_center_on_core")
@@ -49,11 +49,10 @@ func _notification(what: int) -> void:
 		_update_touch_emulation()
 
 ## Android/iOS synthesize InputEventMouseMotion from touch by default, which
-## would double-drive world.position alongside our own ScreenDrag handling
-## below (that's what the earlier 2x pan bug actually was). Screens are now
-## cached rather than freed on switch (see gd_game_screens.gd), so this can
-## no longer key off _ready/_exit_tree alone — it must track actual on-screen
-## visibility, since an ancestor (the screen container) is what shows/hides us.
+## would double-drive world.position alongside the ScreenDrag handling below and
+## pan at 2x. Screens are cached rather than freed on switch (see
+## gd_game_screens.gd), so this can't key off _ready/_exit_tree alone. It has to
+## track on-screen visibility, since an ancestor is what shows and hides us.
 func _update_touch_emulation() -> void:
 	Input.set_emulate_mouse_from_touch(not is_visible_in_tree())
 
@@ -138,7 +137,7 @@ func _gui_input(event: InputEvent) -> void:
 			_pinch_prev_dist = -1.0
 	elif event is InputEventScreenDrag:
 		var sd := event as InputEventScreenDrag
-		# Position-delta, not sd.relative — matches the mouse-drag path above.
+		# Position delta, not sd.relative, to match the mouse-drag path above.
 		var prev: Vector2 = _touches.get(sd.index, sd.position)
 		_touches[sd.index] = sd.position
 		if _touches.size() >= 2:

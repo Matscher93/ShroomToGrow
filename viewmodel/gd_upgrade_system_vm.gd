@@ -3,7 +3,7 @@ extends RefCounted
 signal upgrades_changed
 
 var _defs: Dictionary = {}      # id -> UpgradeDef
-var _levels: Dictionary = {}    # id -> int   ← this is your save data
+var _levels: Dictionary = {}    # id -> int, this is the save data
 var _cache: Dictionary = {}     # stat -> { scope_key -> {add, inc, more} }
 var _dirty := true
 
@@ -26,8 +26,8 @@ func def(id: StringName) -> UpgradeDef:
 func level(id: StringName) -> int:
 	return _levels.get(id, 0)
 
-## Marks the cache stale — call when something a ScalingSourceDef depends on changes
-## (e.g. manual node count) so cacheable (non-live) sources get re-evaluated.
+## Marks the cache stale. Call when something a ScalingSourceDef depends on
+## changes (e.g. manual node count) so those sources get re-evaluated.
 func invalidate() -> void:
 	_dirty = true
 	upgrades_changed.emit()
@@ -44,11 +44,9 @@ func effect_amount(id: StringName, ctx: ResolveContext) -> BigNumber:
 		mag = mag.scale(e.dependency.evaluate(ctx))
 	return mag
 
-## Marginal gain from this upgrade's own effect a single additional level would
-## add at the current level, ScalingSourceDef dependency included. This used to
-## skip the dependency and leave callers to label the result as a per-unit rate,
-## which meant an effect scaled by a dependency the player couldn't see from the
-## panel advertised a gain it would never deliver.
+## Marginal gain one more level adds at the current level, ScalingSourceDef
+## dependency included. The dependency has to be applied here, otherwise the
+## panel advertises a gain the upgrade will never deliver.
 func next_level_delta(id: StringName, ctx: ResolveContext) -> BigNumber:
 	var def: UpgradeDef = _defs.get(id)
 	if def == null or def.effects.is_empty():
@@ -60,8 +58,8 @@ func next_level_delta(id: StringName, ctx: ResolveContext) -> BigNumber:
 		delta = delta.scale(e.dependency.evaluate(ctx))
 	return delta
 
-## Combines several upgrades' own effects into one overall % bonus, assuming
-## each contributes multiplicatively (op MORE) — e.g. potency * synergy.
+## Combines several upgrades' effects into one overall % bonus, assuming each
+## contributes multiplicatively (op MORE), e.g. potency * synergy.
 func combined_bonus(ids: Array, ctx: ResolveContext) -> BigNumber:
 	var total := BigNumber.from_value(1.0)
 	for id in ids:
@@ -94,12 +92,10 @@ func buy(id: StringName, player_data: PlayerData, currency: StringName = &"nutri
 	return true
 
 ## Level up an upgrade paid for with a point budget (e.g. biome level points)
-## instead of a BigNumber currency — always costs exactly 1 point.
+## instead of a BigNumber currency. Always costs exactly 1 point.
 ##
-## The point itself is spent by the caller, which owns the budget; this only
-## needs to know whether one was available. It used to take the caller's point
-## count as an int and compare it against 1 without ever deducting anything,
-## which read like it did the spending.
+## The caller owns the budget and spends the point itself. This only needs to
+## know whether one was available.
 func buy_with_points(id: StringName, has_point_available: bool) -> bool:
 	var def: UpgradeDef = _defs.get(id)
 	if def == null:
@@ -113,7 +109,7 @@ func buy_with_points(id: StringName, has_point_available: bool) -> bool:
 	upgrades_changed.emit()
 	return true
 
-## Sum of every registered upgrade's level — used as a biome XP source.
+## Sum of every registered upgrade's level, used as a biome XP source.
 func total_levels() -> int:
 	var total := 0
 	for id in _levels:
@@ -136,37 +132,37 @@ func to_save() -> Dictionary:
 			data[String(id)] = lvl
 	return data
 
-## Levels for ids this system doesn't know are dropped, not stored: a renamed or
-## deleted UpgradeDef (or a data directory that failed to load) would otherwise
-## leave an id in _levels that _rebuild() has no def for.
+## Levels for unknown ids are dropped, not stored. A renamed or deleted
+## UpgradeDef, or a data directory that failed to load, would otherwise leave an
+## id in _levels that _rebuild() has no def for.
 func from_save(data: Dictionary) -> void:
 	for key in data:
 		var id := StringName(key)
 		if not _defs.has(id):
-			push_warning("Save contains unknown upgrade '%s' — dropping its level." % key)
+			push_warning("Save contains unknown upgrade '%s', dropping its level." % key)
 			continue
 		_levels[id] = int(data[key])
 	_dirty = true
 	upgrades_changed.emit()
 
-# Effect authoring side: which single bucket does this effect write into?
+# Authoring side: which bucket does this effect write into?
 func _scope_key(scope: UpgradeEffectDef.Scope, target: StringName) -> String:
 	match scope:
 		UpgradeEffectDef.Scope.GLOBAL:
 			return _K_GLOBAL
 		UpgradeEffectDef.Scope.TAG:
 			if target.is_empty():
-				push_warning("TAG-scoped effect has no target; it will never apply.")
+				push_warning("TAG-scoped effect has no target, it will never apply.")
 			return _K_TAG + String(target)
 		UpgradeEffectDef.Scope.NODE:
 			if target.is_empty():
-				push_warning("NODE-scoped effect has no target; it will never apply.")
+				push_warning("NODE-scoped effect has no target, it will never apply.")
 			return _K_NODE + String(target)
 		_:
 			push_error("Unknown scope %d" % scope)
 			return _K_GLOBAL
 
-# Query side: which buckets does *this* node read from?
+# Query side: which buckets does this node read from?
 func _applicable_keys(tags: PackedStringArray, node_id: StringName) -> PackedStringArray:
 	var keys := PackedStringArray([_K_GLOBAL])   # global always applies
 	for tag in tags:

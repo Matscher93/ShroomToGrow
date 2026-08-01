@@ -1,8 +1,8 @@
 class_name ScreensViewModel
 extends ViewModel
-## VIEWMODEL — adapts PlayerData for display and exposes commands.
-## Owns formatting, derived/display state, and enabled/disabled logic.
-## Holds a reference to the model; never to any Node.
+## VIEWMODEL: adapts PlayerData for display and exposes commands.
+## Owns formatting, derived state and enabled/disabled logic.
+## References the model, never a Node.
 
 const PROP_SCREEN_CHANGED_TEXT := &"screen_changed"
 
@@ -12,7 +12,7 @@ var _model: ScreensData
 func set_current_screen(type: ScreenTypes.Types) -> void:
 	_model.current_screen = type
 
-# --- Read-only display properties the View binds to ---
+# --- Read-only display properties bound by the View ---
 
 var current_screen: ScreenTypes.Types:
 	get: return _model.current_screen

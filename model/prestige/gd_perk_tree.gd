@@ -1,14 +1,12 @@
 class_name PerkTree
 extends RefCounted
-## MODEL — pure generator: turns a PerkBranchList into the full set of PerkDefs.
-## Cost/effect/name/description all come straight from the authored
-## PerkNodeDefs; the only thing generated is where each node sits, derived from
-## how deep it hangs off the core and how many siblings it shares a parent with.
-## Branches can be any shape — chain as long as you like, fork as often as you
-## like — without touching this file.
+## MODEL: pure generator turning a PerkBranchList into the full set of PerkDefs.
+## Cost, effects, name and description come straight from the authored
+## PerkNodeDefs. Only the position is generated, from node depth and sibling
+## count, so branches of any shape work without touching this file.
 ##
-## Authoring points downward: a node lists its children, so the parent_id on the
-## generated PerkDef is filled in during the walk rather than authored.
+## Authoring points downward: a node lists its children, so parent_id is filled
+## in during the walk rather than authored.
 
 const CANVAS_CENTER := 520.0
 const ROOT_RADIUS := 150.0
@@ -17,12 +15,11 @@ const SIBLING_SPREAD_DEG := 26.0
 const BRANCH_START_DEG := -90.0  ## first branch points straight up from the core
 
 static func build(branch_list: PerkBranchList) -> Array[PerkDef]:
-	var seen: Dictionary = {}  # StringName id -> true, across every branch
+	var seen: Dictionary = {}  # StringName id -> true, across all branches
 	var perks: Array[PerkDef] = [_make_core(branch_list.core)]
 	seen[branch_list.core.id] = true
-	# Branches fan out evenly, in list order — the spacing is derived rather
-	# than authored so adding or removing a branch can't leave the web lopsided
-	# or two arms overlapping.
+	# Branches fan out evenly in list order. Spacing is derived, not authored,
+	# so adding or removing a branch can't leave the web lopsided or overlapping.
 	var step := 360.0 / float(maxi(1, branch_list.branches.size()))
 	for i in branch_list.branches.size():
 		var branch: PerkBranchDef = branch_list.branches[i]
@@ -51,7 +48,7 @@ static func _place_children(branch: PerkBranchDef, siblings: Array[PerkNodeDef],
 	for i in siblings.size():
 		var node: PerkNodeDef = siblings[i]
 		if seen.has(node.id):
-			push_error("Perk branch '%s' reuses id '%s' — skipping that node and everything under it." % [branch.key, node.id])
+			push_error("Perk branch '%s' reuses id '%s', skipping that node and everything under it." % [branch.key, node.id])
 			continue
 		seen[node.id] = true
 		var angle := parent_angle + spread * (float(i) - (siblings.size() - 1) / 2.0)

@@ -3,10 +3,9 @@ extends MarginContainer
 var _last_safe := Rect2i()
 var _last_win := Vector2i()
 
-# Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	var poll := Timer.new()
-	poll.wait_time = 0.25            # 4Hz is plenty for a human turning a phone
+	poll.wait_time = 0.25            # 4Hz is enough for a human turning a phone
 	poll.timeout.connect(_check_safe_area)
 	add_child(poll)
 	poll.start()
@@ -15,8 +14,8 @@ func _ready() -> void:
 	_apply_ui_scale()
 
 func _check_safe_area() -> void:
-	# Re-apply only when something actually moved — catches the 180° flip,
-	# which changes the rect's position but not the window size.
+	# Re-apply only when something moved. Catches the 180 degree flip, which
+	# changes the rect's position but not the window size.
 	if DisplayServer.get_display_safe_area() != _last_safe or DisplayServer.window_get_size() != _last_win:
 		_apply_safe_area()
 		_apply_ui_scale()
@@ -45,10 +44,10 @@ func _apply_safe_area() -> void:
 func _apply_ui_scale() -> void:
 	var dpi := DisplayServer.screen_get_dpi()
 	if dpi <= 0:
-		dpi = 96   # fallback — some devices/desktops report garbage
+		dpi = 96   # fallback, some devices report garbage
 
 	var screen_px := DisplayServer.screen_get_size()
-	# shorter physical edge, in inches — the honest measure of "how big is this thing"
+	# shorter physical edge in inches, the honest measure of device size
 	var short_edge := float(min(screen_px.x, screen_px.y)) / float(dpi)
 
 	var screen_scale := 1.0

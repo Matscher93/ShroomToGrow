@@ -4,7 +4,7 @@ extends Button
 @onready var _content: MarginContainer = $MarginContainer
 
 func _ready() -> void:
-	# Re-evaluate whenever the hbox's own minimum changes (label text changed, etc.)
+	# Re-evaluate whenever the hbox's own minimum changes, e.g. new label text.
 	_content.minimum_size_changed.connect(set_custom_min_size)
 	set_custom_min_size()
 

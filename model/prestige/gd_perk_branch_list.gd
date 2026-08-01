@@ -1,7 +1,7 @@
 class_name PerkBranchList
 extends Resource
-## MODEL — ordered registry of every PerkBranchDef plus the core node they all
-## grow from, loaded once by App. Mirrors BiomeList / MyceliumNodes / Screens.
+## MODEL: ordered registry of every PerkBranchDef plus the core node they grow
+## from, loaded once by App. Mirrors BiomeList / MyceliumNodes / Screens.
 
 ## Hue used by the core and any node with no branch of its own.
 const CORE_HUE := 270.0

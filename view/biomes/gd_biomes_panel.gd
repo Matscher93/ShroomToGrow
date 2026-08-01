@@ -1,15 +1,15 @@
 @tool
 extends PanelContainer
-## VIEW — the biome hub: spawns one BiomePanel (sc_biome_panel.tscn) per
-## BiomeDef. Each panel binds itself to App's biome state; this container
-## only owns the list.
+## VIEW: the biome hub. Spawns one BiomePanel (sc_biome_panel.tscn) per
+## BiomeDef. Each panel binds itself to App's biome state, this container only
+## owns the list.
 
 @export var vbox_items: VBoxContainer
 @export var biome_scene: PackedScene
 
 func _ready() -> void:
-	# App is an autoload, and autoloads aren't instantiated for @tool scripts
-	# running in the editor — the biome list only exists at runtime.
+	# Autoloads aren't instantiated for @tool scripts in the editor, so the
+	# biome list only exists at runtime.
 	if Engine.is_editor_hint():
 		return
 

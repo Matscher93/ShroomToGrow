@@ -1,8 +1,8 @@
 class_name PerkViewModel
 extends ViewModel
-## VIEWMODEL — adapts one PerkDef + the shared prestige upgrade system for
-## display. One instance per perk, held in App.perk_vms. Holds references to
-## the model; never to any Node.
+## VIEWMODEL: adapts one PerkDef plus the shared prestige upgrade system for
+## display. One instance per perk, held in App.perk_vms. References the model,
+## never a Node.
 
 const PROP_CHANGED := &"changed"
 
@@ -16,7 +16,7 @@ var display_name: String:
 var max_level: int:
 	get: return _def.max_level
 
-# --- Read-only display properties the View binds to ---
+# --- Read-only display properties bound by the View ---
 var status: String:
 	get: return App.perk_status(_id)
 
@@ -66,15 +66,15 @@ func _init(id: StringName, def: PerkDef) -> void:
 	_id = id
 	_def = def
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_changed)
-	# unbind(1) drops biomass_changed's BigNumber argument, so the handler can
-	# stay parameterless instead of taking an untyped throwaway.
+	# unbind(1) drops biomass_changed's BigNumber, so the handler stays
+	# parameterless.
 	App.player_data.biomass_changed.connect(_on_changed.unbind(1))
 
 func dispose() -> void:
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
 	App.player_data.biomass_changed.disconnect(_on_changed.unbind(1))
 
-# --- Commands (called by the View on user input) ---
+# --- Commands (called by the View on input) ---
 
 func buy() -> bool:
 	return App.buy_perk(_id)
