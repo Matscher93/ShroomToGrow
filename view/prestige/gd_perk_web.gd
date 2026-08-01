@@ -58,8 +58,8 @@ func _notification(what: int) -> void:
 		_update_edge_fade()
 
 ## The fade lives in screen UV (see sh_web_fade.gdshader), so it has to be
-## recomputed whenever this control's place on screen changes. Screens are
-## cached and hidden rather than freed, so a rebind after a screen switch counts.
+## recomputed whenever this control's place on screen changes, including the
+## first layout after this screen is spawned.
 func _update_edge_fade() -> void:
 	if world == null or not (world.material is ShaderMaterial):
 		return
@@ -74,9 +74,9 @@ func _update_edge_fade() -> void:
 
 ## Android/iOS synthesize InputEventMouseMotion from touch by default, which
 ## would double-drive world.position alongside the ScreenDrag handling below and
-## pan at 2x. Screens are cached rather than freed on switch (see
-## gd_game_screens.gd), so this can't key off _ready/_exit_tree alone. It has to
-## track on-screen visibility, since an ancestor is what shows and hides us.
+## pan at 2x. Keyed off on-screen visibility rather than _ready/_exit_tree alone,
+## so an ancestor hiding us (a popup layer, a parent toggled off) restores the
+## default just as leaving the screen does.
 func _update_touch_emulation() -> void:
 	Input.set_emulate_mouse_from_touch(not is_visible_in_tree())
 

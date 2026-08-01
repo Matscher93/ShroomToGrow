@@ -7,11 +7,12 @@ var _vm : ScreensViewModel
 
 var button_dictionary: Dictionary[ScreenTypes.Types, PanelContainer]
 
-## Screens are built once and then shown/hidden, never freed on switch. Freeing
-## them would throw away view state on every tab tap (the perk web's pan, zoom
-## and selection, expanded biome cards, scroll positions) and pay for a full
-## instantiate, _ready and first layout each time.
-var _screen_instances: Dictionary[ScreenTypes.Types, Control] = {}
+## Screens are rebuilt from scratch on every switch and freed on leaving. View
+## state (the perk web's pan, zoom and selection, expanded biome cards, scroll
+## positions) is deliberately not kept: a cached screen misses everything that
+## changed while it was hidden, so a biome unlock or a prestige reset left stale
+## content on screens the player was not looking at. MenuWarmup preloads the
+## scenes at boot, so the respawn cost is instantiate plus first layout only.
 var _current_screen_instance: Control = null
 
 func _ready() -> void:
@@ -47,23 +48,22 @@ func update_visuals() -> void:
 	_show_screen(_vm.current_screen)
 	_rebuild_nav_buttons()
 
-## Reveals a screen, instantiating it on first visit only.
+## Frees whatever screen is up and builds the requested one fresh.
 func _show_screen(screen_type: ScreenTypes.Types) -> void:
+	# remove_child before queue_free: the free itself only lands at the end of
+	# the frame, and until then the outgoing screen would still be laid out
+	# alongside the incoming one.
 	if _current_screen_instance:
-		_current_screen_instance.visible = false
+		screen_container.remove_child(_current_screen_instance)
+		_current_screen_instance.queue_free()
 		_current_screen_instance = null
 
-	if not _screen_instances.has(screen_type):
-		var screen_data := _vm.get_screen_data(screen_type)
-		if screen_data == null or screen_data.screen_scene == null:
-			push_error("No screen scene registered for screen type %d." % screen_type)
-			return
-		var instance := screen_data.screen_scene.instantiate() as Control
-		screen_container.add_child(instance)
-		_screen_instances[screen_type] = instance
-
-	_current_screen_instance = _screen_instances[screen_type]
-	_current_screen_instance.visible = true
+	var screen_data := _vm.get_screen_data(screen_type)
+	if screen_data == null or screen_data.screen_scene == null:
+		push_error("No screen scene registered for screen type %d." % screen_type)
+		return
+	_current_screen_instance = screen_data.screen_scene.instantiate() as Control
+	screen_container.add_child(_current_screen_instance)
 
 func _rebuild_nav_buttons() -> void:
 	for child in button_container.get_children():

@@ -1,9 +1,11 @@
 class_name MenuWarmup
 extends CanvasLayer
 ## VIEW: instantiates every screen (Biomes, Nodes, Prestige) once, off-screen,
-## right after boot. game_screens.gd builds a screen from scratch the first time
-## its tab is opened, so that first tap pays for scene loading, layout and the
-## screen's first draw at once. Warming up here moves that cost to startup.
+## right after boot. game_screens.gd builds a screen from scratch on every tab
+## tap, so without this the first tap would pay for scene loading, shader
+## compilation and the screen's first draw at once. Warming up here moves the
+## one-time part of that cost to startup; later taps only pay instantiate and
+## layout.
 ##
 ## The screen shown at boot is skipped: game_screens is a tree ancestor and has
 ## already run its own _ready(). Each screen's root fills the viewport via
