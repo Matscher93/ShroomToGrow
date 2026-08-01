@@ -59,7 +59,6 @@ description = "Substrate node — kept through every sporation."
 script = ExtResource("1_script")
 key = &"nut"
 label = "Substrate"
-angle_degrees = -90.0
 hue = 272.0
 default_effects = Array[ExtResource("3_effect_script")]([ExtResource("2_effect")])
 roots = Array[ExtResource("4_node_script")]([SubResource("node_1")])

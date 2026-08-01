@@ -30,6 +30,8 @@ var _synergy_id: StringName
 # --- Read-only display properties the View binds to ---
 var buy_button_text: String:
 	get:
+		if not _mycelium_data.is_unlocked():
+			return "Needs %s" % [_unlock_perk_name()]
 		return "%s" % [_format_number(_mycelium_data.upgrade_cost())]
 
 var manual_node_text: String:
@@ -57,7 +59,13 @@ var production_text_short: String:
 
 var can_buy_upgrade: bool:
 	get:
-		return _mycelium_data.can_afford_upgrade()
+		return _mycelium_data.can_buy_upgrade()
+
+## False while this tier still waits on its unlock perk — the panel stays
+## visible, but nothing on it can be bought.
+var is_unlocked: bool:
+	get:
+		return _mycelium_data.is_unlocked()
 
 ## Pluralised against the number actually being shown. This used to be a
 ## parameterless `is_multiple` reading the production *multiplier* rather than
@@ -106,7 +114,7 @@ var potency_cost_text: String:
 	get: return App.upgrade_system.cost(_potency_id).to_display() if App.upgrade_system.has_def(_potency_id) else "--"
 
 var potency_can_buy: bool:
-	get: return App.upgrade_system.can_buy(_potency_id, _player_data.nutrients)
+	get: return is_unlocked and App.upgrade_system.can_buy(_potency_id, _player_data.nutrients)
 
 # --- Synergy track ---
 var synergy_level_text: String:
@@ -127,7 +135,7 @@ var synergy_cost_text: String:
 	get: return App.upgrade_system.cost(_synergy_id).to_display() if App.upgrade_system.has_def(_synergy_id) else "--"
 
 var synergy_can_buy: bool:
-	get: return App.upgrade_system.can_buy(_synergy_id, _player_data.nutrients)
+	get: return is_unlocked and App.upgrade_system.can_buy(_synergy_id, _player_data.nutrients)
 
 # --- Lifecycle ---
 
@@ -159,9 +167,13 @@ func buy_upgrade() -> void:
 	# Model signals will trigger the notifications below.
 
 func buy_potency() -> bool:
+	if not is_unlocked:
+		return false
 	return App.upgrade_system.buy(_potency_id, _player_data)
 
 func buy_synergy() -> bool:
+	if not is_unlocked:
+		return false
 	return App.upgrade_system.buy(_synergy_id, _player_data)
 
 # --- Model -> notification plumbing ---
@@ -184,6 +196,10 @@ func _on_manual_nodes_changed(_manual_nodes: int) -> void:
 	_notify(PROP_CAN_BUY)
 
 func _on_upgrades_changed() -> void:
+	# Buying the unlock perk lands here too, so the buy panel has to re-read
+	# both its label and its enabled state.
+	_notify(PROP_BUY_TEXT)
+	_notify(PROP_CAN_BUY)
 	_notify(PROP_PRODUCTION_TEXT)
 	_notify(PROP_TOTAL_YIELD_TEXT)
 	_notify(PROP_POTENCY_LEVEL_TEXT)
@@ -201,6 +217,10 @@ func _on_upgrades_changed() -> void:
 
 func _format_number(value: BigNumber) -> String:
 	return value.to_display()
+
+func _unlock_perk_name() -> String:
+	var def := App.perk_def(_mycelium_data.node.unlock_perk_id)
+	return def.display_name if def != null else "a prestige perk"
 
 func _node_id_key() -> StringName:
 	return StringName(str(_mycelium_data.node.node_id))

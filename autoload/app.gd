@@ -88,7 +88,7 @@ func _ready() -> void:
 		biome_vms[def.key] = BiomeViewModel.new(def.key, def)
 
 	for node in nodes.mycelium_nodes:
-		var mycelium_data := MyceliumNodeData.new(player_data, node)
+		var mycelium_data := MyceliumNodeData.new(player_data, node, prestige_upgrade_system)
 		mycelium_node_data.append(mycelium_data)
 		mycelium_node_vms.append(MyceliumNodeViewModel.new(player_data, mycelium_data))
 		_track_manual_count(node)

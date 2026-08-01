@@ -63,7 +63,6 @@ effects = Array[ExtResource("5_effect_script")]([ExtResource("2_meadow")])
 script = ExtResource("1_script")
 key = &"bnt"
 label = "Bounty"
-angle_degrees = 200.0
 hue = 45.0
 default_effects = Array[ExtResource("5_effect_script")]([ExtResource("4_permafrost")])
 roots = Array[ExtResource("6_node_script")]([SubResource("node_1")])

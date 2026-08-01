@@ -53,6 +53,12 @@ var initial_cost: BigNumber:
 		_initial_cost_mantissa = value.mantissa
 		_initial_cost_exponent = value.exponent
 
+## Perk that has to be owned before this tier can be bought at all. Empty means
+## the tier is available from a fresh save (the first three). Mirrors BiomeDef
+## keeping its own unlock requirement as data on the resource — the perk itself
+## carries no effect, its purchased level *is* the unlock.
+@export var unlock_perk_id: StringName = &""
+
 @export var color: Color
 @export var level_font_color: Color
 @export var cost_increase_per_level: float = 1.5

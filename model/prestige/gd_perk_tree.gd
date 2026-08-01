@@ -14,14 +14,20 @@ const CANVAS_CENTER := 520.0
 const ROOT_RADIUS := 150.0
 const DEPTH_RADIUS_STEP := 103.0
 const SIBLING_SPREAD_DEG := 26.0
+const BRANCH_START_DEG := -90.0  ## first branch points straight up from the core
 
 static func build(branch_list: PerkBranchList) -> Array[PerkDef]:
 	var seen: Dictionary = {}  # StringName id -> true, across every branch
 	var perks: Array[PerkDef] = [_make_core(branch_list.core)]
 	seen[branch_list.core.id] = true
-	for branch in branch_list.branches:
+	# Branches fan out evenly, in list order — the spacing is derived rather
+	# than authored so adding or removing a branch can't leave the web lopsided
+	# or two arms overlapping.
+	var step := 360.0 / float(maxi(1, branch_list.branches.size()))
+	for i in branch_list.branches.size():
+		var branch: PerkBranchDef = branch_list.branches[i]
 		_place_children(branch, branch.roots, branch_list.core.id,
-			deg_to_rad(branch.angle_degrees), 0, seen, perks)
+			deg_to_rad(BRANCH_START_DEG + step * float(i)), 0, seen, perks)
 	return perks
 
 static func _make_core(core: PerkNodeDef) -> PerkDef:

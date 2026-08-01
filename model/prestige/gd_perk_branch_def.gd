@@ -1,12 +1,13 @@
 class_name PerkBranchDef
 extends Resource
-## MODEL — one arm of the mycelial web: its direction/colour plus the perks
-## that grow along it. Shape is free-form — each node nests its own children,
-## and PerkTree lays the branch out from that nesting.
+## MODEL — one arm of the mycelial web: its colour plus the perks that grow
+## along it. Shape is free-form — each node nests its own children, and PerkTree
+## lays the branch out from that nesting. Direction isn't authored either: the
+## branches are spread evenly around the core in the order PerkBranchList lists
+## them.
 
 @export var key: StringName
 @export var label: String
-@export var angle_degrees: float
 @export var hue: float
 
 ## Used by any node that declares no effects of its own — e.g. every Substrate

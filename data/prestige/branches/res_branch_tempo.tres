@@ -59,7 +59,6 @@ description = "Tempo node — kept through every sporation."
 script = ExtResource("1_script")
 key = &"tmp"
 label = "Tempo"
-angle_degrees = 100.0
 hue = 190.0
 default_effects = Array[ExtResource("3_effect_script")]([ExtResource("2_effect")])
 roots = Array[ExtResource("4_node_script")]([SubResource("node_1")])

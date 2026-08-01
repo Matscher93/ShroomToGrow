@@ -59,7 +59,6 @@ description = "Fruiting node — kept through every sporation."
 script = ExtResource("1_script")
 key = &"bio"
 label = "Fruiting"
-angle_degrees = 30.0
 hue = 292.0
 default_effects = Array[ExtResource("3_effect_script")]([ExtResource("2_effect")])
 roots = Array[ExtResource("4_node_script")]([SubResource("node_1")])
