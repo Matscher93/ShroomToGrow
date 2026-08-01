@@ -1,0 +1,1802 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Balance editor</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --panel: #f4f5f7;
+    --line: #d8dbe0;
+    --text: #1b1d21;
+    --muted: #6a707a;
+    --accent: #2f7d4f;
+    --dirty: #b8860b;
+    --danger: #b23b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181c;
+      --panel: #1e2126;
+      --line: #333840;
+      --text: #e6e8eb;
+      --muted: #99a0aa;
+      --accent: #5fd08a;
+      --dirty: #e0b341;
+      --danger: #e07070;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    font: 13px/1.4 ui-sans-serif, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  header h1 { font-size: 14px; margin: 0 8px 0 0; font-weight: 600; }
+  .grow { flex: 1; }
+  button {
+    font: inherit;
+    padding: 5px 10px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  button.danger:hover { border-color: var(--danger); color: var(--danger); }
+  .stopped {
+    display: grid;
+    place-items: center;
+    height: 100vh;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  label.depth {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font: 11px ui-monospace, monospace;
+    color: var(--muted);
+  }
+  label.depth select {
+    font: inherit;
+    padding: 4px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+  }
+  input[type=search] {
+    font: inherit;
+    padding: 5px 8px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--text);
+    width: 220px;
+  }
+  main { display: grid; grid-template-columns: 240px 1fr; min-height: 0; }
+  button.view.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  #graph-view { display: grid; grid-template-columns: 1fr 320px; min-height: 0; }
+  #graph-view[hidden] { display: none; }
+  .graph-canvas { overflow: auto; min-height: 0; }
+  #graph { display: block; }
+  #graph .node rect {
+    fill: var(--panel);
+    stroke: var(--line);
+    stroke-width: 1.5;
+    rx: 6;
+    cursor: pointer;
+  }
+  #graph .node:hover rect { stroke: var(--accent); }
+  #graph .node.focus rect { stroke: var(--accent); stroke-width: 2.5; }
+  #graph .node.missing rect { stroke: var(--danger); stroke-dasharray: 4 3; }
+  /* a .tscn or .gdshader target is a real file, just not a row in any table */
+  #graph .node.asset rect { stroke: var(--line); stroke-dasharray: 3 3; }
+  #graph .node.asset .label { fill: var(--muted); }
+  #graph .node .label { fill: var(--text); font: 600 12px ui-sans-serif, system-ui, sans-serif; }
+  #graph .node .sub { fill: var(--muted); font: 10px ui-monospace, monospace; }
+  #graph .edge { fill: none; stroke: var(--muted); stroke-width: 1.4; cursor: pointer; }
+  #graph .edge:hover { stroke: var(--danger); stroke-width: 2.5; }
+  #graph .edge-label { fill: var(--muted); font: 10px ui-monospace, monospace; pointer-events: none; }
+  /* a marker does not inherit the referencing path's colour, so state it here */
+  #graph marker path { fill: var(--muted); }
+  #deps { border-left: 1px solid var(--line); background: var(--panel); overflow-y: auto; padding: 10px; }
+  #deps h2 { font-size: 13px; margin: 0 0 2px; }
+  #deps .path { font: 10px ui-monospace, monospace; color: var(--muted); word-break: break-all; }
+  #deps h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    margin: 14px 0 4px;
+  }
+  #deps .col { font: 11px ui-monospace, monospace; color: var(--muted); margin-top: 8px; }
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 3px 4px 3px 7px;
+    margin-top: 3px;
+    font-size: 12px;
+  }
+  .chip span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+  .chip.missing { border-color: var(--danger); color: var(--danger); }
+  .chip.asset { color: var(--muted); font-style: italic; }
+  .chip button {
+    flex: none;
+    width: auto;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0 3px;
+  }
+  .chip button:hover { color: var(--danger); }
+  .actions { display: flex; gap: 6px; margin-top: 6px; }
+  .create { display: flex; gap: 5px; margin-top: 5px; }
+  .create input { flex: 1; min-width: 0; font: inherit; font-family: ui-monospace, monospace;
+    padding: 4px 6px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--line); border-radius: 5px; }
+  .create button { flex: none; }
+  #deps select { font: inherit; width: 100%; margin-top: 3px; padding: 4px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 5px; }
+  .field { margin-top: 8px; }
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font: 11px ui-monospace, monospace;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    font: inherit;
+    font-family: ui-monospace, monospace;
+    padding: 4px 6px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    resize: vertical;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .field.changed input, .field.changed textarea, .field.changed select { border-color: var(--dirty); }
+  /* the table's revert button is absolutely placed; in a field it sits in the label */
+  .field .revert { position: static; transform: none; opacity: 1; background: none; width: auto; }
+  .field .color-cell { border: 1px solid var(--line); border-radius: 5px; padding-left: 6px; }
+  .field .color-cell input { border: 0; border-radius: 0; }
+  /* Scoped to the file list: #deps is an <aside> too, and a bare `aside button`
+     rule stretched every chip's ✕ to the full width, leaving no room for the
+     name beside it. */
+  #files {
+    border-right: 1px solid var(--line);
+    background: var(--panel);
+    overflow-y: auto;
+    padding: 6px;
+  }
+  #files button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: none;
+    padding: 6px 8px;
+    border-radius: 5px;
+  }
+  #files button.active { background: var(--bg); font-weight: 600; }
+  #files button .dot { color: var(--dirty); font-size: 16px; line-height: 1; }
+  .table-wrap { overflow: auto; min-height: 0; }
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: ui-monospace, monospace;
+    table-layout: fixed;   /* column widths come from the th, so they are draggable */
+  }
+  th, td {
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 0;
+    overflow: hidden;
+  }
+  td { position: relative; }
+  .revert {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+    border: 0;
+    border-radius: 4px;
+    background: var(--panel);
+    color: var(--dirty);
+    font: 12px/1 ui-sans-serif, system-ui, sans-serif;
+    padding: 3px 4px;
+    cursor: pointer;
+    opacity: .5;
+  }
+  td:hover .revert, .revert:hover, .revert:focus-visible { opacity: 1; }
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--panel);
+    padding: 6px 8px;
+    text-align: left;
+    white-space: nowrap;
+    font-size: 12px;
+    text-overflow: ellipsis;
+  }
+  th .resizer {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    width: 7px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 5;
+    touch-action: none;
+  }
+  th .resizer:hover, th .resizer.dragging {
+    background: var(--accent);
+    opacity: .55;
+  }
+  td:first-child, th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--panel);
+  }
+  th:first-child { z-index: 4; }
+  td:first-child {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 4px 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    direction: rtl;
+    text-align: left;
+  }
+  td input {
+    font: inherit;
+    font-family: ui-monospace, monospace;
+    border: 0;
+    background: none;
+    color: inherit;
+    padding: 4px 8px;
+    width: 100%;
+    min-width: 0;   /* let a column be dragged narrower than its content */
+  }
+  td input:focus, td select:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+  td select {
+    font: inherit;
+    font-family: ui-monospace, monospace;
+    border: 0;
+    background: none;
+    color: inherit;
+    padding: 3px 6px;
+    width: 100%;
+  }
+  td input[type=number] { text-align: right; }
+  .color-cell { display: flex; align-items: center; gap: 6px; padding-left: 6px; }
+  .color-cell input:not(.picker) { padding-left: 0; }
+  .swatch {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    cursor: pointer;
+    /* the colour sits on a checkerboard, so alpha is visible rather than implied */
+    background:
+      linear-gradient(var(--swatch, transparent), var(--swatch, transparent)),
+      conic-gradient(#0000 0 25%, #8886 0 50%, #0000 0 75%, #8886 0) 0 0 / 8px 8px;
+  }
+  .swatch:hover { border-color: var(--accent); }
+  .swatch.invalid { border-style: dashed; }
+  .picker { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
+  td.changed { background: color-mix(in srgb, var(--dirty) 18%, transparent); }
+  tr:hover td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  footer {
+    border-top: 1px solid var(--line);
+    background: var(--panel);
+    padding: 6px 12px;
+    color: var(--muted);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  #log {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    max-height: 22vh;
+    overflow: auto;
+    flex: 1;
+    margin: 0;
+  }
+  #clear-log {
+    flex: none;
+    align-self: flex-start;
+    padding: 2px 7px;
+    color: var(--muted);
+    line-height: 1.2;
+  }
+  #clear-log:hover { color: var(--text); }
+  .hint { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Balance editor</h1>
+  <button id="view-table" class="view active">Table</button>
+  <button id="view-graph" class="view">Graph</button>
+  <button id="save" class="primary" disabled>Save file</button>
+  <button id="save-all" disabled>Save all</button>
+  <button id="revert" disabled title="Drop every unsaved edit in this file">Revert file</button>
+  <span class="grow"></span>
+  <input type="search" id="filter" placeholder="filter rows…">
+  <button id="reset-widths" title="Fit every column to its contents again">Reset widths</button>
+  <label class="depth" title="How many reference hops to show either side of the focused row">
+    depth
+    <select id="depth">
+      <option value="1">1</option>
+      <option value="2" selected>2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+    </select>
+  </label>
+  <button id="quit" class="danger" title="Stop the server and close this tab">Quit</button>
+  <button id="reload" class="danger" title="Re-read every .tres from disk, discarding unsaved edits">Reload from .tres</button>
+</header>
+
+<main>
+  <aside id="files"></aside>
+  <div class="table-wrap"><table id="grid"></table></div>
+  <div id="graph-view" hidden>
+    <div class="graph-canvas"><svg id="graph"></svg></div>
+    <aside id="deps"></aside>
+  </div>
+</main>
+
+<footer>
+  <span id="status" class="hint">loading…</span>
+  <span class="hint">Esc resets the focused cell · ↺ resets a cell or row</span>
+  <pre id="log"></pre>
+  <button id="clear-log" title="Clear this output" hidden>✕</button>
+</footer>
+
+<script>
+const state = {
+  files: [],
+  current: null,
+  edits: new Map(),   // file name -> { header, rows }
+  loaded: new Map(),  // file name -> pristine rows, for the changed-cell highlight
+  widths: {},         // table name -> { column: px }, only the ones dragged by hand
+  view: "table",
+  focus: null,        // res_path the graph is centred on
+  depth: 2,           // hops walked either side of the focus
+  edges: [],
+};
+
+const WIDTHS_KEY = "balance-editor-widths";
+const MIN_WIDTH = 48;
+
+try {
+  state.widths = JSON.parse(localStorage.getItem(WIDTHS_KEY) || "{}");
+} catch (error) {
+  state.widths = {};
+}
+
+function saveWidths() {
+  try {
+    localStorage.setItem(WIDTHS_KEY, JSON.stringify(state.widths));
+  } catch (error) { /* private mode — widths just won't survive the reload */ }
+}
+
+/** Width a column gets before anyone drags it: its widest cell, within reason. */
+function autoWidth(header, rows, index, extra = 0) {
+  let longest = header[index].length;
+  for (const row of rows) longest = Math.max(longest, row[index].length);
+  return Math.round(Math.min(420, Math.max(90, longest * 7.3 + 22 + extra)));
+}
+
+function columnWidths(file, header, rows) {
+  const stored = state.widths[file] || {};
+  const colors = colorColumns(header, rows);   // swatch + gap needs room of its own
+  return header.map((column, index) =>
+    stored[column] ?? autoWidth(header, rows, index, colors.has(index) ? 28 : 0));
+}
+
+function applyWidth(table, index, width) {
+  const th = table.rows[0].cells[index];
+  th.style.width = `${width}px`;
+  table.style.width = `${[...table.rows[0].cells]
+    .reduce((total, cell) => total + parseFloat(cell.style.width), 0)}px`;
+}
+
+function makeResizer(table, index, column) {
+  const handle = document.createElement("div");
+  handle.className = "resizer";
+  handle.title = "drag to resize · double-click to fit contents";
+
+  handle.onpointerdown = (event) => {
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    handle.classList.add("dragging");
+    const startX = event.clientX;
+    const startWidth = table.rows[0].cells[index].getBoundingClientRect().width;
+
+    const onMove = (moveEvent) => {
+      const width = Math.max(MIN_WIDTH, Math.round(startWidth + moveEvent.clientX - startX));
+      (state.widths[state.current] ||= {})[column] = width;
+      applyWidth(table, index, width);
+    };
+    const onUp = () => {
+      handle.classList.remove("dragging");
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onUp);
+      saveWidths();
+    };
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
+  };
+
+  handle.ondblclick = (event) => {
+    event.preventDefault();
+    const data = state.edits.get(state.current) || state.loaded.get(state.current);
+    delete (state.widths[state.current] || {})[column];
+    saveWidths();
+    applyWidth(table, index, autoWidth(data.header, data.rows, index));
+  };
+
+  return handle;
+}
+
+const el = {
+  files: document.getElementById("files"),
+  grid: document.getElementById("grid"),
+  filter: document.getElementById("filter"),
+  status: document.getElementById("status"),
+  log: document.getElementById("log"),
+  save: document.getElementById("save"),
+  saveAll: document.getElementById("save-all"),
+  revert: document.getElementById("revert"),
+  clearLog: document.getElementById("clear-log"),
+  quit: document.getElementById("quit"),
+  viewTable: document.getElementById("view-table"),
+  viewGraph: document.getElementById("view-graph"),
+  graphView: document.getElementById("graph-view"),
+  graph: document.getElementById("graph"),
+  depth: document.getElementById("depth"),
+  deps: document.getElementById("deps"),
+};
+
+const isDirty = (name) => state.edits.has(name);
+const anyDirty = () => state.edits.size > 0;
+
+function log(text, isError) {
+  el.log.textContent = text || "";
+  el.log.style.color = isError ? "var(--danger)" : "";
+  el.log.scrollTop = el.log.scrollHeight;   // godot output is long; show the verdict line
+  el.clearLog.hidden = !text;
+}
+
+function setStatus(text) { el.status.textContent = text; }
+
+async function api(path, options) {
+  let response;
+  try {
+    response = await fetch(path, options);
+  } catch (error) {
+    // fetch() rejects with a bare "NetworkError" for anything below HTTP, so
+    // spell out the two ways this page ends up unable to reach its own server.
+    throw new Error(
+      location.protocol === "file:"
+        ? `This page was opened as a file (${location.href}), so ${path} is not reachable. `
+          + "Open http://127.0.0.1:8765 instead."
+        : `Cannot reach ${new URL(path, location.href).href} — is server.py still running? (${error.message})`
+    );
+  }
+  const payload = await response.json();
+  if (payload.error) throw new Error(payload.error);
+  return payload;
+}
+
+function renderFileList() {
+  el.files.replaceChildren(...state.files.map((name) => {
+    const button = document.createElement("button");
+    button.className = name === state.current ? "active" : "";
+    button.append(name);
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.textContent = isDirty(name) ? "●" : "";
+    button.append(dot);
+    button.onclick = () => openFile(name);
+    return button;
+  }));
+  el.save.disabled = !state.current || !isDirty(state.current);
+  el.revert.disabled = el.save.disabled;
+  el.saveAll.disabled = !anyDirty();
+}
+
+/** Column metadata as Godot reported it: type, and enum options in declaration
+ * order. Older snapshots without it fall back to plain text. */
+function columnsOf(file) {
+  const data = dataOf(file);
+  return data.columns || data.header.map((name) => ({ name, type: "text" }));
+}
+
+const metaOf = (file, columnIndex) => columnsOf(file)[columnIndex] || { type: "text" };
+
+/** The editor a column's declared type deserves. Every control answers to
+ * `.value` and emits `input`, so the dirty tracking below stays type-blind. */
+function makeControl(meta, value, allowMultiline) {
+  if (meta.type === "enum" || meta.type === "bool") {
+    const select = document.createElement("select");
+    const options = meta.type === "bool" ? ["false", "true"] : (meta.options || []);
+    for (const option of options) select.append(new Option(option, option));
+    // Never silently rewrite a value the property does not offer — show it.
+    if (!options.includes(value)) select.append(new Option(`${value} (unknown)`, value));
+    select.value = value;
+    return select;
+  }
+  if (meta.type === "multiline" && allowMultiline) {
+    const area = document.createElement("textarea");
+    area.rows = 3;
+    area.value = value;
+    return area;
+  }
+  const input = document.createElement("input");
+  if (meta.type === "int" || meta.type === "float") {
+    input.type = "number";
+    input.step = meta.type === "int" ? "1" : "any";
+    guardNumeric(input, value);
+  }
+  input.value = value;
+  return input;
+}
+
+/** A number field left empty would be written as 0 — a silent balance change.
+ * Restore the last good value instead, when the field is left. */
+function guardNumeric(input, initial) {
+  let lastGood = initial;
+  input.addEventListener("input", () => {
+    if (input.value !== "" && !Number.isNaN(Number(input.value))) lastGood = input.value;
+  });
+  input.addEventListener("change", () => {
+    if (input.value !== "" && !Number.isNaN(Number(input.value))) return;
+    input.value = lastGood;
+    input.dispatchEvent(new Event("input"));
+    log(`empty number ignored — kept ${lastGood}`);
+  });
+}
+
+/** Godot writes colours as #rrggbbaa (Color.to_html), and reads #rrggbb too. */
+const COLOR_RE = /^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/i;
+
+/** A column counts as colour only if every value it has is one — never a stray hex-looking id. */
+function colorColumns(header, rows) {
+  const columns = new Set();
+  header.forEach((column, index) => {
+    if (index === 0) return;
+    const values = rows.map((row) => row[index]).filter((value) => value !== "");
+    if (values.length && values.every((value) => COLOR_RE.test(value))) columns.add(index);
+  });
+  return columns;
+}
+
+/** Swatch + native picker in front of the text field; the text stays the truth. */
+function decorateColor(input) {
+  const wrap = document.createElement("div");
+  wrap.className = "color-cell";
+  const swatch = document.createElement("button");
+  swatch.type = "button";
+  swatch.className = "swatch";
+  swatch.title = "pick a colour";
+  const picker = document.createElement("input");
+  picker.type = "color";
+  picker.className = "picker";
+  picker.tabIndex = -1;
+
+  const sync = () => {
+    const value = input.value.trim();
+    const valid = COLOR_RE.test(value);
+    swatch.style.setProperty("--swatch", valid ? value : "transparent");
+    swatch.classList.toggle("invalid", !valid);
+    if (valid) picker.value = value.slice(0, 7);
+  };
+
+  swatch.onclick = () => picker.click();
+  picker.oninput = () => {
+    const current = input.value.trim();
+    const alpha = current.length === 9 ? current.slice(7) : "";   // keep the alpha byte
+    input.value = picker.value + alpha;
+    input.dispatchEvent(new Event("input"));   // reuse the normal edit path
+  };
+  input.addEventListener("input", sync);
+  sync();
+
+  wrap.append(swatch, input, picker);
+  return wrap;
+}
+
+/** Columns with few distinct values get a datalist, which is how enums become pickable. */
+function buildSuggestions(header, rows, skip) {
+  const lists = new Map();
+  header.forEach((column, index) => {
+    if (index === 0 || skip.has(index)) return;   // colour columns have the picker instead
+    const values = new Set(rows.map((row) => row[index]).filter((v) => v !== ""));
+    if (values.size === 0 || values.size > 12) return;
+    const list = document.createElement("datalist");
+    list.id = `list-${index}`;
+    list.append(...[...values].sort().map((value) => {
+      const option = document.createElement("option");
+      option.value = value;
+      return option;
+    }));
+    lists.set(index, list);
+  });
+  return lists;
+}
+
+function renderGrid() {
+  const data = state.edits.get(state.current) || state.loaded.get(state.current);
+  if (!data) { el.grid.replaceChildren(); return; }
+  const pristine = state.loaded.get(state.current).rows;
+  const needle = el.filter.value.trim().toLowerCase();
+
+  const widths = columnWidths(state.current, data.header, data.rows);
+  const head = document.createElement("tr");
+  head.append(...data.header.map((column, index) => {
+    const th = document.createElement("th");
+    th.textContent = column;
+    th.title = column;
+    th.style.width = `${widths[index]}px`;
+    th.append(makeResizer(el.grid, index, column));
+    return th;
+  }));
+
+  const colors = colorColumns(data.header, data.rows);
+  const suggestions = buildSuggestions(data.header, data.rows, colors);
+  const body = data.rows.map((row, rowIndex) => {
+    if (needle && !row.some((cell) => cell.toLowerCase().includes(needle))) return null;
+    const tr = document.createElement("tr");
+    const inputs = new Map();
+    row.forEach((cell, columnIndex) => {
+      const td = document.createElement("td");
+      if (columnIndex === 0) {
+        td.textContent = cell;                       // res_path is the key, not editable
+        td.title = `${cell}\n(click to show this row's dependencies)`;
+        td.style.cursor = "pointer";
+        td.onclick = async () => {
+          try {
+            await loadAllFiles();
+          } catch (error) { log(String(error), true); return; }
+          buildEdges();
+          state.focus = cell;
+          setView("graph");
+        };
+      } else {
+        const meta = metaOf(state.current, columnIndex);
+        const input = makeControl(meta, cell, false);
+        const list = meta.type === "text" ? suggestions.get(columnIndex) : null;
+        if (list) input.setAttribute("list", list.id);
+        input.oninput = () => editCell(rowIndex, columnIndex, input.value, td, input);
+        input.onkeydown = (event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          revertCell(td, rowIndex, columnIndex, input);
+        };
+        inputs.set(columnIndex, [td, input]);
+        td.append(meta.type === "color" ? decorateColor(input) : input);
+      }
+      tr.append(td);
+    });
+    // After the row exists, so the marker can reach its sibling cells.
+    inputs.forEach(([td, input], columnIndex) => {
+      if (input.value !== pristine[rowIndex][columnIndex]) markCell(td, rowIndex, columnIndex, input);
+    });
+    return tr;
+  }).filter(Boolean);
+
+  el.grid.replaceChildren(head, ...body, ...suggestions.values());
+  el.grid.style.width = `${widths.reduce((total, width) => total + width, 0)}px`;
+  const shown = body.length;
+  setStatus(`${state.current} — ${shown}/${data.rows.length} rows${isDirty(state.current) ? " · unsaved" : ""}`);
+}
+
+/* ---------------------------------------------------------------- references
+ * Three kinds live in this data:
+ *   path  — a cell holding "res://…", alone or "|"-separated (effects, nodes)
+ *   dict  — a JSON cell whose values are "res://…" (Screens.screens)
+ *   key   — a cell holding another row's id/key, not its path
+ * Only the key kind cannot be detected from the value, so it is declared here.
+ * Add a row to this table to teach the graph a new key-based reference.
+ */
+const KEY_REFS = [
+  { file: "BiomeDef", column: "upgrade_ids", target: "UpgradeDef",
+    targetColumn: "id", list: true, creates: "UpgradeDef", createsFile: true },
+  // `key` names a biome only when the source measures one; for Node Count it is
+  // a synthetic stat key ("ManualNode3") with no row behind it.
+  { file: "ScalingSourceDef", column: "key", target: "BiomeDef", targetColumn: "key",
+    when: { column: "kind", equals: "Biome Size" } },
+  // `target` is polymorphic: a biome key for biome_points effects, a mycelium
+  // node tier for everything else, and empty when the effect is global.
+  { file: "UpgradeEffectDef", column: "target", target: "BiomeDef", targetColumn: "key",
+    when: { column: "stat", equals: "biome_points" } },
+  { file: "UpgradeEffectDef", column: "target", target: "MyceliumNode",
+    targetColumn: "node_id" },
+];
+
+/** Extra rules for path columns. Detection is automatic; these only narrow what
+ * may be picked. `sameFile` keeps a perk inside its own branch .tres, `acyclic`
+ * refuses a target that already reaches this row — a node cannot contain one of
+ * its own ancestors. */
+const PATH_REFS = [
+  { file: "PerkNodeDef", column: "children", sameFile: true, acyclic: true, list: true,
+    creates: "PerkNodeDef" },
+  { file: "PerkBranchDef", column: "roots", sameFile: true, list: true,
+    creates: "PerkNodeDef" },
+  // Arrays that happen to hold one entry today: a snapshot cell cannot say whether it
+  // is a list, and guessing from the absence of a "|" would silently replace the
+  // single entry instead of adding to it.
+  { file: "PerkNodeDef", column: "effects", list: true,
+    creates: "UpgradeEffectDef", createsFile: true },
+  { file: "PerkBranchDef", column: "default_effects", list: true,
+    creates: "UpgradeEffectDef", createsFile: true },
+  { file: "UpgradeDef", column: "effects", list: true,
+    creates: "UpgradeEffectDef", createsFile: true },
+  { file: "UpgradeEffectDef", column: "dependency",
+    creates: "ScalingSourceDef", createsFile: true },
+  { file: "BiomeList", column: "biomes", list: true,
+    creates: "BiomeDef", createsFile: true },
+  { file: "MyceliumNodes", column: "mycelium_nodes", list: true,
+    creates: "MyceliumNode", createsFile: true },
+  { file: "PerkBranchList", column: "branches", list: true,
+    creates: "PerkBranchDef", createsFile: true },
+];
+
+const keyRefsFor = (file, column) =>
+  KEY_REFS.filter((ref) => ref.file === file && ref.column === column);
+
+/** The rule that applies to one row. Several rules can share a column when its
+ * meaning depends on a sibling column, so guarded ones are tried in order and
+ * an unguarded rule acts as the fallback. Without a row, answers "any rule". */
+function keyRefFor(file, column, header, row) {
+  const rules = keyRefsFor(file, column);
+  if (!header || !row) return rules[0];
+  return rules.find((rule) => !rule.when
+    || row[header.indexOf(rule.when.column)] === rule.when.equals) || null;
+}
+
+const pathRefFor = (file, column) =>
+  PATH_REFS.find((ref) => ref.file === file && ref.column === column);
+
+/** The rows as they currently stand: unsaved edits if any, else what is on disk. */
+const dataOf = (file) => state.edits.get(file) || state.loaded.get(file);
+const fileOfPath = (path) => path.split("::")[0];
+
+function rowIndexOf(path) {
+  for (const file of state.files) {
+    const data = state.loaded.has(file) ? dataOf(file) : null;
+    if (!data) continue;
+    const index = data.rows.findIndex((row) => row[0] === path);
+    if (index !== -1) return { file, rowIndex: index, header: data.header, row: data.rows[index] };
+  }
+  return null;
+}
+
+/** A res:// target with no row: an asset (scene, shader, texture) rather than a
+ * dangling reference. Only a missing .tres is actually broken. */
+const isAsset = (path) => path.startsWith("res://") && !path.endsWith(".tres");
+
+/** Prefer a human name over the file name; never returns an empty string, since
+ * the result is shown to the user as the name of a thing. Accepts a row entry or
+ * a bare path, so a target in a table that is not loaded still reads sensibly. */
+function labelOf(entryOrPath) {
+  const entry = typeof entryOrPath === "string" ? rowIndexOf(entryOrPath) : entryOrPath;
+  if (!entry) {
+    const path = typeof entryOrPath === "string" ? entryOrPath : "";
+    return path ? path.split("/").pop() : "(unnamed)";
+  }
+  for (const column of ["display_name", "label", "name", "currency_name", "screen_name",
+                        "key", "id"]) {
+    const index = entry.header.indexOf(column);
+    if (index > 0 && entry.row[index]) return entry.row[index];
+  }
+  return entry.row[0].split("/").pop() || "(unnamed)";
+}
+
+function resolveKeyRef(ref, value, fromPath) {
+  const data = state.loaded.has(ref.target) ? dataOf(ref.target) : null;
+  if (!data) return null;
+  const column = data.header.indexOf(ref.targetColumn);
+  if (column === -1) return null;
+  const scope = ref.sameFile ? fileOfPath(fromPath) : null;
+  const match = data.rows.find((row) =>
+    row[column] === value && (!scope || fileOfPath(row[0]) === scope));
+  return match ? match[0] : null;
+}
+
+/** Every reference leaving one row, with enough detail to edit it back out. */
+function edgesFrom(file, rowIndex) {
+  const data = dataOf(file);
+  const row = data.rows[rowIndex];
+  const edges = [];
+
+  data.header.forEach((column, columnIndex) => {
+    if (columnIndex === 0) return;
+    const raw = row[columnIndex];
+    if (!raw) return;
+    const base = { file, rowIndex, columnIndex, column, from: row[0] };
+
+    const keyRef = keyRefFor(file, column, data.header, row);
+    if (keyRef) {
+      const parts = keyRef.list ? raw.split("|").filter(Boolean) : [raw];
+      parts.forEach((part, partIndex) => {
+        edges.push({ ...base, kind: "key", list: keyRef.list, part, partIndex,
+          to: resolveKeyRef(keyRef, part, row[0]) });
+      });
+      return;
+    }
+
+    if (raw.startsWith("{")) {
+      let dict;
+      try { dict = JSON.parse(raw); } catch (error) { return; }
+      for (const [dictKey, value] of Object.entries(dict)) {
+        if (typeof value === "string" && value.startsWith("res://")) {
+          edges.push({ ...base, kind: "dict", dictKey, part: value, to: value });
+        }
+      }
+      return;
+    }
+
+    if (raw.startsWith("res://")) {
+      const parts = raw.split("|").filter(Boolean);
+      parts.forEach((part, partIndex) => {
+        edges.push({ ...base, kind: "path", list: raw.includes("|"), part, partIndex,
+          to: rowIndexOf(part) ? part : null });
+      });
+    }
+  });
+  return edges;
+}
+
+function buildEdges() {
+  const all = [];
+  for (const file of state.files) {
+    if (!state.loaded.has(file)) continue;
+    dataOf(file).rows.forEach((row, rowIndex) => all.push(...edgesFrom(file, rowIndex)));
+  }
+  state.edges = all;
+  return all;
+}
+
+/* ------------------------------------------------------------ editing refs */
+
+function applyRef(edge, replacement) {
+  const data = dataOf(edge.file);
+  const raw = data.rows[edge.rowIndex][edge.columnIndex];
+  let next;
+  if (edge.kind === "dict") {
+    const dict = JSON.parse(raw);
+    if (replacement === null) delete dict[edge.dictKey];
+    else dict[edge.dictKey] = replacement;
+    next = JSON.stringify(dict);
+  } else if (edge.list) {
+    const parts = raw.split("|").filter(Boolean);
+    if (replacement === null) parts.splice(edge.partIndex, 1);
+    else parts[edge.partIndex] = replacement;
+    next = parts.join("|");
+  } else {
+    next = replacement === null ? "" : replacement;
+  }
+  writeCell(edge.file, edge.rowIndex, edge.columnIndex, next);
+  renderFileList();
+  renderGraph();
+}
+
+function addRef(file, rowIndex, columnIndex, value, list) {
+  const raw = dataOf(file).rows[rowIndex][columnIndex];
+  writeCell(file, rowIndex, columnIndex, list && raw ? `${raw}|${value}` : value);
+  renderFileList();
+  renderGraph();
+}
+
+const savedRows = () => state.loaded.get(state.current).rows;
+
+function fileHasChanges(name) {
+  const edits = state.edits.get(name);
+  if (!edits) return false;
+  const saved = state.loaded.get(name).rows;
+  return edits.rows.some((row, r) => row.some((value, c) => value !== saved[r][c]));
+}
+
+/** Adds or drops the per-cell and per-row revert buttons for one cell's state. */
+function markCell(td, rowIndex, columnIndex, input) {
+  const changed = input.value !== savedRows()[rowIndex][columnIndex];
+  td.classList.toggle("changed", changed);
+
+  let button = td.querySelector(".revert");
+  if (changed && !button) {
+    td.append(makeRevert("reset this cell", () => revertCell(td, rowIndex, columnIndex, input)));
+  } else if (!changed && button) {
+    button.remove();
+  }
+
+  const tr = td.parentElement;
+  const rowChanged = [...tr.cells].slice(1).some((cell) => cell.classList.contains("changed"));
+  const first = tr.cells[0];
+  button = first.querySelector(".revert");
+  if (rowChanged && !button) {
+    first.append(makeRevert("reset this row", () => revertRow(tr, rowIndex)));
+  } else if (!rowChanged && button) {
+    button.remove();
+  }
+}
+
+function makeRevert(title, onClick) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "revert";
+  button.title = title;
+  button.textContent = "↺";
+  button.onclick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();   // the res_path cell below it opens the graph
+    onClick();
+  };
+  return button;
+}
+
+/** Reverting goes through the input's own event, so the swatch and dirty state follow. */
+function revertCell(td, rowIndex, columnIndex, input) {
+  input.value = savedRows()[rowIndex][columnIndex];
+  input.dispatchEvent(new Event("input"));
+}
+
+function revertRow(tr, rowIndex) {
+  [...tr.cells].slice(1).forEach((cell, offset) => {
+    const input = cell.querySelector("input:not(.picker), select, textarea");
+    if (input) revertCell(cell, rowIndex, offset + 1, input);
+  });
+}
+
+function revertFile() {
+  if (!state.current || !isDirty(state.current)) return;
+  state.edits.delete(state.current);
+  renderFileList();
+  renderGrid();
+  log(`reverted unsaved edits in ${state.current}`);
+}
+
+/** The one place a value changes, whether it came from the table or the graph. */
+function writeCell(file, rowIndex, columnIndex, value) {
+  if (!state.edits.has(file)) {
+    const pristine = state.loaded.get(file);
+    state.edits.set(file, {
+      header: [...pristine.header],
+      rows: pristine.rows.map((row) => [...row]),
+    });
+  }
+  state.edits.get(file).rows[rowIndex][columnIndex] = value;
+  if (!fileHasChanges(file)) state.edits.delete(file);
+}
+
+function editCell(rowIndex, columnIndex, value, td, input) {
+  writeCell(state.current, rowIndex, columnIndex, value);
+  markCell(td, rowIndex, columnIndex, input);
+  renderFileList();
+  setStatus(`${state.current}${isDirty(state.current) ? " — unsaved" : " — no changes"}`);
+}
+
+/* ------------------------------------------------------------ graph drawing */
+
+const BOX = { w: 210, h: 34, gapY: 12, gapX: 110, padX: 16, padY: 16 };
+
+/** What a node is drawn as: the resolved row when the reference resolves, and
+ * only otherwise the raw text. A key-ref's `part` is an id ("SymbioticBloom"),
+ * not a path, so keying the layout on it would draw every one as a missing row. */
+const targetKey = (edge) => edge.to || edge.part;
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+const svgEl = (tag, attrs = {}) => {
+  const node = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+  return node;
+};
+
+/** Columns: what points at the focus, the focus, what it points at, and their targets. */
+/** Walks `depth` hops upstream and downstream from the focus and lays the
+ * result out in columns, one per hop. Column 0 is the focus, negative levels
+ * are the rows pointing at it, positive ones the rows it points at. */
+function graphLayout(focus, depth) {
+  const all = state.edges;
+  const level = new Map([[focus, 0]]);
+  const order = [focus];
+
+  const walk = (direction) => {
+    let frontier = [focus];
+    for (let hop = 1; hop <= depth; hop++) {
+      const next = [];
+      for (const path of frontier) {
+        const step = direction > 0
+          ? all.filter((edge) => edge.from === path).map(targetKey)
+          : all.filter((edge) => targetKey(edge) === path).map((edge) => edge.from);
+        for (const neighbour of step) {
+          if (level.has(neighbour)) continue;
+          level.set(neighbour, direction * hop);
+          order.push(neighbour);
+          next.push(neighbour);
+        }
+      }
+      frontier = next;
+    }
+  };
+  walk(1);
+  walk(-1);
+
+  // Drawn last, from the finished node set, so links *between* two nodes on the
+  // same side show up too instead of only the ones the walk happened to follow.
+  const shown = all.filter((edge) => level.has(edge.from) && level.has(targetKey(edge)));
+
+  const levels = [...new Set(level.values())].sort((a, b) => a - b);
+  const columns = levels.map((value) => order.filter((path) => level.get(path) === value));
+
+  const positions = new Map();
+  const tallest = Math.max(...columns.map((column) => column.length), 1);
+  const full = tallest * BOX.h + (tallest - 1) * BOX.gapY;
+  columns.forEach((column, columnIndex) => {
+    const height = column.length * BOX.h + (column.length - 1) * BOX.gapY;
+    column.forEach((path, index) => {
+      positions.set(path, {
+        x: BOX.padX + columnIndex * (BOX.w + BOX.gapX),
+        y: BOX.padY + (full - height) / 2 + index * (BOX.h + BOX.gapY),
+      });
+    });
+  });
+
+  return {
+    positions,
+    edges: shown,
+    width: BOX.padX * 2 + columns.length * BOX.w + (columns.length - 1) * BOX.gapX,
+    height: BOX.padY * 2 + full,
+  };
+}
+
+function renderGraph() {
+  if (state.view !== "graph") return;
+  buildEdges();
+  const focus = state.focus;
+  const svg = el.graph;
+  svg.replaceChildren();
+  if (!focus) {
+    renderDeps(null);
+    return;
+  }
+
+  const layout = graphLayout(focus, state.depth);
+  svg.setAttribute("width", layout.width);
+  svg.setAttribute("height", layout.height);
+
+  for (const edge of layout.edges) {
+    const from = layout.positions.get(edge.from);
+    const to = layout.positions.get(targetKey(edge));
+    if (!from || !to) continue;
+    const x1 = from.x + BOX.w;
+    const y1 = from.y + BOX.h / 2;
+    const x2 = to.x;
+    const y2 = to.y + BOX.h / 2;
+    const mid = (x1 + x2) / 2;
+    const path = svgEl("path", {
+      class: "edge",
+      d: `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`,
+      "marker-end": "url(#arrow)",
+    });
+    path.append(svgEl("title"));
+    path.lastChild.textContent = `${edge.column} — click to remove this reference`;
+    path.onclick = () => {
+      applyRef(edge, null);
+      log(`removed ${edge.column} → ${edge.part} (unsaved; revert in the table view)`);
+    };
+    svg.append(path);
+    const label = svgEl("text", { class: "edge-label", x: mid, y: (y1 + y2) / 2 - 4,
+      "text-anchor": "middle" });
+    label.textContent = edge.column;
+    svg.append(label);
+  }
+
+  const marker = svgEl("marker", { id: "arrow", viewBox: "0 0 8 8", refX: "7", refY: "4",
+    markerWidth: "7", markerHeight: "7", orient: "auto" });
+  marker.append(svgEl("path", { d: "M 0 0 L 8 4 L 0 8 z" }));
+  const defs = svgEl("defs");
+  defs.append(marker);
+  svg.prepend(defs);
+
+  for (const [path, position] of layout.positions) {
+    const entry = rowIndexOf(path);
+    const asset = !entry && isAsset(path);
+    const state_class = entry ? "" : (asset ? " asset" : " missing");
+    const group = svgEl("g", {
+      class: `node${path === focus ? " focus" : ""}${state_class}`,
+      transform: `translate(${position.x}, ${position.y})`,
+    });
+    group.append(svgEl("rect", { width: BOX.w, height: BOX.h }));
+    const name = svgEl("text", { class: "label", x: 9, y: 15 });
+    name.textContent = truncate(entry ? labelOf(entry) : path.split("/").pop(), 28);
+    const sub = svgEl("text", { class: "sub", x: 9, y: 27 });
+    sub.textContent = entry ? entry.file : (asset ? "asset" : "missing target");
+    group.append(name, sub);
+    const tip = svgEl("title");
+    tip.textContent = path;
+    group.append(tip);
+    if (entry) group.onclick = () => setFocus(path);
+    svg.append(group);
+  }
+
+  renderDeps(focus);
+}
+
+const truncate = (text, max) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
+
+/* -------------------------------------------------------- dependency panel */
+
+function chip(label, missing, onOpen, onRemove) {
+  const row = document.createElement("div");
+  row.className = `chip${missing ? " missing" : ""}`;
+  const text = document.createElement("span");
+  text.textContent = label;
+  text.title = label;
+  if (onOpen) text.onclick = onOpen;
+  row.append(text);
+  if (onRemove) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "✕";
+    button.title = "remove this reference";
+    button.onclick = onRemove;
+    row.append(button);
+  }
+  return row;
+}
+
+/** The row itself plus everything that reaches it through `column`, directly or
+ * transitively. Since `children` edges run parent → child, that set is the row's
+ * ancestors — adopting one as a child would close a loop. */
+function selfAndUpstream(path, column) {
+  const blocked = new Set([path]);
+  const queue = [path];
+  while (queue.length) {
+    const current = queue.shift();
+    for (const edge of state.edges) {
+      if (edge.column === column && edge.to === current && !blocked.has(edge.from)) {
+        blocked.add(edge.from);
+        queue.push(edge.from);
+      }
+    }
+  }
+  return blocked;
+}
+
+/** Candidate targets for one row's column, already filtered to the legal ones. */
+function candidatesFor(entry, column) {
+  const keyRef = keyRefFor(entry.file, column, entry.header, entry.row);
+  const path = entry.row[0];
+  const used = new Set(state.edges
+    .filter((edge) => edge.from === path && edge.column === column)
+    .map((edge) => edge.part));
+
+  if (keyRef) {
+    // The target table may not be in memory yet; a throw here would abort
+    // renderDeps and leave the panel half built.
+    if (!state.loaded.has(keyRef.target)) return [];
+    const data = dataOf(keyRef.target);
+    const valueColumn = data.header.indexOf(keyRef.targetColumn);
+    // Perk keys repeat across branches, so an unscoped list is four identical
+    // "II"s and picking one is a coin flip. Scope it the same way resolution is.
+    const scope = keyRef.sameFile ? fileOfPath(path) : null;
+    const blocked = keyRef.sameFile ? selfAndUpstream(path, column) : new Set();
+    const out = [];
+    const seen = new Set();
+    for (const row of data.rows) {
+      const value = row[valueColumn];
+      if (!value || seen.has(value)) continue;
+      if (scope && fileOfPath(row[0]) !== scope) continue;
+      if (blocked.has(row[0]) || used.has(value)) continue;
+      seen.add(value);
+      const target = rowIndexOf(row[0]);
+      const name = labelOf(target);
+      out.push({ value, label: name && name !== value ? `${value} — ${name}` : value });
+    }
+    return out;
+  }
+
+  const rule = pathRefFor(entry.file, column) || {};
+  const scope = rule.sameFile ? fileOfPath(path) : null;
+  const blocked = rule.acyclic ? selfAndUpstream(path, column) : new Set([path]);
+
+  const data = dataOf(entry.file);
+  const columnIndex = data.header.indexOf(column);
+  const files = new Set();
+  for (const row of data.rows) {
+    for (const part of (row[columnIndex] || "").split("|").filter(Boolean)) {
+      const target = rowIndexOf(part);
+      if (target) files.add(target.file);
+    }
+  }
+  const out = [];
+  for (const file of files.size ? files : state.files) {
+    if (!state.loaded.has(file)) continue;
+    for (const row of dataOf(file).rows) {
+      if (blocked.has(row[0]) || used.has(row[0])) continue;
+      if (scope && fileOfPath(row[0]) !== scope) continue;
+      const name = labelOf(row[0]);
+      const tail = row[0].split("/").pop();
+      out.push({ value: row[0], label: name === tail ? name : `${name} · ${tail}` });
+    }
+  }
+  return out;
+}
+
+/** Columns that hold references rather than values, judged across the whole
+ * file so a row with an empty `effects` is still offered an add box. */
+function referenceColumns(file) {
+  const data = dataOf(file);
+  const columns = new Set();
+  data.header.forEach((column, index) => {
+    if (index === 0) return;
+    if (keyRefsFor(file, column).length || pathRefFor(file, column)) {
+      columns.add(column);
+      return;
+    }
+    if (data.rows.some((row) => {
+      const value = row[index] || "";
+      return value.startsWith("res://") || value.startsWith("{");
+    })) columns.add(column);
+  });
+  return columns;
+}
+
+/** One editable value in the panel, wired to the same writeCell the table uses. */
+function fieldEditor(entry, columnIndex) {
+  const column = entry.header[columnIndex];
+  const saved = state.loaded.get(entry.file).rows[entry.rowIndex][columnIndex];
+  const rows = dataOf(entry.file).rows;
+
+  const wrap = document.createElement("div");
+  wrap.className = "field";
+  const label = document.createElement("label");
+  label.append(column);
+
+  const meta = metaOf(entry.file, columnIndex);
+  const input = makeControl(meta, rows[entry.rowIndex][columnIndex], true);
+
+  const colors = colorColumns(entry.header, rows);
+  const suggestions = buildSuggestions(entry.header, rows, colors);
+  const list = meta.type === "text" ? suggestions.get(columnIndex) : null;
+  if (list) {
+    input.setAttribute("list", `deps-${list.id}`);
+    list.id = `deps-${list.id}`;
+    wrap.append(list);
+  }
+
+  const revert = makeRevert("reset this field", () => {
+    input.value = saved;
+    input.dispatchEvent(new Event("input"));
+  });
+  const sync = () => {
+    const changed = input.value !== saved;
+    wrap.classList.toggle("changed", changed);
+    revert.hidden = !changed;
+  };
+
+  input.addEventListener("input", () => {
+    writeCell(entry.file, entry.rowIndex, columnIndex, input.value);
+    sync();
+    renderFileList();
+    setStatus(`${entry.file}${isDirty(entry.file) ? " — unsaved" : " — no changes"}`);
+  });
+  // Only once the field is left, so the node label refreshes without the
+  // panel rebuilding itself out from under the cursor on every keystroke.
+  input.addEventListener("change", () => renderGraph());
+
+  label.append(revert);
+  sync();
+  wrap.append(label, meta.type === "color" ? decorateColor(input) : input);
+  return wrap;
+}
+
+function renderDeps(focus) {
+  el.deps.replaceChildren();
+  if (!focus) {
+    el.deps.append(Object.assign(document.createElement("p"),
+      { className: "hint", textContent: "Pick a row in the table, then switch to Graph." }));
+    return;
+  }
+  const entry = rowIndexOf(focus);
+  if (!entry) return;
+
+  const title = document.createElement("h2");
+  title.textContent = labelOf(entry);
+  const path = document.createElement("div");
+  path.className = "path";
+  path.textContent = focus;
+  const open = document.createElement("button");
+  open.textContent = "Open in table";
+  open.onclick = () => {
+    el.filter.value = focus;      // set before the view switch, so the grid renders once
+    state.current = entry.file;
+    renderFileList();
+    setView("table");
+  };
+  const remove = document.createElement("button");
+  remove.className = "danger";
+  remove.textContent = "Delete";
+  remove.title = "Remove this resource and every reference to it";
+  remove.onclick = () => deleteResource(focus);
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  actions.append(open, remove);
+  el.deps.append(title, path, actions);
+
+  const references = referenceColumns(entry.file);
+
+  const fields = entry.header
+    .map((column, columnIndex) => columnIndex)
+    .filter((columnIndex) => columnIndex > 0 && !references.has(entry.header[columnIndex]));
+  if (fields.length) {
+    el.deps.append(Object.assign(document.createElement("h3"), { textContent: "Fields" }));
+    for (const columnIndex of fields) el.deps.append(fieldEditor(entry, columnIndex));
+  }
+
+  const outgoing = state.edges.filter((edge) => edge.from === focus);
+  // Every reference column shows, empty or not, so a node with no effects yet
+  // still gets an add box.
+  const byColumn = new Map([...references].map((column) => [column, []]));
+  for (const edge of outgoing) {
+    if (!byColumn.has(edge.column)) byColumn.set(edge.column, []);
+    byColumn.get(edge.column).push(edge);
+  }
+
+  if (byColumn.size) {
+    el.deps.append(Object.assign(document.createElement("h3"), { textContent: "References" }));
+  }
+  for (const [column, edges] of byColumn) {
+    const columnIndex = entry.header.indexOf(column);
+    el.deps.append(Object.assign(document.createElement("div"),
+      { className: "col", textContent: column }));
+    for (const edge of edges) {
+      const target = edge.to ? rowIndexOf(edge.to) : null;
+      const asset = !target && isAsset(edge.part);
+      const chipEl = chip(
+        target ? labelOf(target) : (asset ? edge.part.split("/").pop() : `${edge.part} (unresolved)`),
+        !target && !asset,
+        target ? () => setFocus(edge.to) : null,
+        () => applyRef(edge, null));
+      if (asset) chipEl.classList.add("asset");
+      el.deps.append(chipEl);
+    }
+    const sample = edges[0];
+    const configured = keyRefFor(entry.file, column, entry.header, entry.row)
+      || pathRefFor(entry.file, column);
+    const isList = configured && "list" in configured
+      ? configured.list
+      : sample
+        ? !!sample.list
+        : dataOf(entry.file).rows.some((row) => (row[columnIndex] || "").includes("|"));
+    const candidates = sample && sample.kind === "dict" ? [] : candidatesFor(entry, column);
+    if (candidates.length) {
+      const select = document.createElement("select");
+      select.append(new Option(isList || !edges.length ? "add reference…" : "replace…", ""));
+      for (const candidate of candidates) {
+        select.append(new Option(candidate.label, candidate.value));
+      }
+      select.onchange = () => {
+        if (!select.value) return;
+        addRef(entry.file, entry.rowIndex, columnIndex, select.value, isList);
+      };
+      el.deps.append(select);
+    }
+
+    const rule = pathRefFor(entry.file, column);
+    const creator = rule && rule.creates
+      ? rule
+      : (keyRefFor(entry.file, column, entry.header, entry.row) || {}).creates
+        ? keyRefFor(entry.file, column, entry.header, entry.row)
+        : null;
+    if (creator) el.deps.append(createRow(entry, column, creator));
+  }
+
+  const incoming = state.edges.filter((edge) => edge.to === focus);
+  if (incoming.length) {
+    el.deps.append(Object.assign(document.createElement("h3"),
+      { textContent: `Referenced by (${incoming.length})` }));
+    for (const edge of incoming) {
+      el.deps.append(chip(
+        `${labelOf(edge.from)} · ${edge.column}`,
+        false,
+        () => setFocus(edge.from),
+        () => applyRef(edge, null)));
+    }
+  }
+}
+
+/** PascalCase / spaces -> the snake_case this project names files with. */
+const slug = (text) => text
+  .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+  .replace(/[^A-Za-z0-9_]+/g, "_")
+  .replace(/^_+|_+$/g, "")
+  .toLowerCase();
+
+/** Where a new file for this column belongs: beside whatever the column already
+ * points at, falling back to the owner's own directory. */
+function defaultDirFor(entry, column) {
+  const sample = state.edges.find((edge) =>
+    edge.from === entry.row[0] && edge.column === column && edge.to);
+  const source = sample ? sample.to : entry.row[0];
+  return fileOfPath(source).split("/").slice(0, -1).join("/");
+}
+
+/** "make a new one and hang it here" for columns declared with `creates`. */
+function createRow(entry, column, rule) {
+  const row = document.createElement("div");
+  row.className = "create";
+  const id = document.createElement("input");
+  id.placeholder = `new ${rule.creates} id`;
+
+  let path = null;
+  if (rule.createsFile) {
+    path = document.createElement("input");
+    path.placeholder = "file path";
+    path.dataset.auto = "1";
+    path.onchange = () => { path.dataset.auto = ""; };   // stop tracking once edited
+    const directory = defaultDirFor(entry, column);
+    id.addEventListener("input", () => {
+      if (!path.dataset.auto) return;
+      const name = slug(id.value.trim());
+      path.value = name ? `${directory}/${name}.tres` : "";
+    });
+  }
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = "+ create";
+  const submit = () => createChild(entry, column, rule, id.value.trim(),
+    path ? path.value.trim() : "");
+  button.onclick = submit;
+  for (const field of [id, path]) {
+    if (field) field.onkeydown = (event) => { if (event.key === "Enter") submit(); };
+  }
+  row.append(id, ...(path ? [path] : []), button);
+  return row;
+}
+
+async function createChild(entry, column, rule, id, path) {
+  if (!id) {
+    log("give the new resource an id first — ids are runtime keys, and save keys for perks", true);
+    return;
+  }
+  if (rule.createsFile && !path) {
+    log("give the new resource a file path", true);
+    return;
+  }
+  // Creating writes to disk and re-reads every table, which would throw away
+  // anything still staged in the page.
+  if (anyDirty()) {
+    log("save or revert your edits first — creating re-reads every table", true);
+    return;
+  }
+  try {
+    const result = await api("/api/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rule.createsFile
+        ? { table: rule.creates, path, values: identityValues(rule.creates, id),
+            link: { res_path: entry.row[0], column } }
+        : { in_file: fileOfPath(entry.row[0]), values: { id },
+            link: { res_path: entry.row[0], column } }),
+    });
+    state.files = result.files;
+    state.loaded.clear();
+    await loadAllFiles();
+    buildEdges();
+    log(result.changes.join("\n"));
+    renderFileList();
+    setFocus(result.path);
+  } catch (error) {
+    log(String(error), true);
+  }
+}
+
+/** Some classes call their identity `key` rather than `id`. */
+function identityValues(table, id) {
+  const columns = state.loaded.has(table) ? columnsOf(table).map((c) => c.name) : ["id"];
+  return columns.includes("id") ? { id } : { key: id };
+}
+
+/** Previews the deletion, then asks. The preview is what makes the confirmation
+ * meaningful: it names every reference that goes and everything that would be
+ * destroyed alongside. */
+async function deleteResource(path) {
+  if (anyDirty()) {
+    log("save or revert your edits first — deleting re-reads every table", true);
+    return;
+  }
+  let preview;
+  try {
+    preview = await api("/api/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ res_path: path, dry_run: true }),
+    });
+  } catch (error) {
+    log(String(error), true);
+    return;
+  }
+
+  const lines = [`Delete ${labelOf(path)}?`, "", ...preview.changes];
+  if (preview.needs_force) {
+    lines.push("", `This also destroys ${preview.collateral.length} resource(s) `
+      + "that nothing else keeps.");
+  }
+  lines.push("", "This writes to disk immediately and cannot be undone from here.");
+  if (!confirm(lines.join("\n"))) return;
+
+  try {
+    const result = await api("/api/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ res_path: path, force: preview.needs_force }),
+    });
+    state.files = result.files;
+    state.edits.clear();
+    state.loaded.clear();
+    await loadAllFiles();
+    buildEdges();
+    log(result.changes.join("\n"));
+    renderFileList();
+    // The focus just ceased to exist; fall back to something in the same table.
+    const rows = state.loaded.has(state.current) ? dataOf(state.current).rows : [];
+    state.focus = rows.length ? rows[0][0] : null;
+    renderGraph();
+  } catch (error) {
+    log(String(error), true);
+  }
+}
+
+function setFocus(path) {
+  state.focus = path;
+  // Keep the sidebar pointing at whatever the graph is showing, so Save and
+  // Revert always act on the file the focused row lives in.
+  const entry = rowIndexOf(path);
+  if (entry && entry.file !== state.current) {
+    state.current = entry.file;
+    renderFileList();
+  }
+  renderGraph();
+}
+
+function setView(view) {
+  state.view = view;
+  el.viewTable.classList.toggle("active", view === "table");
+  el.viewGraph.classList.toggle("active", view === "graph");
+  document.querySelector(".table-wrap").hidden = view !== "table";
+  el.graphView.hidden = view !== "graph";
+  // The grid is not kept up to date while the graph is showing, so rebuild it
+  // on the way back — graph edits and file switches both land here.
+  if (view === "graph") renderGraph();
+  else renderGrid();
+}
+
+/** The graph spans every file, so all of them have to be in memory. */
+async function loadAllFiles() {
+  for (const file of state.files) {
+    if (state.loaded.has(file)) continue;
+    state.loaded.set(file, await api(`/api/file/${file}`));
+  }
+}
+
+async function openFile(name) {
+  state.current = name;
+  if (!state.loaded.has(name)) {
+    try {
+      state.loaded.set(name, await api(`/api/file/${name}`));
+    } catch (error) { log(String(error), true); return; }
+  }
+  renderFileList();
+  if (state.view === "graph") {
+    // Follow the sidebar: land on this file's first row unless the graph is
+    // already centred on something that belongs to it.
+    const focused = state.focus ? rowIndexOf(state.focus) : null;
+    if (!focused || focused.file !== name) {
+      const rows = dataOf(name).rows;
+      state.focus = rows.length ? rows[0][0] : null;
+    }
+    renderGraph();
+  } else {
+    renderGrid();
+  }
+}
+
+async function saveFile(name) {
+  const data = state.edits.get(name);
+  if (!data) return [];
+  const result = await api(`/api/file/${name}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  // The server answers with the table as it stands after Godot wrote it, so the
+  // baseline is what is really on disk rather than what the page hoped for.
+  state.loaded.set(name, result.table);
+  state.edits.delete(name);
+  return result.changes || [];
+}
+
+async function saveCurrent() {
+  if (!state.current || !isDirty(state.current)) return;
+  try {
+    const changes = await saveFile(state.current);
+    log(changes.length
+      ? `wrote ${changes.length} change(s) to the .tres files:\n${changes.join("\n")}`
+      : `${state.current}: nothing to write`);
+  } catch (error) { log(String(error), true); return; }
+  renderFileList();
+  renderGrid();
+}
+
+async function saveAll() {
+  try {
+    const changes = [];
+    for (const name of [...state.edits.keys()]) changes.push(...await saveFile(name));
+    log(changes.length
+      ? `wrote ${changes.length} change(s) to the .tres files:\n${changes.join("\n")}`
+      : "nothing to write");
+  } catch (error) { log(String(error), true); }
+  renderFileList();
+  renderGrid();
+}
+
+async function runGodot(path, body, label) {
+  log(`${label}…`);
+  document.querySelectorAll("header button").forEach((b) => (b.disabled = true));
+  try {
+    const result = await api(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    });
+    log(result.output, !result.ok);
+  } catch (error) {
+    log(String(error), true);
+  } finally {
+    document.querySelectorAll("header button").forEach((b) => (b.disabled = false));
+    renderFileList();
+  }
+}
+
+el.save.onclick = saveCurrent;
+el.saveAll.onclick = saveAll;
+el.revert.onclick = revertFile;
+el.clearLog.onclick = () => log("");
+
+el.quit.onclick = async () => {
+  if (anyDirty() && !confirm("You have unsaved edits. Stop the server anyway?")) return;
+  try {
+    await api("/api/shutdown", { method: "POST" });
+  } catch (error) {
+    log(String(error), true);
+    return;
+  }
+  window.close();
+  // A tab the browser opened itself was not opened by script, so it refuses to
+  // close on request. Say so plainly instead of leaving a dead-looking page.
+  setTimeout(() => {
+    document.body.replaceChildren(Object.assign(document.createElement("div"), {
+      className: "stopped",
+      textContent: "Server stopped — you can close this tab.",
+    }));
+  }, 400);
+};
+el.filter.oninput = renderGrid;
+
+state.depth = Number(localStorage.getItem("balance-editor-depth")) || state.depth;
+el.depth.value = String(state.depth);
+el.depth.onchange = () => {
+  state.depth = Number(el.depth.value);
+  try { localStorage.setItem("balance-editor-depth", el.depth.value); } catch (error) { /* private mode */ }
+  renderGraph();
+};
+
+el.viewTable.onclick = () => setView("table");
+el.viewGraph.onclick = async () => {
+  try {
+    await loadAllFiles();
+  } catch (error) {
+    log(String(error), true);
+    return;
+  }
+  buildEdges();
+  if (!state.focus || !rowIndexOf(state.focus)) {
+    const rows = dataOf(state.current).rows;
+    state.focus = rows.length ? rows[0][0] : null;
+  }
+  setView("graph");
+};
+
+document.getElementById("reset-widths").onclick = () => {
+  delete state.widths[state.current];
+  saveWidths();
+  renderGrid();
+};
+
+document.getElementById("reload").onclick = async () => {
+  if (anyDirty() && !confirm("Unsaved edits will be discarded. Re-read the .tres files?")) return;
+  log("re-reading the resources…");
+  document.querySelectorAll("header button").forEach((b) => (b.disabled = true));
+  try {
+    const result = await api("/api/reload", { method: "POST" });
+    state.files = result.files;
+    state.edits.clear();
+    state.loaded.clear();
+    // The graph reads every table, so a reload that restocked only the current
+    // one would leave its nodes nameless and its references unresolved.
+    if (state.view === "graph") await loadAllFiles();
+    log(`reloaded ${state.files.length} resource types`);
+    await openFile(state.files.includes(state.current) ? state.current : state.files[0]);
+  } catch (error) {
+    log(String(error), true);
+  } finally {
+    document.querySelectorAll("header button").forEach((b) => (b.disabled = false));
+    renderFileList();
+  }
+};
+
+window.addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+    event.preventDefault();
+    event.shiftKey ? saveAll() : saveCurrent();
+  }
+});
+
+window.addEventListener("beforeunload", (event) => {
+  if (anyDirty()) event.preventDefault();
+});
+
+(async function start() {
+  try {
+    const info = await api("/api/files");
+    state.files = info.files;
+    setStatus(`${info.files.length} resource types`);
+    renderFileList();
+    if (state.files.length) await openFile(state.files[0]);
+  } catch (error) { log(String(error), true); }
+})();
+</script>
+</body>
+</html>
