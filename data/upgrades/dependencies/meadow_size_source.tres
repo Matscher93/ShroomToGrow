@@ -1,8 +1,8 @@
-[gd_resource type="Resource" script_class="ScalingSourceDef" format=3 uid="uid://bn33m8vxs4tkp"]
+[gd_resource type="Resource" script_class="ScalingSourceDef" format=3 uid="uid://barq7n0e3q0ll"]
 
 [ext_resource type="Script" uid="uid://et8tl87lvtui" path="res://model/upgrades/res_scaling_source_def.gd" id="1_script"]
 
 [resource]
 script = ExtResource("1_script")
 kind = 4
-key = &"symbiosis"
+key = &"meadow"

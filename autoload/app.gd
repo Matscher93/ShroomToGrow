@@ -32,6 +32,8 @@ var resolve_context := ResolveContext.new()
 var production_system: ProductionSystem
 var biome_system: BiomeSystem
 var perk_system: PerkSystem
+var tick_system: TickSystem
+var prestige_system: PrestigeSystem
 
 var biomes := load("res://data/biomes/all_biomes.tres") as BiomeList
 var biomes_data: BiomesData
@@ -42,10 +44,6 @@ var perk_defs: Dictionary = {}  # StringName -> PerkDef
 var perk_vms: Dictionary = {}  # StringName -> PerkViewModel
 var prestige_vm: PrestigeViewModel
 
-const SYMBIOSIS_UPGRADES_PATH := "res://data/upgrades/symbiosis/"
-const PRESTIGE_UPGRADES_PATH := "res://data/upgrades/prestige/"
-const BIOME_UPGRADES_PATH := "res://data/upgrades/biomes/"
-
 const BASE_TICK_DURATION := 10.0
 const MIN_TICK_DURATION := 1.0  # floor so a stacked tick_rate discount can't reach zero
 
@@ -54,19 +52,20 @@ func _ready() -> void:
 	player_vm = PlayerViewModel.new(player_data)
 
 	upgrade_system = UpgradeSystem.new()
-	for def in _load_upgrade_defs(SYMBIOSIS_UPGRADES_PATH):
+	for def in UpgradeDefLoader.load_all(UpgradeDefLoader.SYMBIOSIS_PATH):
 		upgrade_system.register(def)
 
 	prestige_upgrade_system = UpgradeSystem.new()
-	for def in _load_upgrade_defs(PRESTIGE_UPGRADES_PATH):
+	for def in UpgradeDefLoader.load_all(UpgradeDefLoader.PRESTIGE_PATH):
 		prestige_upgrade_system.register(def)
 
 	biome_upgrade_system = UpgradeSystem.new()
-	for def in _load_upgrade_defs(BIOME_UPGRADES_PATH):
+	for def in UpgradeDefLoader.load_all(UpgradeDefLoader.BIOME_PATH):
 		biome_upgrade_system.register(def)
 
 	production_system = ProductionSystem.new(upgrade_system, biome_upgrade_system,
 		prestige_upgrade_system, resolve_context)
+	tick_system = TickSystem.new(nodes.mycelium_nodes, player_data, production_system)
 
 	for perk in PerkTree.build(perk_branches):
 		prestige_upgrade_system.register(perk)
@@ -85,6 +84,9 @@ func _ready() -> void:
 	biome_system.unlock_starting_biomes()
 	for def in biomes.biomes:
 		biome_vms[def.key] = BiomeViewModel.new(def.key, def)
+
+	prestige_system = PrestigeSystem.new(player_data, biomes_data, nodes.mycelium_nodes,
+		production_system, upgrade_system, biome_upgrade_system, biome_system)
 
 	for node in nodes.mycelium_nodes:
 		var mycelium_data := MyceliumNodeData.new(player_data, node, prestige_upgrade_system)
@@ -110,30 +112,6 @@ func _ready() -> void:
 	prestige_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	_update_tick_duration()
 
-## Recursively loads every UpgradeDef .tres under path. Other resource types in
-## the tree (UpgradeEffectDef, ScalingSourceDef) are skipped.
-func _load_upgrade_defs(path: String) -> Array[UpgradeDef]:
-	var defs: Array[UpgradeDef] = []
-	var dir := DirAccess.open(path)
-	if dir == null:
-		push_error("Could not open %s (%s)" % [path, DirAccess.get_open_error()])
-		return defs
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		var full_path := path.path_join(file_name)
-		if dir.current_is_dir():
-			defs.append_array(_load_upgrade_defs(full_path))
-		elif file_name.ends_with(".tres") or file_name.ends_with(".tres.remap"):
-			# Packed builds list resources as "<name>.tres.remap". The real
-			# resource lives at the path with ".remap" stripped.
-			var res := load(full_path.trim_suffix(".remap"))
-			if res is UpgradeDef:
-				defs.append(res)
-		file_name = dir.get_next()
-	dir.list_dir_end()
-	return defs
-
 func _track_manual_count(node: MyceliumNode) -> void:
 	var key := StringName("ManualNode%d" % node.node_id)
 	resolve_context.manual_counts[key] = node.manual_nodes
@@ -142,65 +120,23 @@ func _track_manual_count(node: MyceliumNode) -> void:
 		upgrade_system.invalidate()
 	)
 
-## Per-node production multiplier, indexed like nodes.mycelium_nodes. Callers
-## driving many ticks back-to-back (offline catch-up) compute this once and pass
-## it into handle_tick(): node_production_bonus() is a chain of ~9
-## UpgradeSystem.modify() calls, and redoing it per node per tick dominates a
-## long catch-up loop. Safe to hoist because its only live inputs are upgrade
-## levels and manual node counts, and every ScalingSourceDef kind is
-## player-action driven (see ResolveContext), so nothing goes stale mid-loop.
-func node_production_bonuses() -> Array[BigNumber]:
-	var bonuses: Array[BigNumber] = []
-	for i in range(nodes.mycelium_nodes.size()):
-		var node := mycelium_node_data[i].node
-		bonuses.append(node_production_bonus(StringName(str(node.node_id))))
-	return bonuses
-
-func handle_tick(bonuses: Array[BigNumber] = []) -> void:
-	player_data.tick_count += 1
-	if bonuses.is_empty():
-		bonuses = node_production_bonuses()
-	for i in range(nodes.mycelium_nodes.size() -1, -1, -1):
-		var node := mycelium_node_data[i].node
-		var node_change := node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
-		node_change = node_change.mul(bonuses[i])
-		if i != 0:
-			var receiving_node := mycelium_node_data[i - 1].node
-			receiving_node.auto_nodes = receiving_node.auto_nodes.add(node_change)
-		else:
-			player_data.nutrients = player_data.nutrients.add(node_change)
-
-func can_prestige() -> bool:
-	if not biomes_data.is_unlocked(&"permafrost"):
-		return false
-	return preview_biomass_gain().gt(BigNumber.new(0.0, 0))
-
-## Resets the current run (nutrients, water, tick_count, node purchases,
-## symbiosis upgrades, biome unlocks) and converts it into biomass. Perks in
-## prestige_upgrade_system are untouched, they persist across prestiges.
-func prestige() -> void:
-	player_data.biomass = player_data.biomass.add(preview_biomass_gain())
-	player_data.nutrients = BigNumber.from_value(1.0)
-	player_data.water = BigNumber.from_value(0.0)
-	player_data.tick_count = 0
-	player_data.prestige_count += 1
-
-	for node in nodes.mycelium_nodes:
-		node.manual_nodes = 0 if node.node_id != 0 else 1
-		node.auto_nodes = BigNumber.new(0.0, 0)
-
-	upgrade_system.reset()
-	biome_upgrade_system.reset()
-	biome_system.reset()
-
 func _update_tick_duration() -> void:
 	tick_timer.wait_time = tick_duration()
 
 # ---------------------------------------------------------------------------
-# Delegators. The rules live in ProductionSystem / BiomeSystem / PerkSystem,
-# which hold no App reference and can be built standalone. These thin forwards
-# keep App the single entry point the ViewModels bind to.
+# Delegators. The rules live in ProductionSystem / TickSystem / BiomeSystem /
+# PerkSystem / PrestigeSystem, which hold no App reference and can be built
+# standalone. These thin forwards keep App the single entry point the
+# ViewModels bind to.
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------- tick
+
+func node_production_bonuses() -> Array[BigNumber]:
+	return tick_system.node_production_bonuses()
+
+func handle_tick(bonuses: Array[BigNumber] = []) -> void:
+	tick_system.handle_tick(bonuses)
 
 # ---------------------------------------------------------------- production
 
@@ -222,12 +158,19 @@ func node_symbiosis_bonus(node_id: StringName) -> BigNumber:
 func node_production_bonus(node_id: StringName) -> BigNumber:
 	return production_system.node_production_bonus(node_id)
 
-func preview_biomass_gain() -> BigNumber:
-	var base := PrestigeCalculator.calculate_biomass_gain(player_data.tick_count, player_data.nutrients)
-	return production_system.modify_biomass_gain(base)
-
 func tick_duration() -> float:
 	return production_system.tick_duration(BASE_TICK_DURATION, MIN_TICK_DURATION)
+
+# ---------------------------------------------------------------- prestige
+
+func preview_biomass_gain() -> BigNumber:
+	return prestige_system.preview_biomass_gain()
+
+func can_prestige() -> bool:
+	return prestige_system.can_prestige()
+
+func prestige() -> void:
+	prestige_system.prestige()
 
 # ---------------------------------------------------------------- biomes
 

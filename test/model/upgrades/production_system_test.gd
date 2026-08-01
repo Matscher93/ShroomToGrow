@@ -36,21 +36,40 @@ func _register(system: UpgradeSystem, id: StringName, effects: Array[UpgradeEffe
 	system.register(d)
 	system.from_save({String(id): 1})
 
-func test_stack_runs_all_three_tracks_in_order() -> void:
+func test_each_track_is_resolved_separately() -> void:
 	_register(_symbiosis, &"SymPot", [_effect(&"potency_production", 1.0,
 		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.NODE, &"3")])
 	_register(_biome, &"BioPot", [_effect(&"potency_production", 1.0,
 		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.NODE, &"3")])
-	# 1.0 -> symbiosis +100% -> 2.0 -> biome +100% -> 4.0
+	# 1.0 -> symbiosis +100% -> 2.0 -> biome +100% -> 4.0. Both levels landing in
+	# one system would make them additive instead: 1 * (1 + 1 + 1) = 3.
 	assert_float(_production.node_potency_bonus(&"3").to_float()).is_equal_approx(4.0, EPS)
 
-func test_stack_external_skips_symbiosis() -> void:
-	_register(_symbiosis, &"SymPot", [_effect(&"potency_production", 1.0,
-		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.NODE, &"3")])
-	_register(_biome, &"BioPot", [_effect(&"potency_production", 1.0,
-		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.NODE, &"3")])
+func test_the_track_order_is_symbiosis_then_biome_then_prestige() -> void:
+	# Two INCREASED effects commute across tracks, so they cannot pin the order.
+	# ADD and MORE do not: symbiosis +5 -> 6, biome x2 -> 12, prestige +6 -> 18.
+	# Any other permutation of the same three effects lands somewhere else.
+	_register(_symbiosis, &"SymFlat", [_effect(&"potency_production", 5.0,
+		UpgradeEffectDef.Op.ADD, UpgradeEffectDef.Scope.NODE, &"3")])
+	_register(_biome, &"BioMore", [_effect(&"potency_production", 1.0,
+		UpgradeEffectDef.Op.MORE, UpgradeEffectDef.Scope.NODE, &"3")])
+	_register(_prestige, &"PerkFlat", [_effect(&"potency_production", 6.0,
+		UpgradeEffectDef.Op.ADD, UpgradeEffectDef.Scope.NODE, &"3")])
+
+	assert_float(_production.node_potency_bonus(&"3").to_float()).is_equal_approx(18.0, EPS)
+
+func test_stack_external_skips_symbiosis_and_keeps_the_remaining_order() -> void:
+	# Same three effects as above with the symbiosis leg dropped: base 1, biome
+	# x2 -> 2, prestige +6 -> 8. A stale symbiosis +5 would show up as 18.
+	_register(_symbiosis, &"SymFlat", [_effect(&"potency_production", 5.0,
+		UpgradeEffectDef.Op.ADD, UpgradeEffectDef.Scope.NODE, &"3")])
+	_register(_biome, &"BioMore", [_effect(&"potency_production", 1.0,
+		UpgradeEffectDef.Op.MORE, UpgradeEffectDef.Scope.NODE, &"3")])
+	_register(_prestige, &"PerkFlat", [_effect(&"potency_production", 6.0,
+		UpgradeEffectDef.Op.ADD, UpgradeEffectDef.Scope.NODE, &"3")])
+
 	assert_float(_production.node_potency_external_multiplier(&"3").to_float()) \
-		.is_equal_approx(2.0, EPS)
+		.is_equal_approx(8.0, EPS)
 
 func test_bonuses_are_scoped_to_their_node() -> void:
 	_register(_symbiosis, &"SymPot", [_effect(&"potency_production", 1.0,

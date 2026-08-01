@@ -58,6 +58,44 @@ func test_add_drops_operands_lost_in_float_noise() -> void:
 	var tiny := BigNumber.new(1.0, 1)
 	assert_float(huge.add(tiny).to_float()).is_equal_approx(huge.to_float(), EPS)
 
+func test_add_still_counts_operands_just_inside_the_cutoff() -> void:
+	# The other side of the same boundary. A cutoff set too tight would silently
+	# drop real income from a lower node tier.
+	var huge := BigNumber.new(1.0, 40)
+	var small := BigNumber.new(1.0, 25)   # 15 exponents apart
+	assert_bool(huge.add(small).same_value(huge)).is_false()
+
+func test_add_is_commutative_across_the_cutoff() -> void:
+	# add() branches on the sign of the exponent difference, so the two orders
+	# run different code paths and have to agree.
+	var huge := BigNumber.new(1.0, 40)
+	var tiny := BigNumber.new(1.0, 1)
+	assert_bool(huge.add(tiny).same_value(tiny.add(huge))).is_true()
+
+func test_add_with_mixed_signs() -> void:
+	var positive := BigNumber.from_value(1000.0)
+	var negative := BigNumber.from_value(-250.0)
+	assert_float(positive.add(negative).to_float()).is_equal_approx(750.0, EPS)
+	assert_float(negative.add(positive).to_float()).is_equal_approx(750.0, EPS)
+
+func test_sub_crosses_into_negative() -> void:
+	var result := BigNumber.from_value(250.0).sub(BigNumber.from_value(1000.0))
+	assert_float(result.mantissa).is_negative()
+	assert_float(result.to_float()).is_equal_approx(-750.0, EPS)
+
+func test_sub_of_equal_values_is_canonical_zero() -> void:
+	# A zero carrying a stale exponent compares wrong in gt(), which is the
+	# check every affordability test runs through.
+	var result := BigNumber.new(5.0, 30).sub(BigNumber.new(5.0, 30))
+	assert_float(result.mantissa).is_zero()
+	assert_int(result.exponent).is_zero()
+	assert_bool(result.same_value(BigNumber.from_value(0.0))).is_true()
+
+func test_scale_by_zero_is_canonical_zero() -> void:
+	var result := BigNumber.new(7.0, 25).scale(0.0)
+	assert_float(result.to_float()).is_zero()
+	assert_int(result.exponent).is_zero()
+
 func test_mul_and_div() -> void:
 	var a := BigNumber.from_value(2000.0)
 	var b := BigNumber.from_value(4.0)
@@ -81,12 +119,28 @@ func test_pow_int() -> void:
 	assert_float(BigNumber.from_value(7.0).pow_int(0).to_float()).is_equal_approx(1.0, EPS)
 	assert_float(BigNumber.from_value(7.0).pow_int(1).to_float()).is_equal_approx(7.0, EPS)
 
+func test_pow_int_does_not_support_negative_exponents() -> void:
+	# Documented limitation, not a wish: the fast-squaring loop never runs for
+	# p < 0. Cost curves only ever pass a level, which is never negative, so this
+	# pins the contract callers have to respect.
+	assert_float(BigNumber.from_value(2.0).pow_int(-3).to_float()).is_equal_approx(1.0, EPS)
+
 func test_pow_float_handles_huge_exponents() -> void:
 	# Used for cost curves; must not overflow the way pow_int would.
 	# log10(1.15) * 500 = 30.3499..., so 1.15^500 is 2.238e30.
 	var result := BigNumber.from_value(1.15).pow_float(500.0)
 	assert_int(result.exponent).is_equal(30)
 	assert_float(result.mantissa).is_equal_approx(2.238, 0.01)
+
+func test_pow_float_of_a_non_positive_base_is_zero() -> void:
+	# pow_float works in log10 space, which has no answer here. Cost curves only
+	# feed it growth rates (1 + per_level), so this is the corrupt-data path:
+	# it must yield zero rather than NaN, which would poison every later compare.
+	assert_float(BigNumber.from_value(0.0).pow_float(2.0).to_float()).is_zero()
+	assert_float(BigNumber.from_value(-3.0).pow_float(2.0).to_float()).is_zero()
+
+func test_pow_float_by_zero_is_one() -> void:
+	assert_float(BigNumber.from_value(1.15).pow_float(0.0).to_float()).is_equal_approx(1.0, EPS)
 
 # ─── Comparison ──────────────────────────────────────────────────────────────
 
@@ -148,6 +202,20 @@ func test_same_value_is_exact_not_approximate() -> void:
 	assert_bool(a.same_value(BigNumber.from_value(100.001))).is_false()
 	assert_bool(a.same_value(null)).is_false()
 
+func test_equals_and_same_value_deliberately_disagree() -> void:
+	# equals() is approximate, same_value() is exact. The setters must keep using
+	# same_value: a tick's gain this small still has to reach the player.
+	var a := BigNumber.new(1.0, 30)
+	var b := BigNumber.new(1.0 + 1e-9, 30)
+	assert_bool(a.equals(b)).is_true()
+	assert_bool(a.same_value(b)).is_false()
+
+func test_equals_across_the_zero_boundary() -> void:
+	# Normalisation forces every zero to exponent 0, so the two agree there.
+	var zero := BigNumber.from_value(0.0)
+	assert_bool(zero.equals(BigNumber.new(0.0, 17))).is_true()
+	assert_bool(zero.same_value(BigNumber.new(0.0, 17))).is_true()
+
 # ─── Display ─────────────────────────────────────────────────────────────────
 
 func test_to_display_suffixes() -> void:
@@ -168,8 +236,15 @@ func test_plain_numbering_runs_through_decillion() -> void:
 	assert_str(BigNumber.new(1.0, 35).to_display()).is_equal("100.0Dc")
 	assert_str(BigNumber.new(1.0, 36).to_display()).is_equal("1.00e36")
 
+func test_to_display_keeps_the_sign() -> void:
+	assert_str(BigNumber.from_value(-1500.0).to_display()).is_equal("-1.5K")
+	assert_str(BigNumber.from_value(-42.0).to_display()).is_equal("-42.0")
+
 func test_to_scientific() -> void:
 	assert_str(BigNumber.new(1.234, 99).to_scientific()).is_equal("1.23e99")
+
+func test_to_scientific_keeps_the_sign() -> void:
+	assert_str(BigNumber.new(-1.234, 99).to_scientific()).is_equal("-1.23e99")
 
 # ─── Persistence ─────────────────────────────────────────────────────────────
 

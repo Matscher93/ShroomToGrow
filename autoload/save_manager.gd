@@ -25,8 +25,6 @@ const PERK_IDS_V1_TO_V2 := {
 	"bntIV·A": "bounty_4a", "bntIV·B": "bounty_4b",
 }
 const AUTOSAVE_INTERVAL := 15.0  # seconds
-const MIN_OFFLINE_SECONDS := 60.0
-const MAX_OFFLINE_SECONDS := 86400.0  # 24h cap on offline income collection
 const OFFLINE_CALC_FRAME_BUDGET_MSEC := 20.0  # yield to a frame once a batch exceeds this
 
 ## Emitted when offline progress becomes pending outside of load_game(), i.e. on
@@ -36,6 +34,13 @@ signal offline_progress_pending
 var last_savegame : Dictionary
 var _pending_offline_saved_at := 0.0
 var _offline_calc_running := false
+
+## Wall clock, injectable so the offline gap logic can be exercised without
+## sleeping through a real one.
+var now_provider: Callable = func() -> float: return Time.get_unix_time_from_system()
+
+func _now() -> float:
+	return float(now_provider.call())
 
 func _ready() -> void:
 	# Run our own logic before the window closes.
@@ -68,7 +73,7 @@ func _notification(what: int) -> void:
 func save_game() -> void:
 	var data := {
 		"version": SAVE_VERSION,
-		"saved_at": Time.get_unix_time_from_system(),  # for offline progress
+		"saved_at": _now(),  # for offline progress
 		"game": _collect_data(),
 	}
 
@@ -161,14 +166,14 @@ func _read(path: String) -> Dictionary:
 ##     _pending_offline_saved_at up front), so re-arming from the pre-resume
 ##     saved_at replays the whole gap and spawns a second popup.
 ##   * keep a gap too short to be shown. A stale sub-threshold timestamp would
-##     cross MIN_OFFLINE_SECONDS as wall-clock advances and turn a later refresh
-##     into a bogus mid-session catch-up.
+##     cross the minimum as wall-clock advances and turn a later refresh into a
+##     bogus mid-session catch-up.
 func _arm_offline_progress(saved_at: float, notify: bool) -> void:
 	if _offline_calc_running:
 		return
 	if saved_at <= 0.0:
 		return  # nothing saved yet this session, don't clobber an armed gap with 0
-	if Time.get_unix_time_from_system() - saved_at <= MIN_OFFLINE_SECONDS:
+	if not OfflineProgress.is_gap_worth_showing(_now() - saved_at):
 		_pending_offline_saved_at = 0.0
 		return
 	_pending_offline_saved_at = saved_at
@@ -184,8 +189,7 @@ func is_offline_calc_running() -> bool:
 func has_pending_offline_progress() -> bool:
 	if _pending_offline_saved_at <= 0.0:
 		return false
-	var elapsed := Time.get_unix_time_from_system() - _pending_offline_saved_at
-	return elapsed > MIN_OFFLINE_SECONDS
+	return OfflineProgress.is_gap_worth_showing(_now() - _pending_offline_saved_at)
 
 ## Runs the offline catch-up tick loop, timesliced across frames so it never
 ## holds one long enough to drop below 30fps (33ms/frame, we yield well before
@@ -200,7 +204,10 @@ func run_offline_progress_calculation() -> void:
 	_pending_offline_saved_at = 0.0
 	App.offline_income_vm.set_calculating(true)
 
-	var elapsed := minf(Time.get_unix_time_from_system() - saved_at, MAX_OFFLINE_SECONDS)
+	# Measured once. Reading the clock again at the end instead would report a
+	# gap that includes every frame this loop awaited, so the popup would claim
+	# more offline time than it actually simulated ticks for.
+	var elapsed := OfflineProgress.capped(_now() - saved_at)
 
 	# Only the endpoints are read (the popup diffs snapshot[0] against
 	# snapshot[-1]), so nothing is captured mid-loop. _collect_data() serializes
@@ -209,11 +216,10 @@ func run_offline_progress_calculation() -> void:
 	var save_game_snapshots: Array[Dictionary]
 	save_game_snapshots.append(_collect_data())
 
-	var total_ticks_expected: int = maxi(1, int(elapsed / App.tick_timer.wait_time))
-	App.offline_income_vm.set_calc_progress(0, total_ticks_expected)
-
-	var tick_counter := 0
-	elapsed -= App.tick_timer.wait_time
+	# One count drives the loop and the progress bar, so "done" always lands on
+	# "total" rather than one tick short of it.
+	var total_ticks := OfflineProgress.simulated_ticks(elapsed, App.tick_timer.wait_time)
+	App.offline_income_vm.set_calc_progress(0, total_ticks)
 
 	# The real-time tick timer must not fire while handle_tick() is driven
 	# manually below, or ticks double up across the awaited frames.
@@ -223,13 +229,11 @@ func run_offline_progress_calculation() -> void:
 	# instead of ~9 modify() calls per node per tick.
 	var bonuses := App.node_production_bonuses()
 	var batch_start := Time.get_ticks_msec()
-	while elapsed > 0.0:
-		elapsed -= App.tick_timer.wait_time
+	for tick_counter in range(1, total_ticks + 1):
 		App.handle_tick(bonuses)
-		tick_counter += 1
 
 		if Time.get_ticks_msec() - batch_start >= OFFLINE_CALC_FRAME_BUDGET_MSEC:
-			App.offline_income_vm.set_calc_progress(tick_counter, total_ticks_expected)
+			App.offline_income_vm.set_calc_progress(tick_counter, total_ticks)
 			await get_tree().process_frame
 			batch_start = Time.get_ticks_msec()
 	App.tick_timer.start()
@@ -237,8 +241,7 @@ func run_offline_progress_calculation() -> void:
 	# final snapshot after tick accumulation
 	save_game_snapshots.append(_collect_data())
 
-	App.offline_income_vm.set_save_data(save_game_snapshots, \
-		tick_counter, minf(Time.get_unix_time_from_system() - saved_at, MAX_OFFLINE_SECONDS))
+	App.offline_income_vm.set_save_data(save_game_snapshots, total_ticks, elapsed)
 	App.offline_income_vm.set_calculating(false)
 	save_game()
 	_offline_calc_running = false

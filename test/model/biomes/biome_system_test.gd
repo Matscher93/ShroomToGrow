@@ -41,9 +41,16 @@ func test_every_biome_authors_ten_upgrade_ids() -> void:
 func test_upgrade_ids_resolve_to_real_defs() -> void:
 	# Guards the folder/id naming skew: Meadow's upgrades are named Forest*,
 	# Forest's are named Symbiosis*. The ids are what bind, not the folders.
+	#
+	# Goes through the same loader and the same path constant App registers
+	# from, so this validates the set the game actually has rather than a second
+	# copy of the walk that could drift from it.
 	var known := {}
-	for def in _load_biome_upgrade_defs("res://data/upgrades/biomes/"):
+	for def in UpgradeDefLoader.load_all(UpgradeDefLoader.BIOME_PATH):
 		known[def.id] = true
+	assert_bool(known.is_empty()) \
+		.override_failure_message("Loaded no biome upgrade defs at all, so this test proves nothing.") \
+		.is_false()
 	for biome in _biomes.biomes:
 		for id: StringName in _system.upgrade_ids(biome.key):
 			assert_bool(known.has(id)) \
@@ -53,25 +60,6 @@ func test_upgrade_ids_resolve_to_real_defs() -> void:
 func test_unknown_key_yields_no_upgrade_ids() -> void:
 	assert_array(_system.upgrade_ids(&"nope")).is_empty()
 
-func _load_biome_upgrade_defs(path: String) -> Array[UpgradeDef]:
-	var defs: Array[UpgradeDef] = []
-	var dir := DirAccess.open(path)
-	if dir == null:
-		return defs
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		var full_path := path.path_join(file_name)
-		if dir.current_is_dir():
-			defs.append_array(_load_biome_upgrade_defs(full_path))
-		elif file_name.ends_with(".tres"):
-			var res := load(full_path)
-			if res is UpgradeDef:
-				defs.append(res)
-		file_name = dir.get_next()
-	dir.list_dir_end()
-	return defs
-
 # ─── Unlocking ───────────────────────────────────────────────────────────────
 
 func test_starting_biomes_are_unlocked() -> void:
@@ -79,22 +67,39 @@ func test_starting_biomes_are_unlocked() -> void:
 	assert_bool(_data.is_unlocked(&"forest")).is_false()
 
 func test_unlock_requires_and_deducts_the_cost() -> void:
-	# forest costs 50 nutrients (mantissa 5.0, exponent 1).
-	_player.nutrients = BigNumber.from_value(10.0)
+	# The cost is read from the def rather than written in: retuning a biome's
+	# price is a data change and must not fail a test about the deduction.
+	var cost := _system.biome_def(&"forest").unlock_cost
+	assert_bool(cost.gt(BigNumber.new(0.0, 0))) \
+		.override_failure_message("forest is free, so this test cannot tell a deduction from a no-op.") \
+		.is_true()
+
+	_player.nutrients = cost.scale(0.5)
 	assert_bool(_system.can_unlock(&"forest")).is_false()
 
-	_player.nutrients = BigNumber.from_value(100.0)
+	_player.nutrients = cost.scale(3.0)
 	assert_bool(_system.can_unlock(&"forest")).is_true()
 	assert_bool(_system.unlock(&"forest")).is_true()
-	assert_float(_player.nutrients.to_float()).is_equal_approx(50.0, EPS)
+	assert_float(_player.nutrients.to_float()).is_equal_approx(cost.scale(2.0).to_float(), EPS)
 	assert_bool(_data.is_unlocked(&"forest")).is_true()
 
+func test_exactly_the_cost_is_enough() -> void:
+	# The affordability check is gte, so landing exactly on the price must buy.
+	var cost := _system.biome_def(&"forest").unlock_cost
+	_player.nutrients = cost.copy()
+
+	assert_bool(_system.can_unlock(&"forest")).is_true()
+	assert_bool(_system.unlock(&"forest")).is_true()
+	assert_float(_player.nutrients.to_float()).is_zero()
+
 func test_cannot_unlock_twice() -> void:
-	_player.nutrients = BigNumber.from_value(100.0)
+	var cost := _system.biome_def(&"forest").unlock_cost
+	_player.nutrients = cost.scale(3.0)
 	_system.unlock(&"forest")
+
 	assert_bool(_system.can_unlock(&"forest")).is_false()
 	assert_bool(_system.unlock(&"forest")).is_false()
-	assert_float(_player.nutrients.to_float()).is_equal_approx(50.0, EPS)
+	assert_float(_player.nutrients.to_float()).is_equal_approx(cost.scale(2.0).to_float(), EPS)
 
 func test_unknown_biome_cannot_be_unlocked() -> void:
 	_player.nutrients = BigNumber.from_value(1e9)
@@ -152,7 +157,7 @@ func test_unknown_biome_has_no_size_cost() -> void:
 # ─── Prestige reset ──────────────────────────────────────────────────────────
 
 func test_reset_relocks_the_run_but_keeps_ever_unlocked() -> void:
-	_player.nutrients = BigNumber.from_value(1e9)
+	_player.nutrients = BigNumber.from_value(1e9)   # enough for anything on offer
 	_system.unlock(&"forest")
 	_system.buy_size(&"meadow")
 
@@ -172,7 +177,7 @@ func test_screen_gating_follows_ever_unlocked() -> void:
 	var permafrost := _system.biome_def(&"permafrost")
 	assert_bool(_system.is_screen_unlocked(permafrost.screen_type)).is_false()
 
-	_player.nutrients = BigNumber.from_value(1e5)
+	_player.nutrients = permafrost.unlock_cost.scale(2.0)
 	assert_bool(_system.unlock(&"permafrost")).is_true()
 	assert_bool(_system.is_screen_unlocked(permafrost.screen_type)).is_true()
 

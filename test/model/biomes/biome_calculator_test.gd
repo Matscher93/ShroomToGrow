@@ -4,20 +4,35 @@ extends GdUnitTestSuite
 ## Counters are injected rather than read off the App autoload, which does not
 ## exist outside a running game and made this class untestable.
 
-func test_levels_start_at_one() -> void:
+func test_levels_start_at_one_with_no_progress() -> void:
 	var info := BiomeCalculator.level_for(0)
 	assert_int(info.level).is_equal(1)
 	assert_int(info.into).is_zero()
-	assert_int(info.need).is_equal(6)
+	assert_int(info.need).is_greater(0)
 
-func test_level_two_at_six_xp() -> void:
-	assert_int(BiomeCalculator.level_for(6).level).is_equal(2)
-	assert_int(BiomeCalculator.level_for(5).level).is_equal(1)
+func test_the_level_up_lands_exactly_on_the_requirement() -> void:
+	# The requirement is read back rather than written in: retuning the curve is
+	# a data change, the boundary sitting one XP off is a bug.
+	var first_need: int = BiomeCalculator.level_for(0).need
+
+	assert_int(BiomeCalculator.level_for(first_need - 1).level).is_equal(1)
+	assert_int(BiomeCalculator.level_for(first_need).level).is_equal(2)
+	assert_int(BiomeCalculator.level_for(first_need).into).is_zero()
 
 func test_progress_into_current_level() -> void:
-	var info := BiomeCalculator.level_for(3)
+	var first_need: int = BiomeCalculator.level_for(0).need
+	var info := BiomeCalculator.level_for(first_need - 1)
 	assert_int(info.level).is_equal(1)
-	assert_int(info.into).is_equal(3)
+	assert_int(info.into).is_equal(first_need - 1)
+
+func test_progress_never_reaches_the_requirement() -> void:
+	# into == need would mean a level-up that didn't happen, and the progress bar
+	# renders into/need directly.
+	for xp in range(0, 400):
+		var info := BiomeCalculator.level_for(xp)
+		assert_int(info.into) \
+			.override_failure_message("xp %d sits at %d/%d of level %d." \
+				% [xp, info.into, info.need, info.level]).is_less(info.need)
 
 func test_requirement_grows_each_level() -> void:
 	# Explicit types: level_for() returns a Dictionary, so these are Variant and
