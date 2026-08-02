@@ -146,9 +146,9 @@ func test_every_node_count_dependency_resolves() -> void:
 					% [def.id, e.dependency.key]).is_true()
 
 func test_every_biome_size_dependency_resolves() -> void:
-	# A dangling key is invisible: ResolveContext.biome_size() returns 0.0 for an
-	# unknown biome, the magnitude is scaled to zero and the upgrade does nothing
-	# at any level. The player still pays for it.
+	# A dangling key is invisible: ResolveContext.biome_size() returns the base
+	# 1.0 for an unknown biome, so the upgrade silently stops scaling and stays
+	# at its authored magnitude no matter how much Size the player buys.
 	var keys := _biome_keys()
 	for def in _all_upgrade_defs():
 		for e in def.effects:

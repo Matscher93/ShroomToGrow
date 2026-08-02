@@ -23,11 +23,15 @@ func _init() -> void:
 	App.player_data.biomass_changed.connect(_on_changed.unbind(1))
 	App.player_data.nutrients_changed.connect(_on_changed.unbind(1))
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_changed)
+	# Biome upgrades feed &"biomass_gain" too (PermafrostUpgrade2/10), and their
+	# Biome Size dependency re-emits this on invalidate().
+	App.biome_upgrade_system.upgrades_changed.connect(_on_changed)
 
 func dispose() -> void:
 	App.player_data.biomass_changed.disconnect(_on_changed.unbind(1))
 	App.player_data.nutrients_changed.disconnect(_on_changed.unbind(1))
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
+	App.biome_upgrade_system.upgrades_changed.disconnect(_on_changed)
 
 # --- Commands (called by the View on input) ---
 

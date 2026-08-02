@@ -15,5 +15,9 @@ var biome_sizes: Dictionary = {}      # biome key -> purchased size
 func node_count(tier: StringName) -> float:
 	return float(manual_counts.get(tier, 0))
 
+## One higher than the purchased Biome Size, so an unbought biome multiplies by
+## 1.0 instead of 0.0. A raw size would make every BIOME_SIZE-scaled upgrade a
+## permanent no-op until the first Size purchase: levelling it would keep
+## reading "now +0%", which looks like broken UI rather than a dead upgrade.
 func biome_size(key: StringName) -> float:
-	return float(biome_sizes.get(key, 0))
+	return float(biome_sizes.get(key, 0)) + 1.0

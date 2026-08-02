@@ -66,10 +66,22 @@ var points_available: int:
 	get: return App.biome_available_points(_key)
 
 var points_text: String:
-	get: return "%d pts" % points_available
+	get: return "%d pts" % [points_available]
 
 var has_points: bool:
 	get: return points_available >= 1
+
+## Subtitle under a slot's number in the upgrade grid: how far this upgrade is
+## towards its cap.
+func upgrade_slot_text(id: StringName) -> String:
+	var def := App.biome_upgrade_system.def(id)
+	var lvl := App.biome_upgrade_system.level(id)
+	if def == null or def.max_level <= 0:   # 0 = infinite, nothing to count towards
+		return "%d" % lvl
+	return "%d/%d" % [lvl, def.max_level]
+
+func is_upgrade_unlocked(id: StringName) -> bool:
+	return App.is_biome_upgrade_unlocked(id, _key)
 
 var size_level_text: String:
 	get: return "Lv %d" % App.biome_size(_key)

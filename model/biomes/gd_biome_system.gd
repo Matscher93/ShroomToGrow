@@ -165,4 +165,9 @@ func buy_size(key: StringName) -> bool:
 func reset() -> void:
 	_biomes_data.reset()
 	_ctx.biome_sizes.clear()
+	# Same contract as buy_size: whoever writes _ctx invalidates every system
+	# that caches a ScalingSourceDef reading it.
+	_symbiosis.invalidate()
+	_biome_upgrades.invalidate()
+	_prestige_upgrades.invalidate()
 	unlock_starting_biomes()

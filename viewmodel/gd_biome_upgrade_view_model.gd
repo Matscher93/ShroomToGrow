@@ -16,16 +16,26 @@ var name_text: String:
 		var def := App.biome_upgrade_system.def(_id)
 		return def.display_name if def else ""
 
+## A locked upgrade still shows what it does, so the player can plan the track
+## instead of buying blind. The lock line reads as progress towards the gate
+## rather than a bare requirement.
 var desc_text: String:
 	get:
 		var def := App.biome_upgrade_system.def(_id)
+		var body := def.description if def else ""
 		if App.is_biome_upgrade_unlocked(_id, _key):
-			return def.description if def else ""
+			return body
 		var needed := def.min_biome_points_spent if def else 0
-		return "Locked - requires %d points spent in this biome." % needed
+		var spent := App.biomes_data.points_spent(_key)
+		return "%s\nLocked - %d / %d points spent in this biome." % [body, spent, needed]
 
 var level_text: String:
-	get: return "Lv %d" % App.biome_upgrade_system.level(_id)
+	get:
+		var def := App.biome_upgrade_system.def(_id)
+		var lvl := App.biome_upgrade_system.level(_id)
+		if def == null or def.max_level <= 0:   # 0 = infinite, nothing to count towards
+			return "Lv %d" % lvl
+		return "Lv %d / %d" % [lvl, def.max_level]
 
 var effect_text: String:
 	get:

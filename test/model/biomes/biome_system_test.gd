@@ -142,7 +142,8 @@ func test_buying_size_deducts_and_feeds_the_resolve_context() -> void:
 
 	assert_bool(_system.buy_size(&"meadow")).is_true()
 	assert_int(_system.size(&"meadow")).is_equal(before + 1)
-	assert_float(_ctx.biome_size(&"meadow")).is_equal_approx(float(before + 1), EPS)
+	# biome_size() is the scaling multiplier, one higher than the purchased size.
+	assert_float(_ctx.biome_size(&"meadow")).is_equal_approx(float(before + 2), EPS)
 	assert_bool(_player.nutrients.lt(BigNumber.from_value(1e9))).is_true()
 
 func test_cannot_buy_size_without_funds() -> void:

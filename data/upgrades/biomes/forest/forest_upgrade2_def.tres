@@ -9,4 +9,5 @@ script = ExtResource("3_def_script")
 id = &"ForestUpgrade2"
 display_name = "Root Network"
 description = "+5% Potency production, per level."
+max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

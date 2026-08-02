@@ -9,5 +9,6 @@ script = ExtResource("3_def_script")
 id = &"ForestUpgrade7"
 display_name = "Deep Roots"
 description = "+12% node production, per level."
+max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
 min_biome_points_spent = 14
