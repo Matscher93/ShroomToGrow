@@ -5,7 +5,7 @@ extends Node
 const SAVE_PATH   := "user://save.json"
 const BACKUP_PATH := "user://save.bak.json"
 const TMP_PATH    := "user://save.tmp.json"
-const SAVE_VERSION := 5
+const SAVE_VERSION := 6
 
 ## The three UpgradeSystem buckets in a save, for migrations that touch all of
 ## them. Order is irrelevant, each is keyed independently.
@@ -143,6 +143,8 @@ func _migrate(data: Dictionary) -> bool:
 		_migrate_lifetime_biome_size_to_v4(data)
 	if version < 5:
 		_migrate_lifetime_upgrade_levels_to_v5(data)
+	if version < 6:
+		_migrate_point_plan_to_sequences_v6(data)
 	data["version"] = SAVE_VERSION
 	return true
 
@@ -210,6 +212,34 @@ func _migrate_lifetime_upgrade_levels_to_v5(data: Dictionary) -> void:
 			total += int(levels[key])
 		levels[UpgradeSystem.LIFETIME_KEY] = total
 		game[bucket] = levels
+
+## Converts the old per-biome point plan, a list of {id, target} pairs, into the
+## recorded sequence that replaced it, where a repeated id is how a level above
+## one is expressed. A target of 0 meant "buy until maxed", which a sequence has
+## no way to say, so it becomes a single step: better to under-record the
+## player's intent than to spend points they never allocated.
+func _migrate_point_plan_to_sequences_v6(data: Dictionary) -> void:
+	if not data.has("game"):
+		return
+	var game: Dictionary = data["game"]
+	var automation: Dictionary = game.get("automation", {})
+	if not automation.has("point_plan"):
+		return
+	var plans: Dictionary = automation["point_plan"]
+	var sequences: Dictionary = automation.get("upgrade_sequences", {})
+	for biome_key in plans:
+		var steps: Array = []
+		for entry: Dictionary in plans[biome_key]:
+			var id: String = str(entry.get("id", ""))
+			if id.is_empty():
+				continue
+			for i in range(maxi(1, int(entry.get("target", 0)))):
+				steps.append(id)
+		if not steps.is_empty():
+			sequences[biome_key] = steps
+	automation["upgrade_sequences"] = sequences
+	automation.erase("point_plan")
+	game["automation"] = automation
 
 func _read(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):

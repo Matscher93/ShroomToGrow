@@ -14,15 +14,10 @@ extends PanelContainer
 @export var color_param: String
 @export var biome_key: StringName
 
-const GRID_COLUMNS := 5
-const SLOT_HEIGHT := 44
-const SLOT_INDEX_FONT_SIZE := 16
-const SLOT_LEVEL_FONT_SIZE := 10
-const SLOT_LEVEL_COLOR := Color(1, 1, 1, 0.6)
-const LOCKED_MODULATE := Color(1, 1, 1, 0.4)
+## Slot look and layout come from UpgradeSlotGrid, shared with the Crystal Caves
+## sequence sections so the two grids cannot drift apart.
 var _slot_group := ButtonGroup.new()
 var _slot_ids: Array[StringName] = []
-var _slot_level_labels: Array[Label] = []
 
 @export var level_icon: ColorRect
 @export var lbl_biome_name: Label
@@ -66,7 +61,7 @@ func _ready() -> void:
 
 	lbl_size_desc.text = "Scales size-dependent upgrades"
 
-	grid_upgrade_slots.columns = GRID_COLUMNS
+	grid_upgrade_slots.columns = UpgradeSlotGrid.COLUMNS
 
 	# Autoloads aren't instantiated for @tool scripts in the editor, and
 	# everything below needs the live game state from App.
@@ -88,73 +83,29 @@ func _spawn_grid_slots() -> void:
 		grid_upgrade_slots.remove_child(child)
 		child.queue_free()
 	_slot_ids = App.biome_upgrade_ids(biome_key)
-	_slot_level_labels.clear()
 	for i in range(_slot_ids.size()):
 		var id: StringName = _slot_ids[i]
-		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(0, SLOT_HEIGHT)
-		# The grid hands each column an equal share of the panel width, so the
-		# slots grow with the card instead of sitting in a clump on the left.
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var btn := UpgradeSlotGrid.create_slot(i)
+		# Here a slot is a selection rather than an action: exactly one is picked
+		# at a time, and it drives the detail card below the grid.
 		btn.toggle_mode = true
 		btn.button_group = _slot_group
-		btn.add_theme_stylebox_override("normal", _slot_style(Color(1, 1, 1, 0.08)))
-		btn.add_theme_stylebox_override("hover", _slot_style(Color(1, 1, 1, 0.16)))
-		btn.add_theme_stylebox_override("pressed", _slot_style(Color(1, 1, 1, 0.32)))
-		btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		btn.toggled.connect(func(on: bool) -> void:
 			if on:
 				_on_slot_selected(id))
-		btn.add_child(_slot_caption(i))
 		grid_upgrade_slots.add_child(btn)
 	if not _slot_ids.is_empty():
 		(grid_upgrade_slots.get_child(0) as Button).button_pressed = true
 		_on_slot_selected(_slot_ids[0])
 	_refresh_grid_slots()
 
-## The slot's own number stays the headline, with the level underneath in a
-## smaller, dimmer type so it reads as a subtitle rather than competing with it.
-## Button.text can only carry one style, hence the two stacked labels. They
-## ignore the mouse so the Button underneath still takes the press, and the
-## VBox stretches to the full rect since a Button is not a Container.
-func _slot_caption(index: int) -> Control:
-	var box := VBoxContainer.new()
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 0)
-
-	var lbl_index := Label.new()
-	lbl_index.text = str(index + 1)
-	lbl_index.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl_index.add_theme_font_size_override("font_size", SLOT_INDEX_FONT_SIZE)
-	box.add_child(lbl_index)
-
-	var lbl_level := Label.new()
-	lbl_level.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl_level.add_theme_font_size_override("font_size", SLOT_LEVEL_FONT_SIZE)
-	lbl_level.add_theme_color_override("font_color", SLOT_LEVEL_COLOR)
-	box.add_child(lbl_level)
-	_slot_level_labels.append(lbl_level)
-
-	return box
-
 func _refresh_grid_slots() -> void:
 	if _vm == null:
 		return
 	for i in range(_slot_ids.size()):
 		var btn := grid_upgrade_slots.get_child(i) as Button
-		_slot_level_labels[i].text = _vm.upgrade_slot_text(_slot_ids[i])
-		btn.modulate = Color.WHITE if _vm.is_upgrade_unlocked(_slot_ids[i]) else LOCKED_MODULATE
-
-func _slot_style(color: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
-	return style
+		UpgradeSlotGrid.set_level_text(btn, _vm.upgrade_slot_text(_slot_ids[i]))
+		UpgradeSlotGrid.set_locked(btn, not _vm.is_upgrade_unlocked(_slot_ids[i]))
 
 func _on_slot_selected(id: StringName) -> void:
 	upgrade_detail.select_upgrade(id, biome_key)

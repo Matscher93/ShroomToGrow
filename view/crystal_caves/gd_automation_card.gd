@@ -2,11 +2,9 @@ extends PanelContainer
 ## VIEW: one automation in the Crystal Caves shop. Bound to a persistent
 ## AutomationViewModel owned by App.
 ##
-## The SPEND_BIOME_POINTS card is the only one with a plan section under it; the
-## rest hide it. CrystalCavesPanel owns the plan rows themselves, because
-## reordering rebuilds the whole list and that is its job, not this card's.
-
-signal plan_section_requested(container: VBoxContainer)
+## What the point-spending automation actually buys lives in the per-biome
+## sequence sections further down the tab, not on this card: a sequence belongs
+## to its biome, and there is one card but several biomes.
 
 @export var lbl_name: Label
 @export var lbl_description: Label
@@ -15,8 +13,6 @@ signal plan_section_requested(container: VBoxContainer)
 @export var lbl_cost: Label
 @export var btn_buy: Button
 @export var btn_enabled: Button
-@export var plan_section: VBoxContainer
-@export var plan_container: VBoxContainer
 
 var _vm: AutomationViewModel
 
@@ -31,8 +27,6 @@ func bind(vm: AutomationViewModel) -> void:
 	_vm.property_changed.connect(_on_property_changed)
 	lbl_name.text = _vm.display_name
 	lbl_description.text = _vm.description
-	if _vm.edits_point_plan:
-		plan_section_requested.emit(plan_container)
 	refresh()
 
 func _exit_tree() -> void:
@@ -50,8 +44,6 @@ func refresh() -> void:
 	btn_buy.disabled = not _vm.can_buy
 	btn_enabled.visible = _vm.is_owned
 	btn_enabled.text = "On" if _vm.is_enabled else "Off"
-	# Only the point-spending card has a plan, and only once it can act on one.
-	plan_section.visible = _vm.edits_point_plan and _vm.is_owned
 
 func _on_buy_pressed() -> void:
 	_vm.buy()

@@ -1,0 +1,146 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/crystal_caves/gd_biome_sequence_section.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://view/crystal_caves/sc_sequence_row.tscn" id="2_sequence_row"]
+[ext_resource type="Shader" uid="uid://b2och7dhkl2si" path="res://shaders/icons/sh_expansion_arrow.gdshader" id="3_arrow"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_section"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.09019608, 0.13333334, 0.15294118, 0.55)
+border_width_left = 2
+border_color = Color(0.36078432, 0.78431374, 0.9019608, 0.5)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_arrow"]
+resource_local_to_scene = true
+shader = ExtResource("3_arrow")
+shader_parameter/radius = 0.5
+
+[node name="biome_sequence_section" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_summary", "lbl_status", "lbl_empty", "expansion_arrow", "btn_clear", "btn_step_amount", "pagination_row", "btn_page_back", "btn_page_forward", "lbl_page", "vbox_body", "vbox_steps", "grid_upgrade_slots")]
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_section")
+script = ExtResource("1_script")
+lbl_name = NodePath("VBoxContainer/header/lbl_name")
+lbl_summary = NodePath("VBoxContainer/header/lbl_summary")
+lbl_status = NodePath("VBoxContainer/vbox_body/lbl_status")
+lbl_empty = NodePath("VBoxContainer/vbox_body/lbl_empty")
+expansion_arrow = NodePath("VBoxContainer/header/image_expansion_indicator")
+btn_clear = NodePath("VBoxContainer/vbox_body/actions/btn_clear")
+btn_step_amount = NodePath("VBoxContainer/vbox_body/amount_row/btn_step_amount")
+pagination_row = NodePath("VBoxContainer/vbox_body/pagination_row")
+btn_page_back = NodePath("VBoxContainer/vbox_body/pagination_row/btn_page_back")
+btn_page_forward = NodePath("VBoxContainer/vbox_body/pagination_row/btn_page_forward")
+lbl_page = NodePath("VBoxContainer/vbox_body/pagination_row/lbl_page")
+vbox_body = NodePath("VBoxContainer/vbox_body")
+vbox_steps = NodePath("VBoxContainer/vbox_body/vbox_steps")
+grid_upgrade_slots = NodePath("VBoxContainer/vbox_body/grid_upgrade_slots")
+sequence_row_scene = ExtResource("2_sequence_row")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="header" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="lbl_name" type="Label" parent="VBoxContainer/header"]
+layout_mode = 2
+text = "Biome"
+
+[node name="lbl_summary" type="Label" parent="VBoxContainer/header"]
+modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "No sequence yet"
+
+[node name="image_expansion_indicator" type="ColorRect" parent="VBoxContainer/header"]
+material = SubResource("ShaderMaterial_arrow")
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+offset_transform_enabled = true
+offset_transform_pivot = Vector2(0.5, 0.5)
+mouse_filter = 2
+
+[node name="vbox_body" type="VBoxContainer" parent="VBoxContainer"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="lbl_status" type="Label" parent="VBoxContainer/vbox_body"]
+modulate = Color(0.7607843, 0.94509804, 0.98039216, 1)
+layout_mode = 2
+text = ""
+
+[node name="amount_row" type="HBoxContainer" parent="VBoxContainer/vbox_body"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="lbl_amount" type="Label" parent="VBoxContainer/vbox_body/amount_row"]
+modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Levels per tap"
+
+[node name="btn_step_amount" type="Button" parent="VBoxContainer/vbox_body/amount_row"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+tooltip_text = "How many levels one slot tap records"
+text = "x1"
+
+[node name="grid_upgrade_slots" type="GridContainer" parent="VBoxContainer/vbox_body"]
+layout_mode = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 5
+
+[node name="lbl_empty" type="Label" parent="VBoxContainer/vbox_body"]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 2
+text = "Tap a slot above to append it. Tap the same one twice to take it to level 2. Later slots unlock as the sequence spends more points."
+autowrap_mode = 3
+
+[node name="vbox_steps" type="VBoxContainer" parent="VBoxContainer/vbox_body"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="pagination_row" type="HBoxContainer" parent="VBoxContainer/vbox_body"]
+visible = false
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="btn_page_back" type="Button" parent="VBoxContainer/vbox_body/pagination_row"]
+layout_mode = 2
+text = "<"
+
+[node name="lbl_page" type="Label" parent="VBoxContainer/vbox_body/pagination_row"]
+modulate = Color(1, 1, 1, 0.65)
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+text = "1 / 1"
+horizontal_alignment = 1
+
+[node name="btn_page_forward" type="Button" parent="VBoxContainer/vbox_body/pagination_row"]
+layout_mode = 2
+text = ">"
+
+[node name="actions" type="HBoxContainer" parent="VBoxContainer/vbox_body"]
+layout_mode = 2
+alignment = 2
+
+[node name="btn_clear" type="Button" parent="VBoxContainer/vbox_body/actions"]
+layout_mode = 2
+disabled = true
+text = "Clear"

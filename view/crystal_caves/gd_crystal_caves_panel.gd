@@ -20,15 +20,13 @@ const TAB_UPGRADES := 1
 @export var btn_claim_all: Button
 @export var tab_container: TabContainer
 @export var vbox_automations: VBoxContainer
+@export var vbox_sequences: VBoxContainer
 @export var vbox_achievements: VBoxContainer
 @export var automation_card_scene: PackedScene
 @export var achievement_row_scene: PackedScene
-@export var plan_row_scene: PackedScene
+@export var biome_sequence_scene: PackedScene
 
 var _vm: CrystalCavesViewModel
-## Set by the point-spending card when it is built, so a plan rebuild knows where
-## to put the rows. Null until then.
-var _plan_container: VBoxContainer = null
 
 func _ready() -> void:
 	# Autoloads aren't instantiated for @tool scripts in the editor, so the
@@ -39,8 +37,8 @@ func _ready() -> void:
 	btn_claim_all.pressed.connect(_on_claim_all_pressed)
 	bind(App.crystal_caves_vm)
 	_build_automations()
+	_build_sequences()
 	_build_achievements()
-	_rebuild_plan()
 
 func bind(vm: CrystalCavesViewModel) -> void:
 	if _vm:
@@ -59,8 +57,6 @@ func _on_property_changed(property: StringName) -> void:
 		CrystalCavesViewModel.PROP_CRYSTALS_TEXT, CrystalCavesViewModel.PROP_TIERS_TEXT, \
 		CrystalCavesViewModel.PROP_CLAIM_ALL:
 			_refresh_header()
-		CrystalCavesViewModel.PROP_PLAN_CHANGED:
-			_rebuild_plan()
 
 func _refresh_header() -> void:
 	lbl_crystals.text = _vm.crystals_text
@@ -78,8 +74,17 @@ func _build_automations() -> void:
 	for vm in _vm.automation_vms_ordered:
 		var card := automation_card_scene.instantiate()
 		vbox_automations.add_child(card)
-		card.plan_section_requested.connect(_on_plan_section_requested)
 		card.bind(vm)
+
+## One section per unlocked biome, each owning the sequence the point-spending
+## automation replays for it. Built once: the screen is respawned on every tab
+## switch, so a biome unlocked elsewhere shows up on the way back in.
+func _build_sequences() -> void:
+	_clear(vbox_sequences)
+	for vm in _vm.sequence_vms():
+		var section := biome_sequence_scene.instantiate()
+		vbox_sequences.add_child(section)
+		section.bind(vm)
 
 func _build_achievements() -> void:
 	_clear(vbox_achievements)
@@ -87,38 +92,6 @@ func _build_achievements() -> void:
 		var row := achievement_row_scene.instantiate()
 		vbox_achievements.add_child(row)
 		row.bind(vm)
-
-func _on_plan_section_requested(container: VBoxContainer) -> void:
-	_plan_container = container
-
-## Rebuilt wholesale rather than reordered in place: the rows carry their index,
-## so moving one shifts every index below it anyway.
-func _rebuild_plan() -> void:
-	if _plan_container == null:
-		return
-	_clear(_plan_container)
-	for biome_def in _vm.planned_biomes():
-		var heading := Label.new()
-		heading.text = biome_def.display_name
-		_plan_container.add_child(heading)
-
-		var rows := _vm.plan_rows(biome_def.key)
-		for i in range(rows.size()):
-			var row := plan_row_scene.instantiate()
-			_plan_container.add_child(row)
-			row.set_row(i, rows[i], i == 0, i == rows.size() - 1)
-			row.move_up_pressed.connect(_on_move_up.bind(biome_def.key))
-			row.move_down_pressed.connect(_on_move_down.bind(biome_def.key))
-			row.target_pressed.connect(_on_cycle_target.bind(biome_def.key))
-
-func _on_move_up(index: int, biome_key: StringName) -> void:
-	_vm.move_plan_entry_up(biome_key, index)
-
-func _on_move_down(index: int, biome_key: StringName) -> void:
-	_vm.move_plan_entry_down(biome_key, index)
-
-func _on_cycle_target(index: int, biome_key: StringName) -> void:
-	_vm.cycle_plan_target(biome_key, index)
 
 func _clear(container: Container) -> void:
 	for child in container.get_children():

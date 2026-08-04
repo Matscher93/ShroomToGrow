@@ -355,21 +355,22 @@ func _grant_points(biome_key: StringName, points: int) -> void:
 	_prestige.register(upgrade)
 	_prestige.buy_with_points(&"PointGrant", true)
 
-func test_spending_points_follows_the_plan_order() -> void:
-	_register_biome_upgrades()
-	var meadow := _biome_system.biome_def(&"meadow")
-	# Reversed, so buying the authored-first upgrade would mean the plan was
-	# ignored. Only entries needing 0 points spent are reachable from a standing
-	# start, so the reversal is applied within that reachable set.
+## The meadow upgrades reachable from a standing start, i.e. gated behind zero
+## points spent. Anything else cannot be the first step of a sequence.
+func _reachable_meadow_ids() -> Array[StringName]:
 	var reachable: Array[StringName] = []
-	for id in meadow.upgrade_ids:
+	for id in _biome_system.biome_def(&"meadow").upgrade_ids:
 		if _biome_upgrades.def(id).min_biome_points_spent == 0:
 			reachable.append(id)
+	return reachable
+
+func test_replaying_follows_the_recorded_order() -> void:
+	_register_biome_upgrades()
+	var reachable := _reachable_meadow_ids()
 	assert_int(reachable.size()).is_greater(1)
-	var plan: Array = []
-	for i in range(reachable.size() - 1, -1, -1):
-		plan.append({"id": reachable[i], "target": 0})
-	_data.point_plan[&"meadow"] = plan
+	# Reversed against the authored grid order, so buying the grid-first upgrade
+	# would mean the sequence was ignored.
+	_data.upgrade_sequences[&"meadow"] = [reachable[reachable.size() - 1], reachable[0]]
 
 	_grant_points(&"meadow", 1)
 	var system := _system(_def(AutomationDef.Kind.SPEND_BIOME_POINTS))
@@ -379,15 +380,12 @@ func test_spending_points_follows_the_plan_order() -> void:
 	assert_int(_biome_upgrades.level(reachable[reachable.size() - 1])).is_equal(1)
 	assert_int(_biome_upgrades.level(reachable[0])).is_zero()
 
-func test_spending_points_stops_an_entry_at_its_target_level() -> void:
+func test_a_repeated_step_is_how_a_sequence_asks_for_a_second_level() -> void:
 	_register_biome_upgrades()
-	var meadow := _biome_system.biome_def(&"meadow")
-	var first := meadow.upgrade_ids[0]
-	var second := meadow.upgrade_ids[1]
-	_data.point_plan[&"meadow"] = [
-		{"id": first, "target": 2},
-		{"id": second, "target": 0},
-	]
+	var reachable := _reachable_meadow_ids()
+	var first := reachable[0]
+	var second := reachable[1]
+	_data.upgrade_sequences[&"meadow"] = [first, first, second]
 
 	_grant_points(&"meadow", 5)
 	var system := _system(_def(AutomationDef.Kind.SPEND_BIOME_POINTS))
@@ -398,48 +396,137 @@ func test_spending_points_stops_an_entry_at_its_target_level() -> void:
 	assert_int(_biome_upgrades.level(first)).is_equal(2)
 	assert_int(_biome_upgrades.level(second)).is_equal(1)
 
+func test_a_finished_sequence_buys_nothing_more() -> void:
+	_register_biome_upgrades()
+	var first := _reachable_meadow_ids()[0]
+	_data.upgrade_sequences[&"meadow"] = [first]
+
+	_grant_points(&"meadow", 5)
+	var system := _system(_def(AutomationDef.Kind.SPEND_BIOME_POINTS))
+	_data.add_level(&"test_automation")
+	assert_bool(system.run(&"test_automation")).is_true()
+
+	assert_bool(system.run(&"test_automation")).is_false()
+	assert_int(_biome_upgrades.level(first)).is_equal(1)
+
+func test_a_biome_with_no_sequence_is_left_alone() -> void:
+	# Nothing was asked for, so nothing is bought. Falling back to grid order
+	# would spend the player's points on a build they never picked.
+	_register_biome_upgrades()
+	_grant_points(&"meadow", 5)
+	var system := _system(_def(AutomationDef.Kind.SPEND_BIOME_POINTS))
+	_data.add_level(&"test_automation")
+
+	assert_bool(system.run(&"test_automation")).is_false()
+	assert_int(_biomes_data.points_spent(&"meadow")).is_zero()
+
+func test_replay_resumes_from_the_start_after_a_prestige() -> void:
+	# The whole point of counting rather than storing a cursor: a reset puts
+	# every level back to zero, and the same walk rebuilds the same order.
+	_register_biome_upgrades()
+	var first := _reachable_meadow_ids()[0]
+	_data.upgrade_sequences[&"meadow"] = [first, first]
+
+	_grant_points(&"meadow", 9)
+	var system := _system(_def(AutomationDef.Kind.SPEND_BIOME_POINTS))
+	_data.add_level(&"test_automation")
+	system.run(&"test_automation")
+	system.run(&"test_automation")
+	assert_int(_biome_upgrades.level(first)).is_equal(2)
+
+	_biome_upgrades.reset()
+	_biome_system.reset()
+	_grant_points(&"meadow", 9)
+
+	assert_bool(system.run(&"test_automation")).is_true()
+	assert_int(_biome_upgrades.level(first)).is_equal(1)
+
+func test_a_step_that_is_gated_is_stepped_over_not_waited_on() -> void:
+	# Waiting would deadlock: the gate is opened by spending points, and the
+	# later step is the only thing left that can spend them.
+	_register_biome_upgrades()
+	var meadow := _biome_system.biome_def(&"meadow")
+	var gated := &""
+	for id in meadow.upgrade_ids:
+		if _biome_upgrades.def(id).min_biome_points_spent > 0:
+			gated = id
+			break
+	assert_str(String(gated)).is_not_empty()
+	var reachable := _reachable_meadow_ids()[0]
+	_data.upgrade_sequences[&"meadow"] = [gated, reachable]
+
+	_grant_points(&"meadow", 1)
+	var system := _system(_def(AutomationDef.Kind.SPEND_BIOME_POINTS))
+	_data.add_level(&"test_automation")
+
+	assert_bool(system.run(&"test_automation")).is_true()
+	assert_int(_biome_upgrades.level(reachable)).is_equal(1)
+
 func test_spending_points_reports_nothing_done_without_points() -> void:
 	_register_biome_upgrades()
+	_data.upgrade_sequences[&"meadow"] = [_reachable_meadow_ids()[0]]
 	var system := _system(_def(AutomationDef.Kind.SPEND_BIOME_POINTS))
 	_data.add_level(&"test_automation")
 	assert_bool(system.run(&"test_automation")).is_false()
 
-# ─── The point plan itself ───────────────────────────────────────────────────
+# ─── The sequence itself ─────────────────────────────────────────────────────
 
-func test_a_plan_is_seeded_from_the_biomes_grid_order() -> void:
+func test_a_biome_starts_with_no_sequence() -> void:
 	var meadow := _biome_system.biome_def(&"meadow")
-	var plan := _data.plan_for(&"meadow", meadow.upgrade_ids)
-	assert_int(plan.size()).is_equal(meadow.upgrade_ids.size())
-	for i in range(plan.size()):
-		assert_str(String(plan[i]["id"])).is_equal(String(meadow.upgrade_ids[i]))
-		assert_int(plan[i]["target"]).is_zero()
+	assert_array(_data.sequence_for(&"meadow", meadow.upgrade_ids)).is_empty()
 
-func test_a_stored_plan_reconciles_with_the_biomes_current_upgrades() -> void:
-	# A saved plan naming an upgrade that no longer exists must not strand the
-	# automation, and an upgrade added since has to become reachable.
+func test_appending_records_a_step_per_tap() -> void:
 	var meadow := _biome_system.biome_def(&"meadow")
-	_data.point_plan[&"meadow"] = [
-		{"id": &"GoneForever", "target": 3},
-		{"id": meadow.upgrade_ids[2], "target": 1},
-	]
-	var plan := _data.plan_for(&"meadow", meadow.upgrade_ids)
+	var first := meadow.upgrade_ids[0]
+	_data.append_to_sequence(&"meadow", first)
+	_data.append_to_sequence(&"meadow", first)
 
-	assert_int(plan.size()).is_equal(meadow.upgrade_ids.size())
-	assert_str(String(plan[0]["id"])).is_equal(String(meadow.upgrade_ids[2]))
-	assert_int(plan[0]["target"]).is_equal(1)
-	for entry: Dictionary in plan:
-		assert_bool(meadow.upgrade_ids.has(StringName(entry["id"]))).is_true()
+	var sequence := _data.sequence_for(&"meadow", meadow.upgrade_ids)
+	assert_int(sequence.size()).is_equal(2)
+	assert_str(String(sequence[0])).is_equal(String(first))
 
-func test_moving_an_entry_reorders_the_plan() -> void:
+func test_a_stored_sequence_drops_upgrades_the_biome_no_longer_has() -> void:
+	# A renamed or deleted UpgradeDef must not leave a step the automation can
+	# never satisfy, which would stall everything behind it.
 	var meadow := _biome_system.biome_def(&"meadow")
-	_data.plan_for(&"meadow", meadow.upgrade_ids)
-	var second: StringName = _data.point_plan[&"meadow"][1]["id"]
+	_data.upgrade_sequences[&"meadow"] = [&"GoneForever", meadow.upgrade_ids[2]]
 
-	assert_bool(_data.move_entry(&"meadow", 1, 0)).is_true()
-	assert_str(String(_data.point_plan[&"meadow"][0]["id"])).is_equal(String(second))
+	var sequence := _data.sequence_for(&"meadow", meadow.upgrade_ids)
+
+	assert_int(sequence.size()).is_equal(1)
+	assert_str(String(sequence[0])).is_equal(String(meadow.upgrade_ids[2]))
+
+func test_a_new_upgrade_is_not_added_to_an_existing_sequence() -> void:
+	# The sequence is the player's. Silently appending would spend their points
+	# on something they never picked.
+	var meadow := _biome_system.biome_def(&"meadow")
+	_data.upgrade_sequences[&"meadow"] = [meadow.upgrade_ids[0]]
+
+	assert_int(_data.sequence_for(&"meadow", meadow.upgrade_ids).size()).is_equal(1)
+
+func test_moving_a_step_reorders_the_sequence() -> void:
+	var meadow := _biome_system.biome_def(&"meadow")
+	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[0])
+	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[1])
+
+	assert_bool(_data.move_sequence_entry(&"meadow", 1, 0)).is_true()
+	assert_str(String(_data.upgrade_sequences[&"meadow"][0])) \
+		.is_equal(String(meadow.upgrade_ids[1]))
 
 func test_moving_off_either_end_is_refused() -> void:
 	var meadow := _biome_system.biome_def(&"meadow")
-	_data.plan_for(&"meadow", meadow.upgrade_ids)
-	assert_bool(_data.move_entry(&"meadow", 0, -1)).is_false()
-	assert_bool(_data.move_entry(&"meadow", 9, 10)).is_false()
+	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[0])
+	assert_bool(_data.move_sequence_entry(&"meadow", 0, -1)).is_false()
+	assert_bool(_data.move_sequence_entry(&"meadow", 0, 1)).is_false()
+
+func test_removing_and_clearing_steps() -> void:
+	var meadow := _biome_system.biome_def(&"meadow")
+	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[0])
+	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[1])
+
+	assert_bool(_data.remove_from_sequence(&"meadow", 0)).is_true()
+	assert_int(_data.upgrade_sequences[&"meadow"].size()).is_equal(1)
+	assert_bool(_data.remove_from_sequence(&"meadow", 5)).is_false()
+
+	_data.clear_sequence(&"meadow")
+	assert_array(_data.upgrade_sequences[&"meadow"]).is_empty()

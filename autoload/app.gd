@@ -53,6 +53,7 @@ var automations := load("res://data/automation/all_automations.tres") as Automat
 var automation_data: AutomationData
 var automation_system: AutomationSystem
 var automation_vms: Dictionary = {}  # StringName -> AutomationViewModel
+var biome_sequence_vms: Dictionary = {}  # StringName (biome key) -> BiomeSequenceViewModel
 var crystal_caves_vm: CrystalCavesViewModel
 
 ## Cleared by SaveManager for the duration of the offline catch-up. Automations
@@ -132,6 +133,8 @@ func _ready() -> void:
 		achievement_vms[def.id] = AchievementViewModel.new(def)
 	for def in automations.automations:
 		automation_vms[def.id] = AutomationViewModel.new(def)
+	for def in biomes.biomes:
+		biome_sequence_vms[def.key] = BiomeSequenceViewModel.new(def.key, def)
 	crystal_caves_vm = CrystalCavesViewModel.new()
 
 	screens_data = ScreensData.new(screens.screens, screens.initial_screen)

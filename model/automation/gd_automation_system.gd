@@ -16,6 +16,11 @@ signal biome_size_bought(key: StringName)
 ## player's back what the UI is still hiding.
 const SYNERGY_GATE_BIOME := &"forest"
 
+## The automation that replays recorded biome sequences. Named here so the
+## Crystal Caves biome sections can say whether replay is actually running,
+## rather than each of them hard-coding the id.
+const SEQUENCE_AUTOMATION_ID := &"AutoSpendPoints"
+
 ## Ceiling on actions one automation may take in a single tick. Stacked
 ## &"automation_rate" bonuses have no cap of their own, and each action walks
 ## every node tier or biome, so an uncapped rate would stall the frame.
@@ -206,20 +211,40 @@ func _buy_symbiosis() -> bool:
 		return false
 	return _symbiosis.buy(best_id, _player_data)
 
-## Walks each unlocked biome's point plan top-down and buys the first entry that
-## is still below its target level. The plan order is the player's, set in the
-## Crystal Caves screen, so this must not reorder or skip ahead.
+## Replays each unlocked biome's recorded sequence by one step. A biome with no
+## sequence is skipped: nothing was asked for, so nothing is bought.
 func _spend_biome_points() -> bool:
 	for def in _biomes.biomes:
 		if not _biomes_data.is_unlocked(def.key):
 			continue
-		for entry: Dictionary in _data.plan_for(def.key, def.upgrade_ids):
-			var id := StringName(entry.get("id", &""))
-			var target := int(entry.get("target", 0))
-			if target > 0 and _biome_system.upgrade_level(id) >= target:
-				continue
-			if not _biome_system.can_buy_upgrade(id, def.key):
-				continue
-			if _biome_system.buy_upgrade(id, def.key):
-				return true
+		var id := next_sequence_step(def)
+		if id.is_empty():
+			continue
+		if _biome_system.buy_upgrade(id, def.key):
+			return true
 	return false
+
+## The next step of a biome's sequence that is still outstanding and affordable,
+## or empty when the sequence is finished, unrecorded, or entirely blocked.
+##
+## Outstanding is decided by counting: walking the sequence and tallying how many
+## times each id has appeared so far, a step is already done once that tally is
+## within the upgrade's current level. That is what makes replaying a sequence
+## the same operation as running it the first time - after a prestige every level
+## is back to zero, so the same walk rebuilds the same build order from the
+## start, with no cursor to store or reset.
+##
+## A step that is outstanding but not currently buyable (its point gate is not
+## met yet, or there are no points) is stepped over rather than waited on.
+## Waiting would deadlock the common case where a later, cheaper step is what
+## unlocks the gate the earlier one is behind.
+func next_sequence_step(def: BiomeDef) -> StringName:
+	var seen := {}
+	for id: StringName in _data.sequence_for(def.key, def.upgrade_ids):
+		var count: int = seen.get(id, 0) + 1
+		seen[id] = count
+		if count <= _biome_system.upgrade_level(id):
+			continue  # this step is already bought
+		if _biome_system.can_buy_upgrade(id, def.key):
+			return id
+	return &""

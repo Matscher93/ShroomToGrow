@@ -1,8 +1,8 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://view/crystal_caves/gd_plan_row.gd" id="1_script"]
+[ext_resource type="Script" path="res://view/crystal_caves/gd_sequence_row.gd" id="1_script"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_plan_row"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sequence_row"]
 content_margin_left = 8.0
 content_margin_top = 4.0
 content_margin_right = 8.0
@@ -13,33 +13,29 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[node name="plan_row" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_level", "btn_target", "btn_up", "btn_down")]
-theme_override_styles/panel = SubResource("StyleBoxFlat_plan_row")
+[node name="sequence_row" type="PanelContainer" node_paths=PackedStringArray("lbl_step", "lbl_name", "btn_up", "btn_down", "btn_remove")]
+theme_override_styles/panel = SubResource("StyleBoxFlat_sequence_row")
 script = ExtResource("1_script")
+lbl_step = NodePath("HBoxContainer/lbl_step")
 lbl_name = NodePath("HBoxContainer/lbl_name")
-lbl_level = NodePath("HBoxContainer/lbl_level")
-btn_target = NodePath("HBoxContainer/btn_target")
 btn_up = NodePath("HBoxContainer/btn_up")
 btn_down = NodePath("HBoxContainer/btn_down")
+btn_remove = NodePath("HBoxContainer/btn_remove")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 2
 theme_override_constants/separation = 6
+
+[node name="lbl_step" type="Label" parent="HBoxContainer"]
+modulate = Color(1, 1, 1, 0.6)
+layout_mode = 2
+text = "1."
 
 [node name="lbl_name" type="Label" parent="HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Upgrade"
 text_overrun_behavior = 3
-
-[node name="lbl_level" type="Label" parent="HBoxContainer"]
-layout_mode = 2
-text = "Lv 0"
-
-[node name="btn_target" type="Button" parent="HBoxContainer"]
-layout_mode = 2
-tooltip_text = "How far this upgrade is bought before the next one starts."
-text = "any"
 
 [node name="btn_up" type="Button" parent="HBoxContainer"]
 layout_mode = 2
@@ -48,3 +44,7 @@ text = "^"
 [node name="btn_down" type="Button" parent="HBoxContainer"]
 layout_mode = 2
 text = "v"
+
+[node name="btn_remove" type="Button" parent="HBoxContainer"]
+layout_mode = 2
+text = "x"

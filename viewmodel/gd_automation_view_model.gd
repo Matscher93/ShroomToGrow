@@ -29,10 +29,6 @@ var description: String:
 var sort_order: int:
 	get: return _def.sort_order
 
-## The one card that expands into a point-plan editor.
-var edits_point_plan: bool:
-	get: return _def.kind == AutomationDef.Kind.SPEND_BIOME_POINTS
-
 # --- Read-only display properties bound by the View ---
 var level_text: String:
 	get:

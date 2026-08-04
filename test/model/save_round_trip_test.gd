@@ -238,6 +238,41 @@ func test_v5_migration_tolerates_a_save_with_no_upgrades() -> void:
 	assert_bool(SaveManager._migrate(data)).is_true()
 	assert_bool(data["game"].has("upgrades")).is_false()
 
+func test_v6_migration_expands_a_point_plan_into_a_sequence() -> void:
+	# A target of n becomes n steps, which is how a sequence expresses levels.
+	var data := {
+		"version": 5,
+		"game": {"automation": {"point_plan": {"meadow": [
+			{"id": "DenseMycelium", "target": 2},
+			{"id": "RootNetwork", "target": 1},
+		]}}},
+	}
+
+	assert_bool(SaveManager._migrate(data)).is_true()
+
+	var automation: Dictionary = data["game"]["automation"]
+	assert_array(automation["upgrade_sequences"]["meadow"]) \
+		.is_equal(["DenseMycelium", "DenseMycelium", "RootNetwork"])
+	assert_bool(automation.has("point_plan")).is_false()
+
+func test_v6_migration_reads_buy_until_maxed_as_a_single_step() -> void:
+	# A sequence has no way to say "until maxed", and under-recording the intent
+	# beats spending points the player never allocated.
+	var data := {
+		"version": 5,
+		"game": {"automation": {"point_plan": {"meadow": [{"id": "DenseMycelium", "target": 0}]}}},
+	}
+
+	assert_bool(SaveManager._migrate(data)).is_true()
+
+	assert_array(data["game"]["automation"]["upgrade_sequences"]["meadow"]) \
+		.is_equal(["DenseMycelium"])
+
+func test_v6_migration_tolerates_a_save_with_no_automation() -> void:
+	var data := {"version": 5, "game": {}}
+	assert_bool(SaveManager._migrate(data)).is_true()
+	assert_bool(data["game"].has("automation")).is_false()
+
 # ─── AchievementProgress ─────────────────────────────────────────────────────
 
 func test_achievement_progress_round_trip() -> void:
@@ -297,35 +332,31 @@ func test_automation_data_round_trip() -> void:
 	original.add_level(&"AutoBuyNodes")
 	original.add_level(&"AutoBuyNodes")
 	original.set_enabled(&"AutoBuyNodes", false)
-	original.point_plan[&"meadow"] = [
-		{"id": &"ForestUpgrade2", "target": 3},
-		{"id": &"DenseMycelium", "target": 0},
-	]
+	original.append_to_sequence(&"meadow", &"ForestUpgrade2")
+	original.append_to_sequence(&"meadow", &"ForestUpgrade2")
+	original.append_to_sequence(&"meadow", &"DenseMycelium")
 
 	var restored := AutomationData.from_save(original.to_save())
 
 	assert_int(restored.level(&"AutoBuyNodes")).is_equal(2)
 	assert_bool(restored.is_enabled(&"AutoBuyNodes")).is_false()
-	var plan: Array = restored.point_plan[&"meadow"]
-	assert_int(plan.size()).is_equal(2)
-	assert_str(String(plan[0]["id"])).is_equal("ForestUpgrade2")
-	assert_int(plan[0]["target"]).is_equal(3)
+	var sequence: Array = restored.upgrade_sequences[&"meadow"]
+	assert_int(sequence.size()).is_equal(3)
+	assert_str(String(sequence[0])).is_equal("ForestUpgrade2")
+	assert_str(String(sequence[2])).is_equal("DenseMycelium")
 
-func test_automation_data_keeps_the_plan_order_through_a_save() -> void:
-	# The order is the whole point of the plan, and a Dictionary round trip is
+func test_automation_data_keeps_the_sequence_order_through_a_save() -> void:
+	# The order is the whole point of a sequence, and a Dictionary round trip is
 	# exactly where it could quietly become alphabetical.
 	var original := AutomationData.new()
-	original.point_plan[&"meadow"] = [
-		{"id": &"zzz", "target": 0},
-		{"id": &"aaa", "target": 0},
-		{"id": &"mmm", "target": 0},
-	]
+	for id in [&"zzz", &"aaa", &"mmm"]:
+		original.append_to_sequence(&"meadow", id)
 
 	var restored := AutomationData.from_save(original.to_save())
 
 	var ids: Array[String] = []
-	for entry: Dictionary in restored.point_plan[&"meadow"]:
-		ids.append(String(entry["id"]))
+	for id: StringName in restored.upgrade_sequences[&"meadow"]:
+		ids.append(String(id))
 	assert_array(ids).is_equal(["zzz", "aaa", "mmm"])
 
 func test_automation_data_tolerates_an_empty_save() -> void:

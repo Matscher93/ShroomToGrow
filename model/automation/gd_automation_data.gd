@@ -9,14 +9,22 @@ extends RefCounted
 
 signal levels_changed
 signal enabled_changed(id: StringName)
-signal point_plan_changed(biome_key: StringName)
+signal sequence_changed(biome_key: StringName)
 
 var levels: Dictionary = {}      # StringName -> int
 var enabled: Dictionary = {}     # StringName -> bool
-## StringName (biome key) -> Array[Dictionary], each {"id": StringName, "target": int}.
-## Order is the order the automation buys in; target 0 means "until maxed".
-## Seeded lazily from the biome's authored upgrade_ids, see plan_for().
-var point_plan: Dictionary = {}
+
+## StringName (biome key) -> Array[StringName], the upgrade ids in the order the
+## point-spending automation should buy them.
+##
+## Repeats are how levels are expressed: [A, A, B] means "take A to level 2,
+## then B to level 1". That makes a sequence a build order rather than a set of
+## targets, and makes replaying one after a prestige the same operation as
+## running it the first time - see AutomationSystem's next_sequence_step().
+##
+## Empty by default. A biome with no sequence is simply skipped, rather than
+## falling back to grid order and buying something the player never asked for.
+var upgrade_sequences: Dictionary = {}
 
 func level(id: StringName) -> int:
 	return levels.get(id, 0)
@@ -35,50 +43,59 @@ func set_enabled(id: StringName, value: bool) -> void:
 	enabled[id] = value
 	enabled_changed.emit(id)
 
-# ---------------------------------------------------------------- point plan
+# ---------------------------------------------------------------- sequences
 
-## The plan for one biome, seeded from `authored_ids` (the biome's grid order) the
-## first time it is asked for. Reconciled on every read so an upgrade added to or
-## removed from a biome later doesn't strand a saved plan: unknown ids drop out,
-## new ones are appended in grid order.
-func plan_for(biome_key: StringName, authored_ids: Array[StringName]) -> Array:
-	var stored: Array = point_plan.get(biome_key, [])
-	var by_id := {}
-	for entry: Dictionary in stored:
-		by_id[StringName(entry.get("id", &""))] = entry
-
-	var reconciled: Array = []
-	for entry: Dictionary in stored:
-		if authored_ids.has(StringName(entry.get("id", &""))):
-			reconciled.append(entry)
-	for id in authored_ids:
-		if not by_id.has(id):
-			reconciled.append({"id": id, "target": 0})
-
-	point_plan[biome_key] = reconciled
+## One biome's sequence, reconciled against `authored_ids` on every read so an
+## upgrade renamed or dropped from a biome cannot strand a saved sequence. New
+## upgrades are *not* appended: the sequence is the player's, and silently
+## adding steps to it would spend their points on something they never picked.
+func sequence_for(biome_key: StringName, authored_ids: Array[StringName]) -> Array[StringName]:
+	var reconciled: Array[StringName] = []
+	for id: StringName in upgrade_sequences.get(biome_key, [] as Array[StringName]):
+		if authored_ids.has(id):
+			reconciled.append(id)
+	upgrade_sequences[biome_key] = reconciled
 	return reconciled
 
-func move_entry(biome_key: StringName, from_index: int, to_index: int) -> bool:
-	var plan: Array = point_plan.get(biome_key, [])
-	if from_index < 0 or from_index >= plan.size():
+func _sequence(biome_key: StringName) -> Array[StringName]:
+	if not upgrade_sequences.has(biome_key):
+		upgrade_sequences[biome_key] = [] as Array[StringName]
+	return upgrade_sequences[biome_key]
+
+## Appends `count` steps of the same upgrade, emitting once rather than once per
+## step: a single tap can add ten at a time, and a signal per step would rebuild
+## the whole list ten times over.
+func append_to_sequence(biome_key: StringName, id: StringName, count: int = 1) -> void:
+	if count <= 0:
+		return
+	var sequence := _sequence(biome_key)
+	for i in range(count):
+		sequence.append(id)
+	sequence_changed.emit(biome_key)
+
+func remove_from_sequence(biome_key: StringName, index: int) -> bool:
+	var sequence := _sequence(biome_key)
+	if index < 0 or index >= sequence.size():
 		return false
-	if to_index < 0 or to_index >= plan.size() or to_index == from_index:
-		return false
-	var entry: Dictionary = plan[from_index]
-	plan.remove_at(from_index)
-	plan.insert(to_index, entry)
-	point_plan[biome_key] = plan
-	point_plan_changed.emit(biome_key)
+	sequence.remove_at(index)
+	sequence_changed.emit(biome_key)
 	return true
 
-func set_target_level(biome_key: StringName, index: int, target: int) -> bool:
-	var plan: Array = point_plan.get(biome_key, [])
-	if index < 0 or index >= plan.size():
+func move_sequence_entry(biome_key: StringName, from_index: int, to_index: int) -> bool:
+	var sequence := _sequence(biome_key)
+	if from_index < 0 or from_index >= sequence.size():
 		return false
-	var entry: Dictionary = plan[index]
-	entry["target"] = max(0, target)
-	point_plan_changed.emit(biome_key)
+	if to_index < 0 or to_index >= sequence.size() or to_index == from_index:
+		return false
+	var id := sequence[from_index]
+	sequence.remove_at(from_index)
+	sequence.insert(to_index, id)
+	sequence_changed.emit(biome_key)
 	return true
+
+func clear_sequence(biome_key: StringName) -> void:
+	upgrade_sequences[biome_key] = [] as Array[StringName]
+	sequence_changed.emit(biome_key)
 
 # ---------------------------------------------------------------- save
 
@@ -90,35 +107,33 @@ func to_save() -> Dictionary:
 	var enabled_out := {}
 	for id in enabled:
 		enabled_out[String(id)] = bool(enabled[id])
-	var plan_out := {}
-	for biome_key in point_plan:
-		var entries: Array = []
-		for entry: Dictionary in point_plan[biome_key]:
-			entries.append({"id": String(entry.get("id", &"")), "target": int(entry.get("target", 0))})
-		plan_out[String(biome_key)] = entries
-	return {"levels": levels_out, "enabled": enabled_out, "point_plan": plan_out}
+	var sequences_out := {}
+	for biome_key in upgrade_sequences:
+		var steps: Array = []
+		for id: StringName in upgrade_sequences[biome_key]:
+			steps.append(String(id))
+		if not steps.is_empty():
+			sequences_out[String(biome_key)] = steps
+	return {"levels": levels_out, "enabled": enabled_out, "upgrade_sequences": sequences_out}
 
 ## Applies a save dict onto this instance in place, so AutomationSystem's
 ## reference stays valid. Same reason PlayerData.load_from_save exists.
 func load_from_save(d: Dictionary) -> void:
 	levels.clear()
 	enabled.clear()
-	point_plan.clear()
+	upgrade_sequences.clear()
 	var levels_in: Dictionary = d.get("levels", {})
 	for key in levels_in:
 		levels[StringName(key)] = int(levels_in[key])
 	var enabled_in: Dictionary = d.get("enabled", {})
 	for key in enabled_in:
 		enabled[StringName(key)] = bool(enabled_in[key])
-	var plan_in: Dictionary = d.get("point_plan", {})
-	for key in plan_in:
-		var entries: Array = []
-		for entry: Dictionary in plan_in[key]:
-			entries.append({
-				"id": StringName(entry.get("id", "")),
-				"target": int(entry.get("target", 0)),
-			})
-		point_plan[StringName(key)] = entries
+	var sequences_in: Dictionary = d.get("upgrade_sequences", {})
+	for key in sequences_in:
+		var steps: Array[StringName] = []
+		for id in sequences_in[key]:
+			steps.append(StringName(id))
+		upgrade_sequences[StringName(key)] = steps
 	levels_changed.emit()
 
 static func from_save(d: Dictionary) -> AutomationData:
