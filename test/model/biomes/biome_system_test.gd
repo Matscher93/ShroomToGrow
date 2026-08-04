@@ -119,6 +119,35 @@ func test_auto_unlock_costs_crystals_and_opens_the_biome_now() -> void:
 	assert_bool(_system.has_auto_unlock(&"forest")).is_true()
 	assert_bool(_data.is_unlocked(&"forest")).is_true()
 
+func test_the_purchase_announces_itself_when_the_cost_vanishes_into_the_balance() -> void:
+	# A big enough balance swallows the cost whole: BigNumber normalises to a
+	# mantissa and an exponent, so 1.5e25 minus 250 is still exactly 1.5e25, and
+	# PlayerData's same_value() guard then emits nothing. The purchase must not
+	# depend on the currency signal to be noticed, or the section repaints only
+	# when some unrelated signal happens along - in practice the next tick.
+	_player.crystals = BigNumber.new(1.5, 25)
+	var currency_signals: Array[int] = [0]
+	_player.crystals_changed.connect(func(_v: BigNumber) -> void: currency_signals[0] += 1)
+	var announced: Array[StringName] = []
+	_data.auto_unlock_changed.connect(func(key: StringName) -> void: announced.append(key))
+
+	assert_bool(_system.buy_auto_unlock(&"forest")).is_true()
+
+	assert_int(currency_signals[0]) \
+		.override_failure_message("The cost did not vanish, so this test no longer covers the case it exists for.") \
+		.is_zero()
+	assert_array(announced).is_equal([&"forest"])
+
+func test_auto_unlock_is_announced_once_not_on_every_call() -> void:
+	_player.crystals = _system.biome_def(&"forest").auto_unlock_cost.scale(3.0)
+	var announced: Array[StringName] = []
+	_data.auto_unlock_changed.connect(func(key: StringName) -> void: announced.append(key))
+
+	_system.buy_auto_unlock(&"forest")
+	_data.set_auto_unlock(&"forest")   # already owned, nothing changed
+
+	assert_array(announced).is_equal([&"forest"])
+
 func test_the_purchase_is_recorded_before_the_crystals_are_taken() -> void:
 	# set_auto_unlock() is silent and unlock() says nothing for a biome already
 	# open this run, so the deduction is the only signal a view gets. If it lands

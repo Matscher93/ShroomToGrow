@@ -4,6 +4,12 @@ extends RefCounted
 ## spent in each. Knows nothing about cost, XP or UI.
 
 signal biome_unlocked(key: StringName)
+## Raised when a biome's auto-unlock is bought. Its own signal rather than
+## leaning on the crystal deduction: a large enough balance swallows the cost
+## whole (BigNumber normalises to a mantissa and exponent, so 1.5e25 minus 250
+## is still 1.5e25), and PlayerData's same_value() guard then emits nothing at
+## all. A purchase must not go unannounced because it was cheap.
+signal auto_unlock_changed(key: StringName)
 
 var unlocked: Dictionary = {}       # StringName -> bool, only true entries matter, cleared on prestige
 var ever_unlocked: Dictionary = {}  # StringName -> bool, permanent, survives prestige reset
@@ -40,7 +46,10 @@ func is_auto_unlock(key: StringName) -> bool:
 	return auto_unlock.get(key, false)
 
 func set_auto_unlock(key: StringName) -> void:
+	if is_auto_unlock(key):
+		return
 	auto_unlock[key] = true
+	auto_unlock_changed.emit(key)
 
 func points_spent(key: StringName) -> int:
 	return spent_points.get(key, 0)

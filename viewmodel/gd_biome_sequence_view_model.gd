@@ -316,6 +316,7 @@ func _init(key: StringName, def: BiomeDef) -> void:
 	_def = def
 	App.automation_data.sequence_changed.connect(_on_sequence_changed)
 	App.player_data.crystals_changed.connect(_on_crystals_changed)
+	App.biomes_data.auto_unlock_changed.connect(_on_auto_unlock_changed)
 	App.biomes_data.biome_unlocked.connect(_on_replay_state_changed.unbind(1))
 	App.automation_data.levels_changed.connect(_on_replay_state_changed)
 	App.automation_data.enabled_changed.connect(_on_replay_state_changed.unbind(1))
@@ -326,6 +327,7 @@ func _init(key: StringName, def: BiomeDef) -> void:
 func dispose() -> void:
 	App.automation_data.sequence_changed.disconnect(_on_sequence_changed)
 	App.player_data.crystals_changed.disconnect(_on_crystals_changed)
+	App.biomes_data.auto_unlock_changed.disconnect(_on_auto_unlock_changed)
 	App.biomes_data.biome_unlocked.disconnect(_on_replay_state_changed.unbind(1))
 	App.automation_data.levels_changed.disconnect(_on_replay_state_changed)
 	App.automation_data.enabled_changed.disconnect(_on_replay_state_changed.unbind(1))
@@ -351,6 +353,14 @@ func _on_replay_state_changed() -> void:
 	_notify(PROP_SUMMARY_TEXT)
 	_notify(PROP_AUTO_UNLOCK)
 
-## Affordability of the auto-unlock moves with the crystal balance.
+## Affordability of the auto-unlock moves with the crystal balance. Note this is
+## only about affordability: the purchase itself announces through
+## auto_unlock_changed, because a big balance can swallow the cost without the
+## currency ever reporting a change.
 func _on_crystals_changed(_value: BigNumber) -> void:
+	_notify(PROP_AUTO_UNLOCK)
+
+func _on_auto_unlock_changed(key: StringName) -> void:
+	if key != _key:
+		return
 	_notify(PROP_AUTO_UNLOCK)

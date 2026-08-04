@@ -105,9 +105,14 @@ func _init(key: StringName, def: BiomeDef) -> void:
 	# unbind(1) drops the value these signals carry, so the handler stays
 	# parameterless.
 	App.player_data.prestige_count_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.PRESTIGE_COUNT
+	App.player_data.achievement_tiers_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.ACHIEVEMENT_TIERS
+	# Every currency a biome can be priced in, so an unlock button never sits
+	# stale on a balance it should be reacting to. CurrencyTypes decides what
+	# unlock_currency may name, so a new one belongs here too.
 	App.player_data.nutrients_changed.connect(_on_currency_changed)
 	App.player_data.water_changed.connect(_on_currency_changed)
 	App.player_data.biomass_changed.connect(_on_currency_changed)
+	App.player_data.crystals_changed.connect(_on_currency_changed)
 	for node in App.nodes.mycelium_nodes:                                  # XpSource.TOTAL_NODES
 		node.manual_nodes_changed.connect(_on_xp_source_changed.unbind(1))
 	App.biome_size_changed.connect(_on_biome_size_changed)
@@ -118,9 +123,11 @@ func dispose() -> void:
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_points_source_changed)
 	App.upgrade_system.upgrades_changed.disconnect(_on_xp_source_changed)
 	App.player_data.prestige_count_changed.disconnect(_on_xp_source_changed.unbind(1))
+	App.player_data.achievement_tiers_changed.disconnect(_on_xp_source_changed.unbind(1))
 	App.player_data.nutrients_changed.disconnect(_on_currency_changed)
 	App.player_data.water_changed.disconnect(_on_currency_changed)
 	App.player_data.biomass_changed.disconnect(_on_currency_changed)
+	App.player_data.crystals_changed.disconnect(_on_currency_changed)
 	for node in App.nodes.mycelium_nodes:
 		node.manual_nodes_changed.disconnect(_on_xp_source_changed.unbind(1))
 	App.biome_size_changed.disconnect(_on_biome_size_changed)
