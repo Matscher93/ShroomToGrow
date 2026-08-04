@@ -72,7 +72,7 @@ func _rebuild_nav_buttons() -> void:
 	button_dictionary.clear()
 
 	var all_screens := _vm.all_screen_data
-	for screen_key in ScreenTypes.Types.size():
+	for screen_key in ScreenTypes.NAV_ORDER:
 		if not App.is_screen_unlocked(screen_key):
 			continue
 		var button_data: ScreenDefinition = all_screens.get(screen_key)
