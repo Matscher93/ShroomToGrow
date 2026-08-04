@@ -9,6 +9,10 @@ var unlocked: Dictionary = {}       # StringName -> bool, only true entries matt
 var ever_unlocked: Dictionary = {}  # StringName -> bool, permanent, survives prestige reset
 var spent_points: Dictionary = {}   # StringName -> int
 var size: Dictionary = {}           # StringName -> int, purchased Biome Size, cleared on prestige
+## StringName -> bool, permanent. Bought with crystals, so like every other
+## crystal purchase it survives the reset that clears `unlocked`. That is the
+## whole point: the biome comes back on its own next run.
+var auto_unlock: Dictionary = {}
 
 func is_unlocked(key: StringName) -> bool:
 	return unlocked.get(key, false)
@@ -31,12 +35,21 @@ func unlock(key: StringName) -> void:
 	ever_unlocked[key] = true
 	biome_unlocked.emit(key)
 
+## True once the crystal purchase that re-opens this biome every run is owned.
+func is_auto_unlock(key: StringName) -> bool:
+	return auto_unlock.get(key, false)
+
+func set_auto_unlock(key: StringName) -> void:
+	auto_unlock[key] = true
+
 func points_spent(key: StringName) -> int:
 	return spent_points.get(key, 0)
 
 func spend_points(key: StringName, amount: int) -> void:
 	spent_points[key] = points_spent(key) + amount
 
+## Wipes the run. ever_unlocked and auto_unlock are deliberately untouched: one
+## is a permanent record, the other a permanent purchase.
 func reset() -> void:
 	unlocked.clear()
 	spent_points.clear()
@@ -58,7 +71,12 @@ func to_save() -> Dictionary:
 	for key in size:
 		if size[key] > 0:
 			size_out[String(key)] = size[key]
-	return {"unlocked": unlocked_out, "ever_unlocked": ever_unlocked_out, "spent_points": spent_out, "size": size_out}
+	var auto_unlock_out := {}
+	for key in auto_unlock:
+		if auto_unlock[key]:
+			auto_unlock_out[String(key)] = true
+	return {"unlocked": unlocked_out, "ever_unlocked": ever_unlocked_out,
+		"spent_points": spent_out, "size": size_out, "auto_unlock": auto_unlock_out}
 
 static func from_save(d: Dictionary) -> BiomesData:
 	var data := BiomesData.new()
@@ -81,4 +99,8 @@ static func from_save(d: Dictionary) -> BiomesData:
 	var size_in: Dictionary = d.get("size", {})
 	for key in size_in:
 		data.size[StringName(key)] = int(size_in[key])
+	var auto_unlock_in: Dictionary = d.get("auto_unlock", {})
+	for key in auto_unlock_in:
+		if auto_unlock_in[key]:
+			data.auto_unlock[StringName(key)] = true
 	return data

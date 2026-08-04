@@ -10,6 +10,7 @@ extends ViewModel
 const PROP_SEQUENCE_CHANGED := &"sequence_changed"
 const PROP_SUMMARY_TEXT := &"summary_text"
 const PROP_STEP_AMOUNT := &"step_amount_text"
+const PROP_AUTO_UNLOCK := &"auto_unlock_text"
 
 ## How many steps one slot press records. 0 is "Max", meaning fill the upgrade's
 ## remaining cap. Cycled rather than typed, so a single tap changes it on touch.
@@ -164,6 +165,29 @@ func record_blocked_reason(id: StringName) -> String:
 			"" if gate - recorded == 1 else "s"]
 	return ""
 
+# --- Auto-unlock ---
+
+## A starter biome never relocks, so there is nothing here to sell it.
+var offers_auto_unlock: bool:
+	get: return not _def.always_unlocked
+
+var has_auto_unlock: bool:
+	get: return App.has_biome_auto_unlock(_key)
+
+var can_buy_auto_unlock: bool:
+	get: return App.can_buy_biome_auto_unlock(_key)
+
+var auto_unlock_text: String:
+	get:
+		if not offers_auto_unlock:
+			return "Never relocks"
+		if has_auto_unlock:
+			return "Reopens itself every run"
+		return "Reopen after sporation"
+
+var auto_unlock_cost_text: String:
+	get: return App.biome_auto_unlock_cost(_key).to_display()
+
 # --- Pagination ---
 
 var page_count: int:
@@ -282,12 +306,17 @@ func move_step_down(index: int) -> bool:
 func clear() -> void:
 	App.automation_data.clear_sequence(_key)
 
+func buy_auto_unlock() -> bool:
+	return App.buy_biome_auto_unlock(_key)
+
 # --- Lifecycle ---
 
 func _init(key: StringName, def: BiomeDef) -> void:
 	_key = key
 	_def = def
 	App.automation_data.sequence_changed.connect(_on_sequence_changed)
+	App.player_data.crystals_changed.connect(_on_crystals_changed)
+	App.biomes_data.biome_unlocked.connect(_on_replay_state_changed.unbind(1))
 	App.automation_data.levels_changed.connect(_on_replay_state_changed)
 	App.automation_data.enabled_changed.connect(_on_replay_state_changed.unbind(1))
 	# A purchase moves both the done marks and the points left to spend.
@@ -296,6 +325,8 @@ func _init(key: StringName, def: BiomeDef) -> void:
 
 func dispose() -> void:
 	App.automation_data.sequence_changed.disconnect(_on_sequence_changed)
+	App.player_data.crystals_changed.disconnect(_on_crystals_changed)
+	App.biomes_data.biome_unlocked.disconnect(_on_replay_state_changed.unbind(1))
 	App.automation_data.levels_changed.disconnect(_on_replay_state_changed)
 	App.automation_data.enabled_changed.disconnect(_on_replay_state_changed.unbind(1))
 	App.biome_upgrade_system.upgrades_changed.disconnect(_on_replay_state_changed)
@@ -318,3 +349,8 @@ func _on_sequence_changed(key: StringName) -> void:
 func _on_replay_state_changed() -> void:
 	_notify(PROP_SEQUENCE_CHANGED)
 	_notify(PROP_SUMMARY_TEXT)
+	_notify(PROP_AUTO_UNLOCK)
+
+## Affordability of the auto-unlock moves with the crystal balance.
+func _on_crystals_changed(_value: BigNumber) -> void:
+	_notify(PROP_AUTO_UNLOCK)

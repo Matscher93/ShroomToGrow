@@ -31,7 +31,7 @@ func before_test() -> void:
 	var biomes := load("res://data/biomes/all_biomes.tres") as BiomeList
 	_biome_system = BiomeSystem.new(biomes, _biomes_data, _player, _nodes, _production,
 		_symbiosis, _biome_upgrades, _perks, _ctx)
-	_biome_system.unlock_starting_biomes()
+	_biome_system.unlock_free_biomes()
 
 	_system = PrestigeSystem.new(_player, _biomes_data, _nodes, _production,
 		_symbiosis, _biome_upgrades, _biome_system)

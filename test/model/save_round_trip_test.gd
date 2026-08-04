@@ -70,6 +70,7 @@ func test_biomes_data_round_trip() -> void:
 	original.unlock(&"forest")
 	original.spend_points(&"meadow", 2)
 	original.increase_size(&"forest")
+	original.set_auto_unlock(&"forest")
 
 	var restored := BiomesData.from_save(original.to_save())
 
@@ -77,6 +78,19 @@ func test_biomes_data_round_trip() -> void:
 	assert_bool(restored.is_unlocked(&"forest")).is_true()
 	assert_int(restored.points_spent(&"meadow")).is_equal(2)
 	assert_int(restored.biome_size(&"forest")).is_equal(1)
+	assert_bool(restored.is_auto_unlock(&"forest")).is_true()
+
+func test_auto_unlock_survives_a_reset_and_a_save() -> void:
+	# Bought with crystals, so like every crystal purchase it outlives the run
+	# that bought it. Losing it would charge the player twice.
+	var original := BiomesData.new()
+	original.unlock(&"forest")
+	original.set_auto_unlock(&"forest")
+	original.reset()
+
+	var restored := BiomesData.from_save(original.to_save())
+
+	assert_bool(restored.is_auto_unlock(&"forest")).is_true()
 
 func test_biomes_data_keeps_ever_unlocked_across_a_reset() -> void:
 	var original := BiomesData.new()

@@ -22,7 +22,7 @@ resource_local_to_scene = true
 shader = ExtResource("3_arrow")
 shader_parameter/radius = 0.5
 
-[node name="biome_sequence_section" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_summary", "lbl_status", "lbl_empty", "expansion_arrow", "btn_clear", "btn_step_amount", "pagination_row", "btn_page_back", "btn_page_forward", "lbl_page", "vbox_body", "vbox_steps", "grid_upgrade_slots")]
+[node name="biome_sequence_section" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_summary", "lbl_status", "lbl_empty", "auto_unlock_row", "lbl_auto_unlock", "lbl_auto_unlock_cost", "btn_auto_unlock", "expansion_arrow", "btn_clear", "btn_step_amount", "pagination_row", "btn_page_back", "btn_page_forward", "lbl_page", "vbox_body", "vbox_steps", "grid_upgrade_slots")]
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_section")
 script = ExtResource("1_script")
@@ -30,6 +30,10 @@ lbl_name = NodePath("VBoxContainer/header/lbl_name")
 lbl_summary = NodePath("VBoxContainer/header/lbl_summary")
 lbl_status = NodePath("VBoxContainer/vbox_body/lbl_status")
 lbl_empty = NodePath("VBoxContainer/vbox_body/lbl_empty")
+auto_unlock_row = NodePath("VBoxContainer/vbox_body/auto_unlock_row")
+lbl_auto_unlock = NodePath("VBoxContainer/vbox_body/auto_unlock_row/lbl_auto_unlock")
+lbl_auto_unlock_cost = NodePath("VBoxContainer/vbox_body/auto_unlock_row/lbl_auto_unlock_cost")
+btn_auto_unlock = NodePath("VBoxContainer/vbox_body/auto_unlock_row/btn_auto_unlock")
 expansion_arrow = NodePath("VBoxContainer/header/image_expansion_indicator")
 btn_clear = NodePath("VBoxContainer/vbox_body/actions/btn_clear")
 btn_step_amount = NodePath("VBoxContainer/vbox_body/amount_row/btn_step_amount")
@@ -82,6 +86,26 @@ theme_override_constants/separation = 6
 modulate = Color(0.7607843, 0.94509804, 0.98039216, 1)
 layout_mode = 2
 text = ""
+
+[node name="auto_unlock_row" type="HBoxContainer" parent="VBoxContainer/vbox_body"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="lbl_auto_unlock" type="Label" parent="VBoxContainer/vbox_body/auto_unlock_row"]
+modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Reopen after sporation"
+
+[node name="lbl_auto_unlock_cost" type="Label" parent="VBoxContainer/vbox_body/auto_unlock_row"]
+modulate = Color(0.7607843, 0.94509804, 0.98039216, 1)
+layout_mode = 2
+text = "0"
+
+[node name="btn_auto_unlock" type="Button" parent="VBoxContainer/vbox_body/auto_unlock_row"]
+layout_mode = 2
+tooltip_text = "Costs crystals once. The biome opens itself after every sporation."
+text = "Buy"
 
 [node name="amount_row" type="HBoxContainer" parent="VBoxContainer/vbox_body"]
 layout_mode = 2

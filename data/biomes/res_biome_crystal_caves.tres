@@ -18,3 +18,5 @@ _unlock_cost_mantissa = 2.5
 _unlock_cost_exponent = 4
 _size_base_cost_mantissa = 2.5
 _size_base_cost_exponent = 3
+_auto_unlock_cost_mantissa = 1.0
+_auto_unlock_cost_exponent = 3

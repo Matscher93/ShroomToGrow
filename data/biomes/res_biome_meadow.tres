@@ -15,3 +15,5 @@ biome_shader = ExtResource("1_1ot1h")
 upgrade_ids = Array[StringName]([&"DenseMycelium", &"ForestUpgrade2", &"ForestUpgrade3", &"ForestUpgrade4", &"ForestUpgrade5", &"ForestUpgrade6", &"ForestUpgrade7", &"ForestUpgrade8", &"ForestUpgrade9", &"ForestUpgrade10"])
 always_unlocked = true
 _size_base_cost_exponent = 1
+_auto_unlock_cost_mantissa = 1.0
+_auto_unlock_cost_exponent = 1

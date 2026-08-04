@@ -44,3 +44,15 @@ var size_base_cost: BigNumber:
 
 @export var size_cost_growth: float = 1.15
 @export var size_cost_growth_exponent: float = 1.0
+
+## One-off crystal price for this biome's auto-unlock, which re-opens it for free
+## after every sporation instead of making the player buy it back each run.
+## Bought once and permanent, like everything else crystals pay for.
+## Meaningless on an always_unlocked biome, which never relocks.
+@export var _auto_unlock_cost_mantissa: float = 1.0
+@export var _auto_unlock_cost_exponent: int = 1
+var auto_unlock_cost: BigNumber:
+	get: return BigNumber.new(_auto_unlock_cost_mantissa, _auto_unlock_cost_exponent)
+	set(value):
+		_auto_unlock_cost_mantissa = value.mantissa
+		_auto_unlock_cost_exponent = value.exponent

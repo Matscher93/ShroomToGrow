@@ -26,7 +26,7 @@ func before_test() -> void:
 	var production := ProductionSystem.new(_symbiosis, _biome_upgrades, _prestige, _ctx)
 	_system = BiomeSystem.new(_biomes, _data, _player, nodes.mycelium_nodes, production,
 		_symbiosis, _biome_upgrades, _prestige, _ctx)
-	_system.unlock_starting_biomes()
+	_system.unlock_free_biomes()
 
 # ─── Lookup and data integrity ───────────────────────────────────────────────
 
@@ -104,6 +104,79 @@ func test_cannot_unlock_twice() -> void:
 func test_unknown_biome_cannot_be_unlocked() -> void:
 	_player.nutrients = BigNumber.from_value(1e9)
 	assert_bool(_system.can_unlock(&"nope")).is_false()
+
+# ─── Auto-unlock ─────────────────────────────────────────────────────────────
+
+func test_auto_unlock_costs_crystals_and_opens_the_biome_now() -> void:
+	# Applied to the current run too, not only from the next sporation: buying
+	# "this biome is open" and finding it shut reads as the purchase failing.
+	var cost := _system.biome_def(&"forest").auto_unlock_cost
+	_player.crystals = cost.scale(2.0)
+
+	assert_bool(_system.can_buy_auto_unlock(&"forest")).is_true()
+	assert_bool(_system.buy_auto_unlock(&"forest")).is_true()
+	assert_float(_player.crystals.to_float()).is_equal_approx(cost.to_float(), EPS)
+	assert_bool(_system.has_auto_unlock(&"forest")).is_true()
+	assert_bool(_data.is_unlocked(&"forest")).is_true()
+
+func test_the_purchase_is_recorded_before_the_crystals_are_taken() -> void:
+	# set_auto_unlock() is silent and unlock() says nothing for a biome already
+	# open this run, so the deduction is the only signal a view gets. If it lands
+	# first, the section repaints still offering what was just bought.
+	_player.crystals = _system.biome_def(&"forest").auto_unlock_cost.scale(2.0)
+	var seen_on_signal: Array[bool] = []
+	_player.crystals_changed.connect(func(_v: BigNumber) -> void:
+		seen_on_signal.append(_system.has_auto_unlock(&"forest")))
+
+	_system.buy_auto_unlock(&"forest")
+
+	assert_array(seen_on_signal).is_equal([true])
+
+func test_auto_unlock_reopens_the_biome_after_a_reset() -> void:
+	# The whole point: without it a prestige puts the biome back behind its
+	# nutrient price every single run.
+	_player.crystals = _system.biome_def(&"forest").auto_unlock_cost.scale(2.0)
+	_system.buy_auto_unlock(&"forest")
+
+	_system.reset()
+
+	assert_bool(_data.is_unlocked(&"forest")).is_true()
+	assert_bool(_system.has_auto_unlock(&"forest")).is_true()
+
+func test_a_biome_without_auto_unlock_still_relocks() -> void:
+	var cost := _system.biome_def(&"forest").unlock_cost
+	_player.nutrients = cost.scale(2.0)
+	_system.unlock(&"forest")
+
+	_system.reset()
+
+	assert_bool(_data.is_unlocked(&"forest")).is_false()
+
+func test_auto_unlock_is_refused_without_the_crystals() -> void:
+	_player.crystals = _system.biome_def(&"forest").auto_unlock_cost.scale(0.5)
+	assert_bool(_system.can_buy_auto_unlock(&"forest")).is_false()
+	assert_bool(_system.buy_auto_unlock(&"forest")).is_false()
+	assert_bool(_system.has_auto_unlock(&"forest")).is_false()
+
+func test_auto_unlock_cannot_be_bought_twice() -> void:
+	var cost := _system.biome_def(&"forest").auto_unlock_cost
+	_player.crystals = cost.scale(3.0)
+	_system.buy_auto_unlock(&"forest")
+
+	assert_bool(_system.can_buy_auto_unlock(&"forest")).is_false()
+	assert_bool(_system.buy_auto_unlock(&"forest")).is_false()
+	assert_float(_player.crystals.to_float()).is_equal_approx(cost.scale(2.0).to_float(), EPS)
+
+func test_a_starter_biome_has_nothing_to_auto_unlock() -> void:
+	# meadow is always_unlocked, so it never relocks and the purchase would buy
+	# the player nothing.
+	_player.crystals = BigNumber.from_value(1e9)
+	assert_bool(_system.can_buy_auto_unlock(&"meadow")).is_false()
+
+func test_unknown_biome_has_no_auto_unlock() -> void:
+	_player.crystals = BigNumber.from_value(1e9)
+	assert_bool(_system.can_buy_auto_unlock(&"nope")).is_false()
+	assert_float(_system.auto_unlock_cost(&"nope").to_float()).is_zero()
 
 # ─── Points ──────────────────────────────────────────────────────────────────
 

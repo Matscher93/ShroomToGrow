@@ -104,7 +104,7 @@ func _ready() -> void:
 	biome_system = BiomeSystem.new(biomes, biomes_data, player_data, nodes.mycelium_nodes,
 		production_system, upgrade_system, biome_upgrade_system, prestige_upgrade_system,
 		resolve_context)
-	biome_system.unlock_starting_biomes()
+	biome_system.unlock_free_biomes()
 	for def in biomes.biomes:
 		biome_vms[def.key] = BiomeViewModel.new(def.key, def)
 
@@ -180,6 +180,10 @@ func _connect_achievement_sources() -> void:
 	biomes_data.biome_unlocked.connect(mark_achievements_dirty.unbind(1))
 	player_data.prestige_count_changed.connect(mark_achievements_dirty.unbind(1))
 	biome_size_changed.connect(mark_achievements_dirty.unbind(1))
+	# Crystals move when an achievement is claimed, which is exactly when the
+	# crystal-counting achievement can complete a tier. Without this its claim
+	# button sat dead until the next tick happened to set the flag.
+	player_data.crystals_changed.connect(mark_achievements_dirty.unbind(1))
 
 # ---------------------------------------------------------------- automation
 
@@ -287,6 +291,18 @@ func can_unlock_biome(key: StringName) -> bool:
 
 func unlock_biome(key: StringName) -> bool:
 	return biome_system.unlock(key)
+
+func has_biome_auto_unlock(key: StringName) -> bool:
+	return biome_system.has_auto_unlock(key)
+
+func biome_auto_unlock_cost(key: StringName) -> BigNumber:
+	return biome_system.auto_unlock_cost(key)
+
+func can_buy_biome_auto_unlock(key: StringName) -> bool:
+	return biome_system.can_buy_auto_unlock(key)
+
+func buy_biome_auto_unlock(key: StringName) -> bool:
+	return biome_system.buy_auto_unlock(key)
 
 func biome_upgrade_ids(key: StringName) -> Array[StringName]:
 	return biome_system.upgrade_ids(key)

@@ -280,6 +280,22 @@ func test_biomes_get_more_expensive_to_unlock_and_to_grow() -> void:
 			.override_failure_message("Biome '%s' grows cheaper than '%s'." \
 				% [_biomes[i].key, _biomes[i - 1].key]).is_true()
 
+func test_auto_unlock_gets_more_expensive_along_the_biome_order() -> void:
+	# A later biome reopening for fewer crystals than an earlier one would make
+	# the earlier purchase strictly worse for the same job.
+	for i in range(1, _biomes.size()):
+		assert_bool(_biomes[i].auto_unlock_cost.gt(_biomes[i - 1].auto_unlock_cost)) \
+			.override_failure_message("Biome '%s' reopens cheaper than '%s'." \
+				% [_biomes[i].key, _biomes[i - 1].key]).is_true()
+
+func test_every_relocking_biome_charges_something_to_reopen() -> void:
+	for biome in _biomes:
+		if biome.always_unlocked:
+			continue   # never relocks, so it has nothing to sell
+		assert_bool(biome.auto_unlock_cost.gt(BigNumber.new(0.0, 0))) \
+			.override_failure_message("Biome '%s' reopens itself for free." % biome.key) \
+			.is_true()
+
 # ─── Biome upgrade gating ────────────────────────────────────────────────────
 
 func test_the_point_requirement_rises_along_the_grid() -> void:

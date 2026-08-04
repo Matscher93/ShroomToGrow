@@ -46,7 +46,7 @@ func before_test() -> void:
 	_biomes_data = BiomesData.new()
 	_biome_system = BiomeSystem.new(_biomes, _biomes_data, _player, _nodes, _production,
 		_symbiosis, _biome_upgrades, _prestige, _ctx)
-	_biome_system.unlock_starting_biomes()
+	_biome_system.unlock_free_biomes()
 
 func _def(kind: AutomationDef.Kind, max_level: int = 0) -> AutomationDef:
 	var def := AutomationDef.new()

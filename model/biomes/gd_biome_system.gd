@@ -55,9 +55,12 @@ func is_screen_unlocked(screen_type: int) -> bool:
 	var def := biome_def_for_screen(screen_type)
 	return def == null or _biomes_data.is_ever_unlocked(def.key)
 
-func unlock_starting_biomes() -> void:
+## Opens every biome the player does not have to buy back this run: the starters,
+## plus any whose auto-unlock has been paid for with crystals. Runs on a fresh
+## game and again after every prestige reset.
+func unlock_free_biomes() -> void:
 	for def in _biomes.biomes:
-		if def.always_unlocked:
+		if def.always_unlocked or _biomes_data.is_auto_unlock(def.key):
 			_biomes_data.unlock(def.key)
 
 # ---------------------------------------------------------------- xp / levels
@@ -96,6 +99,38 @@ func unlock(key: StringName) -> bool:
 	var current: BigNumber = _player_data.get(field)
 	_player_data.set(field, current.sub(def.unlock_cost))
 	_biomes_data.unlock(key)
+	return true
+
+# ---------------------------------------------------------------- auto-unlock
+
+func has_auto_unlock(key: StringName) -> bool:
+	return _biomes_data.is_auto_unlock(key)
+
+func auto_unlock_cost(key: StringName) -> BigNumber:
+	var def := biome_def(key)
+	return def.auto_unlock_cost if def != null else BigNumber.new(0.0, 0)
+
+## Pointless on a starter biome, which never relocks, and on one already bought.
+func can_buy_auto_unlock(key: StringName) -> bool:
+	var def := biome_def(key)
+	if def == null or def.always_unlocked or has_auto_unlock(key):
+		return false
+	return _player_data.crystals.gte(def.auto_unlock_cost)
+
+## Paid in crystals, and applied to the current run straight away rather than
+## only from the next sporation: the player just bought "this biome is open",
+## so leaving it shut until they prestige would read as the purchase failing.
+func buy_auto_unlock(key: StringName) -> bool:
+	if not can_buy_auto_unlock(key):
+		return false
+	# Flag first, pay second, and that order is load-bearing. set_auto_unlock()
+	# is silent and unlock() says nothing when the biome is already open this
+	# run, so the crystal deduction is the only signal a view gets. Paying first
+	# makes that signal arrive while the flag is still unset, and the section
+	# repaints itself still offering the thing just bought.
+	_biomes_data.set_auto_unlock(key)
+	_biomes_data.unlock(key)
+	_player_data.crystals = _player_data.crystals.sub(auto_unlock_cost(key))
 	return true
 
 # ---------------------------------------------------------------- upgrades
@@ -186,4 +221,4 @@ func reset() -> void:
 	_symbiosis.invalidate()
 	_biome_upgrades.invalidate()
 	_prestige_upgrades.invalidate()
-	unlock_starting_biomes()
+	unlock_free_biomes()
