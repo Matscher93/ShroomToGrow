@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AutomationDef" format=3 uid="uid://xm1371dbjjax"]
+
+[ext_resource type="Script" uid="uid://b8tg0qqix4u3w" path="res://model/automation/res_automation_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"AutoBuyNodes"
+display_name = "Mycelial Reflex"
+description = "Buys nodes as the game ticks, always the highest tier it can afford."
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 0
+cost_growth = 1.7
+max_level = 20
+base_runs_per_tick = 1.0
+runs_per_level = 1.0

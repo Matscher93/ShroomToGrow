@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AutomationDef" format=3 uid="uid://dvkq2wdiit2xl"]
+
+[ext_resource type="Script" uid="uid://b8tg0qqix4u3w" path="res://model/automation/res_automation_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"AutoBuySymbiosis"
+display_name = "Patient Tending"
+description = "Buys Potency and Synergy levels as the game ticks, cheapest first."
+sort_order = 2
+kind = 2
+_base_cost_exponent = 2
+cost_growth = 1.8
+max_level = 20
+base_runs_per_tick = 1.0
+runs_per_level = 1.0

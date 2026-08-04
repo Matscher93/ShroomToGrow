@@ -5,7 +5,11 @@ extends Node
 const SAVE_PATH   := "user://save.json"
 const BACKUP_PATH := "user://save.bak.json"
 const TMP_PATH    := "user://save.tmp.json"
-const SAVE_VERSION := 2
+const SAVE_VERSION := 5
+
+## The three UpgradeSystem buckets in a save, for migrations that touch all of
+## them. Order is irrelevant, each is keyed independently.
+const UPGRADE_BUCKETS: Array[String] = ["upgrades", "biome_upgrades", "prestige_upgrades"]
 
 ## v1 -> v2: perk ids went from "<branch key><roman numeral>" to the authored
 ## PerkNodeDef.id. Without this remap UpgradeSystem.from_save() drops every perk
@@ -133,6 +137,12 @@ func _migrate(data: Dictionary) -> bool:
 	# Version 0 (unversioned) and version 1 share a shape, so both start here.
 	if version < 2:
 		_migrate_perk_ids_to_v2(data)
+	if version < 3:
+		_migrate_lifetime_counters_to_v3(data)
+	if version < 4:
+		_migrate_lifetime_biome_size_to_v4(data)
+	if version < 5:
+		_migrate_lifetime_upgrade_levels_to_v5(data)
 	data["version"] = SAVE_VERSION
 	return true
 
@@ -147,6 +157,59 @@ func _migrate_perk_ids_to_v2(data: Dictionary) -> void:
 	for key in perks:
 		migrated[PERK_IDS_V1_TO_V2.get(key, key)] = perks[key]
 	game["prestige_upgrades"] = migrated
+
+## Seeds the lifetime counters the achievement ladder measures, which pre-v3
+## saves have no record of. Without this a veteran player's whole archive reads
+## as untouched. Only the two that can be reconstructed are seeded: nutrients and
+## crystals earned across past runs are simply not recorded anywhere.
+func _migrate_lifetime_counters_to_v3(data: Dictionary) -> void:
+	if not data.has("game"):
+		return
+	var game: Dictionary = data["game"]
+	var player: Dictionary = game.get("player_data", {})
+	player["lifetime_ticks"] = int(player.get("tick_count", 0))
+	var nodes: Array = game.get("mycelium_nodes", [])
+	var manual_total := 0
+	for node: Dictionary in nodes:
+		manual_total += int(node.get("manual_nodes", 0))
+	player["lifetime_manual_nodes"] = manual_total
+	game["player_data"] = player
+
+## Seeds the lifetime Biome Size count, which used to be read off the current
+## run's sizes instead of accumulated. Those sizes are the only record left, so
+## they are the starting total: levels bought in runs already sporated away are
+## simply not recorded anywhere.
+func _migrate_lifetime_biome_size_to_v4(data: Dictionary) -> void:
+	if not data.has("game"):
+		return
+	var game: Dictionary = data["game"]
+	var player: Dictionary = game.get("player_data", {})
+	var biomes: Dictionary = game.get("biomes", {})
+	var sizes: Dictionary = biomes.get("size", {})
+	var total := 0
+	for key in sizes:
+		total += int(sizes[key])
+	player["lifetime_biome_size"] = total
+	game["player_data"] = player
+
+## Seeds each upgrade track's lifetime purchase count, which used to be read off
+## the levels currently held. Those levels are the only record left, so they are
+## the starting total: anything a past prestige reset away was never counted.
+func _migrate_lifetime_upgrade_levels_to_v5(data: Dictionary) -> void:
+	if not data.has("game"):
+		return
+	var game: Dictionary = data["game"]
+	for bucket in UPGRADE_BUCKETS:
+		var levels: Dictionary = game.get(bucket, {})
+		if levels.is_empty():
+			continue
+		var total := 0
+		for key in levels:
+			if key == UpgradeSystem.LIFETIME_KEY:
+				continue
+			total += int(levels[key])
+		levels[UpgradeSystem.LIFETIME_KEY] = total
+		game[bucket] = levels
 
 func _read(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
@@ -224,6 +287,10 @@ func run_offline_progress_calculation() -> void:
 	# The real-time tick timer must not fire while handle_tick() is driven
 	# manually below, or ticks double up across the awaited frames.
 	App.tick_timer.stop()
+	# Automations only act while the player is actually playing. They ride on
+	# handle_tick(), so without this the loop below would let them spend a whole
+	# night's ticks in one burst.
+	App.automations_running = false
 	# Nothing here buys anything, so upgrade levels and manual node counts are
 	# fixed for the loop and the per-node bonus is invariant. Compute it once
 	# instead of ~9 modify() calls per node per tick.
@@ -237,6 +304,7 @@ func run_offline_progress_calculation() -> void:
 			await get_tree().process_frame
 			batch_start = Time.get_ticks_msec()
 	App.tick_timer.start()
+	App.automations_running = true
 
 	# final snapshot after tick accumulation
 	save_game_snapshots.append(_collect_data())
@@ -255,7 +323,9 @@ func _collect_data() -> Dictionary:
 		"upgrades": App.upgrade_system.to_save(),
 		"prestige_upgrades": App.prestige_upgrade_system.to_save(),
 		"biomes": App.biomes_data.to_save(),
-		"biome_upgrades": App.biome_upgrade_system.to_save()
+		"biome_upgrades": App.biome_upgrade_system.to_save(),
+		"achievements": App.achievement_progress.to_save(),
+		"automation": App.automation_data.to_save()
 	}
 	return save_state
 
@@ -275,6 +345,11 @@ func _apply_data(game: Dictionary) -> void:
 	App.biomes_data.size = loaded_biomes_data.size
 	App.resolve_context.biome_sizes = App.biomes_data.size.duplicate()
 	App.biome_upgrade_system.from_save(game.get("biome_upgrades", {}))
+	App.achievement_progress.load_from_save(game.get("achievements", {}))
+	# PlayerData.achievement_tiers is a projection of the progress just loaded,
+	# not a saved field, so it has to be rebuilt here.
+	App.achievement_system.sync_tier_count()
+	App.automation_data.load_from_save(game.get("automation", {}))
 
 func get_mycelium_node_data() -> Array[Dictionary]:
 	var all_node_data: Array[Dictionary] = []

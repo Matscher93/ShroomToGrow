@@ -7,12 +7,13 @@ extends GdUnitTestSuite
 ## like this catches it. Everything here reads the same files and the same
 ## loader App registers from.
 
-## Every stat some system actually reads. ProductionSystem consumes the first
-## five, BiomeSystem the last. An effect naming anything else is inert, so
-## adding a stat means adding it here too.
+## Every stat some system actually reads. ProductionSystem consumes all but
+## biome_points, which BiomeSystem reads. An effect naming anything else is
+## inert, so adding a stat means adding it here too.
 const KNOWN_STATS: Array[StringName] = [
 	&"potency_production", &"synergy_production", &"node_production",
 	&"biomass_gain", &"tick_rate", &"biome_points",
+	&"crystal_gain", &"automation_rate",
 ]
 
 var _nodes: Array[MyceliumNode]
@@ -20,6 +21,8 @@ var _biomes: Array[BiomeDef]
 var _perks: Array[PerkDef]
 var _symbiosis_defs: Array[UpgradeDef]
 var _biome_defs: Array[UpgradeDef]
+var _achievements: Array[AchievementDef]
+var _automations: Array[AutomationDef]
 
 func before_test() -> void:
 	_nodes = (load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes).mycelium_nodes
@@ -27,6 +30,8 @@ func before_test() -> void:
 	_perks = PerkTree.build(load("res://data/prestige/all_branches.tres") as PerkBranchList)
 	_symbiosis_defs = UpgradeDefLoader.load_all(UpgradeDefLoader.SYMBIOSIS_PATH)
 	_biome_defs = UpgradeDefLoader.load_all(UpgradeDefLoader.BIOME_PATH)
+	_achievements = (load("res://data/achievements/all_achievements.tres") as AchievementList).achievements
+	_automations = (load("res://data/automation/all_automations.tres") as AutomationList).automations
 
 ## Node tiers and biomes both address by StringName, and NODE-scoped effects use
 ## one field for both, so a target is valid if it names either.
@@ -74,6 +79,8 @@ func test_every_registry_loads_something() -> void:
 	assert_array(_perks).is_not_empty()
 	assert_array(_symbiosis_defs).is_not_empty()
 	assert_array(_biome_defs).is_not_empty()
+	assert_array(_achievements).is_not_empty()
+	assert_array(_automations).is_not_empty()
 
 func test_node_tiers_are_contiguous_from_zero() -> void:
 	# TickSystem indexes bonuses by array position and looks effects up by
@@ -306,3 +313,127 @@ func test_every_biome_has_something_buyable_at_zero_points() -> void:
 		assert_bool(free) \
 			.override_failure_message("Biome '%s' gates every upgrade behind points it can never spend." % biome.key) \
 			.is_true()
+
+# ─── Achievements ────────────────────────────────────────────────────────────
+
+func test_achievement_ids_are_unique() -> void:
+	# The id is the save key in AchievementProgress, so a duplicate silently
+	# collapses two achievements onto one shared tier count.
+	var seen := {}
+	for def in _achievements:
+		assert_bool(seen.has(def.id)) \
+			.override_failure_message("Duplicate achievement id '%s'." % def.id).is_false()
+		seen[def.id] = true
+
+func test_every_achievement_goal_runs_away() -> void:
+	# goal_for() is base * growth^(tier^exponent). At a growth of 1 or less the
+	# bar never moves, so the tier loop hands out tiers until its safety cap and
+	# then does it again on the next evaluate, forever.
+	for def in _achievements:
+		assert_float(def.goal_growth) \
+			.override_failure_message("Achievement '%s' has goal growth %f, so its goal never rises." \
+				% [def.id, def.goal_growth]).is_greater(1.0)
+
+func test_every_achievement_pays_something() -> void:
+	# A zero reward makes the whole ladder cosmetic: crystals are the only reason
+	# to chase it.
+	for def in _achievements:
+		assert_bool(def.reward_base.gt(BigNumber.new(0.0, 0))) \
+			.override_failure_message("Achievement '%s' pays no crystals at tier 1." % def.id) \
+			.is_true()
+
+func test_every_achievement_starts_reachable() -> void:
+	for def in _achievements:
+		assert_bool(def.goal_base.gt(BigNumber.new(0.0, 0))) \
+			.override_failure_message("Achievement '%s' has a first goal of 0, so it completes instantly." \
+				% def.id).is_true()
+
+func test_every_counted_achievement_asks_for_whole_numbers_that_keep_rising() -> void:
+	# Runs the authored curves through the real system, so a retune that lands a
+	# counting goal on a fraction, or flat against the tier before it, is caught
+	# here rather than read as "5.1 biomes unlocked" in the archive.
+	var system := AchievementSystem.new(
+		load("res://data/achievements/all_achievements.tres") as AchievementList,
+		AchievementProgress.new(), PlayerData.new(),
+		ProductionSystem.new(UpgradeSystem.new(), UpgradeSystem.new(), UpgradeSystem.new(),
+			ResolveContext.new()),
+		UpgradeSystem.new(), BiomesData.new())
+
+	for def in _achievements:
+		if not AchievementDef.is_counted(def.stat):
+			continue
+		var previous: BigNumber = null
+		for achievement_tier in range(50):
+			var goal := system.goal_for(def, achievement_tier)
+			# Only the sub-thousand range is checked for whole-ness, because that
+			# is exactly the range the archive prints digit for digit. Above it
+			# the goal renders as "913.0K" and a BigNumber cannot hold a large
+			# integer exactly anyway: normalising to mantissa x 10^e means
+			# to_float() comes back a hair off, invisibly.
+			if goal.exponent < 3:
+				# Compared against the nearest whole number rather than tested for
+				# an exact zero fraction: BigNumber normalises to mantissa x 10^e,
+				# so even a clean 201 comes back as 201.00000000000003.
+				var as_float := goal.to_float()
+				assert_float(absf(as_float - round(as_float))) \
+					.override_failure_message("Achievement '%s' tier %d asks for %f of a counted stat, which the archive shows as a fraction." \
+						% [def.id, achievement_tier, as_float]).is_less(0.000001)
+			if previous != null:
+				assert_bool(goal.gt(previous)) \
+					.override_failure_message("Achievement '%s' tier %d (%s) asks no more than tier %d (%s), so it completes for free." \
+						% [def.id, achievement_tier, goal, achievement_tier - 1, previous]).is_true()
+			previous = goal
+
+func test_every_achievement_stat_is_a_real_one() -> void:
+	# An out-of-range ordinal deserialises fine and then falls through
+	# AchievementSystem.current_value()'s match to a permanent zero.
+	var known := AchievementDef.Stat.values()
+	for def in _achievements:
+		assert_bool(known.has(def.stat)) \
+			.override_failure_message("Achievement '%s' measures unknown stat %d." \
+				% [def.id, def.stat]).is_true()
+
+# ─── Automations ─────────────────────────────────────────────────────────────
+
+func test_automation_ids_are_unique() -> void:
+	var seen := {}
+	for def in _automations:
+		assert_bool(seen.has(def.id)) \
+			.override_failure_message("Duplicate automation id '%s'." % def.id).is_false()
+		seen[def.id] = true
+
+func test_every_automation_kind_is_authored_exactly_once() -> void:
+	# Every Kind has to exist as a buyable automation, or that whole branch of
+	# AutomationSystem.run() is unreachable. Two of the same kind would just be
+	# two timers doing the same job.
+	var seen := {}
+	for def in _automations:
+		assert_bool(seen.has(def.kind)) \
+			.override_failure_message("Automation kind %s is authored twice." \
+				% AutomationDef.Kind.keys()[def.kind]).is_false()
+		seen[def.kind] = true
+	for kind: int in AutomationDef.Kind.values():
+		assert_bool(seen.has(kind)) \
+			.override_failure_message("No automation authored for kind %s, so it can never run." \
+				% AutomationDef.Kind.keys()[kind]).is_true()
+
+func test_every_automation_gets_more_expensive() -> void:
+	for def in _automations:
+		assert_float(def.cost_growth) \
+			.override_failure_message("Automation '%s' has cost growth %f, so it never gets more expensive." \
+				% [def.id, def.cost_growth]).is_greater(1.0)
+
+func test_levelling_an_automation_never_makes_it_slower() -> void:
+	# runs_per_tick() adds runs_per_level once per level past the first. A
+	# negative value is a downgrade the player pays crystals for.
+	for def in _automations:
+		assert_float(def.runs_per_level) \
+			.override_failure_message("Automation '%s' slows down as it levels (%f per level)." \
+				% [def.id, def.runs_per_level]).is_greater_equal(0.0)
+
+func test_every_automation_acts_at_least_sometimes_once_bought() -> void:
+	# A base rate of 0 means the first level buys an automation that never fires.
+	for def in _automations:
+		assert_float(def.base_runs_per_tick) \
+			.override_failure_message("Automation '%s' does nothing at level 1 (%f per tick)." \
+				% [def.id, def.base_runs_per_tick]).is_greater(0.0)

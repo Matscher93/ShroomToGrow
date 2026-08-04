@@ -5,8 +5,10 @@ extends RefCounted
 signal nutrients_changed(value: BigNumber)
 signal biomass_changed(value: BigNumber)
 signal water_changed(value: BigNumber)
+signal crystals_changed(value: BigNumber)
 signal tick_count_changed(value: int)
 signal prestige_count_changed(value: int)
+signal achievement_tiers_changed(value: int)
 
 ## The BigNumber setters below guard with same_value(), not ==. BigNumber is a
 ## RefCounted, so == is an identity check, false for every freshly built
@@ -33,6 +35,15 @@ var water: BigNumber = BigNumber.from_value(0.0):
 		water = value
 		water_changed.emit(water)
 
+## Achievement reward currency, spent on automations. Permanent: prestige() never
+## touches it, the same way it leaves biomass alone.
+var crystals: BigNumber = BigNumber.from_value(0.0):
+	set(value):
+		if value == null or crystals.same_value(value):
+			return
+		crystals = value
+		crystals_changed.emit(crystals)
+
 var tick_count: int = 0:
 	set(value):
 		if tick_count == value:
@@ -47,10 +58,36 @@ var prestige_count: int = 0:
 		prestige_count = value
 		prestige_count_changed.emit(prestige_count)
 
+## Total achievement tiers ever completed. Doubles as the Crystal Caves XP
+## source (BiomeDef.XpSource.ACHIEVEMENT_TIERS), so it needs a change signal.
+##
+## Deliberately not in _PLAIN_FIELDS: AchievementProgress is the one source of
+## truth and this is a cached projection of its total_tiers(), rewritten by
+## AchievementSystem and by SaveManager after the progress bucket is loaded.
+## Saving it too would let the two drift.
+var achievement_tiers: int = 0:
+	set(value):
+		if achievement_tiers == value:
+			return
+		achievement_tiers = value
+		achievement_tiers_changed.emit(achievement_tiers)
+
+## Lifetime totals the achievement ladder measures against. Unlike tick_count and
+## the currencies above, these are never reset, so an achievement goal stays
+## meaningful across prestiges. Plain fields, no signal: AchievementSystem is
+## driven by App's dirty flag rather than by per-field notifications.
+var lifetime_nutrients: BigNumber = BigNumber.from_value(0.0)
+var lifetime_crystals: BigNumber = BigNumber.from_value(0.0)
+var lifetime_ticks: int = 0
+var lifetime_manual_nodes: int = 0
+var lifetime_biome_size: int = 0
+
 ## Single source of truth for which fields round-trip through a save file.
 ## Add a new field here, and nowhere else, to have it saved and loaded.
-const _BIG_NUMBER_FIELDS: Array[String] = ["nutrients", "biomass", "water"]
-const _PLAIN_FIELDS: Array[String] = ["tick_count", "prestige_count"]
+const _BIG_NUMBER_FIELDS: Array[String] = ["nutrients", "biomass", "water", "crystals",
+	"lifetime_nutrients", "lifetime_crystals"]
+const _PLAIN_FIELDS: Array[String] = ["tick_count", "prestige_count",
+	"lifetime_ticks", "lifetime_manual_nodes", "lifetime_biome_size"]
 
 func to_save() -> Dictionary:
 	var save_state := {}

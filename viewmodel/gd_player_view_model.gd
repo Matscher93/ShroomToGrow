@@ -7,6 +7,7 @@ extends ViewModel
 const PROP_NUTRIENT_TEXT := &"nutrient_text"
 const PROP_BIOMASS_TEXT := &"biomass_text"
 const PROP_WATER_TEXT := &"water_text"
+const PROP_CRYSTALS_TEXT := &"crystals_text"
 
 var _model: PlayerData
 
@@ -23,6 +24,10 @@ var biomass_text: String:
 var water_text: String:
 	get:
 		return "%s" % _format_number(_model.water)
+
+var crystals_text: String:
+	get:
+		return "%s" % _format_number(_model.crystals)
 # --- Lifecycle ---
 
 func _init(model: PlayerData) -> void:
@@ -30,11 +35,13 @@ func _init(model: PlayerData) -> void:
 	_model.nutrients_changed.connect(_on_nutrients_changed)
 	_model.biomass_changed.connect(_on_biomass_changed)
 	_model.water_changed.connect(_on_water_changed)
+	_model.crystals_changed.connect(_on_crystals_changed)
 
 func dispose() -> void:
 	_model.nutrients_changed.disconnect(_on_nutrients_changed)
 	_model.biomass_changed.disconnect(_on_biomass_changed)
 	_model.water_changed.disconnect(_on_water_changed)
+	_model.crystals_changed.disconnect(_on_crystals_changed)
 
 # --- Model -> notification plumbing ---
 
@@ -46,6 +53,9 @@ func _on_biomass_changed(_value: BigNumber) -> void:
 
 func _on_water_changed(_value: BigNumber) -> void:
 	_notify(PROP_WATER_TEXT)
+
+func _on_crystals_changed(_value: BigNumber) -> void:
+	_notify(PROP_CRYSTALS_TEXT)
 
 # --- Formatting ---
 

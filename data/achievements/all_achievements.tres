@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AchievementList" format=3]
+
+[ext_resource type="Script" path="res://model/achievements/gd_achievement_list.gd" id="1_list_script"]
+[ext_resource type="Script" path="res://model/achievements/res_achievement_def.gd" id="2_def_script"]
+[ext_resource type="Resource" path="res://data/achievements/res_deep_roots.tres" id="3_deep_roots"]
+[ext_resource type="Resource" path="res://data/achievements/res_patient_grower.tres" id="4_patient_grower"]
+[ext_resource type="Resource" path="res://data/achievements/res_rich_soil.tres" id="5_rich_soil"]
+[ext_resource type="Resource" path="res://data/achievements/res_crystal_hoard.tres" id="6_crystal_hoard"]
+[ext_resource type="Resource" path="res://data/achievements/res_eternal_return.tres" id="7_eternal_return"]
+[ext_resource type="Resource" path="res://data/achievements/res_woven_symbiosis.tres" id="8_woven_symbiosis"]
+[ext_resource type="Resource" path="res://data/achievements/res_wide_horizons.tres" id="9_wide_horizons"]
+[ext_resource type="Resource" path="res://data/achievements/res_cartographer.tres" id="10_cartographer"]
+
+[resource]
+script = ExtResource("1_list_script")
+achievements = Array[ExtResource("2_def_script")]([ExtResource("3_deep_roots"), ExtResource("4_patient_grower"), ExtResource("5_rich_soil"), ExtResource("6_crystal_hoard"), ExtResource("7_eternal_return"), ExtResource("8_woven_symbiosis"), ExtResource("9_wide_horizons"), ExtResource("10_cartographer")])

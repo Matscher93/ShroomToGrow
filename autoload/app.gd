@@ -44,6 +44,28 @@ var perk_defs: Dictionary = {}  # StringName -> PerkDef
 var perk_vms: Dictionary = {}  # StringName -> PerkViewModel
 var prestige_vm: PrestigeViewModel
 
+var achievements := load("res://data/achievements/all_achievements.tres") as AchievementList
+var achievement_progress: AchievementProgress
+var achievement_system: AchievementSystem
+var achievement_vms: Dictionary = {}  # StringName -> AchievementViewModel
+
+var automations := load("res://data/automation/all_automations.tres") as AutomationList
+var automation_data: AutomationData
+var automation_system: AutomationSystem
+var automation_vms: Dictionary = {}  # StringName -> AutomationViewModel
+var crystal_caves_vm: CrystalCavesViewModel
+
+## Cleared by SaveManager for the duration of the offline catch-up. Automations
+## are an active-play feature: the catch-up replays production only, and letting
+## them buy through a night's worth of ticks in one burst is a different game.
+var automations_running := true
+
+## Set by anything an achievement could measure, drained once per frame in
+## _process. Evaluating per change would re-walk every achievement several times
+## a tick, and the offline catch-up loop drives handle_tick() thousands of times
+## in a row, so the flag collapses all of that into one evaluate per frame.
+var _achievements_dirty := true
+
 const BASE_TICK_DURATION := 10.0
 const MIN_TICK_DURATION := 1.0  # floor so a stacked tick_rate discount can't reach zero
 
@@ -94,6 +116,24 @@ func _ready() -> void:
 		mycelium_node_vms.append(MyceliumNodeViewModel.new(player_data, mycelium_data))
 		_track_manual_count(node)
 
+	achievement_progress = AchievementProgress.new()
+	achievement_system = AchievementSystem.new(achievements, achievement_progress, player_data,
+		production_system, upgrade_system, biomes_data)
+
+	automation_data = AutomationData.new()
+	automation_system = AutomationSystem.new(automations, automation_data, player_data,
+		production_system, mycelium_node_data, upgrade_system, biomes, biomes_data,
+		biome_system)
+	automation_system.biome_size_bought.connect(_on_automation_bought_size)
+
+	# Built after their systems: the VMs read state back through App, which
+	# forwards to them, so they must exist before the first VM is constructed.
+	for def in achievements.achievements:
+		achievement_vms[def.id] = AchievementViewModel.new(def)
+	for def in automations.automations:
+		automation_vms[def.id] = AutomationViewModel.new(def)
+	crystal_caves_vm = CrystalCavesViewModel.new()
+
 	screens_data = ScreensData.new(screens.screens, screens.initial_screen)
 	screens_vm = ScreensViewModel.new(screens_data)
 
@@ -111,6 +151,38 @@ func _ready() -> void:
 	biome_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	prestige_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	_update_tick_duration()
+
+	_connect_achievement_sources()
+
+## One evaluate per frame at most, and only when something actually moved. See
+## _achievements_dirty.
+func _process(_delta: float) -> void:
+	if not _achievements_dirty:
+		return
+	_achievements_dirty = false
+	achievement_system.evaluate()
+
+func mark_achievements_dirty() -> void:
+	_achievements_dirty = true
+
+## Everything an AchievementDef.Stat can be derived from. A source missing here
+## only delays the award to the next tick, never loses it, since handle_tick()
+## sets the flag too.
+func _connect_achievement_sources() -> void:
+	for node in nodes.mycelium_nodes:
+		node.manual_nodes_changed.connect(mark_achievements_dirty.unbind(1))
+	upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
+	biome_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
+	prestige_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
+	biomes_data.biome_unlocked.connect(mark_achievements_dirty.unbind(1))
+	player_data.prestige_count_changed.connect(mark_achievements_dirty.unbind(1))
+	biome_size_changed.connect(mark_achievements_dirty.unbind(1))
+
+# ---------------------------------------------------------------- automation
+
+## Same contract as buy_biome_size below: views bind to App, not to the systems.
+func _on_automation_bought_size(key: StringName) -> void:
+	biome_size_changed.emit(key)
 
 func _track_manual_count(node: MyceliumNode) -> void:
 	var key := StringName("ManualNode%d" % node.node_id)
@@ -137,6 +209,11 @@ func node_production_bonuses() -> Array[BigNumber]:
 
 func handle_tick(bonuses: Array[BigNumber] = []) -> void:
 	tick_system.handle_tick(bonuses)
+	_achievements_dirty = true
+	# After production, so an automation spends the nutrients this tick just
+	# paid out rather than always working a tick behind.
+	if automations_running:
+		automation_system.handle_tick()
 
 # ---------------------------------------------------------------- production
 
@@ -241,3 +318,72 @@ func can_buy_perk(id: StringName) -> bool:
 
 func buy_perk(id: StringName) -> bool:
 	return perk_system.buy(id)
+
+# ---------------------------------------------------------------- achievements
+
+func achievement_tier(id: StringName) -> int:
+	return achievement_system.tier(id)
+
+func achievement_unclaimed(id: StringName) -> int:
+	return achievement_system.unclaimed(id)
+
+func has_achievement_claims() -> bool:
+	return achievement_system.has_claims()
+
+func achievement_goal(def: AchievementDef) -> BigNumber:
+	return achievement_system.current_goal(def)
+
+## What the next goal will pay once completed, for the archive's preview.
+func achievement_reward(def: AchievementDef) -> BigNumber:
+	return achievement_system.reward_for(def, achievement_system.tier(def.id))
+
+## What collecting the tier already waiting pays. Zero when none is.
+func achievement_claim_reward(def: AchievementDef) -> BigNumber:
+	return achievement_system.claim_reward(def)
+
+func claim_achievement(id: StringName) -> bool:
+	return achievement_system.claim(id)
+
+func claim_all_achievements() -> BigNumber:
+	return achievement_system.claim_all()
+
+func achievement_value(def: AchievementDef) -> BigNumber:
+	return achievement_system.current_value(def)
+
+func achievement_progress_ratio(def: AchievementDef) -> float:
+	return achievement_system.progress_ratio(def)
+
+func is_achievement_maxed(def: AchievementDef) -> bool:
+	return achievement_system.is_maxed(def)
+
+# ---------------------------------------------------------------- automation
+
+func automation_level(id: StringName) -> int:
+	return automation_system.level(id)
+
+func automation_cost(id: StringName) -> BigNumber:
+	return automation_system.cost(id)
+
+func automation_runs_per_tick(id: StringName) -> float:
+	return automation_system.runs_per_tick(id)
+
+func automation_ticks_per_run(id: StringName) -> int:
+	return automation_system.ticks_per_run(id)
+
+func is_automation_owned(id: StringName) -> bool:
+	return automation_system.is_owned(id)
+
+func is_automation_active(id: StringName) -> bool:
+	return automation_system.is_active(id)
+
+func is_automation_maxed(id: StringName) -> bool:
+	return automation_system.is_maxed(id)
+
+func can_buy_automation(id: StringName) -> bool:
+	return automation_system.can_buy(id)
+
+func buy_automation(id: StringName) -> bool:
+	return automation_system.buy(id)
+
+func set_automation_enabled(id: StringName, value: bool) -> void:
+	automation_data.set_enabled(id, value)

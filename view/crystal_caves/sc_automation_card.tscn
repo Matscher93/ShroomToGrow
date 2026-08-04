@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/crystal_caves/gd_automation_card.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_automation_card"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.09019608, 0.13333334, 0.15294118, 0.55)
+border_width_left = 2
+border_color = Color(0.36078432, 0.78431374, 0.9019608, 0.5)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="automation_card" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_description", "lbl_level", "lbl_rate", "lbl_cost", "btn_buy", "btn_enabled", "plan_section", "plan_container")]
+theme_override_styles/panel = SubResource("StyleBoxFlat_automation_card")
+script = ExtResource("1_script")
+lbl_name = NodePath("VBoxContainer/header/lbl_name")
+lbl_description = NodePath("VBoxContainer/lbl_description")
+lbl_level = NodePath("VBoxContainer/header/lbl_level")
+lbl_rate = NodePath("VBoxContainer/footer/lbl_rate")
+lbl_cost = NodePath("VBoxContainer/footer/lbl_cost")
+btn_buy = NodePath("VBoxContainer/footer/btn_buy")
+btn_enabled = NodePath("VBoxContainer/header/btn_enabled")
+plan_section = NodePath("VBoxContainer/plan_section")
+plan_container = NodePath("VBoxContainer/plan_section/plan_container")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="header" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="lbl_name" type="Label" parent="VBoxContainer/header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Automation"
+
+[node name="lbl_level" type="Label" parent="VBoxContainer/header"]
+layout_mode = 2
+text = "Lv 0"
+
+[node name="btn_enabled" type="Button" parent="VBoxContainer/header"]
+layout_mode = 2
+text = "On"
+
+[node name="lbl_description" type="Label" parent="VBoxContainer"]
+modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+text = "What this one buys for you."
+autowrap_mode = 3
+
+[node name="footer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="lbl_rate" type="Label" parent="VBoxContainer/footer"]
+modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+size_flags_horizontal = 3
+text = ""
+
+[node name="lbl_cost" type="Label" parent="VBoxContainer/footer"]
+modulate = Color(0.7607843, 0.94509804, 0.98039216, 1)
+layout_mode = 2
+text = "0"
+
+[node name="btn_buy" type="Button" parent="VBoxContainer/footer"]
+layout_mode = 2
+text = "Buy"
+
+[node name="plan_section" type="VBoxContainer" parent="VBoxContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="lbl_plan_title" type="Label" parent="VBoxContainer/plan_section"]
+modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+text = "Point plan - bought top to bottom"
+
+[node name="plan_container" type="VBoxContainer" parent="VBoxContainer/plan_section"]
+layout_mode = 2
+theme_override_constants/separation = 3

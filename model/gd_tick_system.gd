@@ -33,6 +33,7 @@ func node_production_bonuses() -> Array[BigNumber]:
 ## empty to compute them fresh.
 func handle_tick(bonuses: Array[BigNumber] = []) -> void:
 	_player_data.tick_count += 1
+	_player_data.lifetime_ticks += 1
 	if bonuses.is_empty():
 		bonuses = node_production_bonuses()
 	# Highest tier first, and that order is load-bearing: each tier writes into
@@ -49,3 +50,4 @@ func handle_tick(bonuses: Array[BigNumber] = []) -> void:
 			receiving_node.auto_nodes = receiving_node.auto_nodes.add(node_change)
 		else:
 			_player_data.nutrients = _player_data.nutrients.add(node_change)
+			_player_data.lifetime_nutrients = _player_data.lifetime_nutrients.add(node_change)

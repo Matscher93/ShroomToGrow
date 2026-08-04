@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="AutomationList" format=3]
+
+[ext_resource type="Script" path="res://model/automation/gd_automation_list.gd" id="1_list_script"]
+[ext_resource type="Script" path="res://model/automation/res_automation_def.gd" id="2_def_script"]
+[ext_resource type="Resource" path="res://data/automation/res_node_grower.tres" id="3_node_grower"]
+[ext_resource type="Resource" path="res://data/automation/res_size_grower.tres" id="4_size_grower"]
+[ext_resource type="Resource" path="res://data/automation/res_symbiosis_tender.tres" id="5_symbiosis_tender"]
+[ext_resource type="Resource" path="res://data/automation/res_point_steward.tres" id="6_point_steward"]
+
+[resource]
+script = ExtResource("1_list_script")
+automations = Array[ExtResource("2_def_script")]([ExtResource("3_node_grower"), ExtResource("4_size_grower"), ExtResource("5_symbiosis_tender"), ExtResource("6_point_steward")])

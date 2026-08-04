@@ -5,7 +5,8 @@
 [ext_resource type="Resource" uid="uid://b7ibpbtyxjhiy" path="res://data/biomes/res_biome_meadow.tres" id="3_forest"]
 [ext_resource type="Resource" uid="uid://mjdaw5ovbf86" path="res://data/biomes/res_biome_forest.tres" id="4_symbiosis"]
 [ext_resource type="Resource" uid="uid://dip5pp7ugluxw" path="res://data/biomes/res_biome_permafrost.tres" id="5_permafrost"]
+[ext_resource type="Resource" path="res://data/biomes/res_biome_crystal_caves.tres" id="6_crystal_caves"]
 
 [resource]
 script = ExtResource("1_list_script")
-biomes = Array[ExtResource("2_def_script")]([ExtResource("3_forest"), ExtResource("4_symbiosis"), ExtResource("5_permafrost")])
+biomes = Array[ExtResource("2_def_script")]([ExtResource("3_forest"), ExtResource("4_symbiosis"), ExtResource("5_permafrost"), ExtResource("6_crystal_caves")])

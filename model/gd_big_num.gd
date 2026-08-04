@@ -112,6 +112,15 @@ func scale(factor: float) -> BigNumber:
 func to_float() -> float:
 	return mantissa * pow(10.0, float(exponent))
 
+## Base-10 logarithm, which stays exact across the whole range: the exponent is
+## already the integer part, so nothing has to survive a to_float() round trip.
+## Undefined for zero and negatives, as log10 is, so callers guard first.
+func log10() -> float:
+	if mantissa <= 0.0:
+		push_error("BigNumber: log10 of a non-positive value")
+		return 0.0
+	return log(mantissa) / log(10.0) + float(exponent)
+
 ## Real-exponent power via log10 space. Unlike pow_int it handles fractional and
 ## arbitrarily large exponents without overflowing (cost curves with a growth
 ## exponent, per-level compounding). Assumes a positive base, true for growth
@@ -119,8 +128,7 @@ func to_float() -> float:
 func pow_float(float_exp: float) -> BigNumber:
 	if mantissa <= 0.0:
 		return BigNumber.new(0.0, 0)
-	var log10_value := log(mantissa) / log(10.0) + exponent
-	var log10_result := log10_value * float_exp
+	var log10_result := log10() * float_exp
 	var result_exponent := int(floor(log10_result))
 	var result_mantissa := pow(10.0, log10_result - result_exponent)
 	return BigNumber.new(result_mantissa, result_exponent)

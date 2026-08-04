@@ -142,6 +142,17 @@ func test_pow_float_of_a_non_positive_base_is_zero() -> void:
 func test_pow_float_by_zero_is_one() -> void:
 	assert_float(BigNumber.from_value(1.15).pow_float(0.0).to_float()).is_equal_approx(1.0, EPS)
 
+func test_log10_reads_off_the_exponent() -> void:
+	assert_float(BigNumber.from_value(1000.0).log10()).is_equal_approx(3.0, EPS)
+	assert_float(BigNumber.from_value(1.0).log10()).is_zero()
+	assert_float(BigNumber.from_value(0.001).log10()).is_equal_approx(-3.0, EPS)
+
+func test_log10_stays_exact_far_past_float_range() -> void:
+	# The whole point of taking it off the exponent rather than to_float(), which
+	# would have overflowed to INF long before here.
+	assert_float(BigNumber.new(1.0, 400).log10()).is_equal_approx(400.0, EPS)
+	assert_float(BigNumber.new(5.0, 400).log10()).is_equal_approx(400.69897, 0.0001)
+
 # ─── Comparison ──────────────────────────────────────────────────────────────
 
 func test_gt_past_float_range() -> void:

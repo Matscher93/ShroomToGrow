@@ -104,6 +104,9 @@ func upgrade_ids(key: StringName) -> Array[StringName]:
 		return []
 	return def.upgrade_ids
 
+func upgrade_level(id: StringName) -> int:
+	return _biome_upgrades.level(id)
+
 ## True once enough points are spent in this biome. Gates the later, stronger
 ## upgrades behind investment in the earlier ones.
 func is_upgrade_unlocked(id: StringName, key: StringName) -> bool:
@@ -154,6 +157,8 @@ func buy_size(key: StringName) -> bool:
 		return false
 	_player_data.nutrients = _player_data.nutrients.sub(size_cost(key))
 	_biomes_data.increase_size(key)
+	# Lifetime total, unlike BiomesData.size, which the prestige reset clears.
+	_player_data.lifetime_biome_size += 1
 	_ctx.biome_sizes[key] = _biomes_data.biome_size(key)
 	_symbiosis.invalidate()
 	_biome_upgrades.invalidate()

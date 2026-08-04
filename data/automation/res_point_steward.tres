@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AutomationDef" format=3 uid="uid://bhqgv3e5i7xv1"]
+
+[ext_resource type="Script" uid="uid://b8tg0qqix4u3w" path="res://model/automation/res_automation_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"AutoSpendPoints"
+display_name = "Cavern Steward"
+description = "Spends biome upgrade points as the game ticks, following the plan you set."
+sort_order = 3
+kind = 3
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 2
+cost_growth = 1.9
+max_level = 20
+base_runs_per_tick = 1.0
+runs_per_level = 1.0

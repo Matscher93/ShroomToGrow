@@ -44,4 +44,6 @@ func buy_upgrade() -> bool:
 		return false
 	_player_data.nutrients = _player_data.nutrients.sub(upgrade_cost())
 	node.manual_nodes += 1
+	# Lifetime total, unlike node.manual_nodes, which the prestige reset zeroes.
+	_player_data.lifetime_manual_nodes += 1
 	return true

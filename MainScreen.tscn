@@ -10,6 +10,7 @@
 [ext_resource type="Resource" uid="uid://cu7pu8ny7a7lb" path="res://data/currencies/res_nutrients_def.tres" id="6_aycgk"]
 [ext_resource type="Resource" uid="uid://cro3wpo0rxwsk" path="res://data/currencies/res_biomass_def.tres" id="7_kyyy7"]
 [ext_resource type="Resource" uid="uid://byespeth6sl5t" path="res://data/currencies/res_water_def.tres" id="7_lple0"]
+[ext_resource type="Resource" path="res://data/currencies/res_crystals_def.tres" id="8_cryst"]
 [ext_resource type="Script" uid="uid://8hyeybwm5jh3" path="res://main_screen.gd" id="9_mainscr"]
 [ext_resource type="Script" uid="uid://7lvxm4ge8ici" path="res://view/main/gd_popup_layer.gd" id="10_popup"]
 
@@ -97,6 +98,11 @@ currency_def = ExtResource("7_lple0")
 layout_mode = 2
 size_flags_horizontal = 3
 currency_def = ExtResource("7_kyyy7")
+
+[node name="Crystals" parent="content_container/content_layer/VBoxContainer/HBoxContainer" instance=ExtResource("1_cshku")]
+layout_mode = 2
+size_flags_horizontal = 3
+currency_def = ExtResource("8_cryst")
 
 [node name="tick_progress" parent="content_container/content_layer/VBoxContainer" unique_id=655712839 instance=ExtResource("5_7pmop")]
 layout_mode = 2

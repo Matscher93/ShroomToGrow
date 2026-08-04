@@ -14,16 +14,36 @@ func test_player_data_round_trip() -> void:
 	original.nutrients = BigNumber.from_value(123456.0)
 	original.biomass = BigNumber.from_value(42.0)
 	original.water = BigNumber.from_value(7.0)
+	original.crystals = BigNumber.from_value(88.0)
 	original.tick_count = 9439
 	original.prestige_count = 3
+	original.lifetime_nutrients = BigNumber.from_value(1e9)
+	original.lifetime_crystals = BigNumber.from_value(150.0)
+	original.lifetime_ticks = 20000
+	original.lifetime_manual_nodes = 512
+	original.lifetime_biome_size = 64
 
 	var restored := PlayerData.from_save(original.to_save())
 
 	assert_float(restored.nutrients.to_float()).is_equal_approx(123456.0, EPS)
 	assert_float(restored.biomass.to_float()).is_equal_approx(42.0, EPS)
 	assert_float(restored.water.to_float()).is_equal_approx(7.0, EPS)
+	assert_float(restored.crystals.to_float()).is_equal_approx(88.0, EPS)
 	assert_int(restored.tick_count).is_equal(9439)
 	assert_int(restored.prestige_count).is_equal(3)
+	assert_float(restored.lifetime_nutrients.to_float()).is_equal_approx(1e9, EPS)
+	assert_float(restored.lifetime_crystals.to_float()).is_equal_approx(150.0, EPS)
+	assert_int(restored.lifetime_ticks).is_equal(20000)
+	assert_int(restored.lifetime_manual_nodes).is_equal(512)
+	assert_int(restored.lifetime_biome_size).is_equal(64)
+
+func test_achievement_tiers_is_not_saved_on_player_data() -> void:
+	# It is a projection of AchievementProgress, rebuilt by
+	# AchievementSystem.sync_tier_count() on load. Persisting it too would let the
+	# two drift apart on any save written mid-award.
+	var original := PlayerData.new()
+	original.achievement_tiers = 17
+	assert_bool(original.to_save().has("achievement_tiers")).is_false()
 
 func test_player_data_loads_in_place_so_viewmodels_stay_bound() -> void:
 	# Replacing App.player_data would orphan every VM already holding it, so
@@ -126,8 +146,9 @@ func test_v1_perk_ids_are_remapped_and_the_save_is_stamped_v2() -> void:
 	assert_bool(SaveManager._migrate(data)).is_true()
 
 	assert_int(int(data["version"])).is_equal(SaveManager.SAVE_VERSION)
+	# The lifetime seed rides along: a v1 save runs every later step too.
 	assert_dict(data["game"]["prestige_upgrades"]).is_equal({
-		"substrate_1": 2, "bounty_3a": 1, "core": 1,
+		"substrate_1": 2, "bounty_3a": 1, "core": 1, UpgradeSystem.LIFETIME_KEY: 4,
 	})
 
 func test_migrated_perk_ids_are_all_known_to_the_built_tree() -> void:
@@ -144,10 +165,170 @@ func test_migration_leaves_unknown_and_already_current_perk_ids_alone() -> void:
 
 	assert_bool(SaveManager._migrate(data)).is_true()
 
-	assert_dict(data["game"]["prestige_upgrades"]).is_equal({"substrate_1": 3, "not_a_perk": 1})
+	assert_dict(data["game"]["prestige_upgrades"]).is_equal({
+		"substrate_1": 3, "not_a_perk": 1, UpgradeSystem.LIFETIME_KEY: 4,
+	})
 
 func test_a_save_from_a_newer_build_is_refused() -> void:
 	assert_bool(SaveManager._migrate({"version": SaveManager.SAVE_VERSION + 1})).is_false()
 
 func test_migration_tolerates_a_save_with_no_game_section() -> void:
 	assert_bool(SaveManager._migrate({"version": 1})).is_true()
+
+func test_v3_migration_seeds_the_lifetime_counters() -> void:
+	# A pre-v3 save has no record of them, and starting a veteran player's whole
+	# achievement archive from zero is the bug this exists to prevent.
+	var data := {
+		"version": 2,
+		"game": {
+			"player_data": {"tick_count": 4200},
+			"mycelium_nodes": [{"manual_nodes": 30}, {"manual_nodes": 12}],
+		},
+	}
+
+	assert_bool(SaveManager._migrate(data)).is_true()
+
+	assert_int(int(data["game"]["player_data"]["lifetime_ticks"])).is_equal(4200)
+	assert_int(int(data["game"]["player_data"]["lifetime_manual_nodes"])).is_equal(42)
+
+func test_v3_migration_tolerates_a_save_with_no_nodes_or_player_data() -> void:
+	var data := {"version": 2, "game": {}}
+	assert_bool(SaveManager._migrate(data)).is_true()
+	assert_int(int(data["game"]["player_data"]["lifetime_ticks"])).is_zero()
+	assert_int(int(data["game"]["player_data"]["lifetime_manual_nodes"])).is_zero()
+
+func test_v4_migration_seeds_the_lifetime_biome_size_from_the_current_run() -> void:
+	# Those sizes are the only surviving record: levels bought in runs already
+	# sporated away were never counted anywhere.
+	var data := {
+		"version": 3,
+		"game": {
+			"player_data": {},
+			"biomes": {"size": {"meadow": 4, "forest": 3}},
+		},
+	}
+
+	assert_bool(SaveManager._migrate(data)).is_true()
+
+	assert_int(int(data["game"]["player_data"]["lifetime_biome_size"])).is_equal(7)
+
+func test_v4_migration_tolerates_a_save_with_no_biome_sizes() -> void:
+	var data := {"version": 3, "game": {}}
+	assert_bool(SaveManager._migrate(data)).is_true()
+	assert_int(int(data["game"]["player_data"]["lifetime_biome_size"])).is_zero()
+
+func test_v5_migration_seeds_every_tracks_lifetime_purchase_count() -> void:
+	var data := {
+		"version": 4,
+		"game": {
+			"upgrades": {"NodePotency0": 5, "NodeSynergy0": 3},
+			"biome_upgrades": {"DenseMycelium": 2},
+			"prestige_upgrades": {"core": 1},
+		},
+	}
+
+	assert_bool(SaveManager._migrate(data)).is_true()
+
+	assert_int(int(data["game"]["upgrades"][UpgradeSystem.LIFETIME_KEY])).is_equal(8)
+	assert_int(int(data["game"]["biome_upgrades"][UpgradeSystem.LIFETIME_KEY])).is_equal(2)
+	assert_int(int(data["game"]["prestige_upgrades"][UpgradeSystem.LIFETIME_KEY])).is_equal(1)
+
+func test_v5_migration_tolerates_a_save_with_no_upgrades() -> void:
+	var data := {"version": 4, "game": {}}
+	assert_bool(SaveManager._migrate(data)).is_true()
+	assert_bool(data["game"].has("upgrades")).is_false()
+
+# ─── AchievementProgress ─────────────────────────────────────────────────────
+
+func test_achievement_progress_round_trip() -> void:
+	var original := AchievementProgress.new()
+	original.mark_completed(&"DeepRoots")
+	original.mark_completed(&"DeepRoots")
+	original.claim(&"DeepRoots")
+	original.mark_completed(&"Cartographer")
+
+	var restored := AchievementProgress.from_save(original.to_save())
+
+	assert_int(restored.tier(&"DeepRoots")).is_equal(1)
+	assert_int(restored.unclaimed_count(&"DeepRoots")).is_equal(1)
+	assert_int(restored.unclaimed_count(&"Cartographer")).is_equal(1)
+	assert_int(restored.total_tiers()).is_equal(1)
+	assert_int(restored.total_unclaimed()).is_equal(2)
+
+func test_unclaimed_tiers_survive_a_save() -> void:
+	# Losing these on quit would silently rob the player of everything they
+	# completed since the last time they opened the screen.
+	var original := AchievementProgress.new()
+	for i in range(5):
+		original.mark_completed(&"DeepRoots")
+
+	var restored := AchievementProgress.from_save(original.to_save())
+
+	assert_int(restored.unclaimed_count(&"DeepRoots")).is_equal(5)
+
+func test_achievement_progress_loads_in_place() -> void:
+	# AchievementSystem holds the reference, so a load must mutate rather than
+	# replace, the same reason PlayerData.load_from_save exists.
+	var live := AchievementProgress.new()
+	live.mark_completed(&"Stale")
+	live.load_from_save({"tiers": {"DeepRoots": 4}, "unclaimed": {}})
+
+	assert_int(live.unclaimed_count(&"Stale")).is_zero()
+	assert_int(live.tier(&"DeepRoots")).is_equal(4)
+
+func test_a_pre_claiming_save_reads_as_already_paid_out() -> void:
+	# Those tiers were auto-awarded when they completed, so re-reading them as
+	# unclaimed would hand out a second payout for the same progress.
+	var restored := AchievementProgress.from_save({"DeepRoots": 3, "RichSoil": 2})
+
+	assert_int(restored.tier(&"DeepRoots")).is_equal(3)
+	assert_int(restored.total_unclaimed()).is_zero()
+
+func test_achievement_progress_tolerates_an_empty_save() -> void:
+	var restored := AchievementProgress.from_save({})
+	assert_int(restored.tier(&"DeepRoots")).is_zero()
+	assert_int(restored.total_tiers()).is_zero()
+	assert_int(restored.total_unclaimed()).is_zero()
+
+# ─── AutomationData ──────────────────────────────────────────────────────────
+
+func test_automation_data_round_trip() -> void:
+	var original := AutomationData.new()
+	original.add_level(&"AutoBuyNodes")
+	original.add_level(&"AutoBuyNodes")
+	original.set_enabled(&"AutoBuyNodes", false)
+	original.point_plan[&"meadow"] = [
+		{"id": &"ForestUpgrade2", "target": 3},
+		{"id": &"DenseMycelium", "target": 0},
+	]
+
+	var restored := AutomationData.from_save(original.to_save())
+
+	assert_int(restored.level(&"AutoBuyNodes")).is_equal(2)
+	assert_bool(restored.is_enabled(&"AutoBuyNodes")).is_false()
+	var plan: Array = restored.point_plan[&"meadow"]
+	assert_int(plan.size()).is_equal(2)
+	assert_str(String(plan[0]["id"])).is_equal("ForestUpgrade2")
+	assert_int(plan[0]["target"]).is_equal(3)
+
+func test_automation_data_keeps_the_plan_order_through_a_save() -> void:
+	# The order is the whole point of the plan, and a Dictionary round trip is
+	# exactly where it could quietly become alphabetical.
+	var original := AutomationData.new()
+	original.point_plan[&"meadow"] = [
+		{"id": &"zzz", "target": 0},
+		{"id": &"aaa", "target": 0},
+		{"id": &"mmm", "target": 0},
+	]
+
+	var restored := AutomationData.from_save(original.to_save())
+
+	var ids: Array[String] = []
+	for entry: Dictionary in restored.point_plan[&"meadow"]:
+		ids.append(String(entry["id"]))
+	assert_array(ids).is_equal(["zzz", "aaa", "mmm"])
+
+func test_automation_data_tolerates_an_empty_save() -> void:
+	var restored := AutomationData.from_save({})
+	assert_int(restored.level(&"AutoBuyNodes")).is_zero()
+	assert_bool(restored.is_enabled(&"AutoBuyNodes")).is_true()

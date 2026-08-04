@@ -198,6 +198,64 @@ func test_save_only_records_bought_levels() -> void:
 	assert_dict(saved).contains_keys(["Bought"])
 	assert_dict(saved).has_size(1)
 
+func test_lifetime_levels_counts_both_purchase_paths() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Points", []))
+	system.register(_upgrade(&"Currency", []))
+	var player := PlayerData.new()
+	player.nutrients = BigNumber.from_value(1e9)
+
+	system.buy_with_points(&"Points", true)
+	system.buy(&"Currency", player)
+	system.buy(&"Currency", player)
+
+	assert_int(system.lifetime_levels).is_equal(3)
+
+func test_lifetime_levels_ignores_refused_purchases() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Thing", []))
+	var player := PlayerData.new()
+	player.nutrients = BigNumber.new(0.0, 0)
+
+	assert_bool(system.buy(&"Thing", player)).is_false()
+	assert_bool(system.buy_with_points(&"Thing", false)).is_false()
+	assert_int(system.lifetime_levels).is_zero()
+
+func test_lifetime_levels_survives_a_reset() -> void:
+	# A prestige clears what the player holds, it does not un-buy what they
+	# bought. The symbiosis achievement measures this.
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Thing", []))
+	system.buy_with_points(&"Thing", true)
+	system.buy_with_points(&"Thing", true)
+
+	system.reset()
+
+	assert_int(system.total_levels()).is_zero()
+	assert_int(system.lifetime_levels).is_equal(2)
+
+func test_lifetime_levels_round_trips_without_becoming_an_upgrade() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Thing", []))
+	system.buy_with_points(&"Thing", true)
+
+	var restored := UpgradeSystem.new()
+	restored.register(_upgrade(&"Thing", []))
+	restored.from_save(system.to_save())
+
+	assert_int(restored.lifetime_levels).is_equal(1)
+	assert_int(restored.level(&"Thing")).is_equal(1)
+	# The reserved key must not be read back as an upgrade id.
+	assert_int(restored.level(StringName(UpgradeSystem.LIFETIME_KEY))).is_zero()
+
+func test_loading_a_save_does_not_count_as_buying() -> void:
+	# from_save() writes levels directly, and counting those would inflate the
+	# achievement by the whole save on every launch.
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Thing", []))
+	system.from_save({"Thing": 12})
+	assert_int(system.lifetime_levels).is_zero()
+
 func test_load_drops_unknown_ids_instead_of_crashing() -> void:
 	# A renamed or deleted UpgradeDef must not leave an id in _levels that
 	# _rebuild() has no def for, which errors on every cache rebuild.

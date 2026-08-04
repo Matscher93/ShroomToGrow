@@ -65,6 +65,17 @@ func test_prestige_count_source_is_worth_ten_each() -> void:
 	assert_int(BiomeCalculator.xp_for(def, [] as Array[MyceliumNode],
 		UpgradeSystem.new(), player)).is_equal(40)
 
+func test_achievement_tiers_source_reads_the_player_total() -> void:
+	# Crystal Caves levels off the achievement ladder, which is what makes its
+	# tab worth opening in the first place.
+	var player := PlayerData.new()
+	player.achievement_tiers = 12
+	var def := BiomeDef.new()
+	def.xp_source = BiomeDef.XpSource.ACHIEVEMENT_TIERS
+
+	assert_int(BiomeCalculator.xp_for(def, [] as Array[MyceliumNode],
+		UpgradeSystem.new(), player)).is_equal(12)
+
 func test_symbiosis_source_uses_total_upgrade_levels() -> void:
 	var system := UpgradeSystem.new()
 	var d := UpgradeDef.new()

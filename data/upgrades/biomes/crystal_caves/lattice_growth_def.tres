@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_effect_script"]
+[ext_resource type="Resource" path="res://data/upgrades/biomes/crystal_caves/lattice_growth_effect.tres" id="2_effect"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_def.gd" id="3_def_script"]
+
+[resource]
+script = ExtResource("3_def_script")
+id = &"LatticeGrowth"
+display_name = "Lattice Growth"
+description = "+12% automation triggers per tick, per level."
+max_level = 10
+effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
+min_biome_points_spent = 8

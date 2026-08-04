@@ -80,6 +80,9 @@ func _on_property_changed(property: StringName) -> void:
 		PlayerViewModel.PROP_WATER_TEXT:
 			if currency_def.currency_type == CurrencyTypes.Types.WATER:
 				label_amount.text = _vm.water_text
+		PlayerViewModel.PROP_CRYSTALS_TEXT:
+			if currency_def.currency_type == CurrencyTypes.Types.CRYSTALS:
+				label_amount.text = _vm.crystals_text
 		MyceliumNodeViewModel.PROP_PRODUCTION_TEXT:
 			if currency_def.currency_type == CurrencyTypes.Types.NUTRIENTS:
 				label_change_per_tick.text = _vm_change.production_text_short
@@ -93,4 +96,7 @@ func _refresh_all() -> void:
 		label_change_per_tick.text = ""
 	elif currency_def.currency_type == CurrencyTypes.Types.WATER:
 		label_amount.text = _vm.water_text
+		label_change_per_tick.text = ""
+	elif currency_def.currency_type == CurrencyTypes.Types.CRYSTALS:
+		label_amount.text = _vm.crystals_text
 		label_change_per_tick.text = ""

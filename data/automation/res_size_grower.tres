@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AutomationDef" format=3 uid="uid://2n2rk040drjm"]
+
+[ext_resource type="Script" uid="uid://b8tg0qqix4u3w" path="res://model/automation/res_automation_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"AutoBuyBiomeSize"
+display_name = "Spreading Roots"
+description = "Buys Biome Size as the game ticks, cheapest biome first."
+sort_order = 1
+kind = 1
+_base_cost_mantissa = 2.5
+cost_growth = 1.75
+max_level = 20
+base_runs_per_tick = 1.0
+runs_per_level = 1.0

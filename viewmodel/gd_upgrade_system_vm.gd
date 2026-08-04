@@ -7,6 +7,19 @@ var _levels: Dictionary = {}    # id -> int, this is the save data
 var _cache: Dictionary = {}     # stat -> { scope_key -> {add, inc, more} }
 var _dirty := true
 
+## Levels ever bought through this system, including ones a later reset() wiped.
+## Raised only by the two purchase paths, so it counts real purchases rather than
+## whatever _levels happens to hold: a save load or a prestige must not move it.
+##
+## Lives here rather than at the call sites because buying is this class's rule,
+## and symbiosis alone is bought from two places (the node panel and the
+## automation that tends it).
+var lifetime_levels: int = 0
+
+## Save key for lifetime_levels. '#' never appears in an authored UpgradeDef.id,
+## so it cannot collide with one.
+const LIFETIME_KEY := "#lifetime"
+
 const _K_GLOBAL := "g"
 const _K_TAG    := "t:"
 const _K_NODE   := "n:"
@@ -87,6 +100,7 @@ func buy(id: StringName, player_data: PlayerData, currency: StringName = &"nutri
 		return false
 	player_data.set(currency, current.sub(cost(id)))
 	_levels[id] = level(id) + 1
+	lifetime_levels += 1
 	_dirty = true
 	upgrades_changed.emit()
 	return true
@@ -105,6 +119,7 @@ func buy_with_points(id: StringName, has_point_available: bool) -> bool:
 	if not has_point_available:
 		return false
 	_levels[id] = level(id) + 1
+	lifetime_levels += 1
 	_dirty = true
 	upgrades_changed.emit()
 	return true
@@ -117,6 +132,8 @@ func total_levels() -> int:
 	return total
 
 ## Clears purchased levels (e.g. on prestige) without touching _defs.
+## lifetime_levels is deliberately left alone: it counts purchases, and a
+## prestige does not un-buy them.
 func reset() -> void:
 	_levels.clear()
 	for id in _defs:
@@ -130,6 +147,8 @@ func to_save() -> Dictionary:
 		var lvl: int = _levels[id]
 		if lvl > 0:
 			data[String(id)] = lvl
+	if lifetime_levels > 0:
+		data[LIFETIME_KEY] = lifetime_levels
 	return data
 
 ## Levels for unknown ids are dropped, not stored. A renamed or deleted
@@ -137,6 +156,9 @@ func to_save() -> Dictionary:
 ## id in _levels that _rebuild() has no def for.
 func from_save(data: Dictionary) -> void:
 	for key in data:
+		if key == LIFETIME_KEY:
+			lifetime_levels = int(data[key])
+			continue
 		var id := StringName(key)
 		if not _defs.has(id):
 			push_warning("Save contains unknown upgrade '%s', dropping its level." % key)

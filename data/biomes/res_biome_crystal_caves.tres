@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="BiomeDef" format=3]
+
+[ext_resource type="Shader" path="res://shaders/icons/biomes/sh_crystal_caves.gdshader" id="1_shader"]
+[ext_resource type="Script" uid="uid://beyspvlhwfx6a" path="res://model/biomes/gd_biome_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+key = &"crystal_caves"
+display_name = "Crystal Caves"
+description = "Where every achievement leaves a shard behind"
+screen_type = 3
+xp_source = 3
+xp_label = "achievements earned"
+biome_color = Color(0.36078432, 0.78431374, 0.9019608, 1)
+biome_shader = ExtResource("1_shader")
+upgrade_ids = Array[StringName]([&"CrystalResonance", &"CaveEcho", &"GeodeSeams", &"PrismDepths", &"LatticeGrowth", &"ShardCache", &"DeepVeins", &"Refraction", &"CrystalBloom", &"CavernHeart"])
+_unlock_cost_mantissa = 2.5
+_unlock_cost_exponent = 4
+_size_base_cost_mantissa = 2.5
+_size_base_cost_exponent = 3

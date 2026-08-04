@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementDef" format=3]
+
+[ext_resource type="Script" path="res://model/achievements/res_achievement_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"PatientGrower"
+display_name = "Patient Grower"
+description = "Let the colony tick over."
+sort_order = 1
+stat = 1
+_goal_base_mantissa = 5.0
+_goal_base_exponent = 2
+goal_growth = 2.2
+goal_growth_exponent = 1.0
+_reward_base_mantissa = 2.0
+_reward_base_exponent = 0
+reward_growth = 1.5
+reward_growth_exponent = 1.0
+max_tier = 0

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementDef" format=3]
+
+[ext_resource type="Script" path="res://model/achievements/res_achievement_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"EternalReturn"
+display_name = "Eternal Return"
+description = "Sporate the colony and start again."
+sort_order = 4
+stat = 4
+_goal_base_mantissa = 1.0
+_goal_base_exponent = 0
+goal_growth = 1.8
+goal_growth_exponent = 1.0
+_reward_base_mantissa = 1.0
+_reward_base_exponent = 1
+reward_growth = 1.65
+reward_growth_exponent = 1.0
+max_tier = 0

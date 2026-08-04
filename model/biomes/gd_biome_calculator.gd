@@ -20,6 +20,8 @@ static func xp_for(def: BiomeDef, mycelium_nodes: Array[MyceliumNode],
 			return symbiosis.total_levels()
 		BiomeDef.XpSource.PRESTIGE_COUNT:
 			return player_data.prestige_count * 10
+		BiomeDef.XpSource.ACHIEVEMENT_TIERS:
+			return player_data.achievement_tiers
 		_:
 			return 0
 

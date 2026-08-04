@@ -66,6 +66,18 @@ func node_production_bonus(node_id: StringName) -> BigNumber:
 func modify_biomass_gain(base: BigNumber) -> BigNumber:
 	return stack_external(&"biomass_gain", base)
 
+## Crystals are permanent, so the symbiosis track (wiped on the very next
+## prestige) must not inflate an achievement payout the player keeps forever.
+func modify_crystal_gain(base: BigNumber) -> BigNumber:
+	return stack_external(&"crystal_gain", base)
+
+## Divides an automation's authored interval, so an upgrade raising
+## &"automation_rate" makes automations fire more often. Clamped away from zero
+## and below, which a stacked bonus could otherwise reach.
+func automation_rate() -> float:
+	var rate := stack(&"automation_rate", BigNumber.from_value(1.0))
+	return maxf(0.01, rate.to_float())
+
 ## Any upgrade targeting &"tick_rate" shortens the interval. Clamped so a
 ## stacked discount can never reach or cross zero.
 func tick_duration(base_duration: float, minimum: float) -> float:

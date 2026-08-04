@@ -5,12 +5,14 @@
 [ext_resource type="Script" uid="uid://tswg1df7l0x0" path="res://model/screens/gd_screens.gd" id="2_vej25"]
 [ext_resource type="Resource" uid="uid://ds65ytqwp2alp" path="res://data/screens/res_prestige_screen.tres" id="4_ds5ak"]
 [ext_resource type="Resource" uid="uid://upklmpjvik75" path="res://data/screens/res_biomes_screen.tres" id="5_723er"]
+[ext_resource type="Resource" path="res://data/screens/res_crystal_caves_screen.tres" id="6_caves"]
 
 [resource]
 script = ExtResource("2_vej25")
 screens = Dictionary[int, ExtResource("1_0nlu5")]({
 0: ExtResource("5_723er"),
 1: ExtResource("2_1v5js"),
-2: ExtResource("4_ds5ak")
+2: ExtResource("4_ds5ak"),
+3: ExtResource("6_caves")
 })
 metadata/_custom_type_script = "uid://tswg1df7l0x0"
