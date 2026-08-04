@@ -216,7 +216,17 @@ func handle_tick(bonuses: Array[BigNumber] = []) -> void:
 	# After production, so an automation spends the nutrients this tick just
 	# paid out rather than always working a tick behind.
 	if automations_running:
+		# Batched: one automation may buy up to MAX_RUNS_PER_TICK levels in this
+		# one call, and every upgrades_changed listener (tick duration, the biome
+		# panels' slot grids, every node card) refreshes synchronously. The
+		# player sees one tick, so they get one refresh.
+		upgrade_system.begin_batch()
+		biome_upgrade_system.begin_batch()
+		prestige_upgrade_system.begin_batch()
 		automation_system.handle_tick()
+		prestige_upgrade_system.end_batch()
+		biome_upgrade_system.end_batch()
+		upgrade_system.end_batch()
 
 # ---------------------------------------------------------------- production
 

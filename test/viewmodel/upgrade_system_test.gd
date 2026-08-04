@@ -187,6 +187,74 @@ func test_dependency_scales_the_effect() -> void:
 	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx).to_float()) \
 		.is_equal_approx(5.0, EPS)
 
+# ─── Batching ────────────────────────────────────────────────────────────────
+
+## Counts upgrades_changed without needing a Node to connect from.
+class ChangeCounter extends RefCounted:
+	var count := 0
+	func on_changed() -> void:
+		count += 1
+
+func _counter(system: UpgradeSystem) -> ChangeCounter:
+	var counter := ChangeCounter.new()
+	system.upgrades_changed.connect(counter.on_changed)
+	return counter
+
+func test_a_batch_emits_once_however_many_purchases_it_holds() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Thing", []))
+	var counter := _counter(system)
+
+	system.begin_batch()
+	for i in range(10):
+		system.buy_with_points(&"Thing", true)
+	assert_int(counter.count).is_zero()
+	system.end_batch()
+
+	assert_int(counter.count).is_equal(1)
+	assert_int(system.level(&"Thing")).is_equal(10)
+
+func test_a_batch_that_changed_nothing_emits_nothing() -> void:
+	var system := UpgradeSystem.new()
+	var counter := _counter(system)
+	system.begin_batch()
+	system.end_batch()
+	assert_int(counter.count).is_zero()
+
+func test_only_the_outermost_batch_emits() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Thing", []))
+	var counter := _counter(system)
+
+	system.begin_batch()
+	system.begin_batch()
+	system.buy_with_points(&"Thing", true)
+	system.end_batch()
+	assert_int(counter.count).is_zero()
+	system.end_batch()
+	assert_int(counter.count).is_equal(1)
+
+func test_a_batched_purchase_is_visible_to_reads_made_inside_the_batch() -> void:
+	# The signal is what waits, not the state: an automation buys and then reads
+	# back within the same tick, and must not see a stale cache.
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"A", [_effect(&"stat", 1.0, UpgradeEffectDef.Op.INCREASED)]))
+	var ctx := ResolveContext.new()
+
+	system.begin_batch()
+	system.buy_with_points(&"A", true)
+	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx).to_float()) \
+		.is_equal_approx(2.0, EPS)
+	system.end_batch()
+
+func test_purchases_outside_a_batch_still_emit_per_purchase() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Thing", []))
+	var counter := _counter(system)
+	system.buy_with_points(&"Thing", true)
+	system.buy_with_points(&"Thing", true)
+	assert_int(counter.count).is_equal(2)
+
 # ─── Persistence ─────────────────────────────────────────────────────────────
 
 func test_save_only_records_bought_levels() -> void:

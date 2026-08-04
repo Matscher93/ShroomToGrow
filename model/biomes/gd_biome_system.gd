@@ -15,6 +15,9 @@ var _symbiosis: UpgradeSystem
 var _biome_upgrades: UpgradeSystem
 var _prestige_upgrades: UpgradeSystem
 var _ctx: ResolveContext
+## key -> BiomeDef. Built once: biome_def() sits under the automation tick's
+## inner loops, and the authored list never changes at runtime.
+var _defs_by_key: Dictionary = {}
 
 func _init(biomes: BiomeList, biomes_data: BiomesData, player_data: PlayerData,
 		mycelium_nodes: Array[MyceliumNode], production: ProductionSystem,
@@ -29,14 +32,13 @@ func _init(biomes: BiomeList, biomes_data: BiomesData, player_data: PlayerData,
 	_biome_upgrades = biome_upgrades
 	_prestige_upgrades = prestige_upgrades
 	_ctx = ctx
+	for def in _biomes.biomes:
+		_defs_by_key[def.key] = def
 
 # ---------------------------------------------------------------- lookup
 
 func biome_def(key: StringName) -> BiomeDef:
-	for def in _biomes.biomes:
-		if def.key == key:
-			return def
-	return null
+	return _defs_by_key.get(key)
 
 func biome_def_for_screen(screen_type: int) -> BiomeDef:
 	for def in _biomes.biomes:
@@ -113,13 +115,22 @@ func is_upgrade_unlocked(id: StringName, key: StringName) -> bool:
 	var def := _biome_upgrades.def(id)
 	return def != null and _biomes_data.points_spent(key) >= def.min_biome_points_spent
 
-func can_buy_upgrade(id: StringName, key: StringName) -> bool:
-	if available_points(key) < 1:
-		return false
+## Everything can_buy_upgrade() checks except whether a point is available: the
+## upgrade's gate is met and it still has room to level.
+##
+## Split out because available_points() is by far the expensive half - it
+## re-derives the biome's XP and resolves &"biome_points" through all three
+## upgrade tracks - and a caller testing many upgrades against the same budget
+## (the automation walking a recorded sequence) should pay for it once, not once
+## per upgrade.
+func has_upgrade_room(id: StringName, key: StringName) -> bool:
 	if not is_upgrade_unlocked(id, key):
 		return false
 	var def := _biome_upgrades.def(id)
 	return def != null and (def.max_level <= 0 or _biome_upgrades.level(id) < def.max_level)
+
+func can_buy_upgrade(id: StringName, key: StringName) -> bool:
+	return available_points(key) >= 1 and has_upgrade_room(id, key)
 
 func buy_upgrade(id: StringName, key: StringName) -> bool:
 	if not can_buy_upgrade(id, key):

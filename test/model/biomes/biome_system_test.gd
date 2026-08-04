@@ -134,6 +134,43 @@ func test_spent_points_reduce_the_available_budget() -> void:
 	_data.spend_points(&"permafrost", 2)
 	assert_int(_system.available_points(&"permafrost")).is_zero()   # never negative
 
+func test_upgrade_room_is_the_half_of_can_buy_that_ignores_the_budget() -> void:
+	# The split exists so a caller checking many upgrades against one budget
+	# reads available_points() once. The two must still agree on everything else.
+	for def in UpgradeDefLoader.load_all(UpgradeDefLoader.BIOME_PATH):
+		_biome_upgrades.register(def)
+	var ungated := &""
+	for id: StringName in _system.upgrade_ids(&"meadow"):
+		if _biome_upgrades.def(id).min_biome_points_spent == 0:
+			ungated = id
+			break
+	assert_str(String(ungated)).is_not_empty()
+
+	# permafrost has no points on a fresh PlayerData, meadow does.
+	assert_bool(_system.has_upgrade_room(ungated, &"meadow")).is_true()
+	assert_bool(_system.can_buy_upgrade(ungated, &"meadow")).is_true()
+
+	_data.spend_points(&"meadow", _system.available_points(&"meadow"))
+	assert_bool(_system.has_upgrade_room(ungated, &"meadow")).is_true()
+	assert_bool(_system.can_buy_upgrade(ungated, &"meadow")).is_false()
+
+func test_upgrade_room_refuses_a_gated_or_maxed_upgrade() -> void:
+	for def in UpgradeDefLoader.load_all(UpgradeDefLoader.BIOME_PATH):
+		_biome_upgrades.register(def)
+	var gated := &""
+	for id: StringName in _system.upgrade_ids(&"meadow"):
+		if _biome_upgrades.def(id).min_biome_points_spent > 0:
+			gated = id
+			break
+	assert_str(String(gated)).is_not_empty()
+	assert_bool(_system.has_upgrade_room(gated, &"meadow")).is_false()
+
+	var maxed := _system.upgrade_ids(&"meadow")[0]
+	var def := _biome_upgrades.def(maxed)
+	assert_int(def.max_level).is_greater(0)
+	_biome_upgrades.from_save({String(maxed): def.max_level})
+	assert_bool(_system.has_upgrade_room(maxed, &"meadow")).is_false()
+
 # ─── Biome size ──────────────────────────────────────────────────────────────
 
 func test_buying_size_deducts_and_feeds_the_resolve_context() -> void:

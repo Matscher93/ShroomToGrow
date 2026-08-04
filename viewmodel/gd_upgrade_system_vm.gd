@@ -7,6 +7,11 @@ var _levels: Dictionary = {}    # id -> int, this is the save data
 var _cache: Dictionary = {}     # stat -> { scope_key -> {add, inc, more} }
 var _dirty := true
 
+## While non-zero, changes still mark the cache stale immediately but hold their
+## signal until the outermost end_batch(). See begin_batch().
+var _batch_depth := 0
+var _batch_pending := false
+
 ## Levels ever bought through this system, including ones a later reset() wiped.
 ## Raised only by the two purchase paths, so it counts real purchases rather than
 ## whatever _levels happens to hold: a save load or a prestige must not move it.
@@ -43,6 +48,31 @@ func level(id: StringName) -> int:
 ## changes (e.g. manual node count) so those sources get re-evaluated.
 func invalidate() -> void:
 	_dirty = true
+	_emit_changed()
+
+## Collapses a burst of purchases into one upgrades_changed.
+##
+## Every listener on that signal refreshes synchronously - the tick duration, the
+## biome panels' slot grids, each node card - and the automation tick can buy
+## dozens of levels in a single frame, which otherwise means dozens of full
+## refreshes for one visible change. Purchases inside a batch still mark the
+## cache stale as they happen, so any read in between sees the new levels.
+##
+## Always pair with end_batch(). Nesting is counted, only the outermost emits.
+func begin_batch() -> void:
+	_batch_depth += 1
+
+func end_batch() -> void:
+	_batch_depth = maxi(0, _batch_depth - 1)
+	if _batch_depth > 0 or not _batch_pending:
+		return
+	_batch_pending = false
+	upgrades_changed.emit()
+
+func _emit_changed() -> void:
+	if _batch_depth > 0:
+		_batch_pending = true
+		return
 	upgrades_changed.emit()
 
 ## Flat total of this upgrade's own effect at its current level (for display).
@@ -102,7 +132,7 @@ func buy(id: StringName, player_data: PlayerData, currency: StringName = &"nutri
 	_levels[id] = level(id) + 1
 	lifetime_levels += 1
 	_dirty = true
-	upgrades_changed.emit()
+	_emit_changed()
 	return true
 
 ## Level up an upgrade paid for with a point budget (e.g. biome level points)
@@ -121,7 +151,7 @@ func buy_with_points(id: StringName, has_point_available: bool) -> bool:
 	_levels[id] = level(id) + 1
 	lifetime_levels += 1
 	_dirty = true
-	upgrades_changed.emit()
+	_emit_changed()
 	return true
 
 ## Sum of every registered upgrade's level, used as a biome XP source.
@@ -139,7 +169,7 @@ func reset() -> void:
 	for id in _defs:
 		_levels[id] = 0
 	_dirty = true
-	upgrades_changed.emit()
+	_emit_changed()
 
 func to_save() -> Dictionary:
 	var data := {}
@@ -165,7 +195,7 @@ func from_save(data: Dictionary) -> void:
 			continue
 		_levels[id] = int(data[key])
 	_dirty = true
-	upgrades_changed.emit()
+	_emit_changed()
 
 # Authoring side: which bucket does this effect write into?
 func _scope_key(scope: UpgradeEffectDef.Scope, target: StringName) -> String:
@@ -220,16 +250,33 @@ func _rebuild(ctx: ResolveContext) -> void:
 			_cache[e.stat] = bucket
 	_dirty = false
 
+## Hot path: every displayed stat resolves through this, three times over (one
+## per track), and the automation tick drives it hundreds of times a tick. Hence
+## the null accumulators and the bare Dictionary.get() - the identity BigNumbers
+## the old default arguments built for every miss, then threw away, were most of
+## the cost of a cache hit.
 func modify(stat: StringName, base: BigNumber, ctx: ResolveContext, tags: PackedStringArray = [],
 			node_id: StringName = &"") -> BigNumber:
 	if _dirty: _rebuild(ctx)
 	var bucket: Dictionary = _cache.get(stat, {})
-	var add := BigNumber.new(0.0, 0)
-	var inc := BigNumber.new(0.0, 0)
-	var more := BigNumber.from_value(1.0)
+	if bucket.is_empty():
+		return base.copy()
+	var add: BigNumber = null
+	var inc: BigNumber = null
+	var more: BigNumber = null
 	for key in _applicable_keys(tags, node_id):   # ["g", "t:mycelium", "n:<id>"]
-		var a: Dictionary = bucket.get(key, {})
-		add = add.add(a.get("add", BigNumber.new(0.0, 0)))
-		inc = inc.add(a.get("inc", BigNumber.new(0.0, 0)))
-		more = more.mul(a.get("more", BigNumber.from_value(1.0)))
-	return base.add(add).mul(BigNumber.from_value(1.0).add(inc)).mul(more)
+		var agg: Variant = bucket.get(key)
+		if agg == null:
+			continue
+		# _rebuild() always writes all three, so no per-key defaults are needed.
+		add = agg["add"] if add == null else add.add(agg["add"])
+		inc = agg["inc"] if inc == null else inc.add(agg["inc"])
+		more = agg["more"] if more == null else more.mul(agg["more"])
+	if add == null:
+		return base.copy()   # stat exists, but nothing this caller reads from
+	var value := base.add(add)
+	if inc.mantissa != 0.0:
+		value = value.mul(inc.add(BigNumber.new(1.0, 0)))
+	if more.mantissa != 1.0 or more.exponent != 0:
+		value = value.mul(more)
+	return value

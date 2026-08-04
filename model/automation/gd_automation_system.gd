@@ -38,6 +38,9 @@ var _biome_system: BiomeSystem
 ## id -> banked fraction of an action, carried between ticks. Transient: a
 ## reload starting from zero costs at most one tick of progress.
 var _pending: Dictionary = {}
+## id -> AutomationDef. Built once: automation_def() is called several times per
+## action, and the authored list never changes at runtime.
+var _defs_by_id: Dictionary = {}
 
 func _init(automations: AutomationList, data: AutomationData, player_data: PlayerData,
 		production: ProductionSystem, node_data: Array[MyceliumNodeData],
@@ -52,14 +55,13 @@ func _init(automations: AutomationList, data: AutomationData, player_data: Playe
 	_biomes = biomes
 	_biomes_data = biomes_data
 	_biome_system = biome_system
+	for def in _automations.automations:
+		_defs_by_id[def.id] = def
 
 # ---------------------------------------------------------------- lookup
 
 func automation_def(id: StringName) -> AutomationDef:
-	for def in _automations.automations:
-		if def.id == id:
-			return def
-	return null
+	return _defs_by_id.get(id)
 
 func level(id: StringName) -> int:
 	return _data.level(id)
@@ -239,12 +241,20 @@ func _spend_biome_points() -> bool:
 ## Waiting would deadlock the common case where a later, cheaper step is what
 ## unlocks the gate the earlier one is behind.
 func next_sequence_step(def: BiomeDef) -> StringName:
+	# Read the budget once for the whole walk rather than once per step, via
+	# BiomeSystem.has_upgrade_room(). available_points() re-derives biome XP and
+	# resolves a stat through all three upgrade tracks, and a sequence is one
+	# entry per level - hundreds of steps on a filled-in biome. Nothing inside
+	# the walk can raise it, so one point is enough to know the walk is worth
+	# doing at all.
+	if _biome_system.available_points(def.key) < 1:
+		return &""
 	var seen := {}
 	for id: StringName in _data.sequence_for(def.key, def.upgrade_ids):
 		var count: int = seen.get(id, 0) + 1
 		seen[id] = count
 		if count <= _biome_system.upgrade_level(id):
 			continue  # this step is already bought
-		if _biome_system.can_buy_upgrade(id, def.key):
+		if _biome_system.has_upgrade_room(id, def.key):
 			return id
 	return &""
