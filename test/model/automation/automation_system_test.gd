@@ -228,6 +228,79 @@ func test_a_switched_off_automation_never_fires() -> void:
 func test_an_owned_automation_defaults_to_switched_on() -> void:
 	assert_bool(_data.is_enabled(&"anything")).is_true()
 
+# ─── Firing: biome auto-unlock ───────────────────────────────────────────────
+
+## Arms forest's auto-unlock without going through the crystal purchase, which is
+## BiomeSystem's business and tested there.
+func _arm_forest_auto_unlock() -> void:
+	_biomes_data.set_auto_unlock(&"forest")
+
+func test_an_armed_auto_unlock_buys_the_biome_on_the_next_tick() -> void:
+	var system := _system(_def(AutomationDef.Kind.BUY_NODES))
+	_arm_forest_auto_unlock()
+	var cost := _biome_system.biome_def(&"forest").unlock_cost
+	_player.nutrients = cost.scale(2.0)
+
+	system.handle_tick()
+
+	assert_bool(_biomes_data.is_unlocked(&"forest")).is_true()
+	assert_float(_player.nutrients.to_float()).is_equal_approx(cost.to_float(), EPS)
+
+func test_an_armed_auto_unlock_waits_until_the_run_can_afford_the_biome() -> void:
+	var system := _system(_def(AutomationDef.Kind.BUY_NODES))
+	_arm_forest_auto_unlock()
+	_player.nutrients = _biome_system.biome_def(&"forest").unlock_cost.scale(0.5)
+
+	system.handle_tick()
+	assert_bool(_biomes_data.is_unlocked(&"forest")).is_false()
+
+	_player.nutrients = _biome_system.biome_def(&"forest").unlock_cost
+	system.handle_tick()
+	assert_bool(_biomes_data.is_unlocked(&"forest")).is_true()
+
+func test_a_switched_off_auto_unlock_buys_nothing() -> void:
+	var system := _system(_def(AutomationDef.Kind.BUY_NODES))
+	_arm_forest_auto_unlock()
+	_biomes_data.set_auto_unlock_enabled(&"forest", false)
+	_player.nutrients = BigNumber.from_value(1e12)
+
+	system.handle_tick()
+
+	assert_bool(_biomes_data.is_unlocked(&"forest")).is_false()
+
+func test_a_biome_that_never_bought_an_auto_unlock_stays_locked() -> void:
+	var system := _system(_def(AutomationDef.Kind.BUY_NODES))
+	_player.nutrients = BigNumber.from_value(1e12)
+
+	system.handle_tick()
+
+	assert_bool(_biomes_data.is_unlocked(&"forest")).is_false()
+
+func test_the_biome_unlock_outranks_the_automations_that_spend_nutrients() -> void:
+	# Exactly the unlock price and nothing more, with a node buyer running the
+	# same tick. If the nodes went first they would eat into it and the biome
+	# would stay shut on a run that could afford it.
+	var system := _system(_def(AutomationDef.Kind.BUY_NODES))
+	_data.add_level(&"test_automation")
+	_data.add_level(&"test_automation")   # 1.0 actions per tick, so it fires
+	_arm_forest_auto_unlock()
+	_player.nutrients = _biome_system.biome_def(&"forest").unlock_cost
+
+	system.handle_tick()
+
+	assert_bool(_biomes_data.is_unlocked(&"forest")).is_true()
+
+func test_an_auto_unlock_is_not_charged_again_once_the_biome_is_open() -> void:
+	var system := _system(_def(AutomationDef.Kind.BUY_NODES))
+	_arm_forest_auto_unlock()
+	var cost := _biome_system.biome_def(&"forest").unlock_cost
+	_player.nutrients = cost.scale(3.0)
+
+	system.handle_tick()
+	system.handle_tick()
+
+	assert_float(_player.nutrients.to_float()).is_equal_approx(cost.scale(2.0).to_float(), EPS)
+
 # ─── Firing: nodes ───────────────────────────────────────────────────────────
 
 func test_buying_nodes_takes_the_highest_affordable_tier() -> void:

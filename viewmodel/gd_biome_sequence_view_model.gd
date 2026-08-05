@@ -1,11 +1,15 @@
 class_name BiomeSequenceViewModel
 extends ViewModel
 ## VIEWMODEL: one biome's recorded upgrade sequence, as shown in its section of
-## the Crystal Caves Upgrades tab. Owns formatting and derived state.
+## the Crystal Caves Sequences tab. Owns formatting and derived state.
 ## References the model, never a Node.
 ##
 ## One instance per biome, built once in App._ready() and owned for the app's
 ## lifetime, mirroring App.biome_vms: every section needs live state at once.
+##
+## Also carries the biome's auto-unlock, which the Automations tab shows as its
+## own row. Same biome, same per-biome lifetime, same crystal balance to watch -
+## a second VM per biome would only duplicate the plumbing below.
 
 const PROP_SEQUENCE_CHANGED := &"sequence_changed"
 const PROP_SUMMARY_TEXT := &"summary_text"
@@ -177,13 +181,23 @@ var has_auto_unlock: bool:
 var can_buy_auto_unlock: bool:
 	get: return App.can_buy_biome_auto_unlock(_key)
 
+var auto_unlock_enabled: bool:
+	get: return App.is_biome_auto_unlock_enabled(_key)
+
 var auto_unlock_text: String:
 	get:
 		if not offers_auto_unlock:
 			return "Never relocks"
-		if has_auto_unlock:
-			return "Reopens itself every run"
-		return "Reopen after sporation"
+		if not has_auto_unlock:
+			return "Auto-buy after sporation"
+		if auto_unlock_enabled:
+			return "Buys itself back when affordable"
+		# Switched off rather than never bought, so the row says which of the two
+		# it is - the Buy button is gone in both cases.
+		return "Switched off - stays shut after sporation"
+
+var auto_unlock_toggle_text: String:
+	get: return "On" if auto_unlock_enabled else "Off"
 
 var auto_unlock_cost_text: String:
 	get: return App.biome_auto_unlock_cost(_key).to_display()
@@ -308,6 +322,9 @@ func clear() -> void:
 
 func buy_auto_unlock() -> bool:
 	return App.buy_biome_auto_unlock(_key)
+
+func toggle_auto_unlock() -> void:
+	App.toggle_biome_auto_unlock(_key)
 
 # --- Lifecycle ---
 

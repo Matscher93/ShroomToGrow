@@ -55,12 +55,15 @@ func is_screen_unlocked(screen_type: int) -> bool:
 	var def := biome_def_for_screen(screen_type)
 	return def == null or _biomes_data.is_ever_unlocked(def.key)
 
-## Opens every biome the player does not have to buy back this run: the starters,
-## plus any whose auto-unlock has been paid for with crystals. Runs on a fresh
+## Opens the starter biomes, the only ones that cost nothing. Runs on a fresh
 ## game and again after every prestige reset.
+##
+## An armed auto-unlock is deliberately not honoured here: it buys the biome back
+## rather than granting it, so AutomationSystem pays its nutrient price once the
+## run can afford it.
 func unlock_free_biomes() -> void:
 	for def in _biomes.biomes:
-		if def.always_unlocked or _biomes_data.is_auto_unlock(def.key):
+		if def.always_unlocked:
 			_biomes_data.unlock(def.key)
 
 # ---------------------------------------------------------------- xp / levels
@@ -106,6 +109,27 @@ func unlock(key: StringName) -> bool:
 func has_auto_unlock(key: StringName) -> bool:
 	return _biomes_data.is_auto_unlock(key)
 
+func is_auto_unlock_enabled(key: StringName) -> bool:
+	return _biomes_data.is_auto_unlock_enabled(key)
+
+## Owned *and* switched on, which is the only combination that has the automation
+## buy this biome back.
+## The two are asked separately everywhere else, so the pairing lives here rather
+## than being re-spelled at each call site.
+func is_auto_unlock_armed(key: StringName) -> bool:
+	return has_auto_unlock(key) and is_auto_unlock_enabled(key)
+
+## Switching off is not a refund: the purchase stays owned, so it can be switched
+## back on for free. Ignored for a biome that never bought one, which has no
+## switch to throw.
+func set_auto_unlock_enabled(key: StringName, value: bool) -> void:
+	if not has_auto_unlock(key):
+		return
+	_biomes_data.set_auto_unlock_enabled(key, value)
+
+func toggle_auto_unlock_enabled(key: StringName) -> void:
+	set_auto_unlock_enabled(key, not is_auto_unlock_enabled(key))
+
 func auto_unlock_cost(key: StringName) -> BigNumber:
 	var def := biome_def(key)
 	return def.auto_unlock_cost if def != null else BigNumber.new(0.0, 0)
@@ -117,19 +141,17 @@ func can_buy_auto_unlock(key: StringName) -> bool:
 		return false
 	return _player_data.crystals.gte(def.auto_unlock_cost)
 
-## Paid in crystals, and applied to the current run straight away rather than
-## only from the next sporation: the player just bought "this biome is open",
-## so leaving it shut until they prestige would read as the purchase failing.
+## Paid in crystals, and buys an auto-buyer rather than the biome itself: the
+## biome stays shut until the run can afford its nutrient price, at which point
+## AutomationSystem pays it. Applies to the current run as well as every later
+## one, so a locked biome the player can already afford opens on the next tick.
 func buy_auto_unlock(key: StringName) -> bool:
 	if not can_buy_auto_unlock(key):
 		return false
-	# Flag first, pay second, and that order is load-bearing. set_auto_unlock()
-	# is silent and unlock() says nothing when the biome is already open this
-	# run, so the crystal deduction is the only signal a view gets. Paying first
-	# makes that signal arrive while the flag is still unset, and the section
-	# repaints itself still offering the thing just bought.
+	# Flag first, pay second, and that order is load-bearing. The crystal
+	# deduction reaches views too, and paying first makes it arrive while the flag
+	# is still unset, so the section repaints still offering what was just bought.
 	_biomes_data.set_auto_unlock(key)
-	_biomes_data.unlock(key)
 	_player_data.crystals = _player_data.crystals.sub(auto_unlock_cost(key))
 	return true
 

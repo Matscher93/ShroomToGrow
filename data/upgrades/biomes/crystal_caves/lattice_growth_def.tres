@@ -8,7 +8,7 @@
 script = ExtResource("3_def_script")
 id = &"LatticeGrowth"
 display_name = "Lattice Growth"
-description = "+12% automation triggers per tick, per level."
+description = "+12% automation triggers per tick, per level. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
 min_biome_points_spent = 8

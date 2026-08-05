@@ -3,8 +3,8 @@ extends PanelContainer
 ## AutomationViewModel owned by App.
 ##
 ## What the point-spending automation actually buys lives in the per-biome
-## sequence sections further down the tab, not on this card: a sequence belongs
-## to its biome, and there is one card but several biomes.
+## sections on the Sequences tab, not on this card: a sequence belongs to its
+## biome, and there is one card but several biomes.
 
 @export var lbl_name: Label
 @export var lbl_description: Label

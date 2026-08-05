@@ -364,15 +364,7 @@ func _apply_data(game: Dictionary) -> void:
 	load_mycelium_node_data(game.get("mycelium_nodes", []))
 	App.upgrade_system.from_save(game.get("upgrades", {}))
 	App.prestige_upgrade_system.from_save(game.get("prestige_upgrades", {}))
-	var loaded_biomes_data := BiomesData.from_save(game.get("biomes", {}))
-	# Restore ever_unlocked directly, not via unlock(), which would also mark the
-	# biome unlocked for the current run.
-	for key in loaded_biomes_data.ever_unlocked:
-		App.biomes_data.ever_unlocked[key] = true
-	for key in loaded_biomes_data.unlocked:
-		App.biomes_data.unlock(key)
-	App.biomes_data.spent_points = loaded_biomes_data.spent_points
-	App.biomes_data.size = loaded_biomes_data.size
+	App.biomes_data.load_from_save(game.get("biomes", {}))
 	App.resolve_context.biome_sizes = App.biomes_data.size.duplicate()
 	App.biome_upgrade_system.from_save(game.get("biome_upgrades", {}))
 	App.achievement_progress.load_from_save(game.get("achievements", {}))

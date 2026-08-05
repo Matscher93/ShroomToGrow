@@ -1,0 +1,61 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/crystal_caves/gd_biome_auto_unlock_row.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_auto_unlock_row"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+bg_color = Color(0.09019608, 0.13333334, 0.15294118, 0.55)
+border_width_left = 2
+border_color = Color(0.36078432, 0.78431374, 0.9019608, 0.5)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="biome_auto_unlock_row" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_status", "lbl_cost", "btn_buy", "btn_enabled")]
+theme_override_styles/panel = SubResource("StyleBoxFlat_auto_unlock_row")
+script = ExtResource("1_script")
+lbl_name = NodePath("HBoxContainer/lbl_name")
+lbl_status = NodePath("HBoxContainer/lbl_status")
+lbl_cost = NodePath("HBoxContainer/lbl_cost")
+btn_buy = NodePath("HBoxContainer/btn_buy")
+btn_enabled = NodePath("HBoxContainer/btn_enabled")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="lbl_name" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+text = "Biome"
+
+[node name="lbl_status" type="Label" parent="HBoxContainer"]
+modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+text = "Auto-buy after sporation"
+autowrap_mode = 3
+
+[node name="lbl_cost" type="Label" parent="HBoxContainer"]
+modulate = Color(0.7607843, 0.94509804, 0.98039216, 1)
+layout_mode = 2
+size_flags_vertical = 4
+text = "0"
+
+[node name="btn_buy" type="Button" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 4
+tooltip_text = "Costs crystals once. The biome opens itself after every sporation."
+text = "Buy"
+
+[node name="btn_enabled" type="Button" parent="HBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+size_flags_vertical = 4
+tooltip_text = "Switch off to make this biome relock after a sporation. The purchase is kept."
+text = "On"

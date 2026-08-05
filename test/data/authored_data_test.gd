@@ -16,6 +16,10 @@ const KNOWN_STATS: Array[StringName] = [
 	&"crystal_gain", &"automation_rate",
 ]
 
+## The sentence every biome upgrade's description ends with, since all of them
+## scale with their biome's Size.
+const SIZE_SCALING_NOTE := "Scales with this biome's Size."
+
 var _nodes: Array[MyceliumNode]
 var _biomes: Array[BiomeDef]
 var _perks: Array[PerkDef]
@@ -164,6 +168,40 @@ func test_every_biome_size_dependency_resolves() -> void:
 			assert_bool(keys.has(e.dependency.key)) \
 				.override_failure_message("Upgrade '%s' scales off biome size '%s', which is not a biome. It is dead at every level." \
 					% [def.id, e.dependency.key]).is_true()
+
+func test_every_biome_upgrade_scales_with_its_own_biome_size() -> void:
+	# Biome Size is the payoff for every point spent in a biome: each of its
+	# upgrades multiplies by that biome's size. A missing dependency makes one
+	# upgrade quietly fall behind its neighbours, and a dependency naming the
+	# wrong biome hands the payoff to a biome the player never invested in.
+	# Note the folder names lag the biome renames (data/upgrades/biomes/forest/
+	# holds Meadow's upgrades), so this checks against BiomeDef.upgrade_ids.
+	var owner_of := {}
+	for biome in _biomes:
+		for id in biome.upgrade_ids:
+			owner_of[id] = biome.key
+	for def in _biome_defs:
+		var key: StringName = owner_of.get(def.id, &"")
+		assert_str(String(key)) \
+			.override_failure_message("Biome upgrade '%s' is in no biome's upgrade_ids, so no screen offers it." \
+				% def.id).is_not_empty()
+		for e in def.effects:
+			assert_object(e.dependency) \
+				.override_failure_message("Biome upgrade '%s' has an effect that does not scale with Biome Size." \
+					% def.id).is_not_null()
+			assert_int(e.dependency.kind) \
+				.override_failure_message("Biome upgrade '%s' scales off kind %d, not its biome's size." \
+					% [def.id, e.dependency.kind]).is_equal(ScalingSourceDef.Kind.BIOME_SIZE)
+			assert_str(String(e.dependency.key)) \
+				.override_failure_message("Biome upgrade '%s' belongs to '%s' but scales off '%s' size." \
+					% [def.id, key, e.dependency.key]).is_equal(String(key))
+		# The card shows description and "now +x%" side by side, and the Size
+		# multiplier is already baked into that number. Without the sentence the
+		# player sees a figure that does not match the authored per-level rate
+		# and has nothing telling them why.
+		assert_str(def.description) \
+			.override_failure_message("Biome upgrade '%s' scales with Size but its description never says so." \
+				% def.id).contains(SIZE_SCALING_NOTE)
 
 func test_every_perk_parent_resolves() -> void:
 	var ids := {}

@@ -92,6 +92,60 @@ func test_auto_unlock_survives_a_reset_and_a_save() -> void:
 
 	assert_bool(restored.is_auto_unlock(&"forest")).is_true()
 
+func test_a_switched_off_auto_unlock_stays_off_across_a_save() -> void:
+	# The `false` is the whole point of the entry: dropping it the way the other
+	# dictionaries drop their falses would silently re-arm the unlock on load.
+	var original := BiomesData.new()
+	original.set_auto_unlock(&"forest")
+	original.set_auto_unlock_enabled(&"forest", false)
+
+	var restored := BiomesData.from_save(original.to_save())
+
+	assert_bool(restored.is_auto_unlock(&"forest")).is_true()
+	assert_bool(restored.is_auto_unlock_enabled(&"forest")).is_false()
+
+func test_loading_in_place_restores_every_biome_field() -> void:
+	# The bug this guards: SaveManager used to copy a hand-picked four fields off
+	# the loaded object onto the live one, so auto_unlock never arrived and the
+	# player was charged crystals for it again on every boot. Loading in place
+	# leaves no field list for a caller to get wrong.
+	var original := BiomesData.new()
+	original.unlock(&"forest")
+	original.spend_points(&"forest", 3)
+	original.increase_size(&"forest")
+	original.set_auto_unlock(&"forest")
+	original.set_auto_unlock_enabled(&"forest", false)
+
+	# A live instance the way App holds it: starters already open before the load.
+	var live := BiomesData.new()
+	live.unlock(&"meadow")
+	live.load_from_save(original.to_save())
+
+	assert_bool(live.is_unlocked(&"meadow")).is_true()
+	assert_bool(live.is_unlocked(&"forest")).is_true()
+	assert_int(live.points_spent(&"forest")).is_equal(3)
+	assert_int(live.biome_size(&"forest")).is_equal(1)
+	assert_bool(live.is_auto_unlock(&"forest")).is_true()
+	assert_bool(live.is_auto_unlock_enabled(&"forest")).is_false()
+
+func test_loading_in_place_announces_the_biomes_it_opens() -> void:
+	# The bottom bar and the biome screens bind to this and have nothing else to
+	# tell them a save arrived.
+	var live := BiomesData.new()
+	var original := BiomesData.new()
+	original.unlock(&"forest")
+	var announced: Array[StringName] = []
+	live.biome_unlocked.connect(func(key: StringName) -> void: announced.append(key))
+
+	live.load_from_save(original.to_save())
+
+	assert_array(announced).is_equal([&"forest"])
+
+func test_a_save_written_before_the_switch_existed_loads_switched_on() -> void:
+	var restored := BiomesData.from_save({"auto_unlock": {"forest": true}})
+
+	assert_bool(restored.is_auto_unlock_enabled(&"forest")).is_true()
+
 func test_biomes_data_keeps_ever_unlocked_across_a_reset() -> void:
 	var original := BiomesData.new()
 	original.unlock(&"forest")

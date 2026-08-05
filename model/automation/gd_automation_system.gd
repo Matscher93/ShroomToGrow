@@ -124,8 +124,31 @@ func ticks_per_run(id: StringName) -> int:
 ## them: they have no timer of their own, so they cannot act while the game is
 ## not ticking, and SaveManager pauses this outright for the offline catch-up.
 func handle_tick() -> void:
+	# Ahead of the authored list, and that ordering is the point of it: a biome
+	# still shut earns nothing all run, while the three nutrient-spending
+	# automations below would happily drain the balance its unlock price needs.
+	_run_biome_unlocks()
 	for def in _automations.automations:
 		_run_pending(def.id)
+
+## Buys back every biome whose crystal auto-unlock is owned and switched on, as
+## soon as the run can afford the unlock price.
+##
+## Not one of the authored automations: the per-biome crystal purchase is already
+## the gate, so making the player buy a second thing to arm it would charge twice
+## for one behaviour. It carries no rate either - each biome can succeed at most
+## once per run, and there are a handful of them.
+##
+## Authored order rather than cheapest-first, unlike the automations below.
+## Biomes may be priced in different currencies (BiomeDef.unlock_currency), so
+## their costs are not comparable; the list is already in progression order.
+func _run_biome_unlocks() -> void:
+	for def in _biomes.biomes:
+		if _biomes_data.is_unlocked(def.key):
+			continue
+		if not _biome_system.is_auto_unlock_armed(def.key):
+			continue
+		_biome_system.unlock(def.key)
 
 ## Rates below 1.0 would round to zero actions every tick and never fire at all,
 ## so the fraction is banked and spent once it reaches a whole action.

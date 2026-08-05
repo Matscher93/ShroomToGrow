@@ -107,9 +107,9 @@ func test_unknown_biome_cannot_be_unlocked() -> void:
 
 # ─── Auto-unlock ─────────────────────────────────────────────────────────────
 
-func test_auto_unlock_costs_crystals_and_opens_the_biome_now() -> void:
-	# Applied to the current run too, not only from the next sporation: buying
-	# "this biome is open" and finding it shut reads as the purchase failing.
+func test_auto_unlock_costs_crystals_and_arms_the_auto_buyer() -> void:
+	# It buys an auto-buyer, not the biome: the nutrient price is still owed, and
+	# AutomationSystem pays it on the first tick the run can afford it.
 	var cost := _system.biome_def(&"forest").auto_unlock_cost
 	_player.crystals = cost.scale(2.0)
 
@@ -117,7 +117,19 @@ func test_auto_unlock_costs_crystals_and_opens_the_biome_now() -> void:
 	assert_bool(_system.buy_auto_unlock(&"forest")).is_true()
 	assert_float(_player.crystals.to_float()).is_equal_approx(cost.to_float(), EPS)
 	assert_bool(_system.has_auto_unlock(&"forest")).is_true()
-	assert_bool(_data.is_unlocked(&"forest")).is_true()
+	assert_bool(_system.is_auto_unlock_armed(&"forest")).is_true()
+	assert_bool(_data.is_unlocked(&"forest")).is_false()
+
+func test_auto_unlock_does_not_hand_over_a_biome_the_run_cannot_afford() -> void:
+	# The crystals buy the automation, never the nutrients it spends. Without this
+	# the purchase would skip the biome's own price entirely.
+	_player.crystals = _system.biome_def(&"forest").auto_unlock_cost.scale(2.0)
+	_player.nutrients = BigNumber.new(0.0, 0)
+
+	_system.buy_auto_unlock(&"forest")
+
+	assert_bool(_data.is_unlocked(&"forest")).is_false()
+	assert_bool(_system.can_unlock(&"forest")).is_false()
 
 func test_the_purchase_announces_itself_when_the_cost_vanishes_into_the_balance() -> void:
 	# A big enough balance swallows the cost whole: BigNumber normalises to a
@@ -149,9 +161,8 @@ func test_auto_unlock_is_announced_once_not_on_every_call() -> void:
 	assert_array(announced).is_equal([&"forest"])
 
 func test_the_purchase_is_recorded_before_the_crystals_are_taken() -> void:
-	# set_auto_unlock() is silent and unlock() says nothing for a biome already
-	# open this run, so the deduction is the only signal a view gets. If it lands
-	# first, the section repaints still offering what was just bought.
+	# The deduction reaches views too. If it lands first, the section repaints
+	# still offering what was just bought.
 	_player.crystals = _system.biome_def(&"forest").auto_unlock_cost.scale(2.0)
 	var seen_on_signal: Array[bool] = []
 	_player.crystals_changed.connect(func(_v: BigNumber) -> void:
@@ -161,16 +172,18 @@ func test_the_purchase_is_recorded_before_the_crystals_are_taken() -> void:
 
 	assert_array(seen_on_signal).is_equal([true])
 
-func test_auto_unlock_reopens_the_biome_after_a_reset() -> void:
-	# The whole point: without it a prestige puts the biome back behind its
-	# nutrient price every single run.
+func test_auto_unlock_survives_a_reset_still_armed() -> void:
+	# A prestige puts the biome back behind its nutrient price, as it does for
+	# everyone. What the purchase buys back is the automation that pays it, so the
+	# player never taps the unlock themselves again.
 	_player.crystals = _system.biome_def(&"forest").auto_unlock_cost.scale(2.0)
 	_system.buy_auto_unlock(&"forest")
 
 	_system.reset()
 
-	assert_bool(_data.is_unlocked(&"forest")).is_true()
+	assert_bool(_data.is_unlocked(&"forest")).is_false()
 	assert_bool(_system.has_auto_unlock(&"forest")).is_true()
+	assert_bool(_system.is_auto_unlock_armed(&"forest")).is_true()
 
 func test_a_biome_without_auto_unlock_still_relocks() -> void:
 	var cost := _system.biome_def(&"forest").unlock_cost
@@ -201,6 +214,56 @@ func test_a_starter_biome_has_nothing_to_auto_unlock() -> void:
 	# the player nothing.
 	_player.crystals = BigNumber.from_value(1e9)
 	assert_bool(_system.can_buy_auto_unlock(&"meadow")).is_false()
+
+func test_an_auto_unlock_is_on_the_moment_it_is_bought() -> void:
+	_player.crystals = _system.biome_def(&"forest").auto_unlock_cost.scale(2.0)
+	_system.buy_auto_unlock(&"forest")
+
+	assert_bool(_system.is_auto_unlock_enabled(&"forest")).is_true()
+	assert_bool(_system.is_auto_unlock_armed(&"forest")).is_true()
+
+func test_a_switched_off_auto_unlock_lets_the_biome_relock() -> void:
+	_player.crystals = _system.biome_def(&"forest").auto_unlock_cost.scale(2.0)
+	_system.buy_auto_unlock(&"forest")
+
+	_system.set_auto_unlock_enabled(&"forest", false)
+	_system.reset()
+
+	assert_bool(_data.is_unlocked(&"forest")).is_false()
+	# Switching off is not a refund - the purchase is still there to switch back.
+	assert_bool(_system.has_auto_unlock(&"forest")).is_true()
+	assert_bool(_system.is_auto_unlock_armed(&"forest")).is_false()
+
+func test_switching_an_auto_unlock_back_on_costs_nothing() -> void:
+	var cost := _system.biome_def(&"forest").auto_unlock_cost
+	_player.crystals = cost.scale(2.0)
+	_system.buy_auto_unlock(&"forest")
+
+	_system.toggle_auto_unlock_enabled(&"forest")
+	_system.toggle_auto_unlock_enabled(&"forest")
+
+	assert_bool(_system.is_auto_unlock_enabled(&"forest")).is_true()
+	assert_float(_player.crystals.to_float()).is_equal_approx(cost.to_float(), EPS)
+
+func test_the_switch_announces_itself() -> void:
+	# Same reason the purchase does: the row has to repaint, and no currency
+	# moves when a switch is thrown.
+	_player.crystals = _system.biome_def(&"forest").auto_unlock_cost.scale(2.0)
+	_system.buy_auto_unlock(&"forest")
+	var announced: Array[StringName] = []
+	_data.auto_unlock_changed.connect(func(key: StringName) -> void: announced.append(key))
+
+	_system.set_auto_unlock_enabled(&"forest", false)
+	_system.set_auto_unlock_enabled(&"forest", false)   # already off, nothing changed
+
+	assert_array(announced).is_equal([&"forest"])
+
+func test_a_biome_that_never_bought_the_unlock_has_no_switch() -> void:
+	_system.set_auto_unlock_enabled(&"forest", false)
+
+	# Defaults stay untouched, so buying it later still arrives switched on.
+	assert_bool(_system.is_auto_unlock_enabled(&"forest")).is_true()
+	assert_bool(_system.is_auto_unlock_armed(&"forest")).is_false()
 
 func test_unknown_biome_has_no_auto_unlock() -> void:
 	_player.crystals = BigNumber.from_value(1e9)

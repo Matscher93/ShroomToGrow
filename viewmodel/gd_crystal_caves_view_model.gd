@@ -67,6 +67,26 @@ func sequence_vms() -> Array[BiomeSequenceViewModel]:
 			sections.append(App.biome_sequence_vms[def.key])
 	return sections
 
+# --- Biome auto-unlock rows ---
+
+## The auto-unlock rows on the Automations tab, in biome order. Gated on
+## ever_unlocked rather than on the run's own unlocked set, unlike the sequence
+## sections above: buying this row's automation is exactly what a player does for
+## a biome that is currently shut, and the filter that hides the sections would
+## hide the row on every run before the biome is bought back.
+##
+## Starter biomes are still left out - a row that can only ever say "never
+## relocks" is a line of noise between the ones with a switch.
+func auto_unlock_vms() -> Array[BiomeSequenceViewModel]:
+	var rows: Array[BiomeSequenceViewModel] = []
+	for def in App.biomes.biomes:
+		if not App.biomes_data.is_ever_unlocked(def.key):
+			continue
+		var vm: BiomeSequenceViewModel = App.biome_sequence_vms[def.key]
+		if vm.offers_auto_unlock:
+			rows.append(vm)
+	return rows
+
 # --- Commands (called by the View on input) ---
 
 func claim_all() -> BigNumber:

@@ -1,11 +1,13 @@
 extends PanelContainer
-## VIEW: one biome's section of the Crystal Caves Upgrades tab. Holds the upgrade
+## VIEW: one biome's section of the Crystal Caves Sequences tab. Holds the upgrade
 ## sequence the point-spending automation replays for that biome, plus the slot
 ## grid that appends a step to it.
 ##
-## Collapsed by default: with one section per biome, leaving every list open
-## turns the tab into a wall of steps you have to scroll past to reach the next
-## biome. The header alone stays visible, and pressing it opens the body.
+## The grid and its controls are always visible, since recording is what the
+## section is for and the grid is a fixed 5x2 either way. Only the recorded steps
+## collapse: they are the part that grows without bound, and with one section per
+## biome, leaving every list open turns the tab into a wall of steps you have to
+## scroll past to reach the next biome. Pressing the section toggles that list.
 ##
 ## Bound to a persistent BiomeSequenceViewModel owned by App.
 
@@ -13,10 +15,6 @@ extends PanelContainer
 @export var lbl_summary: Label
 @export var lbl_status: Label
 @export var lbl_empty: Label
-@export var auto_unlock_row: HBoxContainer
-@export var lbl_auto_unlock: Label
-@export var lbl_auto_unlock_cost: Label
-@export var btn_auto_unlock: Button
 @export var expansion_arrow: ColorRect
 @export var btn_clear: Button
 @export var btn_step_amount: Button
@@ -45,7 +43,6 @@ func _ready() -> void:
 	btn_step_amount.pressed.connect(_on_step_amount_pressed)
 	btn_page_back.pressed.connect(_on_page_back_pressed)
 	btn_page_forward.pressed.connect(_on_page_forward_pressed)
-	btn_auto_unlock.pressed.connect(_on_auto_unlock_pressed)
 	_apply_expanded()
 
 func bind(vm: BiomeSequenceViewModel) -> void:
@@ -71,20 +68,8 @@ func refresh() -> void:
 	lbl_status.text = _vm.status_text
 	lbl_status.visible = not lbl_status.text.is_empty()
 	btn_step_amount.text = _vm.step_amount_text
-	_refresh_auto_unlock()
 	_refresh_grid_slots()
 	_rebuild_steps()
-
-## A one-off crystal purchase, so the button disappears once it is owned rather
-## than sitting there disabled forever.
-func _refresh_auto_unlock() -> void:
-	lbl_auto_unlock.text = _vm.auto_unlock_text
-	var for_sale := _vm.offers_auto_unlock and not _vm.has_auto_unlock
-	lbl_auto_unlock_cost.visible = for_sale
-	btn_auto_unlock.visible = for_sale
-	if for_sale:
-		lbl_auto_unlock_cost.text = _vm.auto_unlock_cost_text
-		btn_auto_unlock.disabled = not _vm.can_buy_auto_unlock
 
 # --- Collapsing ---
 
@@ -187,9 +172,6 @@ func _on_page_back_pressed() -> void:
 
 func _on_page_forward_pressed() -> void:
 	_vm.page_forward()
-
-func _on_auto_unlock_pressed() -> void:
-	_vm.buy_auto_unlock()
 
 func _on_move_up(index: int) -> void:
 	_vm.move_step_up(index)

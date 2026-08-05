@@ -304,6 +304,12 @@ func can_buy_biome_auto_unlock(key: StringName) -> bool:
 func buy_biome_auto_unlock(key: StringName) -> bool:
 	return biome_system.buy_auto_unlock(key)
 
+func is_biome_auto_unlock_enabled(key: StringName) -> bool:
+	return biome_system.is_auto_unlock_enabled(key)
+
+func toggle_biome_auto_unlock(key: StringName) -> void:
+	biome_system.toggle_auto_unlock_enabled(key)
+
 func biome_upgrade_ids(key: StringName) -> Array[StringName]:
 	return biome_system.upgrade_ids(key)
 

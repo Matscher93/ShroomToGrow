@@ -8,7 +8,7 @@
 script = ExtResource("3_def_script")
 id = &"SymbiosisUpgrade8"
 display_name = "Amplified Bond"
-description = "+7% Potency production, per level. Compounds with a nodes Potency upgrade levels."
+description = "+7% Potency production, per level. Compounds with a nodes Potency upgrade levels. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
 min_biome_points_spent = 17
