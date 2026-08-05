@@ -55,6 +55,7 @@ text = "0 achievements claimed"
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxEmpty_tab_panel")
+tabs_position = 1
 current_tab = 0
 
 [node name="Achievements" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
