@@ -76,7 +76,11 @@ func refresh() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			_press_active = true
+			# The step list must not collapse the section, but its rows cannot be
+			# MOUSE_FILTER_STOP either - that would eat the scroll drags the
+			# ScrollContainer above needs. The rows pass events on instead, and
+			# the tap is rejected here, by where it landed.
+			_press_active = not _is_in_body(event.global_position)
 			_press_start = event.position
 		elif _press_active:
 			_press_active = false
@@ -85,6 +89,9 @@ func _gui_input(event: InputEvent) -> void:
 		# Far enough to be a scroll rather than a tap, so cancel it.
 		if event.position.distance_to(_press_start) > TAP_CANCEL_DISTANCE:
 			_press_active = false
+
+func _is_in_body(global_pos: Vector2) -> bool:
+	return vbox_body.visible and vbox_body.get_global_rect().has_point(global_pos)
 
 func _toggle_expanded() -> void:
 	_expanded = not _expanded

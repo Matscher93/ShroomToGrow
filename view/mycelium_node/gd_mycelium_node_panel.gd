@@ -151,7 +151,11 @@ func _on_buy_synergy_pressed() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			_press_active = true
+			# The synergy block must not collapse the card, but it cannot be
+			# MOUSE_FILTER_STOP either - that would eat the scroll drags the
+			# ScrollContainer above needs. It passes events on instead, and the
+			# tap is rejected here, by where it landed.
+			_press_active = not _is_in_synergy(event.global_position)
 			_press_start = event.position
 		elif _press_active:
 			_press_active = false
@@ -162,6 +166,9 @@ func _gui_input(event: InputEvent) -> void:
 		# to be a scroll.
 		if event.position.distance_to(_press_start) > TAP_CANCEL_DISTANCE:
 			_press_active = false
+
+func _is_in_synergy(global_pos: Vector2) -> bool:
+	return vbox_synergy.visible and vbox_synergy.get_global_rect().has_point(global_pos)
 
 func _toggle_synergy() -> void:
 	vbox_buy.visible = not vbox_buy.visible

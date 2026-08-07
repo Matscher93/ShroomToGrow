@@ -113,7 +113,11 @@ func _on_slot_selected(id: StringName) -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			_press_active = true
+			# A press inside the expanded body must not collapse the card, but the
+			# body cannot be MOUSE_FILTER_STOP either - that would eat the scroll
+			# drags the ScrollContainer above needs. So the body passes events on
+			# and the tap is rejected here, by where it landed.
+			_press_active = not _is_in_body(event.global_position)
 			_press_start = event.position
 		elif _press_active:
 			_press_active = false
@@ -124,6 +128,9 @@ func _gui_input(event: InputEvent) -> void:
 		# to be a scroll.
 		if event.position.distance_to(_press_start) > TAP_CANCEL_DISTANCE:
 			_press_active = false
+
+func _is_in_body(global_pos: Vector2) -> bool:
+	return vbox_upgrades.visible and vbox_upgrades.get_global_rect().has_point(global_pos)
 
 func _toggle_upgrades() -> void:
 	if not _vm or not _vm.unlocked:

@@ -313,7 +313,7 @@ mouse_filter = 2
 
 [node name="vbox_buy" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=175159022]
 layout_mode = 2
-mouse_filter = 0
+mouse_filter = 1
 
 [node name="lbl_unlock_info" type="Label" parent="MarginContainer/VBoxContainer/vbox_buy" unique_id=1438180656]
 layout_mode = 2
@@ -369,7 +369,7 @@ script = ExtResource("10_6d5td")
 
 [node name="vbox_upgrades" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=994649677]
 layout_mode = 2
-mouse_filter = 0
+mouse_filter = 1
 theme_override_constants/separation = 8
 
 [node name="lbl_biome_progress" type="Label" parent="MarginContainer/VBoxContainer/vbox_upgrades" unique_id=566350085]

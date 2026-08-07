@@ -441,7 +441,7 @@ script = ExtResource("9_7yqcm")
 
 [node name="vbox_synergy" type="VBoxContainer" parent="MarginContainer/VBoxContainer/vbox_buy" unique_id=994649677]
 layout_mode = 2
-mouse_filter = 0
+mouse_filter = 1
 theme_override_constants/separation = 8
 
 [node name="Control" type="Control" parent="MarginContainer/VBoxContainer/vbox_buy/vbox_synergy" unique_id=692070418]
