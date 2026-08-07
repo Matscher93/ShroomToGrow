@@ -2,23 +2,30 @@ class_name ProductionSystem
 extends RefCounted
 ## MODEL: resolves a stat through every upgrade track at once.
 ##
-## The three UpgradeSystems (symbiosis, biome upgrades, perks) write into the
-## same stat buckets, so any upgrade targeting a stat contributes automatically.
-## Adding one is a data edit, never a wiring change.
+## The four UpgradeSystems (symbiosis, biome upgrades, perks, geode boosts) write
+## into the same stat buckets, so any upgrade targeting a stat contributes
+## automatically. Adding one is a data edit, never a wiring change.
 ##
 ## Holds only its inputs, no App reference, so it can be built and exercised in
-## isolation. Order is fixed: symbiosis, then biome, then prestige.
+## isolation. Order is fixed: symbiosis, then biome, then prestige, then geodes.
 
 var _symbiosis: UpgradeSystem
 var _biome: UpgradeSystem
 var _prestige: UpgradeSystem
+var _geodes: UpgradeSystem
 var _ctx: ResolveContext
 
+## `geodes` defaults to an empty track so the callers that predate the geode
+## menu - and the tests that only care about one of the other three - keep
+## building a ProductionSystem with four arguments. An empty UpgradeSystem
+## resolves to the identity, so the stack below needs no null check on the hot
+## path.
 func _init(symbiosis: UpgradeSystem, biome: UpgradeSystem, prestige: UpgradeSystem,
-		ctx: ResolveContext) -> void:
+		ctx: ResolveContext, geodes: UpgradeSystem = null) -> void:
 	_symbiosis = symbiosis
 	_biome = biome
 	_prestige = prestige
+	_geodes = geodes if geodes != null else UpgradeSystem.new()
 	_ctx = ctx
 
 ## Runs base through all three tracks. `target` scopes the lookup to one node id
@@ -26,14 +33,16 @@ func _init(symbiosis: UpgradeSystem, biome: UpgradeSystem, prestige: UpgradeSyst
 func stack(stat: StringName, base: BigNumber, target: StringName = &"") -> BigNumber:
 	var value := _symbiosis.modify(stat, base, _ctx, [], target)
 	value = _biome.modify(stat, value, _ctx, [], target)
-	return _prestige.modify(stat, value, _ctx, [], target)
+	value = _prestige.modify(stat, value, _ctx, [], target)
+	return _geodes.modify(stat, value, _ctx, [], target)
 
 ## Everything boosting the stat *except* the player's own symbiosis levels.
 ## Scales a symbiosis upgrade's marginal per-level rate for display, so the
 ## shown rate includes the boosts applied on top of it.
 func stack_external(stat: StringName, base: BigNumber, target: StringName = &"") -> BigNumber:
 	var value := _biome.modify(stat, base, _ctx, [], target)
-	return _prestige.modify(stat, value, _ctx, [], target)
+	value = _prestige.modify(stat, value, _ctx, [], target)
+	return _geodes.modify(stat, value, _ctx, [], target)
 
 # ---------------------------------------------------------------- node output
 
@@ -77,6 +86,14 @@ func modify_crystal_gain(base: BigNumber) -> BigNumber:
 func automation_rate() -> float:
 	var rate := stack(&"automation_rate", BigNumber.from_value(1.0))
 	return maxf(0.01, rate.to_float())
+
+## Crystals melted per geode, so an upgrade lowering &"geode_conversion" makes
+## every geode-priced boost cheaper. Clamped at `minimum` for the reason
+## tick_duration is: a stacked discount could otherwise reach zero and hand out
+## boost levels for nothing.
+func geode_conversion_rate(base_rate: float, minimum: float) -> float:
+	var rate := stack(&"geode_conversion", BigNumber.from_value(base_rate))
+	return maxf(minimum, rate.to_float())
 
 ## Any upgrade targeting &"tick_rate" shortens the interval. Clamped so a
 ## stacked discount can never reach or cross zero.

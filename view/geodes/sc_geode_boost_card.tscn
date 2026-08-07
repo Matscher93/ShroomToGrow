@@ -1,9 +1,9 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://view/crystal_caves/gd_automation_card.gd" id="1_script"]
+[ext_resource type="Script" path="res://view/geodes/gd_geode_boost_card.gd" id="1_script"]
 [ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="2_hold_repeat"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_automation_card"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_geode_boost_card"]
 content_margin_left = 12.0
 content_margin_top = 10.0
 content_margin_right = 12.0
@@ -16,16 +16,17 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="automation_card" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_description", "lbl_level", "lbl_rate", "lbl_cost", "btn_buy", "btn_enabled")]
-theme_override_styles/panel = SubResource("StyleBoxFlat_automation_card")
+[node name="geode_boost_card" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_description", "lbl_bonus", "lbl_level", "lbl_tier", "lbl_next", "lbl_cost", "btn_buy")]
+theme_override_styles/panel = SubResource("StyleBoxFlat_geode_boost_card")
 script = ExtResource("1_script")
 lbl_name = NodePath("VBoxContainer/header/lbl_name")
 lbl_description = NodePath("VBoxContainer/lbl_description")
-lbl_level = NodePath("VBoxContainer/header/lbl_level")
-lbl_rate = NodePath("VBoxContainer/footer/lbl_rate")
+lbl_bonus = NodePath("VBoxContainer/header/lbl_bonus")
+lbl_level = NodePath("VBoxContainer/progress/lbl_level")
+lbl_tier = NodePath("VBoxContainer/progress/lbl_tier")
+lbl_next = NodePath("VBoxContainer/footer/lbl_next")
 lbl_cost = NodePath("VBoxContainer/footer/lbl_cost")
 btn_buy = NodePath("VBoxContainer/footer/btn_buy")
-btn_enabled = NodePath("VBoxContainer/header/btn_enabled")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 2
@@ -37,27 +38,38 @@ layout_mode = 2
 [node name="lbl_name" type="Label" parent="VBoxContainer/header"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Automation"
+text = "Boost"
 
-[node name="lbl_level" type="Label" parent="VBoxContainer/header"]
+[node name="lbl_bonus" type="Label" parent="VBoxContainer/header"]
+modulate = Color(0.7607843, 0.94509804, 0.98039216, 1)
 layout_mode = 2
-text = "Lv 0"
-
-[node name="btn_enabled" type="Button" parent="VBoxContainer/header"]
-layout_mode = 2
-text = "On"
+text = "x1.00"
 
 [node name="lbl_description" type="Label" parent="VBoxContainer"]
 modulate = Color(1, 1, 1, 0.65)
 layout_mode = 2
-text = "What this one buys for you."
+text = "What this boost raises."
 autowrap_mode = 3
+
+[node name="progress" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="lbl_level" type="Label" parent="VBoxContainer/progress"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Lv 0 / 500"
+
+[node name="lbl_tier" type="Label" parent="VBoxContainer/progress"]
+modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+text = "T1 geodes - 0 / 100"
 
 [node name="footer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="lbl_rate" type="Label" parent="VBoxContainer/footer"]
+[node name="lbl_next" type="Label" parent="VBoxContainer/footer"]
 modulate = Color(1, 1, 1, 0.65)
 layout_mode = 2
 size_flags_horizontal = 3

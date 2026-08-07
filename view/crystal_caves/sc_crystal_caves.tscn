@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" path="res://view/crystal_caves/sc_biome_sequence_section.tscn" id="4_biome_sequence"]
 [ext_resource type="PackedScene" path="res://view/crystal_caves/sc_biome_auto_unlock_row.tscn" id="5_auto_unlock_row"]
 [ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="6_touch_scroll"]
+[ext_resource type="PackedScene" path="res://view/geodes/sc_geodes.tscn" id="7_geodes"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_crystal_caves"]
 
@@ -87,6 +88,10 @@ autowrap_mode = 3
 [node name="vbox_auto_unlocks" type="VBoxContainer" parent="VBoxContainer/TabContainer/Automations/MarginContainer/VBoxContainer/auto_unlock_section"]
 layout_mode = 2
 theme_override_constants/separation = 8
+
+[node name="Geodes" parent="VBoxContainer/TabContainer" instance=ExtResource("7_geodes")]
+visible = false
+layout_mode = 2
 
 [node name="Sequences" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
 script = ExtResource("6_touch_scroll")

@@ -1,9 +1,12 @@
 @tool
 extends PanelContainer
-## VIEW: the Crystal Caves screen. Two tabs: the crystal-bought automations, and
-## the per-biome spending sequences the point-spending automation replays. The
-## crystal balance stays in a shared header above them, since it is what they are
-## both spent from.
+## VIEW: the Crystal Caves screen. Three tabs: the crystal-bought automations,
+## the geode sink crystals are melted down into, and the per-biome sequences
+## the point-spending automation replays. The crystal balance stays in a shared
+## header above them, since it is what they are all spent from.
+##
+## The Geodes tab is a self-contained scene with its own ViewModel (see
+## view/geodes/), so it needs no wiring here beyond sitting in the TabContainer.
 ##
 ## Sequences sit last because they are set up once and then left alone, and the
 ## rows are long enough that they crowded the upgrade list they used to share.

@@ -13,7 +13,7 @@ extends GdUnitTestSuite
 const KNOWN_STATS: Array[StringName] = [
 	&"potency_production", &"synergy_production", &"node_production",
 	&"biomass_gain", &"tick_rate", &"biome_points",
-	&"crystal_gain", &"automation_rate",
+	&"crystal_gain", &"automation_rate", &"geode_conversion",
 ]
 
 ## The sentence every biome upgrade's description ends with, since all of them
@@ -27,6 +27,7 @@ var _symbiosis_defs: Array[UpgradeDef]
 var _biome_defs: Array[UpgradeDef]
 var _achievements: Array[AchievementDef]
 var _automations: Array[AutomationDef]
+var _geode_boosts: Array[GeodeBoostDef]
 
 func before_test() -> void:
 	_nodes = (load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes).mycelium_nodes
@@ -36,6 +37,7 @@ func before_test() -> void:
 	_biome_defs = UpgradeDefLoader.load_all(UpgradeDefLoader.BIOME_PATH)
 	_achievements = (load("res://data/achievements/all_achievements.tres") as AchievementList).achievements
 	_automations = (load("res://data/automation/all_automations.tres") as AutomationList).automations
+	_geode_boosts = (load("res://data/geodes/all_geode_boosts.tres") as GeodeBoostList).boosts
 
 ## Node tiers and biomes both address by StringName, and NODE-scoped effects use
 ## one field for both, so a target is valid if it names either.
@@ -491,3 +493,77 @@ func test_every_automation_acts_at_least_sometimes_once_bought() -> void:
 		assert_float(def.base_runs_per_tick) \
 			.override_failure_message("Automation '%s' does nothing at level 1 (%f per tick)." \
 				% [def.id, def.base_runs_per_tick]).is_greater(0.0)
+
+# ---------------------------------------------------------------- geode boosts
+
+func test_geode_boost_ids_are_unique() -> void:
+	var seen := {}
+	for def in _geode_boosts:
+		assert_bool(seen.has(def.id)) \
+			.override_failure_message("Geode boost id '%s' is authored twice." % def.id).is_false()
+		seen[def.id] = true
+
+func test_every_geode_boost_stat_is_a_real_one() -> void:
+	for def in _geode_boosts:
+		assert_bool(KNOWN_STATS.has(def.stat)) \
+			.override_failure_message("Geode boost '%s' targets stat '%s', which nothing reads." \
+				% [def.id, def.stat]).is_true()
+
+## A &"node_production" boost left GLOBAL is applied to every tier of the
+## cascade, and each tier feeds the one below, so it compounds once per tier
+## before it reaches nutrients - a x1.5 boost lands as roughly x1.5^10. Keeping
+## it NODE-scoped to tier 0 is what makes it a nutrient boost rather than a
+## whole-chain one, and nothing about that is visible at load time.
+func test_a_node_production_geode_boost_is_scoped_to_one_tier() -> void:
+	var targets := _scope_targets()
+	for def in _geode_boosts:
+		if def.stat != &"node_production":
+			continue
+		assert_int(def.scope) \
+			.override_failure_message("Geode boost '%s' raises node production globally, so the node cascade compounds it once per tier." \
+				% def.id).is_equal(UpgradeEffectDef.Scope.NODE)
+		assert_bool(targets.has(def.target)) \
+			.override_failure_message("Geode boost '%s' targets '%s', which is neither a node tier nor a biome." \
+				% [def.id, def.target]).is_true()
+
+func test_every_geode_boost_gets_more_expensive() -> void:
+	for def in _geode_boosts:
+		assert_float(def.cost_growth) \
+			.override_failure_message("Geode boost '%s' has cost growth %f, so it never gets more expensive." \
+				% [def.id, def.cost_growth]).is_greater(1.0)
+
+## The within-tier curve restarts at every boundary. Without a tier growth above
+## 1.0 it restarts at the *same* opening price, so a tier worth orders of
+## magnitude more per level costs exactly what the first one did.
+func test_every_geode_boost_opens_each_tier_dearer_than_the_last() -> void:
+	for def in _geode_boosts:
+		assert_float(def.tier_cost_growth) \
+			.override_failure_message("Geode boost '%s' has tier cost growth %f, so its tiers all open at the same price." \
+				% [def.id, def.tier_cost_growth]).is_greater(1.0)
+		var previous := 0.0
+		for tier in range(1, GeodeTiers.MAX_TIER + 1):
+			var opening := def.tier_base_cost(tier)
+			assert_float(opening) \
+				.override_failure_message("Geode boost '%s' opens tier %d at %f, no dearer than the tier below." \
+					% [def.id, tier, opening]).is_greater(previous)
+			previous = opening
+
+## A tier that pays less per level than the one under it makes crossing a
+## boundary a downgrade the player just paid for.
+func test_every_geode_boost_pays_more_per_level_each_tier() -> void:
+	for def in _geode_boosts:
+		assert_float(def.base_per_level) \
+			.override_failure_message("Geode boost '%s' adds nothing at tier 1." % def.id) \
+			.is_greater(0.0)
+		assert_float(def.per_level_growth) \
+			.override_failure_message("Geode boost '%s' has per-level growth %f, so a higher tier is worth no more than a lower one." \
+				% [def.id, def.per_level_growth]).is_greater_equal(1.0)
+
+## Every tier the ladder can reach has to produce a registerable def, or the
+## levels above that boundary are unbuyable with no error to say why.
+func test_the_generated_tier_defs_cover_the_whole_ladder() -> void:
+	var defs := GeodeBoostTree.build(load("res://data/geodes/all_geode_boosts.tres") as GeodeBoostList)
+	assert_int(defs.size()).is_equal(_geode_boosts.size() * GeodeTiers.MAX_TIER)
+	for def in defs:
+		assert_int(def.max_level).is_equal(GeodeTiers.LEVELS_PER_TIER)
+		assert_int(def.effects.size()).is_equal(1)

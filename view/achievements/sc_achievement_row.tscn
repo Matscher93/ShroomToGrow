@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://view/achievements/gd_achievement_row.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="2_hold_repeat"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_achievement_row"]
 content_margin_left = 12.0
@@ -87,3 +88,4 @@ text = "+0"
 layout_mode = 2
 disabled = true
 text = "Claim"
+script = ExtResource("2_hold_repeat")

@@ -1,0 +1,61 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/geodes/gd_geodes_panel.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://view/geodes/sc_geode_boost_card.tscn" id="2_boost_card"]
+[ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="3_touch_scroll"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_geodes"]
+
+[node name="geodes" type="PanelContainer" node_paths=PackedStringArray("lbl_available", "lbl_conversion", "vbox_boosts")]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxEmpty_geodes")
+script = ExtResource("1_script")
+lbl_available = NodePath("ScrollContainer/MarginContainer/VBoxContainer/header/lbl_available")
+lbl_conversion = NodePath("ScrollContainer/MarginContainer/VBoxContainer/header/lbl_conversion")
+vbox_boosts = NodePath("ScrollContainer/MarginContainer/VBoxContainer/vbox_boosts")
+boost_card_scene = ExtResource("2_boost_card")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+script = ExtResource("3_touch_scroll")
+layout_mode = 2
+vertical_scroll_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ScrollContainer/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="lbl_hint" type="Label" parent="ScrollContainer/MarginContainer/VBoxContainer"]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 2
+text = "Boosts are priced in geodes. Buying one melts the crystals it is worth. Every hundred levels raises the tier, and a higher tier is worth more per level."
+autowrap_mode = 3
+
+[node name="header" type="HBoxContainer" parent="ScrollContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="lbl_available" type="Label" parent="ScrollContainer/MarginContainer/VBoxContainer/header"]
+modulate = Color(0.7607843, 0.94509804, 0.98039216, 1)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "0 geodes"
+
+[node name="lbl_conversion" type="Label" parent="ScrollContainer/MarginContainer/VBoxContainer/header"]
+modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+text = "100 crystals each"
+
+[node name="vbox_boosts" type="VBoxContainer" parent="ScrollContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8

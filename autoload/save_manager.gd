@@ -355,7 +355,8 @@ func _collect_data() -> Dictionary:
 		"biomes": App.biomes_data.to_save(),
 		"biome_upgrades": App.biome_upgrade_system.to_save(),
 		"achievements": App.achievement_progress.to_save(),
-		"automation": App.automation_data.to_save()
+		"automation": App.automation_data.to_save(),
+		"geode_upgrades": App.geode_upgrade_system.to_save()
 	}
 	return save_state
 
@@ -372,6 +373,7 @@ func _apply_data(game: Dictionary) -> void:
 	# not a saved field, so it has to be rebuilt here.
 	App.achievement_system.sync_tier_count()
 	App.automation_data.load_from_save(game.get("automation", {}))
+	App.geode_upgrade_system.from_save(game.get("geode_upgrades", {}))
 
 func get_mycelium_node_data() -> Array[Dictionary]:
 	var all_node_data: Array[Dictionary] = []
