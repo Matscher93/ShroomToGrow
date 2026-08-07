@@ -15,6 +15,12 @@ var sporate_text: String:
 var sporate_enabled: bool:
 	get: return App.can_prestige()
 
+## Short form for the resource bar's biomass chip, where the full sporate
+## sentence does not fit.
+var pending_biomass_text: String:
+	get:
+		return "+%s on sporate" % App.preview_biomass_gain().to_display()
+
 # --- Lifecycle ---
 
 func _init() -> void:

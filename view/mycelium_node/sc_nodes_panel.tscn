@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://djicawhy084eg" path="res://view/mycelium_node/gd_nodes_panel.gd" id="1_jel80"]
 [ext_resource type="PackedScene" uid="uid://kfpllakofd4u" path="res://view/mycelium_node/sc_mycelium_node_panel.tscn" id="2_mv2m2"]
+[ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="3_touch_scroll"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_io8sp"]
 
@@ -17,6 +18,7 @@ vbox_nodes = NodePath("ScrollContainer/MarginContainer/VBoxContainer")
 node_scene = ExtResource("2_mv2m2")
 
 [node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=604294251]
+script = ExtResource("3_touch_scroll")
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0

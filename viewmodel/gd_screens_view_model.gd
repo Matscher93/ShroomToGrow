@@ -20,6 +20,14 @@ var current_screen: ScreenTypes.Types:
 var all_screen_data: Dictionary[ScreenTypes.Types, ScreenDefinition]:
 	get: return _model.screen_data
 
+## Currencies the resource bar should show for the screen that is up right now.
+var current_currencies: Array[CurrencyDef]:
+	get:
+		var definition := get_screen_data(_model.current_screen)
+		if definition == null:
+			return []
+		return definition.currencies
+
 func get_screen_data(type: ScreenTypes.Types) -> ScreenDefinition:
 	return _model.screen_data.get(type)
 

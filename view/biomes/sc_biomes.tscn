@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://chhxa71yn2gca" path="res://view/biomes/gd_biomes_panel.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://dint58ceyo88r" path="res://view/biomes/sc_biome_panel.tscn" id="2_biome_panel"]
+[ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="3_touch_scroll"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
 
@@ -14,6 +15,7 @@ vbox_items = NodePath("ScrollContainer/MarginContainer/VBoxContainer")
 biome_scene = ExtResource("2_biome_panel")
 
 [node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1274331972]
+script = ExtResource("3_touch_scroll")
 layout_mode = 2
 vertical_scroll_mode = 2
 

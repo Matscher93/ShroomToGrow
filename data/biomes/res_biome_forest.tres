@@ -7,7 +7,7 @@
 script = ExtResource("1_script")
 key = &"forest"
 display_name = "Forest"
-description = "Shaded woodland"
+description = "Boost your nodes"
 xp_source = 1
 xp_label = "symbioses formed"
 biome_color = Color(0.56078434, 0.8392157, 0.627451, 1)
@@ -18,4 +18,3 @@ _unlock_cost_exponent = 1
 _size_base_cost_mantissa = 5.0
 _size_base_cost_exponent = 1
 _auto_unlock_cost_mantissa = 5.0
-_auto_unlock_cost_exponent = 1

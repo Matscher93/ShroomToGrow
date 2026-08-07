@@ -2,9 +2,12 @@
 
 [ext_resource type="PackedScene" uid="uid://ddh3upe4opucw" path="res://view/biomes/sc_biomes.tscn" id="1_rb6u0"]
 [ext_resource type="Script" uid="uid://cfbpk4evittcm" path="res://model/screens/gd_screen_definition.gd" id="2_45r8q"]
+[ext_resource type="Script" uid="uid://d285gd4vuvyo4" path="res://model/currencies/gd_currency_def.gd" id="3_curdef"]
+[ext_resource type="Resource" uid="uid://cu7pu8ny7a7lb" path="res://data/currencies/res_nutrients_def.tres" id="4_nutr"]
 
 [resource]
 script = ExtResource("2_45r8q")
 screen_name = "Biomes"
 screen_scene = ExtResource("1_rb6u0")
+currencies = Array[ExtResource("3_curdef")]([ExtResource("4_nutr")])
 metadata/_custom_type_script = "uid://cfbpk4evittcm"

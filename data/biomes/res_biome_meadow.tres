@@ -7,7 +7,7 @@
 script = ExtResource("1_tfhgd")
 key = &"meadow"
 display_name = "Meadow"
-description = "Where it all begins"
+description = "Grow your mycelium network"
 screen_type = 1
 xp_label = "nodes grown"
 biome_color = Color(0.49019608, 0.9411765, 0.8235294, 1)
@@ -15,5 +15,3 @@ biome_shader = ExtResource("1_1ot1h")
 upgrade_ids = Array[StringName]([&"DenseMycelium", &"ForestUpgrade2", &"ForestUpgrade3", &"ForestUpgrade4", &"ForestUpgrade5", &"ForestUpgrade6", &"ForestUpgrade7", &"ForestUpgrade8", &"ForestUpgrade9", &"ForestUpgrade10"])
 always_unlocked = true
 _size_base_cost_exponent = 1
-_auto_unlock_cost_mantissa = 1.0
-_auto_unlock_cost_exponent = 1

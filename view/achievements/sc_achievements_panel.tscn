@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://view/achievements/gd_achievements_panel.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://view/achievements/sc_achievement_row.tscn" id="2_achievement_row"]
 [ext_resource type="FontFile" uid="uid://bfcncplwx4kw5" path="res://fonts/Space_Grotesk/SpaceGrotesk-Bold.ttf" id="3_title_font"]
+[ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="4_touch_scroll"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_backdrop"]
 bg_color = Color(0.015686275, 0.03137255, 0.023529412, 0.62)
@@ -79,6 +80,7 @@ disabled = true
 text = "Nothing to claim"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer"]
+script = ExtResource("4_touch_scroll")
 layout_mode = 2
 size_flags_vertical = 3
 vertical_scroll_mode = 2

@@ -12,7 +12,7 @@
 [ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="10_6d5td"]
 [ext_resource type="Script" uid="uid://c3ouusiqjure6" path="res://view/base_views/gd_base_panel_container.gd" id="11_h61rx"]
 [ext_resource type="Script" uid="uid://618xwt11kdvi" path="res://view/biomes/gd_biome_panel.gd" id="12_biome"]
-[ext_resource type="Shader" uid="uid://djm4kfwj0ikno" path="res://view/tick_progress/sh_tick_progress.gdshader" id="12_uvy23"]
+[ext_resource type="Shader" uid="uid://djm4kfwj0ikno" path="res://view/resource_bar/sh_tick_progress.gdshader" id="12_uvy23"]
 [ext_resource type="PackedScene" uid="uid://cvip1c5mqiyto" path="res://view/biomes/sc_biome_upgrade_card.tscn" id="13_upgrade_card"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
@@ -313,7 +313,6 @@ mouse_filter = 2
 
 [node name="vbox_buy" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=175159022]
 layout_mode = 2
-mouse_filter = 1
 
 [node name="lbl_unlock_info" type="Label" parent="MarginContainer/VBoxContainer/vbox_buy" unique_id=1438180656]
 layout_mode = 2
@@ -369,7 +368,6 @@ script = ExtResource("10_6d5td")
 
 [node name="vbox_upgrades" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=994649677]
 layout_mode = 2
-mouse_filter = 1
 theme_override_constants/separation = 8
 
 [node name="lbl_biome_progress" type="Label" parent="MarginContainer/VBoxContainer/vbox_upgrades" unique_id=566350085]

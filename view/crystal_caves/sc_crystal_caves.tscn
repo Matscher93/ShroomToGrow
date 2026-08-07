@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://view/crystal_caves/sc_automation_card.tscn" id="2_automation_card"]
 [ext_resource type="PackedScene" path="res://view/crystal_caves/sc_biome_sequence_section.tscn" id="4_biome_sequence"]
 [ext_resource type="PackedScene" path="res://view/crystal_caves/sc_biome_auto_unlock_row.tscn" id="5_auto_unlock_row"]
+[ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="6_touch_scroll"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_crystal_caves"]
 
@@ -48,6 +49,7 @@ tabs_position = 1
 current_tab = 0
 
 [node name="Automations" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
+script = ExtResource("6_touch_scroll")
 layout_mode = 2
 vertical_scroll_mode = 2
 
@@ -87,6 +89,7 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="Sequences" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
+script = ExtResource("6_touch_scroll")
 visible = false
 layout_mode = 2
 vertical_scroll_mode = 2

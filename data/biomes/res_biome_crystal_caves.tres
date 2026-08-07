@@ -1,13 +1,13 @@
-[gd_resource type="Resource" script_class="BiomeDef" format=3]
+[gd_resource type="Resource" script_class="BiomeDef" format=3 uid="uid://napop64fuj1n"]
 
-[ext_resource type="Shader" path="res://shaders/icons/biomes/sh_crystal_caves.gdshader" id="1_shader"]
 [ext_resource type="Script" uid="uid://beyspvlhwfx6a" path="res://model/biomes/gd_biome_def.gd" id="1_script"]
+[ext_resource type="Shader" uid="uid://dv5su1cea725e" path="res://shaders/icons/biomes/sh_crystal_caves.gdshader" id="1_shader"]
 
 [resource]
 script = ExtResource("1_script")
 key = &"crystal_caves"
 display_name = "Crystal Caves"
-description = "Where every achievement leaves a shard behind"
+description = "Automate your colony"
 screen_type = 3
 xp_source = 3
 xp_label = "achievements earned"
@@ -18,5 +18,4 @@ _unlock_cost_mantissa = 2.5
 _unlock_cost_exponent = 4
 _size_base_cost_mantissa = 2.5
 _size_base_cost_exponent = 3
-_auto_unlock_cost_mantissa = 1.0
 _auto_unlock_cost_exponent = 3

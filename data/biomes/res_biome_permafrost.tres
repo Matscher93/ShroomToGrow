@@ -7,7 +7,7 @@
 script = ExtResource("1_script")
 key = &"permafrost"
 display_name = "Permafrost"
-description = "Frozen memory of colonies"
+description = "Permanently improve your colony"
 screen_type = 2
 xp_source = 2
 xp_label = "colonies sporated"
