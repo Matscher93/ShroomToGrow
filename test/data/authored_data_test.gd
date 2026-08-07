@@ -494,7 +494,67 @@ func test_every_automation_acts_at_least_sometimes_once_bought() -> void:
 			.override_failure_message("Automation '%s' does nothing at level 1 (%f per tick)." \
 				% [def.id, def.base_runs_per_tick]).is_greater(0.0)
 
+func test_every_automation_perk_id_exists_in_the_perk_tree() -> void:
+	# Both ids are plain StringNames. A typo in the unlock one locks that
+	# automation forever; a typo in the cap one silently pins it at its authored
+	# ceiling. Neither shows up at load.
+	var perk_ids := {}
+	for perk in _perks:
+		perk_ids[perk.id] = true
+	for def in _automations:
+		for id: StringName in [def.unlock_perk_id, def.max_level_perk_id]:
+			if id.is_empty():
+				continue
+			assert_bool(perk_ids.has(id)) \
+				.override_failure_message("Automation '%s' names perk '%s', which no branch authors." \
+					% [def.id, id]).is_true()
+
+func test_every_capped_automation_has_a_perk_that_raises_the_cap() -> void:
+	# A cap perk that adds 0 levels, or an id with no step size behind it, is a
+	# perk the player buys for nothing.
+	for def in _automations:
+		if def.max_level_perk_id.is_empty():
+			continue
+		assert_int(def.max_level) \
+			.override_failure_message("Automation '%s' has a max-level perk but no ceiling to raise." \
+				% def.id).is_greater(0)
+		assert_int(def.max_level_per_perk_level) \
+			.override_failure_message("Automation '%s' names a max-level perk that adds nothing." \
+				% def.id).is_greater(0)
+
 # ---------------------------------------------------------------- geode boosts
+
+func test_every_geode_boost_perk_id_exists_in_the_perk_tree() -> void:
+	# Same silent failure as the automations': a typo either locks the boost
+	# forever or pins it at its authored ceiling, with nothing reported at load.
+	var perk_ids := {}
+	for perk in _perks:
+		perk_ids[perk.id] = true
+	for def in _geode_boosts:
+		for id: StringName in [def.unlock_perk_id, def.max_level_perk_id]:
+			if id.is_empty():
+				continue
+			assert_bool(perk_ids.has(id)) \
+				.override_failure_message("Geode boost '%s' names perk '%s', which no branch authors." \
+					% [def.id, id]).is_true()
+
+func test_every_capped_geode_boost_can_be_opened_all_the_way() -> void:
+	# A boost the perks cannot walk to the end of the ladder leaves authored
+	# tiers no player can ever buy into.
+	for def in _geode_boosts:
+		if def.base_max_level <= 0:
+			continue
+		var cap_perk: PerkDef = null
+		for perk in _perks:
+			if perk.id == def.max_level_perk_id:
+				cap_perk = perk
+		assert_object(cap_perk) \
+			.override_failure_message("Geode boost '%s' is capped at %d with no perk to raise it." \
+				% [def.id, def.base_max_level]).is_not_null()
+		var reachable := def.base_max_level + def.max_level_per_perk_level * cap_perk.max_level
+		assert_int(reachable) \
+			.override_failure_message("Geode boost '%s' tops out at %d, short of the ladder's %d." \
+				% [def.id, reachable, GeodeTiers.max_level()]).is_greater_equal(GeodeTiers.max_level())
 
 func test_geode_boost_ids_are_unique() -> void:
 	var seen := {}

@@ -35,6 +35,9 @@ var _symbiosis: UpgradeSystem
 var _biomes: BiomeList
 var _biomes_data: BiomesData
 var _biome_system: BiomeSystem
+## Levels of the perks automations are gated behind. Read-only from here: perks
+## are bought with biomass through PerkSystem, never through an automation.
+var _prestige_upgrades: UpgradeSystem
 ## id -> banked fraction of an action, carried between ticks. Transient: a
 ## reload starting from zero costs at most one tick of progress.
 var _pending: Dictionary = {}
@@ -45,7 +48,7 @@ var _defs_by_id: Dictionary = {}
 func _init(automations: AutomationList, data: AutomationData, player_data: PlayerData,
 		production: ProductionSystem, node_data: Array[MyceliumNodeData],
 		symbiosis: UpgradeSystem, biomes: BiomeList, biomes_data: BiomesData,
-		biome_system: BiomeSystem) -> void:
+		biome_system: BiomeSystem, prestige_upgrades: UpgradeSystem) -> void:
 	_automations = automations
 	_data = data
 	_player_data = player_data
@@ -55,6 +58,7 @@ func _init(automations: AutomationList, data: AutomationData, player_data: Playe
 	_biomes = biomes
 	_biomes_data = biomes_data
 	_biome_system = biome_system
+	_prestige_upgrades = prestige_upgrades
 	for def in _automations.automations:
 		_defs_by_id[def.id] = def
 
@@ -68,6 +72,31 @@ func level(id: StringName) -> int:
 
 func is_owned(id: StringName) -> bool:
 	return _data.level(id) > 0
+
+## False while this automation still waits on its prestige perk. Only blocks
+## buying: an automation owned before the gate existed keeps its levels and keeps
+## firing, the same way a locked node tier keeps the nodes it already has.
+func is_unlocked(id: StringName) -> bool:
+	var def := automation_def(id)
+	if def == null:
+		return false
+	if def.unlock_perk_id.is_empty():
+		return true
+	return _prestige_upgrades.level(def.unlock_perk_id) > 0
+
+## This automation's ceiling right now: the authored one plus whatever its
+## max-level perk has added. 0 stays 0 - an automation authored without a ceiling
+## has none to raise.
+func max_level(id: StringName) -> int:
+	var def := automation_def(id)
+	if def == null:
+		return 0
+	if def.max_level <= 0:
+		return 0
+	if def.max_level_perk_id.is_empty():
+		return def.max_level
+	var perk_level := _prestige_upgrades.level(def.max_level_perk_id)
+	return def.max_level + def.max_level_per_perk_level * perk_level
 
 ## Owned, switched on, and therefore due to fire on its timer.
 func is_active(id: StringName) -> bool:
@@ -83,11 +112,11 @@ func cost(id: StringName) -> BigNumber:
 	return def.base_cost.mul(BigNumber.from_value(def.cost_growth).pow_float(scaled_level))
 
 func is_maxed(id: StringName) -> bool:
-	var def := automation_def(id)
-	return def != null and def.max_level > 0 and level(id) >= def.max_level
+	var ceiling := max_level(id)
+	return ceiling > 0 and level(id) >= ceiling
 
 func can_buy(id: StringName) -> bool:
-	if automation_def(id) == null or is_maxed(id):
+	if automation_def(id) == null or is_maxed(id) or not is_unlocked(id):
 		return false
 	return _player_data.crystals.gte(cost(id))
 

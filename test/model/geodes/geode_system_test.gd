@@ -13,6 +13,7 @@ var _upgrades: UpgradeSystem
 var _conversion_upgrades: UpgradeSystem
 var _production: ProductionSystem
 var _list: GeodeBoostList
+var _prestige: UpgradeSystem
 var _system: GeodeSystem
 
 func before_test() -> void:
@@ -24,10 +25,11 @@ func before_test() -> void:
 	_conversion_upgrades = UpgradeSystem.new()
 	_production = ProductionSystem.new(_conversion_upgrades, UpgradeSystem.new(),
 		UpgradeSystem.new(), ResolveContext.new(), _upgrades)
+	_prestige = UpgradeSystem.new()
 	_list = _boost_list()
 	for def in GeodeBoostTree.build(_list):
 		_upgrades.register(def)
-	_system = GeodeSystem.new(_player, _upgrades, _production, _list)
+	_system = GeodeSystem.new(_player, _upgrades, _production, _list, _prestige)
 
 func _boost_list() -> GeodeBoostList:
 	# Node-scoped to tier 0, mirroring the shipped Nutrient Flow: tier 0 is the
@@ -89,6 +91,26 @@ func _register_discount(per_level: float) -> void:
 
 func _big(value: float) -> BigNumber:
 	return BigNumber.from_value(value)
+
+## Perk levels are set straight on the prestige UpgradeSystem, as the node and
+## automation gate tests do: what a perk costs is PerkSystem's rule, not this
+## system's.
+func _own_perk(id: StringName, level: int = 1) -> void:
+	var def := PerkDef.new()
+	def.id = id
+	def.max_level = level
+	_prestige.register(def)
+	_prestige.from_save({String(id): level})
+
+## Puts the gate fields on a test boost after the fact, so the shared list stays
+## ungated for every other test in the suite.
+func _gate(boost_id: StringName, unlock_perk_id: StringName, base_max_level: int,
+		cap_perk_id: StringName = &"", per_perk_level: int = 0) -> void:
+	var def := _system.boost_def(boost_id)
+	def.unlock_perk_id = unlock_perk_id
+	def.base_max_level = base_max_level
+	def.max_level_perk_id = cap_perk_id
+	def.max_level_per_perk_level = per_perk_level
 
 # ---------------------------------------------------------------- conversion
 
@@ -224,6 +246,70 @@ func test_a_maxed_ladder_stops_selling_levels() -> void:
 	assert_bool(_system.buy_boost(&"test_nutrients")).is_false()
 	assert_int(_system.boost_level(&"test_nutrients")).is_equal(GeodeTiers.max_level())
 
+# ---------------------------------------------------------------- perk gates
+
+func test_a_boost_without_an_unlock_perk_is_open() -> void:
+	assert_bool(_system.is_unlocked(&"test_nutrients")).is_true()
+	assert_int(_system.max_level(&"test_nutrients")).is_equal(GeodeTiers.max_level())
+
+func test_a_gated_boost_cannot_be_bought_before_its_perk_is_owned() -> void:
+	_gate(&"test_nutrients", &"instinct_flow", GeodeTiers.LEVELS_PER_TIER)
+	_player.crystals = _big(1.0e30)
+
+	assert_bool(_system.is_unlocked(&"test_nutrients")).is_false()
+	assert_bool(_system.can_buy_boost(&"test_nutrients")).is_false()
+	assert_bool(_system.buy_boost(&"test_nutrients")).is_false()
+	assert_int(_system.boost_level(&"test_nutrients")).is_equal(0)
+
+func test_a_gated_boost_opens_once_its_perk_is_owned() -> void:
+	_gate(&"test_nutrients", &"instinct_flow", GeodeTiers.LEVELS_PER_TIER)
+	_player.crystals = _big(1.0e30)
+	_own_perk(&"instinct_flow")
+
+	assert_bool(_system.is_unlocked(&"test_nutrients")).is_true()
+	assert_bool(_system.buy_boost(&"test_nutrients")).is_true()
+
+## Each dimension carries its own gate: unlocking one must not open the other.
+func test_the_two_boosts_are_gated_separately() -> void:
+	_gate(&"test_nutrients", &"instinct_flow", GeodeTiers.LEVELS_PER_TIER)
+	_gate(&"test_biomass", &"instinct_density", GeodeTiers.LEVELS_PER_TIER)
+	_own_perk(&"instinct_flow")
+
+	assert_bool(_system.is_unlocked(&"test_nutrients")).is_true()
+	assert_bool(_system.is_unlocked(&"test_biomass")).is_false()
+
+func test_the_ladder_stops_at_the_authored_ceiling() -> void:
+	_gate(&"test_nutrients", &"", GeodeTiers.LEVELS_PER_TIER, &"instinct_flow_cap",
+		GeodeTiers.LEVELS_PER_TIER)
+	_grant_levels(&"test_nutrients", GeodeTiers.LEVELS_PER_TIER)
+	_player.crystals = _big(1.0e30)
+
+	assert_int(_system.max_level(&"test_nutrients")).is_equal(GeodeTiers.LEVELS_PER_TIER)
+	assert_bool(_system.is_maxed(&"test_nutrients")).is_true()
+	assert_bool(_system.buy_boost(&"test_nutrients")).is_false()
+
+func test_a_cap_perk_opens_the_next_stretch_of_the_ladder() -> void:
+	_gate(&"test_nutrients", &"", GeodeTiers.LEVELS_PER_TIER, &"instinct_flow_cap",
+		GeodeTiers.LEVELS_PER_TIER)
+	_grant_levels(&"test_nutrients", GeodeTiers.LEVELS_PER_TIER)
+	_player.crystals = _big(1.0e30)
+	_own_perk(&"instinct_flow_cap", 2)
+
+	assert_int(_system.max_level(&"test_nutrients")).is_equal(3 * GeodeTiers.LEVELS_PER_TIER)
+	assert_bool(_system.is_maxed(&"test_nutrients")).is_false()
+	assert_bool(_system.buy_boost(&"test_nutrients")).is_true()
+	# The level lands in the tier it was bought at, so the rate steps up with it.
+	assert_int(_system.boost_tier(&"test_nutrients")).is_equal(2)
+
+## The tiers are what the rates and prices are authored against, so no stack of
+## cap perks may buy a level past the end of the table.
+func test_the_ceiling_never_passes_the_end_of_the_ladder() -> void:
+	_gate(&"test_nutrients", &"", GeodeTiers.LEVELS_PER_TIER, &"instinct_flow_cap",
+		GeodeTiers.LEVELS_PER_TIER)
+	_own_perk(&"instinct_flow_cap", 50)
+
+	assert_int(_system.max_level(&"test_nutrients")).is_equal(GeodeTiers.max_level())
+
 func test_the_two_boosts_keep_separate_ladders() -> void:
 	_player.crystals = _big(100000.0)
 
@@ -309,7 +395,8 @@ func test_boost_levels_round_trip_through_the_upgrade_track() -> void:
 	for def in GeodeBoostTree.build(_list):
 		restored.register(def)
 	restored.from_save(_upgrades.to_save())
-	var restored_system := GeodeSystem.new(PlayerData.new(), restored, _production, _list)
+	var restored_system := GeodeSystem.new(PlayerData.new(), restored, _production, _list,
+		_prestige)
 
 	assert_int(restored_system.boost_level(&"test_nutrients")).is_equal(
 		GeodeTiers.LEVELS_PER_TIER + 5)

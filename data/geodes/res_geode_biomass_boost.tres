@@ -8,3 +8,7 @@ id = &"geode_biomass"
 display_name = "Spore Density"
 description = "Multiplies the biomass every sporation converts into. Each level compounds on the last, and every hundred levels raises the tier."
 stat = &"biomass_gain"
+unlock_perk_id = &"instinct_density"
+base_max_level = 100
+max_level_perk_id = &"instinct_density_cap"
+max_level_per_perk_level = 100

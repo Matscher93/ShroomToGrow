@@ -1,0 +1,125 @@
+[gd_resource type="Resource" script_class="PerkBranchDef" format=3]
+
+[ext_resource type="Script" uid="uid://bidkvks0jdm2w" path="res://model/prestige/gd_perk_branch_def.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="2_node_script"]
+
+[sub_resource type="Resource" id="node_density_cap"]
+script = ExtResource("2_node_script")
+id = &"instinct_density_cap"
+display_name = "Deeper Density"
+description = "Raises Spore Density's max level by 100 per level."
+max_level = 4
+_base_cost_mantissa = 2.0
+_base_cost_exponent = 4
+
+[sub_resource type="Resource" id="node_density"]
+script = ExtResource("2_node_script")
+id = &"instinct_density"
+children = Array[ExtResource("2_node_script")]([SubResource("node_density_cap")])
+display_name = "Waking Density"
+description = "Opens Spore Density for buying in the Geodes."
+max_level = 1
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 4
+
+[sub_resource type="Resource" id="node_flow_cap"]
+script = ExtResource("2_node_script")
+id = &"instinct_flow_cap"
+display_name = "Deeper Flow"
+description = "Raises Nutrient Flow's max level by 100 per level."
+max_level = 4
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 3
+
+[sub_resource type="Resource" id="node_flow"]
+script = ExtResource("2_node_script")
+id = &"instinct_flow"
+children = Array[ExtResource("2_node_script")]([SubResource("node_flow_cap"), SubResource("node_density")])
+display_name = "Waking Flow"
+description = "Opens Nutrient Flow for buying in the Geodes."
+max_level = 1
+_base_cost_mantissa = 2.5
+_base_cost_exponent = 3
+
+[sub_resource type="Resource" id="node_steward_cap"]
+script = ExtResource("2_node_script")
+id = &"instinct_steward_cap"
+display_name = "Deeper Steward"
+description = "Raises Cavern Steward's max level by 5 per level."
+max_level = 5
+_base_cost_mantissa = 1.2
+_base_cost_exponent = 3
+
+[sub_resource type="Resource" id="node_steward"]
+script = ExtResource("2_node_script")
+id = &"instinct_steward"
+children = Array[ExtResource("2_node_script")]([SubResource("node_flow"), SubResource("node_steward_cap")])
+display_name = "Waking Steward"
+description = "Opens Cavern Steward for buying in the Crystal Caves."
+max_level = 1
+_base_cost_mantissa = 6.0
+_base_cost_exponent = 2
+
+[sub_resource type="Resource" id="node_patience_cap"]
+script = ExtResource("2_node_script")
+id = &"instinct_patience_cap"
+display_name = "Deeper Patience"
+description = "Raises Patient Tending's max level by 5 per level."
+max_level = 5
+_base_cost_mantissa = 3.0
+_base_cost_exponent = 2
+
+[sub_resource type="Resource" id="node_patience"]
+script = ExtResource("2_node_script")
+id = &"instinct_patience"
+children = Array[ExtResource("2_node_script")]([SubResource("node_patience_cap"), SubResource("node_steward")])
+display_name = "Waking Patience"
+description = "Opens Patient Tending for buying in the Crystal Caves."
+max_level = 1
+_base_cost_mantissa = 1.5
+_base_cost_exponent = 2
+
+[sub_resource type="Resource" id="node_roots_cap"]
+script = ExtResource("2_node_script")
+id = &"instinct_roots_cap"
+display_name = "Deeper Roots"
+description = "Raises Spreading Roots' max level by 5 per level."
+max_level = 5
+_base_cost_mantissa = 6.0
+_base_cost_exponent = 1
+
+[sub_resource type="Resource" id="node_roots"]
+script = ExtResource("2_node_script")
+id = &"instinct_roots"
+children = Array[ExtResource("2_node_script")]([SubResource("node_patience"), SubResource("node_roots_cap")])
+display_name = "Waking Roots"
+description = "Opens Spreading Roots for buying in the Crystal Caves."
+max_level = 1
+_base_cost_mantissa = 3.0
+_base_cost_exponent = 1
+
+[sub_resource type="Resource" id="node_reflex_cap"]
+script = ExtResource("2_node_script")
+id = &"instinct_reflex_cap"
+display_name = "Deeper Reflex"
+description = "Raises Mycelial Reflex's max level by 5 per level."
+max_level = 5
+_base_cost_mantissa = 1.2
+_base_cost_exponent = 1
+
+[sub_resource type="Resource" id="node_reflex"]
+script = ExtResource("2_node_script")
+id = &"instinct_reflex"
+children = Array[ExtResource("2_node_script")]([SubResource("node_reflex_cap"), SubResource("node_roots")])
+display_name = "Waking Reflex"
+description = "Opens Mycelial Reflex for buying in the Crystal Caves."
+max_level = 1
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 0
+
+[resource]
+script = ExtResource("1_script")
+key = &"ins"
+label = "Instinct"
+hue = 15.0
+roots = Array[ExtResource("2_node_script")]([SubResource("node_reflex")])

@@ -24,12 +24,16 @@ var _upgrades: UpgradeSystem
 var _production: ProductionSystem
 var _boosts: Array[GeodeBoostDef] = []
 var _by_id: Dictionary = {}   # StringName -> GeodeBoostDef
+## Levels of the perks the boosts are gated behind. Read-only from here: perks
+## are bought with biomass through PerkSystem, never with geodes.
+var _prestige_upgrades: UpgradeSystem
 
 func _init(player_data: PlayerData, upgrades: UpgradeSystem, production: ProductionSystem,
-		list: GeodeBoostList) -> void:
+		list: GeodeBoostList, prestige_upgrades: UpgradeSystem) -> void:
 	_player_data = player_data
 	_upgrades = upgrades
 	_production = production
+	_prestige_upgrades = prestige_upgrades
 	if list != null:
 		_boosts = list.boosts
 	for boost in _boosts:
@@ -74,8 +78,30 @@ func boost_level(boost_id: StringName) -> int:
 func boost_tier(boost_id: StringName) -> int:
 	return GeodeTiers.tier_for_level(boost_level(boost_id))
 
+## False while this boost still waits on its prestige perk. Only blocks buying:
+## levels bought before the gate existed keep multiplying, the same way a locked
+## automation keeps firing.
+func is_unlocked(boost_id: StringName) -> bool:
+	var def: GeodeBoostDef = _by_id.get(boost_id)
+	if def == null:
+		return false
+	if def.unlock_perk_id.is_empty():
+		return true
+	return _prestige_upgrades.level(def.unlock_perk_id) > 0
+
+## How far up the ladder this boost may currently be bought: its authored
+## ceiling plus whatever its perk has added, never past the ladder's own end.
+func max_level(boost_id: StringName) -> int:
+	var def: GeodeBoostDef = _by_id.get(boost_id)
+	if def == null or def.base_max_level <= 0:
+		return GeodeTiers.max_level()
+	var ceiling := def.base_max_level
+	if not def.max_level_perk_id.is_empty():
+		ceiling += def.max_level_per_perk_level * _prestige_upgrades.level(def.max_level_perk_id)
+	return clampi(ceiling, 0, GeodeTiers.max_level())
+
 func is_maxed(boost_id: StringName) -> bool:
-	return boost_level(boost_id) >= GeodeTiers.max_level()
+	return boost_level(boost_id) >= max_level(boost_id)
 
 ## What the boost currently multiplies its stat by, e.g. 2.7 for a x2.7. Every
 ## tier compounds into the same product, so a level bought at T3 is worth its
@@ -117,7 +143,7 @@ func boost_crystal_cost(boost_id: StringName) -> BigNumber:
 	return crystal_cost(boost_cost(boost_id))
 
 func can_buy_boost(boost_id: StringName) -> bool:
-	if not _by_id.has(boost_id) or is_maxed(boost_id):
+	if not _by_id.has(boost_id) or is_maxed(boost_id) or not is_unlocked(boost_id):
 		return false
 	return _player_data.crystals.gte(boost_crystal_cost(boost_id))
 

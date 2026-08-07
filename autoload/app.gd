@@ -137,12 +137,12 @@ func _ready() -> void:
 		production_system, upgrade_system, biomes_data)
 
 	geode_system = GeodeSystem.new(player_data, geode_upgrade_system, production_system,
-		geode_boosts)
+		geode_boosts, prestige_upgrade_system)
 
 	automation_data = AutomationData.new()
 	automation_system = AutomationSystem.new(automations, automation_data, player_data,
 		production_system, mycelium_node_data, upgrade_system, biomes, biomes_data,
-		biome_system)
+		biome_system, prestige_upgrade_system)
 	automation_system.biome_size_bought.connect(_on_automation_bought_size)
 
 	# Built after their systems: the VMs read state back through App, which
@@ -319,6 +319,12 @@ func geode_boost_cost(boost_id: StringName) -> BigNumber:
 func is_geode_boost_maxed(boost_id: StringName) -> bool:
 	return geode_system.is_maxed(boost_id)
 
+func is_geode_boost_unlocked(boost_id: StringName) -> bool:
+	return geode_system.is_unlocked(boost_id)
+
+func geode_boost_max_level(boost_id: StringName) -> int:
+	return geode_system.max_level(boost_id)
+
 func can_buy_geode_boost(boost_id: StringName) -> bool:
 	return geode_system.can_buy_boost(boost_id)
 
@@ -472,6 +478,12 @@ func is_automation_active(id: StringName) -> bool:
 
 func is_automation_maxed(id: StringName) -> bool:
 	return automation_system.is_maxed(id)
+
+func is_automation_unlocked(id: StringName) -> bool:
+	return automation_system.is_unlocked(id)
+
+func automation_max_level(id: StringName) -> int:
+	return automation_system.max_level(id)
 
 func can_buy_automation(id: StringName) -> bool:
 	return automation_system.can_buy(id)

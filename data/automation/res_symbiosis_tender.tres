@@ -14,3 +14,6 @@ cost_growth = 1.8
 max_level = 20
 base_runs_per_tick = 1.0
 runs_per_level = 1.0
+unlock_perk_id = &"instinct_patience"
+max_level_perk_id = &"instinct_patience_cap"
+max_level_per_perk_level = 5

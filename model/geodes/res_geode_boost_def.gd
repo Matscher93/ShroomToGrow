@@ -58,6 +58,23 @@ extends Resource
 ## Must be greater than 1.0, or the tiers do not escalate at all.
 @export var tier_cost_growth: float = 10.0
 
+# ---------------------------------------------------------------- perk gates
+
+## Prestige perk that opens this boost for buying, empty for one that needs none.
+## Same contract as AutomationDef.unlock_perk_id: perks survive a prestige, and
+## locking only blocks further purchases - levels already bought keep paying out.
+@export var unlock_perk_id: StringName = &""
+
+## How far up the ladder this boost may be bought before a perk widens it.
+## 0 = the whole GeodeTiers ladder, i.e. no gate of its own.
+@export var base_max_level: int = 0
+
+## Perk whose levels raise that ceiling, and by how many levels each. The result
+## is still clamped to GeodeTiers.max_level() - the ladder's tiers are what the
+## rates and prices are authored against, so nothing may reach past them.
+@export var max_level_perk_id: StringName = &""
+@export var max_level_per_perk_level: int = 0
+
 ## Fraction one level of the given tier multiplies by on top of 1.0, e.g. 0.05
 ## for a x1.05 per level.
 func per_level(tier: int) -> float:

@@ -33,6 +33,18 @@ var base_cost: BigNumber:
 @export var cost_growth_exponent: float = 1.0
 @export var max_level: int = 0  ## 0 = infinite
 
+## Prestige perk that opens this automation for buying, empty for one that needs
+## none. Same contract as MyceliumNode.unlock_perk_id: perks survive a prestige,
+## so an automation unlocked once stays unlocked, and locking only blocks further
+## purchases - levels already owned keep firing.
+@export var unlock_perk_id: StringName = &""
+
+## Perk whose levels raise this automation's ceiling, and by how much each. Only
+## meaningful while max_level is non-zero: an automation with no ceiling has
+## nothing to raise.
+@export var max_level_perk_id: StringName = &""
+@export var max_level_per_perk_level: int = 0
+
 ## Automations fire off the game tick, never off a clock of their own, so they
 ## can only ever act while the player is actually playing.
 ##

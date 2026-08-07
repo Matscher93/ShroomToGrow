@@ -13,6 +13,7 @@ const PROP_CAN_BUY := &"can_buy"
 const PROP_RATE_TEXT := &"rate_text"
 const PROP_IS_OWNED := &"is_owned"
 const PROP_IS_ENABLED := &"is_enabled"
+const PROP_IS_UNLOCKED := &"is_unlocked"
 
 var _def: AutomationDef
 
@@ -30,15 +31,23 @@ var sort_order: int:
 	get: return _def.sort_order
 
 # --- Read-only display properties bound by the View ---
+## Reads the live ceiling rather than the authored one: a prestige perk can raise
+## it, and a card still showing "Lv 20/20" past that would read as maxed.
 var level_text: String:
 	get:
 		var lvl := App.automation_level(_def.id)
-		if _def.max_level <= 0:
+		var ceiling := App.automation_max_level(_def.id)
+		if ceiling <= 0:
 			return "Lv %d" % [lvl]
-		return "Lv %d/%d" % [lvl, _def.max_level]
+		return "Lv %d/%d" % [lvl, ceiling]
 
+## Doubles as the lock notice, the way the node panel's buy button does: the
+## price is meaningless until the perk is bought, and naming the perk is what
+## tells the player where to go for it.
 var cost_text: String:
 	get:
+		if not is_unlocked:
+			return "Needs %s" % [_unlock_perk_name()]
 		if App.is_automation_maxed(_def.id):
 			return "MAX"
 		return App.automation_cost(_def.id).to_display()
@@ -48,6 +57,11 @@ var can_buy: bool:
 
 var is_owned: bool:
 	get: return App.is_automation_owned(_def.id)
+
+## False while this automation waits on its prestige perk. The card stays
+## visible: a hidden one gives the player nothing to work towards.
+var is_unlocked: bool:
+	get: return App.is_automation_unlocked(_def.id)
 
 var is_enabled: bool:
 	get: return App.automation_data.is_enabled(_def.id)
@@ -76,7 +90,9 @@ func _init(def: AutomationDef) -> void:
 	# Levels in any track can move &"automation_rate", which changes the rate.
 	App.upgrade_system.upgrades_changed.connect(_on_rate_changed)
 	App.biome_upgrade_system.upgrades_changed.connect(_on_rate_changed)
-	App.prestige_upgrade_system.upgrades_changed.connect(_on_rate_changed)
+	# Perks move more than the rate: they are what unlocks this automation and
+	# what raises its ceiling, so the whole card is re-read.
+	App.prestige_upgrade_system.upgrades_changed.connect(_on_perks_changed)
 
 func dispose() -> void:
 	App.player_data.crystals_changed.disconnect(_on_crystals_changed)
@@ -84,7 +100,7 @@ func dispose() -> void:
 	App.automation_data.enabled_changed.disconnect(_on_enabled_changed)
 	App.upgrade_system.upgrades_changed.disconnect(_on_rate_changed)
 	App.biome_upgrade_system.upgrades_changed.disconnect(_on_rate_changed)
-	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_rate_changed)
+	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_perks_changed)
 
 # --- Commands (called by the View on input) ---
 
@@ -113,3 +129,16 @@ func _on_enabled_changed(id: StringName) -> void:
 
 func _on_rate_changed() -> void:
 	_notify(PROP_RATE_TEXT)
+
+func _on_perks_changed() -> void:
+	_notify(PROP_RATE_TEXT)
+	_notify(PROP_IS_UNLOCKED)
+	_notify(PROP_LEVEL_TEXT)
+	_notify(PROP_COST_TEXT)
+	_notify(PROP_CAN_BUY)
+
+# --- Formatting ---
+
+func _unlock_perk_name() -> String:
+	var def := App.perk_def(_def.unlock_perk_id)
+	return def.display_name if def != null else "a prestige perk"

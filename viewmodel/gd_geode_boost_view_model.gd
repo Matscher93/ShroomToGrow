@@ -26,8 +26,10 @@ var display_name: String:
 var description: String:
 	get: return _def.description
 
+## Against the ceiling the prestige perks have opened so far, not the ladder's
+## far end: a boost capped at 100 showing "/ 500" reads as buyable when it isn't.
 var level_text: String:
-	get: return "Lv %d / %d" % [App.geode_boost_level(_id), GeodeTiers.max_level()]
+	get: return "Lv %d / %d" % [App.geode_boost_level(_id), App.geode_boost_max_level(_id)]
 
 ## The tier the next level lands in and how far into it the ladder already is -
 ## the two numbers that explain both the price jump and the rate jump at a
@@ -35,6 +37,10 @@ var level_text: String:
 var tier_text: String:
 	get:
 		if is_maxed:
+			# "Maxed" is only true at the ladder's end. Short of it the boost is
+			# waiting on a perk, and saying so is what points the player at it.
+			if App.geode_boost_max_level(_id) < GeodeTiers.max_level():
+				return "Capped - needs %s" % [_perk_name(_def.max_level_perk_id)]
 			return "Maxed"
 		var tier := App.geode_boost_tier(_id)
 		var within := App.geode_boost_level(_id) % GeodeTiers.LEVELS_PER_TIER
@@ -56,6 +62,8 @@ var next_level_text: String:
 ## crystals are what the purchase actually takes out of the player's pocket.
 var cost_text: String:
 	get:
+		if not is_unlocked:
+			return "Needs %s" % [_perk_name(_def.unlock_perk_id)]
 		if is_maxed:
 			return "-"
 		return "%s geodes (%s crystals)" % [
@@ -64,6 +72,11 @@ var cost_text: String:
 
 var is_maxed: bool:
 	get: return App.is_geode_boost_maxed(_id)
+
+## False while this boost waits on its prestige perk. The card stays visible: a
+## hidden one gives the player nothing to work towards.
+var is_unlocked: bool:
+	get: return App.is_geode_boost_unlocked(_id)
 
 var can_buy: bool:
 	get: return App.can_buy_geode_boost(_id)
@@ -75,10 +88,14 @@ func _init(boost_id: StringName, def: GeodeBoostDef) -> void:
 	_def = def
 	App.player_data.crystals_changed.connect(_on_crystals_changed)
 	App.geode_upgrade_system.upgrades_changed.connect(_on_changed)
+	# Perks are what unlocks this boost and what raises its ceiling, so a perk
+	# purchase repaints the card just as a boost level does.
+	App.prestige_upgrade_system.upgrades_changed.connect(_on_changed)
 
 func dispose() -> void:
 	App.player_data.crystals_changed.disconnect(_on_crystals_changed)
 	App.geode_upgrade_system.upgrades_changed.disconnect(_on_changed)
+	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
 
 # --- Model -> notification plumbing ---
 
@@ -87,3 +104,9 @@ func _on_crystals_changed(_value: BigNumber) -> void:
 
 func _on_changed() -> void:
 	_notify(PROP_BOOST_CHANGED)
+
+# --- Formatting ---
+
+func _perk_name(perk_id: StringName) -> String:
+	var def := App.perk_def(perk_id)
+	return def.display_name if def != null else "a prestige perk"

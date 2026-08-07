@@ -10,3 +10,7 @@ description = "Multiplies the nutrients the mycelium yields each tick. Each leve
 stat = &"node_production"
 scope = 2
 target = &"0"
+unlock_perk_id = &"instinct_flow"
+base_max_level = 100
+max_level_perk_id = &"instinct_flow_cap"
+max_level_per_perk_level = 100

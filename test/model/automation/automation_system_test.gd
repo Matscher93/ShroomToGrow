@@ -65,7 +65,16 @@ func _system(def: AutomationDef) -> AutomationSystem:
 	var list := AutomationList.new()
 	list.automations = [def]
 	return AutomationSystem.new(list, _data, _player, _production, _node_data, _symbiosis,
-		_biomes, _biomes_data, _biome_system)
+		_biomes, _biomes_data, _biome_system, _prestige)
+
+## Perk levels are set straight on the prestige UpgradeSystem, the way the node
+## gate's tests do it: what the perk cost is PerkSystem's rule, not this one's.
+func _own_perk(id: StringName, level: int = 1) -> void:
+	var def := PerkDef.new()
+	def.id = id
+	def.max_level = level
+	_prestige.register(def)
+	_prestige.from_save({String(id): level})
 
 # ─── Buying ──────────────────────────────────────────────────────────────────
 
@@ -96,6 +105,89 @@ func test_buying_stops_at_max_level() -> void:
 	assert_bool(system.buy(&"test_automation")).is_true()
 	assert_bool(system.is_maxed(&"test_automation")).is_true()
 	assert_bool(system.buy(&"test_automation")).is_false()
+
+# ─── The prestige gate ───────────────────────────────────────────────────────
+
+func test_an_automation_without_an_unlock_perk_is_open() -> void:
+	var system := _system(_def(AutomationDef.Kind.BUY_NODES))
+	assert_bool(system.is_unlocked(&"test_automation")).is_true()
+
+func test_a_gated_automation_cannot_be_bought_before_its_perk_is_owned() -> void:
+	var def := _def(AutomationDef.Kind.BUY_NODES)
+	def.unlock_perk_id = &"instinct_reflex"
+	var system := _system(def)
+	_player.crystals = BigNumber.from_value(1e6)
+
+	assert_bool(system.is_unlocked(&"test_automation")).is_false()
+	assert_bool(system.can_buy(&"test_automation")).is_false()
+	assert_bool(system.buy(&"test_automation")).is_false()
+	assert_int(system.level(&"test_automation")).is_zero()
+
+func test_a_gated_automation_opens_once_its_perk_is_owned() -> void:
+	var def := _def(AutomationDef.Kind.BUY_NODES)
+	def.unlock_perk_id = &"instinct_reflex"
+	var system := _system(def)
+	_player.crystals = BigNumber.from_value(1e6)
+	_own_perk(&"instinct_reflex")
+
+	assert_bool(system.is_unlocked(&"test_automation")).is_true()
+	assert_bool(system.buy(&"test_automation")).is_true()
+	assert_int(system.level(&"test_automation")).is_equal(1)
+
+## Levels bought before the gate existed keep running: the gate is on buying, not
+## on owning, exactly like the node tiers'.
+func test_a_locked_automation_still_fires_the_levels_it_already_owns() -> void:
+	var def := _def(AutomationDef.Kind.BUY_NODES)
+	def.unlock_perk_id = &"instinct_reflex"
+	var system := _system(def)
+	_data.add_level(&"test_automation")
+	_player.nutrients = BigNumber.from_value(1e6)
+
+	assert_bool(system.is_active(&"test_automation")).is_true()
+	assert_bool(system.run(&"test_automation")).is_true()
+
+# ─── The max-level perk ──────────────────────────────────────────────────────
+
+func test_the_ceiling_is_the_authored_one_without_the_perk() -> void:
+	var def := _def(AutomationDef.Kind.BUY_NODES, 20)
+	def.max_level_perk_id = &"instinct_reflex_cap"
+	def.max_level_per_perk_level = 5
+	var system := _system(def)
+	assert_int(system.max_level(&"test_automation")).is_equal(20)
+
+func test_perk_levels_raise_the_ceiling() -> void:
+	var def := _def(AutomationDef.Kind.BUY_NODES, 20)
+	def.max_level_perk_id = &"instinct_reflex_cap"
+	def.max_level_per_perk_level = 5
+	var system := _system(def)
+	_own_perk(&"instinct_reflex_cap", 3)
+	assert_int(system.max_level(&"test_automation")).is_equal(35)
+
+## A maxed automation becomes buyable again the moment its cap perk is bought,
+## with no repurchase or reset in between.
+func test_the_raised_ceiling_reopens_a_maxed_automation() -> void:
+	var def := _def(AutomationDef.Kind.BUY_NODES, 1)
+	def.max_level_perk_id = &"instinct_reflex_cap"
+	def.max_level_per_perk_level = 5
+	var system := _system(def)
+	_player.crystals = BigNumber.from_value(1e6)
+	assert_bool(system.buy(&"test_automation")).is_true()
+	assert_bool(system.is_maxed(&"test_automation")).is_true()
+
+	_own_perk(&"instinct_reflex_cap")
+	assert_bool(system.is_maxed(&"test_automation")).is_false()
+	assert_bool(system.buy(&"test_automation")).is_true()
+
+## An automation authored without a ceiling has none to raise, so a cap perk on
+## one must not turn "infinite" into a hard limit.
+func test_an_uncapped_automation_stays_uncapped() -> void:
+	var def := _def(AutomationDef.Kind.BUY_NODES)
+	def.max_level_perk_id = &"instinct_reflex_cap"
+	def.max_level_per_perk_level = 5
+	var system := _system(def)
+	_own_perk(&"instinct_reflex_cap", 2)
+	assert_int(system.max_level(&"test_automation")).is_zero()
+	assert_bool(system.is_maxed(&"test_automation")).is_false()
 
 # ─── Timing ──────────────────────────────────────────────────────────────────
 
