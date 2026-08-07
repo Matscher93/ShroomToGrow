@@ -44,7 +44,7 @@ func before_test() -> void:
 func _scope_targets() -> Dictionary:
 	var targets := {}
 	for node in _nodes:
-		targets[StringName(str(node.node_id))] = true
+		targets[node.id_key] = true
 	for biome in _biomes:
 		targets[biome.key] = true
 	return targets

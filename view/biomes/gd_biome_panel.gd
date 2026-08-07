@@ -70,7 +70,6 @@ func _ready() -> void:
 
 	unlock_biome_button.pressed.connect(_on_unlock_pressed)
 	size_buy_button.pressed.connect(_on_buy_size_pressed)
-	App.biome_upgrade_system.upgrades_changed.connect(_refresh_grid_slots)
 
 	# Bound before the slots are spawned: their captions come off the VM.
 	if App.biome_vms.has(biome_key):
@@ -150,10 +149,6 @@ func _exit_tree() -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
-	if Engine.is_editor_hint():
-		return
-	if App.biome_upgrade_system.upgrades_changed.is_connected(_refresh_grid_slots):
-		App.biome_upgrade_system.upgrades_changed.disconnect(_refresh_grid_slots)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
@@ -181,6 +176,8 @@ func _on_property_changed(property: StringName) -> void:
 			lbl_upgrade_points.text = _vm.points_text
 		BiomeViewModel.PROP_HAS_POINTS:
 			image_notification.visible = _vm.has_points
+		BiomeViewModel.PROP_SLOTS_CHANGED:
+			_refresh_grid_slots()
 		BiomeViewModel.PROP_SIZE_LEVEL_TEXT, BiomeViewModel.PROP_SIZE_COST_TEXT, BiomeViewModel.PROP_CAN_BUY_SIZE:
 			_refresh_size_section()
 

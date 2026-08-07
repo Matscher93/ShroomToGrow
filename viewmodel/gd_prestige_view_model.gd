@@ -5,6 +5,11 @@ extends ViewModel
 ## (App.perk_vms). References the model, never a Node.
 
 const PROP_PENDING_CHANGED := &"pending_changed"
+## Something a perk node's look depends on moved - a purchase, or the biomass
+## that decides which of them are affordable. Separate from
+## PROP_PENDING_CHANGED so the sporate button and the web can each refresh only
+## what they own, even though the same sources feed both.
+const PROP_PERKS_CHANGED := &"perks_changed"
 
 # --- Read-only display properties bound by the View ---
 var sporate_text: String:
@@ -48,3 +53,4 @@ func sporate() -> void:
 
 func _on_changed() -> void:
 	_notify(PROP_PENDING_CHANGED)
+	_notify(PROP_PERKS_CHANGED)

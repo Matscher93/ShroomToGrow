@@ -35,7 +35,7 @@ const OFFLINE_CALC_FRAME_BUDGET_MSEC := 20.0  # yield to a frame once a batch ex
 ## app resume, so a live main_screen can react without a reload.
 signal offline_progress_pending
 
-var last_savegame : Dictionary
+var last_savegame: Dictionary
 var _pending_offline_saved_at := 0.0
 var _offline_calc_running := false
 
@@ -91,9 +91,14 @@ func save_game() -> void:
 	f.close()
 	f = null  # release the handle before the rename below
 
-	# 2. Rotate the current good save to backup.
+	# 2. Rotate the current good save to backup. A failure here is not fatal - the
+	# write below still lands - but it leaves the backup stale, and that is the
+	# file load_game() falls back to when the primary turns up corrupt, so it must
+	# not pass silently.
 	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.copy_absolute(SAVE_PATH, BACKUP_PATH)
+		var backup_error := DirAccess.copy_absolute(SAVE_PATH, BACKUP_PATH)
+		if backup_error != OK:
+			push_warning("Could not refresh %s (error %d), the backup is now stale." % [BACKUP_PATH, backup_error])
 
 	# 3. Replace the real file with the temp. If this fails the on-disk save is
 	# still the previous one, so last_savegame must not advance: offline progress
@@ -172,7 +177,12 @@ func _migrate_lifetime_counters_to_v3(data: Dictionary) -> void:
 	player["lifetime_ticks"] = int(player.get("tick_count", 0))
 	var nodes: Array = game.get("mycelium_nodes", [])
 	var manual_total := 0
-	for node: Dictionary in nodes:
+	# Untyped loop variable with a guard, not `for node: Dictionary in nodes`:
+	# a migration runs against whatever is on disk, so it cannot assume the shape
+	# is intact - see load_mycelium_node_data().
+	for node: Variant in nodes:
+		if not node is Dictionary:
+			continue
 		manual_total += int(node.get("manual_nodes", 0))
 	player["lifetime_manual_nodes"] = manual_total
 	game["player_data"] = player
@@ -229,7 +239,9 @@ func _migrate_point_plan_to_sequences_v6(data: Dictionary) -> void:
 	var sequences: Dictionary = automation.get("upgrade_sequences", {})
 	for biome_key in plans:
 		var steps: Array = []
-		for entry: Dictionary in plans[biome_key]:
+		for entry: Variant in plans[biome_key]:
+			if not entry is Dictionary:
+				continue   # same reason as the v3 migration above
 			var id: String = str(entry.get("id", ""))
 			if id.is_empty():
 				continue
@@ -384,9 +396,15 @@ func get_mycelium_node_data() -> Array[Dictionary]:
 		})
 	return all_node_data
 
+## Entries that are not Dictionaries are skipped rather than assigned: the typed
+## local below would take the whole load down on a corrupt save, which is the one
+## path that has to degrade instead. A skipped tier keeps its fresh-start values.
 func load_mycelium_node_data(nodes: Array) -> void:
 	for i in range(App.mycelium_node_data.size()):
 		if i < nodes.size():
+			if not nodes[i] is Dictionary:
+				push_warning("Save entry for mycelium node %d is not a Dictionary, skipping it." % i)
+				continue
 			var node_data := App.mycelium_node_data[i]
 			var loaded_data: Dictionary = nodes[i]
 			node_data.node.manual_nodes = loaded_data.get("manual_nodes", 0)

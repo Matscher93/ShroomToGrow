@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://br7oobkddhcfv" path="res://view/prestige/sc_perk_connector.tscn" id="5_connector_scene"]
 [ext_resource type="PackedScene" uid="uid://y1nkfda6pvis" path="res://view/offline_income/sc_collect_offline_income_button.tscn" id="6_button_scene"]
 [ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="7_qe6gy"]
-[ext_resource type="Script" uid="uid://p7c3cm6dxbjy" path="res://view/offline_income/general_panel_background.gd" id="8_6hxqy"]
+[ext_resource type="Script" uid="uid://p7c3cm6dxbjy" path="res://view/offline_income/gd_general_panel_background.gd" id="8_6hxqy"]
 [ext_resource type="Shader" uid="uid://dnsivvo2gt6vf" path="res://view/prestige/sh_web_fade.gdshader" id="9_webfade"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]

@@ -1,5 +1,5 @@
 @tool
-extends "res://view/offline_income/general_panel_background.gd"
+extends "res://view/offline_income/gd_general_panel_background.gd"
 
 @export var currency_name: Label
 @export var currency_change: Label

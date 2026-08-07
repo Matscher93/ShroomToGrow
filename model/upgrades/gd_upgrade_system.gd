@@ -1,5 +1,15 @@
 class_name UpgradeSystem
 extends RefCounted
+## MODEL: one track of purchasable upgrade levels, and the resolved effect cache
+## they add up to.
+##
+## Backs all four tracks (symbiosis, biome upgrades, perks, geode boosts), which
+## is what lets ProductionSystem stack them without any per-stat wiring: they all
+## write into the same stat buckets. A defect here is a defect everywhere at once.
+##
+## Holds only its own state, no App reference, so it can be built and exercised
+## in isolation.
+
 signal upgrades_changed
 
 var _defs: Dictionary = {}      # id -> UpgradeDef
@@ -257,7 +267,8 @@ func _rebuild(ctx: ResolveContext) -> void:
 ## the cost of a cache hit.
 func modify(stat: StringName, base: BigNumber, ctx: ResolveContext, tags: PackedStringArray = [],
 			node_id: StringName = &"") -> BigNumber:
-	if _dirty: _rebuild(ctx)
+	if _dirty:
+		_rebuild(ctx)
 	var bucket: Dictionary = _cache.get(stat, {})
 	if bucket.is_empty():
 		return base.copy()

@@ -141,10 +141,14 @@ static func format_duration(total_seconds: float, max_units := 2) -> String:
 	@warning_ignore_restore("integer_division")
 
 	var parts: Array[String] = []
-	if days > 0:    parts.append("%dd" % days)
-	if hours > 0:   parts.append("%dh" % hours)
-	if minutes > 0: parts.append("%dm" % minutes)
-	if seconds > 0: parts.append("%ds" % seconds)
+	if days > 0:
+		parts.append("%dd" % days)
+	if hours > 0:
+		parts.append("%dh" % hours)
+	if minutes > 0:
+		parts.append("%dm" % minutes)
+	if seconds > 0:
+		parts.append("%ds" % seconds)
 
 	return " ".join(parts.slice(0, max_units))
 

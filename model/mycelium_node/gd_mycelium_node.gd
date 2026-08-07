@@ -6,6 +6,18 @@ signal auto_nodes_changed(value: BigNumber)
 
 @export var node_id: int = 0
 @export var name: String = ""
+
+## node_id as the StringName every NODE-scoped upgrade effect is keyed by.
+##
+## Cached rather than rebuilt per read: the tick loop asks once per node per
+## tick and the bound ViewModels ask ~6 times per repaint, and each rebuild is a
+## String allocation plus a StringName intern for a value that never changes.
+var _id_key_cache: StringName = &""
+var id_key: StringName:
+	get:
+		if _id_key_cache.is_empty():
+			_id_key_cache = StringName(str(node_id))
+		return _id_key_cache
 @export var desc: String = ""
 @export var manual_nodes: int = 0:
 	set(value):

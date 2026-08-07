@@ -19,6 +19,10 @@ const PROP_HAS_POINTS := &"has_points"
 const PROP_SIZE_LEVEL_TEXT := &"size_level_text"
 const PROP_SIZE_COST_TEXT := &"size_cost_text"
 const PROP_CAN_BUY_SIZE := &"can_buy_size"
+## The upgrade slots' captions and lock state moved. Separate from
+## PROP_POINTS_TEXT because the grid is spawned once and repainted per slot,
+## while the points label is a single text swap.
+const PROP_SLOTS_CHANGED := &"slots_changed"
 
 var _key: StringName
 var _def: BiomeDef
@@ -99,7 +103,10 @@ func _init(key: StringName, def: BiomeDef) -> void:
 	_def = def
 
 	App.biomes_data.biome_unlocked.connect(_on_biome_unlocked)
-	App.biome_upgrade_system.upgrades_changed.connect(_on_points_source_changed)
+	# Its own handler rather than _on_points_source_changed: this is the only
+	# source that also moves the upgrade slots, since a purchase changes both the
+	# levels they caption and the points-spent total that unlocks the later ones.
+	App.biome_upgrade_system.upgrades_changed.connect(_on_biome_upgrades_changed)
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_points_source_changed)  # bonus &"biome_points" perks
 	App.upgrade_system.upgrades_changed.connect(_on_xp_source_changed)      # XpSource.SYMBIOSIS_LEVELS
 	# unbind(1) drops the value these signals carry, so the handler stays
@@ -119,7 +126,7 @@ func _init(key: StringName, def: BiomeDef) -> void:
 
 func dispose() -> void:
 	App.biomes_data.biome_unlocked.disconnect(_on_biome_unlocked)
-	App.biome_upgrade_system.upgrades_changed.disconnect(_on_points_source_changed)
+	App.biome_upgrade_system.upgrades_changed.disconnect(_on_biome_upgrades_changed)
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_points_source_changed)
 	App.upgrade_system.upgrades_changed.disconnect(_on_xp_source_changed)
 	App.player_data.prestige_count_changed.disconnect(_on_xp_source_changed.unbind(1))
@@ -152,10 +159,15 @@ func _on_biome_unlocked(key: StringName) -> void:
 	_notify(PROP_PROGRESS_RATIO)
 	_notify(PROP_POINTS_TEXT)
 	_notify(PROP_HAS_POINTS)
+	_notify(PROP_SLOTS_CHANGED)
 
 func _on_points_source_changed() -> void:
 	_notify(PROP_POINTS_TEXT)
 	_notify(PROP_HAS_POINTS)
+
+func _on_biome_upgrades_changed() -> void:
+	_on_points_source_changed()
+	_notify(PROP_SLOTS_CHANGED)
 
 func _on_xp_source_changed() -> void:
 	_notify(PROP_LEVEL_TEXT)

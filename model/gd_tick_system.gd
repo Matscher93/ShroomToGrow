@@ -26,7 +26,7 @@ func _init(nodes: Array[MyceliumNode], player_data: PlayerData,
 func node_production_bonuses() -> Array[BigNumber]:
 	var bonuses: Array[BigNumber] = []
 	for node in _nodes:
-		bonuses.append(_production.node_production_bonus(StringName(str(node.node_id))))
+		bonuses.append(_production.node_production_bonus(node.id_key))
 	return bonuses
 
 ## Advances the game one tick. Pass `bonuses` to reuse a hoisted set, leave it

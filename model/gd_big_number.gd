@@ -174,11 +174,20 @@ func same_value(other: BigNumber) -> bool:
 ## Examples:  "0"  "42"  "1.50K"  "999.99M"  "2.72e99"
 func to_display(decimals: int = 1) -> String:
 	if mantissa == 0.0: return "0"
-	@warning_ignore("integer_division")
-	var idx := floori(exponent / 3)
-	if idx >= 0 and idx < SUFFIXES.size():
-		# exponent - idx*3 is 0, 1 or 2 and |mantissa| < 10, so scaled stays
-		# inside [1, 1000) and the suffix idx picks is always right.
+	# In float space deliberately: `exponent / 3` is integer division, which
+	# truncates *toward zero*, so floori() over it is a no-op and every negative
+	# exponent lands one step too high.
+	var idx := floori(float(exponent) / 3.0)
+	# Below 1 there is no suffix to pick and no smaller one to fall back to, so
+	# the plain-float branch takes it. Without the clamp, anything under 10^-3
+	# fell past the table into scientific notation, which put "5.00e-3" next to
+	# "0.1" in the same list of percentages.
+	idx = maxi(idx, 0)
+	if idx < SUFFIXES.size():
+		# exponent - idx*3 is 0, 1 or 2 for a value at or above 1, and
+		# |mantissa| < 10, so scaled stays inside [1, 1000) and the suffix idx
+		# picks is always right. Below 1 the clamp leaves it negative, which is
+		# exactly the fraction the plain-float branch prints.
 		var scaled := mantissa * pow(10.0, float(exponent - idx * 3))
 		if idx == 0:
 			return "%.*f" % [decimals, scaled]   # plain float, no suffix

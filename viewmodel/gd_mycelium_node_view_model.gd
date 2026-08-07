@@ -230,11 +230,11 @@ func _unlock_perk_name() -> String:
 	return def.display_name if def != null else "a prestige perk"
 
 func _node_id_key() -> StringName:
-	return StringName(str(_mycelium_data.node.node_id))
+	return _mycelium_data.node.id_key
 
 func _scaled_production() -> BigNumber:
 	var raw := _mycelium_data.node.auto_nodes.add(BigNumber.from_value(_mycelium_data.node.manual_nodes))
 	return raw.mul(_bonus_production())
 
 func _bonus_production() -> BigNumber:
-	return App.node_production_bonus(StringName(str(_mycelium_data.node.node_id)))
+	return App.node_production_bonus(_node_id_key())

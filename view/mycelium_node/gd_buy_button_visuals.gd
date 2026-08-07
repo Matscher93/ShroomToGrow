@@ -1,44 +1,30 @@
 @tool
-extends PanelContainer
+extends "res://view/base_views/gd_base_shader_button.gd"
+## VIEW: the buy-button panel on a node card, a biome's unlock row and its Biome
+## Size row. Adds an enabled/disabled look to the shared shader-button base: the
+## fill darkens and the whole panel dims, so an unaffordable purchase reads as
+## unavailable rather than merely unlit.
 
-@export var color_param: String
 @export var upgrade_button: Button
-@export var button_color : Color
 
-var is_enabled : bool
-var is_button_pressed : bool
+var is_enabled: bool
+
 func _ready() -> void:
 	_update_shader()
-	upgrade_button.button_down.connect(_on_button_down)
-	upgrade_button.button_up.connect(_on_button_up)
+	_bind_presses()
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_RESIZED:
-		_update_shader()
+func _wrapped_button() -> Button:
+	return upgrade_button
+
+func _state_color() -> Color:
+	return button_color if is_enabled else button_color.darkened(0.70)
 
 func _update_shader() -> void:
-	if material:
-		material.set_shader_parameter("rect_size", size * get_global_transform().get_scale())
-		if is_enabled:
-			material.set_shader_parameter(color_param, button_color)
-			modulate = Color.WHITE
-		else:
-			material.set_shader_parameter(color_param, button_color.darkened(0.70))
-			modulate = Color(0.3, 0.3, 0.3)
+	super()
+	modulate = Color.WHITE if is_enabled else Color(0.3, 0.3, 0.3)
 
-func set_shader_color(in_color : Color) -> void:
-	button_color = in_color
-	_update_shader()
-
-func set_enabled(in_enabled : bool) -> void:
+func set_enabled(in_enabled: bool) -> void:
 	is_enabled = in_enabled
-	upgrade_button.disabled = not in_enabled
-	_update_shader()
-
-func _on_button_down() -> void:
-	is_button_pressed = true
-	_update_shader()
-
-func _on_button_up() -> void:
-	is_button_pressed = false
+	if upgrade_button != null:
+		upgrade_button.disabled = not in_enabled
 	_update_shader()

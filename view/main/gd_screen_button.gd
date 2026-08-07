@@ -1,50 +1,28 @@
 @tool
-extends PanelContainer
+extends "res://view/base_views/gd_base_shader_button.gd"
+## VIEW: one bottom-bar nav tab. Adds a selected look to the shared shader-button
+## base: the selected tab gets its own fill and full brightness, the rest sit
+## greyed so the current screen is readable at a glance.
 
-@export var color_param: String
 @export var _button: Button
-@export var button_color: Color
 @export var button_selected_color: Color
 
-signal pressed()
+var is_selected: bool = false
 
-var is_selected : bool = false
-var is_button_pressed : bool
 func _ready() -> void:
 	_update_shader()
-	_button.button_down.connect(_on_button_down)
-	_button.button_up.connect(_on_button_up)
+	_bind_presses()
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_RESIZED:
-		_update_shader()
+func _wrapped_button() -> Button:
+	return _button
+
+func _state_color() -> Color:
+	return button_selected_color if is_selected else button_color
 
 func _update_shader() -> void:
-	if material:
-		material.set_shader_parameter("rect_size", size * get_global_transform().get_scale())
-		if is_selected:
-			material.set_shader_parameter(color_param, button_selected_color)
-			modulate = Color.WHITE
-		else:
-			material.set_shader_parameter(color_param, button_color)
-			modulate = Color.GRAY
+	super()
+	modulate = Color.WHITE if is_selected else Color.GRAY
 
-func set_shader_color(in_color : Color) -> void:
-	button_color = in_color
-	_update_shader()
-
-func set_selected(in_enabled : bool) -> void:
+func set_selected(in_enabled: bool) -> void:
 	is_selected = in_enabled
 	_update_shader()
-
-func set_button_text(button_text: String) -> void:
-	_button.text = button_text
-
-func _on_button_down() -> void:
-	is_button_pressed = true
-	_update_shader()
-
-func _on_button_up() -> void:
-	is_button_pressed = false
-	_update_shader()
-	pressed.emit()

@@ -1,6 +1,6 @@
 extends PanelContainer
 
-var _vm : ScreensViewModel
+var _vm: ScreensViewModel
 @export var screen_container: PanelContainer
 @export var button_container: HBoxContainer
 @export var button_scene: PackedScene
@@ -18,7 +18,6 @@ var _current_screen_instance: Control = null
 func _ready() -> void:
 	if App.screens_vm:
 		bind(App.screens_vm)
-	App.biomes_data.biome_unlocked.connect(_on_biome_unlocked)
 
 func bind(vm: ScreensViewModel) -> void:
 	if _vm:
@@ -31,18 +30,15 @@ func _exit_tree() -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
-	if App.biomes_data.biome_unlocked.is_connected(_on_biome_unlocked):
-		App.biomes_data.biome_unlocked.disconnect(_on_biome_unlocked)
 
 func _on_property_changed(property: StringName) -> void:
 	match property:
 		ScreensViewModel.PROP_SCREEN_CHANGED_TEXT:
 			update_visuals()
-
-## Unlocking a biome can reveal a new nav button. Rebuilds buttons only, the
-## active screen's content and state stay untouched.
-func _on_biome_unlocked(_key: StringName) -> void:
-	_rebuild_nav_buttons()
+		# Unlocking a biome can reveal a new nav button. Rebuilds buttons only,
+		# the active screen's content and state stay untouched.
+		ScreensViewModel.PROP_NAV_CHANGED:
+			_rebuild_nav_buttons()
 
 func update_visuals() -> void:
 	_show_screen(_vm.current_screen)
@@ -71,13 +67,8 @@ func _rebuild_nav_buttons() -> void:
 		child.queue_free()
 	button_dictionary.clear()
 
-	var all_screens := _vm.all_screen_data
-	for screen_key in ScreenTypes.NAV_ORDER:
-		if not App.is_screen_unlocked(screen_key):
-			continue
-		var button_data: ScreenDefinition = all_screens.get(screen_key)
-		if button_data == null:
-			continue  # screen type with no definition authored, nothing to show
+	for screen_key in _vm.visible_screens:
+		var button_data := _vm.get_screen_data(screen_key)
 		var button := button_scene.instantiate()
 		button.set_button_text(button_data.screen_name)
 		button.pressed.connect(_on_screen_selected.bind(screen_key))

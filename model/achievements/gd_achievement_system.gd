@@ -40,6 +40,10 @@ var _player_data: PlayerData
 var _production: ProductionSystem
 var _symbiosis: UpgradeSystem
 var _biomes_data: BiomesData
+## id -> AchievementDef. Built once, mirroring BiomeSystem and AutomationSystem:
+## claim() and claim_all() look a def up per claim, and the authored list never
+## changes at runtime.
+var _defs_by_id: Dictionary = {}
 
 func _init(achievements: AchievementList, progress: AchievementProgress,
 		player_data: PlayerData, production: ProductionSystem, symbiosis: UpgradeSystem,
@@ -50,14 +54,13 @@ func _init(achievements: AchievementList, progress: AchievementProgress,
 	_production = production
 	_symbiosis = symbiosis
 	_biomes_data = biomes_data
+	for def in _achievements.achievements:
+		_defs_by_id[def.id] = def
 
 # ---------------------------------------------------------------- lookup
 
 func achievement_def(id: StringName) -> AchievementDef:
-	for def in _achievements.achievements:
-		if def.id == id:
-			return def
-	return null
+	return _defs_by_id.get(id)
 
 ## Tiers claimed. The permanent record, and Crystal Caves' XP.
 func tier(id: StringName) -> int:

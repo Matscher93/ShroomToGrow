@@ -1,5 +1,5 @@
 extends GdUnitTestSuite
-## Unit tests for BigNumber (model/gd_big_num.gd).
+## Unit tests for BigNumber (model/gd_big_number.gd).
 ##
 ## Normalisation, gt() and equals() have each shipped a real defect. Every test
 ## below naming a "used to" behaviour is a regression guard for one of them.
@@ -250,6 +250,25 @@ func test_plain_numbering_runs_through_decillion() -> void:
 func test_to_display_keeps_the_sign() -> void:
 	assert_str(BigNumber.from_value(-1500.0).to_display()).is_equal("-1.5K")
 	assert_str(BigNumber.from_value(-42.0).to_display()).is_equal("-42.0")
+
+## Values below 1 stay plain decimals rather than falling into scientific
+## notation. The percentage displays (potency/synergy "+X%") live down here, so a
+## "5.00e-3" among a column of "0.1"s is a rendering bug, not a small number.
+func test_to_display_stays_decimal_below_one() -> void:
+	assert_str(BigNumber.from_value(0.5).to_display()).is_equal("0.5")
+	assert_str(BigNumber.from_value(0.05).to_display(2)).is_equal("0.05")
+	# exponent -3 exactly: the boundary integer division used to round the wrong
+	# way on, sending this to to_scientific().
+	assert_str(BigNumber.from_value(0.005).to_display(3)).is_equal("0.005")
+	assert_str(BigNumber.from_value(0.0005).to_display(4)).is_equal("0.0005")
+
+func test_to_display_below_one_keeps_the_sign() -> void:
+	assert_str(BigNumber.from_value(-0.005).to_display(3)).is_equal("-0.005")
+
+## Rounding a sub-unit value away is fine - showing it in a different notation
+## than its neighbours is not.
+func test_to_display_rounds_tiny_values_to_zero() -> void:
+	assert_str(BigNumber.from_value(0.005).to_display()).is_equal("0.0")
 
 func test_to_scientific() -> void:
 	assert_str(BigNumber.new(1.234, 99).to_scientific()).is_equal("1.23e99")

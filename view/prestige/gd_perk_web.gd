@@ -21,6 +21,7 @@ const MAX_SCALE := 2.5
 const ZOOM_STEP := 1.15
 const TAP_CANCEL_DISTANCE := 10.0  # px, beyond this a press is a pan, not a tap
 
+var _vm: PrestigeViewModel
 var _buttons: Dictionary = {}  # StringName -> PerkNode
 var _selected_id: StringName = &"core"
 var _dragging := false
@@ -32,25 +33,34 @@ var _gesture_moved := false
 
 func _ready() -> void:
 	clip_contents = true
+	# App.perk_defs is a static registry: the ids and their world positions are
+	# fixed for the app's lifetime, so spawning off it directly is the documented
+	# exception. Everything that *changes* comes through the VM below.
 	for id in App.perk_defs:
 		_spawn_button(App.perk_defs[id])
-	App.prestige_upgrade_system.upgrades_changed.connect(_on_changed)
-	# unbind(1) drops biomass_changed's BigNumber, so the handler stays
-	# parameterless.
-	App.player_data.biomass_changed.connect(_on_changed.unbind(1))
+	bind(App.prestige_vm)
 	resized.connect(_center_on_core)
 	item_rect_changed.connect(_update_edge_fade)
-	call_deferred("_center_on_core")
-	call_deferred("_update_edge_fade")
-	_refresh_all()
+	_center_on_core.call_deferred()
+	_update_edge_fade.call_deferred()
 	_update_touch_emulation()
+
+func bind(vm: PrestigeViewModel) -> void:
+	if _vm:
+		_vm.property_changed.disconnect(_on_property_changed)
+	_vm = vm
+	_vm.property_changed.connect(_on_property_changed)
+	_refresh_all()
+
+func _on_property_changed(property: StringName) -> void:
+	if property == PrestigeViewModel.PROP_PERKS_CHANGED:
+		_refresh_all()
 
 func _exit_tree() -> void:
 	Input.set_emulate_mouse_from_touch(true)
-	if App.prestige_upgrade_system.upgrades_changed.is_connected(_on_changed):
-		App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
-	if App.player_data.biomass_changed.is_connected(_on_changed.unbind(1)):
-		App.player_data.biomass_changed.disconnect(_on_changed.unbind(1))
+	if _vm:
+		_vm.property_changed.disconnect(_on_property_changed)
+		_vm = null
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_VISIBILITY_CHANGED:
@@ -79,9 +89,6 @@ func _update_edge_fade() -> void:
 ## default just as leaving the screen does.
 func _update_touch_emulation() -> void:
 	Input.set_emulate_mouse_from_touch(not is_visible_in_tree())
-
-func _on_changed() -> void:
-	_refresh_all()
 
 func _center_on_core() -> void:
 	var core := App.perk_def(&"core")

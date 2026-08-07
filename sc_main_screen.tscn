@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_base_color_rect.gd" id="3_6maps"]
 [ext_resource type="PackedScene" uid="uid://dq2xr8vk1nba7" path="res://view/resource_bar/sc_resource_bar.tscn" id="5_7pmop"]
 [ext_resource type="PackedScene" uid="uid://dd8g1hdbxpy74" path="res://view/main/sc_game_screens.tscn" id="5_b26h7"]
-[ext_resource type="Script" uid="uid://8hyeybwm5jh3" path="res://main_screen.gd" id="9_mainscr"]
+[ext_resource type="Script" uid="uid://8hyeybwm5jh3" path="res://gd_main_screen.gd" id="9_mainscr"]
 [ext_resource type="Script" uid="uid://7lvxm4ge8ici" path="res://view/main/gd_popup_layer.gd" id="10_popup"]
 [ext_resource type="PackedScene" path="res://view/main/sc_top_bar.tscn" id="11_topbar"]
 

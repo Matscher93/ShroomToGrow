@@ -11,8 +11,15 @@ When in doubt, match these - don't introduce a new style even if it's "more corr
 
 - No PascalCase or camelCase in filenames - `gd_base_color_rect.gd`, not `gd_BaseColorRect.gd`.
 
+- Test files are the one exception to the `gd_` prefix: `<subject>_test.gd`, mirroring the path of what they test (`model/upgrades/gd_upgrade_system.gd` → `test/model/upgrades/upgrade_system_test.gd`). The suffix is what gdUnit4 discovers on, and a `gd_` prefix would put every suite under one letter in the tree.
+
 - `class_name` should mirror the filename: `gd_mycelium_node_data.gd` → `class_name MyceliumNodeData` (drop the `gd_`/`res_` prefix, PascalCase the rest).
   If the class name and filename drift apart, rename one to match - don't leave them implying different things.
+
+- Models and ViewModels always declare a `class_name` - they are constructed by name from `App` and from tests.
+  View scripts declare one **only when another script names the type**: a typed `@export`, a parameter or return type, or a static-helper namespace (`BiomePanel`, `PopupLayer`, `UpgradeSlotGrid`, `PerkNode`). A script only ever attached to its own scene and never referenced by name stays anonymous rather than claiming a global identifier for nothing.
+
+- A script's folder follows its layer, not its history. Anything holding game state or rules belongs under `model/`, even when a ViewModel is its only caller - `UpgradeSystem` sat in `viewmodel/` for exactly that reason and was a model the whole time.
 
 - Always two lines:
 
@@ -67,11 +74,14 @@ Two lifecycles, pick based on shape:
 
 ## Reuse over duplication
 
-`view/base_views/` holds shared shader-panel boilerplate (`gd_base_color_rect.gd`, `gd_base_panel_container.gd`).
+`view/base_views/` holds the shared shader-panel boilerplate:
 
-If a new view needs the same `_update_shader`/`_notification`/`_set_color` triplet, `extends "res://view/base_views/gd_base_..._container.gd"` - don't re-paste the implementation.
+- `gd_base_color_rect.gd` / `gd_base_panel_container.gd` - the `_update_shader`/`_notification`/`set_shader_color` triplet, one per base node type.
+- `gd_base_shader_button.gd` - the above plus a wrapped `Button`: press tracking, the repaint on down/up, `set_button_text()` and a re-emitted `pressed`. A subclass overrides `_state_color()` to say what its current state paints, and nothing else (`gd_screen_button.gd`, `gd_buy_button_visuals.gd`, `gd_collect_offline_income_button.gd`).
 
-If a base script doesn't quite fit, extend it and override, rather than forking a near-duplicate.
+If a new view needs any of that, `extends "res://view/base_views/gd_base_....gd"` - don't re-paste the implementation.
+
+If a base script doesn't quite fit, extend it and override, rather than forking a near-duplicate. The shader-button base takes its `Button` through `_bind_button()` in the subclass's `_ready()` rather than exporting one itself, precisely so a subclass can keep whatever export name its scenes already bind by NodePath.
 
 ## Save/load data
 
@@ -108,6 +118,17 @@ Exception: don't use `:=` on a call that returns `Variant` - the global `min()`/
 
 No parentheses around `if`/`while`/`elif` conditions - `if condition:`, never `if(condition):`. GDScript isn't C; the parens are noise.
 
+A single-line `if condition: <statement>` is allowed for **guard clauses only** - a bare `return`, `continue` or `break` that bails out before the real work starts:
+
+```gdscript
+if mantissa == 0.0: return other.copy()   # yes, a guard
+if lvl <= 0: continue                     # yes, a guard
+
+if ready: _refresh_all()                  # no - that's the work, give it a line
+```
+
+The guards cluster at the top of arithmetic and hot-path functions (`gd_big_number.gd`, `UpgradeSystem.modify()`), where one line each keeps the actual body visible in a screenful. Anything that *does* something gets its own indented line.
+
 ## Leading-underscore parameters
 
 A `_`-prefixed parameter name (`_value`, `_delta`, `_game`) is a signal that the parameter is **unused** - most commonly in signal handlers that only care that *something* fired. Don't prefix a parameter that the function body actually reads; that's actively misleading to the next reader who trusts the convention. If a parameter starts unused and later gains a use, drop the underscore at the same time.
@@ -115,3 +136,20 @@ A `_`-prefixed parameter name (`_value`, `_delta`, `_game`) is a signal that the
 ## Whitespace
 
 No trailing whitespace on any line - including lines that are otherwise blank inside an indented block (a lone tab/space left over from an edit). Also no trailing whitespace after `class_name`/`extends` lines.
+
+## Running the checks
+
+Two commands, both from the project root:
+
+```sh
+# 1. Parse the whole project. The only thing that catches the ":= on a Variant"
+#    class of failure, which is a parse error rather than a runtime one.
+godot --headless --path . --quit
+
+# 2. Run every test suite.
+godot --headless -s addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -a test
+```
+
+`--ignoreHeadlessMode` is not optional: without it gdUnit4 refuses to run at all and exits 103, because input-driven tests can't work headless. None of these suites synthesize `InputEvent`s, so the warning it prints does not apply to them - if one ever does, it belongs in a run with a display attached.
+
+After moving or adding a script, run `godot --headless --path . --import` first. The global class cache in `.godot/` still points a `class_name` at its old path until then, and the parse check fails with `Could not parse global class` naming a file that no longer exists.

@@ -1,5 +1,5 @@
 extends GdUnitTestSuite
-## Arming and re-arming of the offline gap in SaveManager (autoload/save_manager.gd).
+## Arming and re-arming of the offline gap in SaveManager (autoload/gd_save_manager.gd).
 ##
 ## Android sends APPLICATION_RESUMED *and* FOCUS_IN per resume, plus FOCUS_IN at
 ## app start, so this state machine is driven several times per real resume and
@@ -14,7 +14,7 @@ var _manager: Node
 var _clock: Array[float]
 
 func before_test() -> void:
-	_manager = auto_free(load("res://autoload/save_manager.gd").new())
+	_manager = auto_free(load("res://autoload/gd_save_manager.gd").new())
 	_clock = [START]
 	var clock := _clock
 	_manager.now_provider = func() -> float: return clock[0]

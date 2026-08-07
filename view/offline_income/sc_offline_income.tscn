@@ -9,7 +9,7 @@
 [ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="6_tmupt"]
 [ext_resource type="Shader" uid="uid://djm4kfwj0ikno" path="res://view/resource_bar/sh_tick_progress.gdshader" id="8_ckobu"]
 [ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="8_wun4e"]
-[ext_resource type="Script" uid="uid://p7c3cm6dxbjy" path="res://view/offline_income/general_panel_background.gd" id="9_78cc6"]
+[ext_resource type="Script" uid="uid://p7c3cm6dxbjy" path="res://view/offline_income/gd_general_panel_background.gd" id="9_78cc6"]
 [ext_resource type="PackedScene" uid="uid://y1nkfda6pvis" path="res://view/offline_income/sc_collect_offline_income_button.tscn" id="10_78cc6"]
 [ext_resource type="PackedScene" uid="uid://db571nler60or" path="res://view/offline_income/sc_currency_panel.tscn" id="10_puft7"]
 [ext_resource type="Shader" uid="uid://bldghbtldukkw" path="res://view/offline_income/sh_background_offline_income.gdshader" id="11_373pk"]

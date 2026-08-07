@@ -1,5 +1,5 @@
 extends GdUnitTestSuite
-## Unit tests for UpgradeSystem (viewmodel/gd_upgrade_system_vm.gd).
+## Unit tests for UpgradeSystem (model/upgrades/gd_upgrade_system.gd).
 ##
 ## Backs all three upgrade tracks (symbiosis, biome upgrades, perks), so a
 ## defect here is a defect everywhere at once.
