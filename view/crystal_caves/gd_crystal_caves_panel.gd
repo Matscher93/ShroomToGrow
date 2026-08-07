@@ -21,6 +21,8 @@ extends PanelContainer
 ## biome unlocks, not a second copy of that card.
 
 @export var lbl_crystals: Label
+@export var tab_container: TabContainer
+@export var geodes_tab: Control
 @export var vbox_automations: VBoxContainer
 @export var auto_unlock_section: VBoxContainer
 @export var vbox_auto_unlocks: VBoxContainer
@@ -41,6 +43,7 @@ func _ready() -> void:
 	_build_automations()
 	_build_auto_unlocks()
 	_build_sequences()
+	_refresh_geodes_tab()
 
 func bind(vm: CrystalCavesViewModel) -> void:
 	if _vm:
@@ -58,6 +61,21 @@ func _on_property_changed(property: StringName) -> void:
 	match property:
 		CrystalCavesViewModel.PROP_CRYSTALS_TEXT:
 			_refresh_header()
+		CrystalCavesViewModel.PROP_GEODES_VISIBLE:
+			_refresh_geodes_tab()
+
+## Geodes leads the tabs, so it is also the one the screen opens on. Hiding the
+## current tab leaves TabContainer pointing at a tab that is no longer there, so
+## the selection is moved to the first one still showing.
+func _refresh_geodes_tab() -> void:
+	var index := geodes_tab.get_index()
+	tab_container.set_tab_hidden(index, not _vm.geodes_visible)
+	if _vm.geodes_visible or tab_container.current_tab != index:
+		return
+	for i in range(tab_container.get_tab_count()):
+		if not tab_container.is_tab_hidden(i):
+			tab_container.current_tab = i
+			return
 
 func _refresh_header() -> void:
 	lbl_crystals.text = _vm.crystals_text

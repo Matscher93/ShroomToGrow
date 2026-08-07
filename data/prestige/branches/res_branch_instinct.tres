@@ -2,6 +2,18 @@
 
 [ext_resource type="Script" uid="uid://bidkvks0jdm2w" path="res://model/prestige/gd_perk_branch_def.gd" id="1_script"]
 [ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="2_node_script"]
+[ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_instinct_conversion_effect.tres" id="4_conversion_effect"]
+
+[sub_resource type="Resource" id="node_conversion"]
+script = ExtResource("2_node_script")
+id = &"instinct_conversion"
+display_name = "Softer Stone"
+description = "Melts geodes out of 10% fewer crystals per level, making every geode boost cheaper."
+max_level = 5
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 4
+effects = Array[ExtResource("3_effect_script")]([ExtResource("4_conversion_effect")])
 
 [sub_resource type="Resource" id="node_density_cap"]
 script = ExtResource("2_node_script")
@@ -15,7 +27,7 @@ _base_cost_exponent = 4
 [sub_resource type="Resource" id="node_density"]
 script = ExtResource("2_node_script")
 id = &"instinct_density"
-children = Array[ExtResource("2_node_script")]([SubResource("node_density_cap")])
+children = Array[ExtResource("2_node_script")]([SubResource("node_conversion"), SubResource("node_density_cap")])
 display_name = "Waking Density"
 description = "Opens Spore Density for buying in the Geodes."
 max_level = 1

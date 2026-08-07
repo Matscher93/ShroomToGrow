@@ -524,6 +524,17 @@ func test_every_capped_automation_has_a_perk_that_raises_the_cap() -> void:
 
 # ---------------------------------------------------------------- geode boosts
 
+func test_every_conversion_perk_is_a_discount() -> void:
+	# &"geode_conversion" is crystals *per geode*, so a positive per_level makes
+	# geodes dearer - the opposite of what a perk priced in biomass is sold as.
+	for perk in _perks:
+		for e in perk.effects:
+			if e.stat != &"geode_conversion":
+				continue
+			assert_float(e.per_level) \
+				.override_failure_message("Perk '%s' raises the geode conversion rate (%f per level)." \
+					% [perk.id, e.per_level]).is_less(0.0)
+
 func test_every_geode_boost_perk_id_exists_in_the_perk_tree() -> void:
 	# Same silent failure as the automations': a typo either locks the boost
 	# forever or pins it at its authored ceiling, with nothing reported at load.

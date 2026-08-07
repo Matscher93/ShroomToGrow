@@ -23,9 +23,11 @@ func before_test() -> void:
 	# separate from the boost track so a discount test can't accidentally lean on
 	# the boost defs.
 	_conversion_upgrades = UpgradeSystem.new()
-	_production = ProductionSystem.new(_conversion_upgrades, UpgradeSystem.new(),
-		UpgradeSystem.new(), ResolveContext.new(), _upgrades)
+	# The prestige track sits in both places it does in App: it gates the boosts
+	# and it resolves stats, which is what lets a perk discount the conversion.
 	_prestige = UpgradeSystem.new()
+	_production = ProductionSystem.new(_conversion_upgrades, UpgradeSystem.new(),
+		_prestige, ResolveContext.new(), _upgrades)
 	_list = _boost_list()
 	for def in GeodeBoostTree.build(_list):
 		_upgrades.register(def)
@@ -101,6 +103,22 @@ func _own_perk(id: StringName, level: int = 1) -> void:
 	def.max_level = level
 	_prestige.register(def)
 	_prestige.from_save({String(id): level})
+
+## A &"geode_conversion" perk at `levels`, standing in for Softer Stone. Negative
+## per_level is what makes it a discount - the stat is crystals *per geode*.
+func _own_conversion_perk(per_level: float, levels: int) -> void:
+	var effect := UpgradeEffectDef.new()
+	effect.stat = &"geode_conversion"
+	effect.op = UpgradeEffectDef.Op.INCREASED
+	effect.scope = UpgradeEffectDef.Scope.GLOBAL
+	effect.per_level = per_level
+	var effects: Array[UpgradeEffectDef] = [effect]
+	var def := PerkDef.new()
+	def.id = &"instinct_conversion"
+	def.max_level = levels
+	def.effects = effects
+	_prestige.register(def)
+	_prestige.from_save({"instinct_conversion": levels})
 
 ## Puts the gate fields on a test boost after the fact, so the shared list stays
 ## ungated for every other test in the suite.
@@ -245,6 +263,24 @@ func test_a_maxed_ladder_stops_selling_levels() -> void:
 	assert_bool(_system.can_buy_boost(&"test_nutrients")).is_false()
 	assert_bool(_system.buy_boost(&"test_nutrients")).is_false()
 	assert_int(_system.boost_level(&"test_nutrients")).is_equal(GeodeTiers.max_level())
+
+## The shipped discount is a perk, not a biome upgrade, so it has to reach the
+## rate through the prestige track specifically.
+func test_a_conversion_perk_makes_every_boost_cheaper() -> void:
+	var full_price := _system.boost_crystal_cost(&"test_nutrients").to_float()
+	_own_conversion_perk(-0.1, 5)
+
+	assert_float(_system.conversion_rate().to_float()).is_equal_approx(50.0, EPS)
+	assert_float(_system.boost_crystal_cost(&"test_nutrients").to_float()).is_equal_approx(
+		full_price * 0.5, EPS)
+
+## The floor is what stops a stacked discount handing out boost levels for
+## nothing, so a perk deep enough to cross it must land on the floor instead.
+func test_a_conversion_perk_cannot_drive_the_rate_below_the_floor() -> void:
+	_own_conversion_perk(-0.5, 5)
+
+	assert_float(_system.conversion_rate().to_float()).is_equal_approx(
+		GeodeTiers.MIN_CRYSTALS_PER_GEODE, EPS)
 
 # ---------------------------------------------------------------- perk gates
 

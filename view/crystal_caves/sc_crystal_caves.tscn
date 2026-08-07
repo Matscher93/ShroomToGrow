@@ -11,7 +11,7 @@
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_tab_panel"]
 
-[node name="crystal_caves" type="PanelContainer" node_paths=PackedStringArray("lbl_crystals", "vbox_automations", "auto_unlock_section", "vbox_auto_unlocks", "vbox_sequences")]
+[node name="crystal_caves" type="PanelContainer" node_paths=PackedStringArray("lbl_crystals", "tab_container", "geodes_tab", "vbox_automations", "auto_unlock_section", "vbox_auto_unlocks", "vbox_sequences")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -20,6 +20,8 @@ grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxEmpty_crystal_caves")
 script = ExtResource("1_script")
 lbl_crystals = NodePath("VBoxContainer/header/lbl_crystals")
+tab_container = NodePath("VBoxContainer/TabContainer")
+geodes_tab = NodePath("VBoxContainer/TabContainer/Geodes")
 vbox_automations = NodePath("VBoxContainer/TabContainer/Automations/MarginContainer/VBoxContainer/vbox_automations")
 auto_unlock_section = NodePath("VBoxContainer/TabContainer/Automations/MarginContainer/VBoxContainer/auto_unlock_section")
 vbox_auto_unlocks = NodePath("VBoxContainer/TabContainer/Automations/MarginContainer/VBoxContainer/auto_unlock_section/vbox_auto_unlocks")
@@ -49,8 +51,12 @@ theme_override_styles/panel = SubResource("StyleBoxEmpty_tab_panel")
 tabs_position = 1
 current_tab = 0
 
+[node name="Geodes" parent="VBoxContainer/TabContainer" instance=ExtResource("7_geodes")]
+layout_mode = 2
+
 [node name="Automations" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
 script = ExtResource("6_touch_scroll")
+visible = false
 layout_mode = 2
 vertical_scroll_mode = 2
 
@@ -88,10 +94,6 @@ autowrap_mode = 3
 [node name="vbox_auto_unlocks" type="VBoxContainer" parent="VBoxContainer/TabContainer/Automations/MarginContainer/VBoxContainer/auto_unlock_section"]
 layout_mode = 2
 theme_override_constants/separation = 8
-
-[node name="Geodes" parent="VBoxContainer/TabContainer" instance=ExtResource("7_geodes")]
-visible = false
-layout_mode = 2
 
 [node name="Sequences" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
 script = ExtResource("6_touch_scroll")

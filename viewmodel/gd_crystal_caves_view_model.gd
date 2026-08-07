@@ -10,10 +10,22 @@ extends ViewModel
 ## come from lives in the top-bar overlay (App.achievements_vm), not here.
 
 const PROP_CRYSTALS_TEXT := &"crystals_text"
+const PROP_GEODES_VISIBLE := &"geodes_visible"
 
 # --- Read-only display properties bound by the View ---
 var crystals_text: String:
 	get: return App.player_data.crystals.to_display()
+
+## Whether the Geodes tab belongs on screen at all. Every boost is behind its own
+## prestige perk, so before the first of them the tab is a page of locked cards
+## explaining a currency the player has no way to spend - one tab too many on a
+## screen reached from a phone's thumb.
+var geodes_visible: bool:
+	get:
+		for def in App.geode_boosts.boosts:
+			if App.is_geode_boost_unlocked(def.id):
+				return true
+		return false
 
 var automation_vms_ordered: Array[AutomationViewModel]:
 	get:
@@ -57,11 +69,18 @@ func auto_unlock_vms() -> Array[BiomeSequenceViewModel]:
 
 func _init() -> void:
 	App.player_data.crystals_changed.connect(_on_crystals_changed)
+	# Buying the first geode unlock perk is what brings the tab in, and that can
+	# happen while this screen is open - the perk web is a screen away.
+	App.prestige_upgrade_system.upgrades_changed.connect(_on_perks_changed)
 
 func dispose() -> void:
 	App.player_data.crystals_changed.disconnect(_on_crystals_changed)
+	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_perks_changed)
 
 # --- Model -> notification plumbing ---
 
 func _on_crystals_changed(_value: BigNumber) -> void:
 	_notify(PROP_CRYSTALS_TEXT)
+
+func _on_perks_changed() -> void:
+	_notify(PROP_GEODES_VISIBLE)
