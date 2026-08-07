@@ -1,17 +1,24 @@
 extends Control
 ## VIEW: top-level screen orchestration. Spawns the offline income popup into
 ## popup_layer whenever there's something to show, and clears it again once the
-## player dismisses it.
+## player dismisses it. Also owns the top bar's overlays, which get their own
+## layer above the popup one: the offline popup lands at boot without asking, and
+## sharing a layer would let an overlay opened on top of it free it out from
+## under the collect flow.
 
 @export var popup_layer: PopupLayer
+@export var overlay_layer: PopupLayer
+@export var top_bar: Control
 
 const OFFLINE_INCOME_SCENE := preload("res://view/offline_income/sc_offline_income.tscn")
+const ACHIEVEMENTS_SCENE := preload("res://view/achievements/sc_achievements_panel.tscn")
 
 var _offline_popup_active := false
 
 func _ready() -> void:
 	add_child(ShaderWarmup.new())
 	add_child(MenuWarmup.new())
+	top_bar.achievements_pressed.connect(_on_achievements_pressed)
 	if App.offline_income_vm:
 		App.offline_income_vm.property_changed.connect(_on_offline_income_changed)
 		# SaveManager only records pending offline progress during load_game(),
@@ -43,6 +50,15 @@ func _check_pending_offline_income() -> void:
 	if App.offline_income_vm.total_offline_ticks <= 0:
 		return
 	_show_offline_income_popup()
+
+## Tapping the top bar's achievement button toggles: a second tap on an open
+## overlay closes it, the same as the backdrop or the close button.
+func _on_achievements_pressed() -> void:
+	if overlay_layer.has_popup():
+		overlay_layer.clear()
+		return
+	var overlay := overlay_layer.show_popup(ACHIEVEMENTS_SCENE)
+	overlay.dismissed.connect(overlay_layer.clear, CONNECT_ONE_SHOT)
 
 func _show_offline_income_popup() -> void:
 	if _offline_popup_active:

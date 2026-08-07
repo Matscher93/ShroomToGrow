@@ -1,5 +1,5 @@
 extends PanelContainer
-## VIEW: one row of the Crystal Caves achievement archive. Bound to a persistent
+## VIEW: one row of the achievement archive overlay. Bound to a persistent
 ## AchievementViewModel owned by App; this only renders it.
 
 @export var lbl_name: Label

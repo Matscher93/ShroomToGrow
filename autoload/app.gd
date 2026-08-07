@@ -48,6 +48,7 @@ var achievements := load("res://data/achievements/all_achievements.tres") as Ach
 var achievement_progress: AchievementProgress
 var achievement_system: AchievementSystem
 var achievement_vms: Dictionary = {}  # StringName -> AchievementViewModel
+var achievements_vm: AchievementsViewModel
 
 var automations := load("res://data/automation/all_automations.tres") as AutomationList
 var automation_data: AutomationData
@@ -131,6 +132,7 @@ func _ready() -> void:
 	# forwards to them, so they must exist before the first VM is constructed.
 	for def in achievements.achievements:
 		achievement_vms[def.id] = AchievementViewModel.new(def)
+	achievements_vm = AchievementsViewModel.new()
 	for def in automations.automations:
 		automation_vms[def.id] = AutomationViewModel.new(def)
 	for def in biomes.biomes:

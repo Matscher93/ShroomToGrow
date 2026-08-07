@@ -1,0 +1,105 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/main/gd_top_bar.gd" id="1_script"]
+[ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="2_background"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_base_color_rect.gd" id="3_base_color_rect"]
+[ext_resource type="Script" path="res://view/base_views/gd_base_panel_container.gd" id="4_base_panel"]
+[ext_resource type="Shader" path="res://shaders/icons/sh_achievement_icon.gdshader" id="5_achievement_icon"]
+[ext_resource type="Shader" uid="uid://b4hlda7wef5eg" path="res://shaders/shared/sh_notification_indicator.gdshader" id="6_notification"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_top_bar"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_button"]
+resource_local_to_scene = true
+shader = ExtResource("2_background")
+shader_parameter/rect_size = Vector2(40, 40)
+shader_parameter/box_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 12.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.07
+shader_parameter/border_alpha = 0.3
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_icon"]
+resource_local_to_scene = true
+shader = ExtResource("5_achievement_icon")
+shader_parameter/rect_size = Vector2(22, 22)
+shader_parameter/icon_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
+shader_parameter/icon_scale = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_notification"]
+resource_local_to_scene = true
+shader = ExtResource("6_notification")
+shader_parameter/radius = 0.4
+shader_parameter/radius_glow = 0.9
+shader_parameter/border_thickness = 0.1
+shader_parameter/notification_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
+shader_parameter/ring_color = Color(0, 0, 0, 1)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_normal"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pressed"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hover"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_focus"]
+
+[node name="top_bar" type="PanelContainer" node_paths=PackedStringArray("btn_achievements", "image_achievements_notification")]
+theme_override_styles/panel = SubResource("StyleBoxEmpty_top_bar")
+script = ExtResource("1_script")
+btn_achievements = NodePath("HBoxContainer/panel_achievements/btn_achievements")
+image_achievements_notification = NodePath("HBoxContainer/panel_achievements/image_notification")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="spacer" type="Control" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="panel_achievements" type="PanelContainer" parent="HBoxContainer"]
+material = SubResource("ShaderMaterial_button")
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 4
+script = ExtResource("4_base_panel")
+color_param = "box_color"
+
+[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/panel_achievements"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 9
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 9
+
+[node name="image_icon" type="ColorRect" parent="HBoxContainer/panel_achievements/MarginContainer"]
+material = SubResource("ShaderMaterial_icon")
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("3_base_color_rect")
+color_param = "icon_color"
+
+[node name="btn_achievements" type="Button" parent="HBoxContainer/panel_achievements"]
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/normal = SubResource("StyleBoxEmpty_normal")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_pressed")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_hover")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_focus")
+
+[node name="image_notification" type="ColorRect" parent="HBoxContainer/panel_achievements"]
+material = SubResource("ShaderMaterial_notification")
+custom_minimum_size = Vector2(14, 14)
+visible = false
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+offset_transform_enabled = true
+offset_transform_position = Vector2(4, -4)
+mouse_filter = 2

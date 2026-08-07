@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" path="res://view/crystal_caves/gd_crystal_caves_panel.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://view/crystal_caves/sc_automation_card.tscn" id="2_automation_card"]
-[ext_resource type="PackedScene" path="res://view/crystal_caves/sc_achievement_row.tscn" id="3_achievement_row"]
 [ext_resource type="PackedScene" path="res://view/crystal_caves/sc_biome_sequence_section.tscn" id="4_biome_sequence"]
 [ext_resource type="PackedScene" path="res://view/crystal_caves/sc_biome_auto_unlock_row.tscn" id="5_auto_unlock_row"]
 
@@ -10,7 +9,7 @@
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_tab_panel"]
 
-[node name="crystal_caves" type="PanelContainer" node_paths=PackedStringArray("lbl_crystals", "lbl_tiers", "btn_claim_all", "tab_container", "vbox_automations", "auto_unlock_section", "vbox_auto_unlocks", "vbox_sequences", "vbox_achievements")]
+[node name="crystal_caves" type="PanelContainer" node_paths=PackedStringArray("lbl_crystals", "vbox_automations", "auto_unlock_section", "vbox_auto_unlocks", "vbox_sequences")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -19,16 +18,11 @@ grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxEmpty_crystal_caves")
 script = ExtResource("1_script")
 lbl_crystals = NodePath("VBoxContainer/header/lbl_crystals")
-lbl_tiers = NodePath("VBoxContainer/header/lbl_tiers")
-btn_claim_all = NodePath("VBoxContainer/TabContainer/Achievements/MarginContainer/VBoxContainer/btn_claim_all")
-tab_container = NodePath("VBoxContainer/TabContainer")
 vbox_automations = NodePath("VBoxContainer/TabContainer/Automations/MarginContainer/VBoxContainer/vbox_automations")
 auto_unlock_section = NodePath("VBoxContainer/TabContainer/Automations/MarginContainer/VBoxContainer/auto_unlock_section")
 vbox_auto_unlocks = NodePath("VBoxContainer/TabContainer/Automations/MarginContainer/VBoxContainer/auto_unlock_section/vbox_auto_unlocks")
 vbox_sequences = NodePath("VBoxContainer/TabContainer/Sequences/MarginContainer/VBoxContainer/vbox_sequences")
-vbox_achievements = NodePath("VBoxContainer/TabContainer/Achievements/MarginContainer/VBoxContainer/vbox_achievements")
 automation_card_scene = ExtResource("2_automation_card")
-achievement_row_scene = ExtResource("3_achievement_row")
 biome_sequence_scene = ExtResource("4_biome_sequence")
 auto_unlock_row_scene = ExtResource("5_auto_unlock_row")
 
@@ -46,11 +40,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "0"
 
-[node name="lbl_tiers" type="Label" parent="VBoxContainer/header"]
-modulate = Color(1, 1, 1, 0.65)
-layout_mode = 2
-text = "0 achievements claimed"
-
 [node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -58,34 +47,7 @@ theme_override_styles/panel = SubResource("StyleBoxEmpty_tab_panel")
 tabs_position = 1
 current_tab = 0
 
-[node name="Achievements" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
-layout_mode = 2
-vertical_scroll_mode = 2
-
-[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/TabContainer/Achievements"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Achievements/MarginContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 10
-
-[node name="btn_claim_all" type="Button" parent="VBoxContainer/TabContainer/Achievements/MarginContainer/VBoxContainer"]
-layout_mode = 2
-disabled = true
-text = "Nothing to claim"
-
-[node name="vbox_achievements" type="VBoxContainer" parent="VBoxContainer/TabContainer/Achievements/MarginContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
 [node name="Automations" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
-visible = false
 layout_mode = 2
 vertical_scroll_mode = 2
 

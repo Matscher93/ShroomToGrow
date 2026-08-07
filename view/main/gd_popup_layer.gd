@@ -12,6 +12,9 @@ func show_popup(scene: PackedScene) -> Node:
 	_current = instance
 	return instance
 
+func has_popup() -> bool:
+	return _current != null
+
 func clear() -> void:
 	if _current:
 		_current.queue_free()
