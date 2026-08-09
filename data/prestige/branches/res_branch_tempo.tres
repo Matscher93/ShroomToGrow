@@ -13,14 +13,6 @@ description = "Tempo node - kept through every sporation."
 _base_cost_mantissa = 1.6
 _base_cost_exponent = 1
 
-[sub_resource type="Resource" id="node_4b"]
-script = ExtResource("4_node_script")
-id = &"tempo_4b"
-display_name = "Tempo IV·B"
-description = "Tempo node - kept through every sporation."
-_base_cost_mantissa = 1.6
-_base_cost_exponent = 1
-
 [sub_resource type="Resource" id="node_3a"]
 script = ExtResource("4_node_script")
 id = &"tempo_3a"
@@ -28,7 +20,15 @@ children = Array[ExtResource("4_node_script")]([SubResource("node_4a")])
 display_name = "Tempo III·A"
 description = "Tempo node - kept through every sporation."
 _base_cost_mantissa = 8.0
-_base_cost_exponent = 0
+
+[sub_resource type="Resource" id="node_4b"]
+script = ExtResource("4_node_script")
+id = &"tempo_4b"
+display_name = "Tempo IV·B"
+description = "Tempo node - kept through every sporation."
+max_level = 20
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 8
 
 [sub_resource type="Resource" id="node_3b"]
 script = ExtResource("4_node_script")
@@ -36,8 +36,9 @@ id = &"tempo_3b"
 children = Array[ExtResource("4_node_script")]([SubResource("node_4b")])
 display_name = "Tempo III·B"
 description = "Tempo node - kept through every sporation."
-_base_cost_mantissa = 8.0
-_base_cost_exponent = 0
+max_level = 20
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 4
 
 [sub_resource type="Resource" id="node_2"]
 script = ExtResource("4_node_script")
@@ -45,8 +46,9 @@ id = &"tempo_2"
 children = Array[ExtResource("4_node_script")]([SubResource("node_3a"), SubResource("node_3b")])
 display_name = "Tempo II"
 description = "Tempo node - kept through every sporation."
-_base_cost_mantissa = 4.0
-_base_cost_exponent = 0
+max_level = 20
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 2
 
 [sub_resource type="Resource" id="node_1"]
 script = ExtResource("4_node_script")
@@ -54,6 +56,7 @@ id = &"tempo_1"
 children = Array[ExtResource("4_node_script")]([SubResource("node_2")])
 display_name = "Tempo I"
 description = "Tempo node - kept through every sporation."
+max_level = 20
 
 [resource]
 script = ExtResource("1_script")

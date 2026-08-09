@@ -2,7 +2,8 @@ extends SceneTree
 
 ## Headless bridge between the balance editor and the .tres files.
 ##
-##   godot --headless --script tools/gd_balance_cli.gd -- dump  --out=FILE
+##   godot --headless --script tools/gd_balance_cli.gd -- dump   --out=FILE
+##   godot --headless --script tools/gd_balance_cli.gd -- curves --out=FILE
 ##   godot --headless --script tools/gd_balance_cli.gd -- apply  --patch=FILE   --out=FILE [--dry-run]
 ##   godot --headless --script tools/gd_balance_cli.gd -- create --request=FILE --out=FILE [--dry-run]
 ##   godot --headless --script tools/gd_balance_cli.gd -- delete --request=FILE --out=FILE [--dry-run]
@@ -41,6 +42,10 @@ func _initialize() -> void:
 	match command:
 		"dump":
 			quit(_dump(data_dir, out_path))
+		"curves":
+			quit(_curves(data_dir, out_path))
+		"perks":
+			quit(_perks(out_path))
 		"apply":
 			quit(_apply(patch_path, out_path, dry_run))
 		"create":
@@ -48,13 +53,23 @@ func _initialize() -> void:
 		"delete":
 			quit(_delete(data_dir, request_path, out_path, dry_run))
 		_:
-			printerr("usage: gd_balance_cli.gd -- <dump|apply|create|delete> --out=FILE "
-				+ "[--patch=FILE] [--request=FILE] [--dry-run]")
+			printerr("usage: gd_balance_cli.gd -- <dump|curves|perks|apply|create|delete> "
+				+ "--out=FILE [--patch=FILE] [--request=FILE] [--dry-run]")
 			quit(2)
 
 
 func _dump(data_dir: String, out_path: String) -> int:
 	var report := BalanceDataScript.snapshot(data_dir)
+	return _write(out_path, report)
+
+
+func _curves(data_dir: String, out_path: String) -> int:
+	var report := BalanceDataScript.curves(data_dir)
+	return _write(out_path, report)
+
+
+func _perks(out_path: String) -> int:
+	var report := BalanceDataScript.perks()
 	return _write(out_path, report)
 
 

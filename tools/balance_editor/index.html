@@ -93,6 +93,15 @@
     width: 220px;
   }
   main { display: grid; grid-template-columns: 240px 1fr; min-height: 0; }
+  /* Drag bar between two grid columns: the file list, the graph's side panel,
+     and every view module's panel all get one. */
+  .grid-resizer {
+    background: var(--line);
+    opacity: .5;
+    cursor: col-resize;
+    touch-action: none;
+  }
+  .grid-resizer:hover, .grid-resizer.dragging { background: var(--accent); opacity: 1; }
   button.view.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
   #graph-view { display: grid; grid-template-columns: 1fr 320px; min-height: 0; }
   #graph-view[hidden] { display: none; }
@@ -119,16 +128,16 @@
   /* a marker does not inherit the referencing path's colour, so state it here */
   #graph marker path { fill: var(--muted); }
   #deps { border-left: 1px solid var(--line); background: var(--panel); overflow-y: auto; padding: 10px; }
-  #deps h2 { font-size: 13px; margin: 0 0 2px; }
-  #deps .path { font: 10px ui-monospace, monospace; color: var(--muted); word-break: break-all; }
-  #deps h3 {
+  #deps h2, .deps-panel h2 { font-size: 13px; margin: 0 0 2px; }
+  #deps .path, .deps-panel .path { font: 10px ui-monospace, monospace; color: var(--muted); word-break: break-all; }
+  #deps h3, .deps-panel h3 {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: .04em;
     color: var(--muted);
     margin: 14px 0 4px;
   }
-  #deps .col { font: 11px ui-monospace, monospace; color: var(--muted); margin-top: 8px; }
+  #deps .col, .deps-panel .col { font: 11px ui-monospace, monospace; color: var(--muted); margin-top: 8px; }
   .chip {
     display: flex;
     align-items: center;
@@ -159,7 +168,7 @@
     padding: 4px 6px; background: var(--bg); color: var(--text);
     border: 1px solid var(--line); border-radius: 5px; }
   .create button { flex: none; }
-  #deps select { font: inherit; width: 100%; margin-top: 3px; padding: 4px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 5px; }
+  #deps select, .deps-panel select { font: inherit; width: 100%; margin-top: 3px; padding: 4px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 5px; }
   .field { margin-top: 8px; }
   .field label {
     display: flex;
@@ -349,12 +358,14 @@
   #clear-log:hover { color: var(--text); }
   .hint { color: var(--muted); }
 </style>
+<link rel="stylesheet" href="views.css">
 </head>
 <body>
 <header>
   <h1>Balance editor</h1>
   <button id="view-table" class="view active">Table</button>
   <button id="view-graph" class="view">Graph</button>
+  <span id="extra-views"></span>
   <button id="save" class="primary" disabled>Save file</button>
   <button id="save-all" disabled>Save all</button>
   <button id="revert" disabled title="Drop every unsaved edit in this file">Revert file</button>
@@ -390,6 +401,14 @@
   <button id="clear-log" title="Clear this output" hidden>✕</button>
 </footer>
 
+<!-- View modules. Each one registers itself on window.BalanceViews, which the
+     script below turns into a header button and a mounted panel. They are
+     loaded first and only read the globals below from inside their callbacks,
+     so neither file has to know when the other ran. -->
+<script src="curves.js"></script>
+<script src="web.js"></script>
+<script src="sim.js"></script>
+
 <script>
 const state = {
   files: [],
@@ -404,7 +423,73 @@ const state = {
 };
 
 const WIDTHS_KEY = "balance-editor-widths";
+const PANEL_WIDTHS_KEY = "balance-editor-panel-widths";
 const MIN_WIDTH = 48;
+const RESIZER_WIDTH = 5;
+
+/** Sidebar and panel widths, keyed by which one: "files", "deps", "panel:web". */
+let panelWidths = {};
+try {
+  panelWidths = JSON.parse(localStorage.getItem(PANEL_WIDTHS_KEY) || "{}");
+} catch (error) { /* private mode - the defaults apply */ }
+
+function savePanelWidths() {
+  try {
+    localStorage.setItem(PANEL_WIDTHS_KEY, JSON.stringify(panelWidths));
+  } catch (error) { /* private mode - widths just won't survive the reload */ }
+}
+
+/** Puts a drag bar between a two-column grid's columns and makes one of them
+ * resizable. `edge` says which: "start" for a sidebar on the left, "end" for a
+ * panel on the right. The width is remembered per key across reloads, and a
+ * double-click hands the column back to the stylesheet. */
+function makeGridResizer(container, panel, key, edge, fallback, min = 160, max = 900) {
+  const handle = document.createElement("div");
+  handle.className = "grid-resizer";
+  handle.title = "drag to resize · double-click to reset";
+  container.insertBefore(handle, edge === "start" ? panel.nextSibling : panel);
+
+  const apply = (width) => {
+    container.style.gridTemplateColumns = edge === "start"
+      ? `${width}px ${RESIZER_WIDTH}px 1fr`
+      : `1fr ${RESIZER_WIDTH}px ${width}px`;
+  };
+  // Back to the width the stylesheet asks for, plus room for the handle. The
+  // stylesheet's own two-column rule cannot be used as-is: the handle is a third
+  // column, so the track list is always written out here.
+  const clear = () => apply(fallback);
+  if (panelWidths[key]) apply(panelWidths[key]); else clear();
+
+  handle.onpointerdown = (event) => {
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    handle.classList.add("dragging");
+    const startX = event.clientX;
+    const startWidth = panel.getBoundingClientRect().width;
+
+    const onMove = (moveEvent) => {
+      // Dragging right widens a left sidebar and narrows a right panel.
+      const delta = edge === "start" ? moveEvent.clientX - startX : startX - moveEvent.clientX;
+      const width = Math.max(min, Math.min(max, Math.round(startWidth + delta)));
+      panelWidths[key] = width;
+      apply(width);
+    };
+    const onUp = () => {
+      handle.classList.remove("dragging");
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onUp);
+      savePanelWidths();
+    };
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
+  };
+
+  handle.ondblclick = () => {
+    delete panelWidths[key];
+    savePanelWidths();
+    clear();
+  };
+}
 
 try {
   state.widths = JSON.parse(localStorage.getItem(WIDTHS_KEY) || "{}");
@@ -490,6 +575,7 @@ const el = {
   quit: document.getElementById("quit"),
   viewTable: document.getElementById("view-table"),
   viewGraph: document.getElementById("view-graph"),
+  extraViews: document.getElementById("extra-views"),
   graphView: document.getElementById("graph-view"),
   graph: document.getElementById("graph"),
   depth: document.getElementById("depth"),
@@ -1323,7 +1409,9 @@ function fieldEditor(entry, columnIndex) {
   });
   // Only once the field is left, so the node label refreshes without the
   // panel rebuilding itself out from under the cursor on every keystroke.
-  input.addEventListener("change", () => renderGraph());
+  // Whichever view is showing gets the refresh: this editor is used by the
+  // graph's side panel and by the web view's, which embeds the same thing.
+  input.addEventListener("change", () => renderActiveView());
 
   label.append(revert);
   sync();
@@ -1331,10 +1419,10 @@ function fieldEditor(entry, columnIndex) {
   return wrap;
 }
 
-function renderDeps(focus) {
-  el.deps.replaceChildren();
+function renderDeps(focus, target = el.deps) {
+  target.replaceChildren();
   if (!focus) {
-    el.deps.append(Object.assign(document.createElement("p"),
+    target.append(Object.assign(document.createElement("p"),
       { className: "hint", textContent: "Pick a row in the table, then switch to Graph." }));
     return;
   }
@@ -1362,7 +1450,7 @@ function renderDeps(focus) {
   const actions = document.createElement("div");
   actions.className = "actions";
   actions.append(open, remove);
-  el.deps.append(title, path, actions);
+  target.append(title, path, actions);
 
   const references = referenceColumns(entry.file);
 
@@ -1370,8 +1458,8 @@ function renderDeps(focus) {
     .map((column, columnIndex) => columnIndex)
     .filter((columnIndex) => columnIndex > 0 && !references.has(entry.header[columnIndex]));
   if (fields.length) {
-    el.deps.append(Object.assign(document.createElement("h3"), { textContent: "Fields" }));
-    for (const columnIndex of fields) el.deps.append(fieldEditor(entry, columnIndex));
+    target.append(Object.assign(document.createElement("h3"), { textContent: "Fields" }));
+    for (const columnIndex of fields) target.append(fieldEditor(entry, columnIndex));
   }
 
   const outgoing = state.edges.filter((edge) => edge.from === focus);
@@ -1384,11 +1472,11 @@ function renderDeps(focus) {
   }
 
   if (byColumn.size) {
-    el.deps.append(Object.assign(document.createElement("h3"), { textContent: "References" }));
+    target.append(Object.assign(document.createElement("h3"), { textContent: "References" }));
   }
   for (const [column, edges] of byColumn) {
     const columnIndex = entry.header.indexOf(column);
-    el.deps.append(Object.assign(document.createElement("div"),
+    target.append(Object.assign(document.createElement("div"),
       { className: "col", textContent: column }));
     for (const edge of edges) {
       const target = edge.to ? rowIndexOf(edge.to) : null;
@@ -1399,7 +1487,7 @@ function renderDeps(focus) {
         target ? () => setFocus(edge.to) : null,
         () => applyRef(edge, null));
       if (asset) chipEl.classList.add("asset");
-      el.deps.append(chipEl);
+      target.append(chipEl);
     }
     const sample = edges[0];
     const configured = keyRefFor(entry.file, column, entry.header, entry.row)
@@ -1420,7 +1508,7 @@ function renderDeps(focus) {
         if (!select.value) return;
         addRef(entry.file, entry.rowIndex, columnIndex, select.value, isList);
       };
-      el.deps.append(select);
+      target.append(select);
     }
 
     const rule = pathRefFor(entry.file, column);
@@ -1429,15 +1517,15 @@ function renderDeps(focus) {
       : (keyRefFor(entry.file, column, entry.header, entry.row) || {}).creates
         ? keyRefFor(entry.file, column, entry.header, entry.row)
         : null;
-    if (creator) el.deps.append(createRow(entry, column, creator));
+    if (creator) target.append(createRow(entry, column, creator));
   }
 
   const incoming = state.edges.filter((edge) => edge.to === focus);
   if (incoming.length) {
-    el.deps.append(Object.assign(document.createElement("h3"),
+    target.append(Object.assign(document.createElement("h3"),
       { textContent: `Referenced by (${incoming.length})` }));
     for (const edge of incoming) {
-      el.deps.append(chip(
+      target.append(chip(
         `${labelOf(edge.from)} · ${edge.column}`,
         false,
         () => setFocus(edge.from),
@@ -1591,15 +1679,28 @@ async function deleteResource(path) {
 
 function setFocus(path) {
   state.focus = path;
-  // Keep the sidebar pointing at whatever the graph is showing, so Save and
-  // Revert always act on the file the focused row lives in.
+  // Keep the sidebar pointing at whatever is focused, so Save and Revert always
+  // act on the file the focused row lives in.
   const entry = rowIndexOf(path);
   if (entry && entry.file !== state.current) {
     state.current = entry.file;
     renderFileList();
   }
-  renderGraph();
+  renderActiveView();
 }
+
+/** Redraws whatever is on screen. The focus and the row data are shared by every
+ * view, so a change made in one has to reach the one the user is looking at. */
+function renderActiveView() {
+  if (state.view === "graph") renderGraph();
+  else if (modules[state.view]) modules[state.view].render();
+  else renderGrid();
+}
+
+/** Views contributed by the sibling script modules, keyed by name. Each holds
+ * `label`, `mount()` (build its container once) and `render()`, plus an optional
+ * async `open()` for whatever it needs loaded before it can draw. */
+const modules = window.BalanceViews || {};
 
 function setView(view) {
   state.view = view;
@@ -1607,10 +1708,42 @@ function setView(view) {
   el.viewGraph.classList.toggle("active", view === "graph");
   document.querySelector(".table-wrap").hidden = view !== "table";
   el.graphView.hidden = view !== "graph";
-  // The grid is not kept up to date while the graph is showing, so rebuild it
-  // on the way back - graph edits and file switches both land here.
-  if (view === "graph") renderGraph();
-  else renderGrid();
+  for (const [name, module] of Object.entries(modules)) {
+    if (module.button) module.button.classList.toggle("active", view === name);
+    if (module.element) module.element.hidden = view !== name;
+  }
+  // No view is kept up to date while another is showing, so the one being
+  // switched to is rebuilt here - graph edits and file switches both land here.
+  renderActiveView();
+}
+
+/** Gives every registered module a header button. The container is built on
+ * first use, so a module nobody opens costs nothing but its script. */
+function mountModules() {
+  for (const [name, module] of Object.entries(modules)) {
+    const button = document.createElement("button");
+    button.className = "view";
+    button.textContent = module.label;
+    if (module.title) button.title = module.title;
+    button.onclick = async () => {
+      setStatus(`opening ${module.label.toLowerCase()}…`);
+      try {
+        if (module.open) await module.open();
+      } catch (error) { log(String(error), true); return; }
+      if (!module.element) {
+        module.element = module.mount();
+        module.element.hidden = true;
+        document.querySelector("main").append(module.element);
+        // Same drag bar the file list and the graph panel get, on whatever the
+        // module put on its right - every view panel resizes the same way.
+        const panel = module.element.querySelector("aside");
+        if (panel) makeGridResizer(module.element, panel, `panel:${name}`, "end", 340, 240, 1000);
+      }
+      setView(name);
+    };
+    module.button = button;
+    el.extraViews.append(button);
+  }
 }
 
 /** The graph spans every file, so all of them have to be in memory. */
@@ -1789,6 +1922,9 @@ window.addEventListener("beforeunload", (event) => {
 });
 
 (async function start() {
+  mountModules();
+  makeGridResizer(document.querySelector("main"), el.files, "files", "start", 240, 140, 560);
+  makeGridResizer(el.graphView, el.deps, "deps", "end", 320, 220, 900);
   try {
     const info = await api("/api/files");
     state.files = info.files;

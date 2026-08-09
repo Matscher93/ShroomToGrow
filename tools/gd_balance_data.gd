@@ -84,6 +84,307 @@ static func snapshot(data_dir: String) -> Dictionary:
 #endregion
 
 
+#region Curves
+
+## Levels sampled for a def with no max_level of its own (0 = infinite).
+const CURVE_OPEN_ENDED_LEVELS := 50
+
+## Id the throwaway UpgradeDef is registered under while sampling. '#' never
+## appears in an authored id, so it cannot collide with one.
+const CURVE_ID := &"#curve"
+
+
+## Cost and effect per level for every priced def under `data_dir`.
+##
+## Sampled through the live game code - UpgradeSystem.cost() and
+## UpgradeEffectDef.magnitude() - rather than a copy of their formulas, so the
+## editor can draw these behind its own curve and make any drift visible.
+##
+## Returns { "curves": { res_path: { "max_level": int,
+##                                   "cost": [[mantissa, exponent], ...],
+##                                   "effect": [[mantissa, exponent], ...],
+##                                   "stat": "...", "op": "...", ... } },
+##           "errors": [...] }
+##
+## `cost[i]` is what buying the *next* level costs while sitting at level i,
+## matching what the game charges; `effect[i]` is the total magnitude at level i.
+static func curves(data_dir: String) -> Dictionary:
+	var out := {}
+	var errors: Array = []
+	_open_files.clear()
+	_subresources.clear()
+	# A perk with no effects of its own runs on its branch's, so sampling it
+	# without them would report a flat zero for most of the web.
+	var fallbacks := _perk_effect_fallbacks()
+
+	for path: String in _collect_resource_paths(data_dir):
+		var res := _load_file(path)
+		if res == null:
+			errors.append("could not load %s" % path)
+			continue
+		var found: Array[Resource] = []
+		var seen: Dictionary[int, bool] = {}
+		_expand_subresources(res, path, found, seen)
+		for row: Resource in found:
+			if not _is_priced(row):
+				continue
+			out[row.resource_path] = curve_for(row, fallbacks.get(row.resource_path, []))
+	return {"curves": out, "errors": errors}
+
+
+## PerkNodeDef path -> the default_effects of the branch it grows on, the same
+## fallback PerkBranchDef.effects_for() applies at build time.
+static func _perk_effect_fallbacks() -> Dictionary:
+	var out := {}
+	var branch_list := load(PERK_BRANCHES_PATH) as PerkBranchList
+	if branch_list == null:
+		return out
+	for branch: PerkBranchDef in branch_list.branches:
+		if branch.default_effects.is_empty():
+			continue
+		for root: PerkNodeDef in branch.roots:
+			_spread_fallback(root, branch.default_effects, out)
+	return out
+
+
+static func _spread_fallback(node: PerkNodeDef, effects: Array, out: Dictionary) -> void:
+	if node == null:
+		return
+	out[node.resource_path] = effects
+	for child: PerkNodeDef in node.children:
+		_spread_fallback(child, effects, out)
+
+
+## True for anything the cost formula can be run on: an UpgradeDef or a
+## PerkNodeDef, without this file needing to know which classes those are.
+static func _is_priced(res: Resource) -> bool:
+	var properties := _properties_by_name(res)
+	return properties.has(&"cost_growth") and properties.has(&"_base_cost_mantissa")
+
+
+## One def's sampled curve. `fallback_effects` stands in when the def declares
+## none of its own, mirroring PerkBranchDef.effects_for().
+static func curve_for(res: Resource, fallback_effects: Array) -> Dictionary:
+	var properties := _properties_by_name(res)
+	var max_level: int = res.get(&"max_level") if properties.has(&"max_level") else 0
+	var samples := max_level if max_level > 0 else CURVE_OPEN_ENDED_LEVELS
+
+	# A one-def UpgradeSystem is the only way to price a level through the real
+	# cost(), which reads the level out of its own table.
+	var system := UpgradeSystem.new()
+	var def := UpgradeDef.new()
+	def.id = CURVE_ID
+	def.base_cost = res.get(&"base_cost")
+	def.cost_growth = res.get(&"cost_growth")
+	if properties.has(&"cost_growth_exponent"):
+		def.cost_growth_exponent = res.get(&"cost_growth_exponent")
+	system.register(def)
+
+	var own_effects: Array = res.get(&"effects") if properties.has(&"effects") else []
+	var effects: Array = own_effects if not own_effects.is_empty() else fallback_effects
+	var effect: UpgradeEffectDef = effects[0] if not effects.is_empty() else null
+
+	var costs: Array = []
+	var magnitudes: Array = []
+	for level in range(samples + 1):
+		system.from_save({String(CURVE_ID): level})
+		costs.append(_big_pair(system.cost(CURVE_ID)))
+		magnitudes.append(_big_pair(effect.magnitude(level)) if effect else [0.0, 0])
+
+	var curve := {
+		"max_level": max_level,
+		"samples": samples,
+		"cost": costs,
+		"effect": magnitudes,
+		"cost_growth": def.cost_growth,
+		"cost_growth_exponent": def.cost_growth_exponent,
+	}
+	if effect:
+		curve["stat"] = String(effect.stat)
+		curve["op"] = _enum_key(UpgradeEffectDef.Op, effect.op)
+		curve["scope"] = _enum_key(UpgradeEffectDef.Scope, effect.scope)
+		curve["target"] = String(effect.target)
+		curve["per_level"] = effect.per_level
+		curve["level_scaling"] = _enum_key(UpgradeEffectDef.LevelScaling, effect.level_scaling)
+		curve["effect_count"] = effects.size()
+	return curve
+
+
+static func _big_pair(value: BigNumber) -> Array:
+	return [value.mantissa, value.exponent]
+
+
+## Name of an enum value, for readable JSON. `values` is the enum dictionary
+## itself (`UpgradeEffectDef.Op`), so a reordered enum can't mislabel anything.
+static func _enum_key(values: Dictionary, value: int) -> String:
+	for key: String in values:
+		if values[key] == value:
+			return key
+	return str(value)
+
+#endregion
+
+
+#region Perks
+
+const PERK_BRANCHES_PATH := "res://data/prestige/all_branches.tres"
+
+
+## The prestige web as the game builds it, with the two numbers no table can
+## show: what maxing a perk costs, and what reaching it from the core costs.
+##
+## Positions, parents and effects come from the real PerkTree.build(), so the
+## editor draws the web the player will actually see - including the
+## default_effects fallback, which is resolved by the time a PerkDef exists.
+##
+## Returns { "perks": [ {...}, ... ], "branches": [ {...}, ... ], "errors": [...] }
+static func perks() -> Dictionary:
+	var branch_list := load(PERK_BRANCHES_PATH) as PerkBranchList
+	if branch_list == null:
+		return {"perks": [], "branches": [], "errors": ["could not load " + PERK_BRANCHES_PATH]}
+
+	var built := PerkTree.build(branch_list)
+	var branches := {}      # key -> PerkBranchDef
+	var authored := {}      # perk id -> res_path of the authored PerkNodeDef
+	var own_effects := {}   # perk id -> true when it declares effects of its own
+	_collect_authored(branch_list.core, authored, own_effects)
+	for branch: PerkBranchDef in branch_list.branches:
+		branches[branch.key] = branch
+		for root: PerkNodeDef in branch.roots:
+			_collect_authored(root, authored, own_effects)
+
+	var by_id := {}
+	var to_max := {}        # perk id -> BigNumber, cost of every level of that perk
+	for perk: PerkDef in built:
+		by_id[perk.id] = perk
+		to_max[perk.id] = _cost_to_max(perk)
+
+	var rows: Array = []
+	for perk: PerkDef in built:
+		var path_cost := BigNumber.new(0.0, 0)
+		var depth := 0
+		var walker: PerkDef = perk
+		while walker != null:
+			path_cost = path_cost.add(to_max[walker.id])
+			walker = by_id.get(walker.parent_id)
+			if walker != null:
+				depth += 1
+		var branch: PerkBranchDef = branches.get(perk.branch_key)
+		var effect: UpgradeEffectDef = perk.effects[0] if not perk.effects.is_empty() else null
+		var row := {
+			"id": String(perk.id),
+			"res_path": authored.get(perk.id, ""),
+			"parent_id": String(perk.parent_id),
+			"branch_key": String(perk.branch_key),
+			"branch_label": branch.label if branch else "core",
+			"hue": branch.hue if branch else 0.0,
+			"display_name": perk.display_name,
+			"world_x": perk.world_x,
+			"world_y": perk.world_y,
+			"depth": depth,
+			"max_level": perk.max_level,
+			"cost_growth": perk.cost_growth,
+			"base_cost": _big_pair(perk.base_cost),
+			"cost_to_max": _big_pair(to_max[perk.id]),
+			"path_cost": _big_pair(path_cost),
+		}
+		if effect:
+			row["stat"] = String(effect.stat)
+			row["op"] = _enum_key(UpgradeEffectDef.Op, effect.op)
+			row["per_level"] = effect.per_level
+			row["effect_at_max"] = _big_pair(effect.magnitude(perk.max_level))
+		# Where the effects actually live, so the editor can open them without
+		# walking the branch itself: either on the node or on its branch.
+		var effect_paths: Array = []
+		for resolved: UpgradeEffectDef in perk.effects:
+			effect_paths.append(resolved.resource_path)
+		row["effect_paths"] = effect_paths
+		row["effects_inherited"] = not effect_paths.is_empty() and not own_effects.has(perk.id)
+		rows.append(row)
+
+	return {"perks": rows, "branches": _branch_rollup(rows), "errors": []}
+
+
+## Every level of one perk added up: what maxing it costs from zero.
+static func _cost_to_max(perk: PerkDef) -> BigNumber:
+	if perk.max_level <= 0:
+		return BigNumber.new(0.0, 0)
+	var system := UpgradeSystem.new()
+	system.register(perk)
+	var total := BigNumber.new(0.0, 0)
+	for level in range(perk.max_level):
+		system.from_save({String(perk.id): level})
+		total = total.add(system.cost(perk.id))
+	return total
+
+
+## id -> resource_path for the authored nodes, so a perk in the web view can be
+## opened and edited. PerkDefs are generated and have no path of their own.
+## `own_effects` records which nodes declare effects rather than running on their
+## branch's, which is the difference between editing one perk and editing all of
+## them.
+static func _collect_authored(node: PerkNodeDef, out: Dictionary, own_effects: Dictionary) -> void:
+	if node == null:
+		return
+	out[node.id] = node.resource_path
+	if not node.effects.is_empty():
+		own_effects[node.id] = true
+	for child: PerkNodeDef in node.children:
+		_collect_authored(child, out, own_effects)
+
+
+## Per branch: how much it costs to max, how big it is, and what it adds up to
+## per stat. Effects are bucketed by stat and op the same way UpgradeSystem does,
+## because that is the only grouping in which two numbers are comparable.
+static func _branch_rollup(rows: Array) -> Array:
+	var by_key := {}
+	var order: Array = []
+	for row: Dictionary in rows:
+		var key: String = row["branch_key"]
+		if not by_key.has(key):
+			by_key[key] = {
+				"branch_key": key,
+				"branch_label": row["branch_label"],
+				"hue": row["hue"],
+				"perk_count": 0,
+				"max_depth": 0,
+				"total_cost_to_max": BigNumber.new(0.0, 0),
+				"deepest_path_cost": BigNumber.new(0.0, 0),
+				"stats": {},
+			}
+			order.append(key)
+		var entry: Dictionary = by_key[key]
+		entry["perk_count"] += 1
+		entry["max_depth"] = maxi(entry["max_depth"], row["depth"])
+		entry["total_cost_to_max"] = entry["total_cost_to_max"].add(_big_from_pair(row["cost_to_max"]))
+		var path_cost := _big_from_pair(row["path_cost"])
+		if path_cost.gt(entry["deepest_path_cost"]):
+			entry["deepest_path_cost"] = path_cost
+		if row.has("stat"):
+			var stat_key: String = "%s (%s)" % [row["stat"], row["op"]]
+			var stats: Dictionary = entry["stats"]
+			var total: BigNumber = stats.get(stat_key, BigNumber.new(0.0, 0))
+			stats[stat_key] = total.add(_big_from_pair(row["effect_at_max"]))
+
+	var out: Array = []
+	for key: String in order:
+		var entry: Dictionary = by_key[key]
+		var stats := {}
+		for stat_key: String in entry["stats"]:
+			stats[stat_key] = _big_pair(entry["stats"][stat_key])
+		entry["stats"] = stats
+		entry["total_cost_to_max"] = _big_pair(entry["total_cost_to_max"])
+		entry["deepest_path_cost"] = _big_pair(entry["deepest_path_cost"])
+		out.append(entry)
+	return out
+
+
+static func _big_from_pair(pair: Array) -> BigNumber:
+	return BigNumber.new(pair[0], pair[1])
+
+#endregion
+
+
 #region Create
 
 ## Adds a new sub-resource to an existing file and links it in one save.

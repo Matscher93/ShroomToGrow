@@ -29,6 +29,12 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PROJECT_ROOT = HERE.parent.parent
 CLI_SCRIPT = "tools/gd_balance_cli.gd"
+SIM_SCENE = "tools/sc_balance_sim.tscn"
+
+# A simulated run of the default length takes minutes, unlike every read-only
+# command, which takes seconds.
+SIM_TIMEOUT = 900
+SIM_MAX_TICKS = 200000
 GODOT_BIN = os.environ.get("GODOT_BIN", "godot")
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("PORT", "8765"))
@@ -37,26 +43,37 @@ OPEN_BROWSER = "--no-browser" not in sys.argv and os.environ.get("NO_BROWSER", "
 # One Godot process at a time: two concurrent saves would race on the same files.
 _godot_lock = threading.Lock()
 _snapshot: dict = {}
+_derived: dict = {}      # command name -> its last report, dropped whenever data changes
 _servers: list[ThreadingHTTPServer] = []
+
+# Everything the page may load next to index.html. An allowlist rather than a
+# path join, so no request can reach out of this directory.
+STATIC_SUFFIXES = (".js", ".css")
+CONTENT_TYPES = {".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8"}
 
 
 class GodotError(Exception):
     pass
 
 
-def run_godot(args: list[str]) -> dict:
-    """Runs the CLI and returns the JSON report it wrote to --out."""
+def run_godot(args: list[str], entry: list[str] | None = None, timeout: int = 300) -> dict:
+    """Runs a headless Godot tool and returns the JSON report it wrote to --out.
+
+    `entry` says what to run: the balance CLI by default, or the simulator scene,
+    which cannot use --script because the ViewModels App builds address the App
+    autoload by name.
+    """
     with _godot_lock, tempfile.TemporaryDirectory() as tmp:
         out_path = Path(tmp) / "report.json"
-        command = [GODOT_BIN, "--headless", "--script", CLI_SCRIPT, "--",
+        command = [GODOT_BIN, "--headless", *(entry or ["--script", CLI_SCRIPT]), "--",
                    *args, f"--out={out_path}"]
         try:
             done = subprocess.run(command, cwd=PROJECT_ROOT, capture_output=True,
-                                  text=True, timeout=300)
+                                  text=True, timeout=timeout)
         except FileNotFoundError:
             raise GodotError(f"{GODOT_BIN} not found - set GODOT_BIN")
         except subprocess.TimeoutExpired:
-            raise GodotError("godot timed out after 300s")
+            raise GodotError(f"godot timed out after {timeout}s")
         if not out_path.exists():
             detail = (done.stderr or done.stdout or "").strip().splitlines()
             raise GodotError("godot wrote no report: " + " / ".join(detail[-3:]))
@@ -70,7 +87,36 @@ def load_snapshot() -> dict:
     if report.get("errors"):
         raise GodotError("; ".join(report["errors"]))
     _snapshot = report["data"]
+    _derived.clear()     # curves and perks are derived from what just changed
     return _snapshot
+
+
+def simulate(request: dict) -> dict:
+    """One simulated run. Not cached: the whole point is to re-run it."""
+    args = [
+        f"--ticks={min(int(request.get('ticks', 20000)), SIM_MAX_TICKS)}",
+        f"--prestiges={int(request.get('prestiges', 3))}",
+        f"--samples={int(request.get('samples', 200))}",
+        f"--policy={str(request.get('policy', 'roi'))}",
+    ]
+    report = run_godot(args, entry=[SIM_SCENE], timeout=SIM_TIMEOUT)
+    if report.get("errors"):
+        raise GodotError("; ".join(report["errors"]))
+    return report
+
+
+def derived(command: str) -> dict:
+    """One of the read-only report commands, cached until the data changes.
+
+    Each is a fresh Godot process, so they are computed on demand rather than
+    alongside the dump every save does.
+    """
+    if command not in _derived:
+        report = run_godot([command])
+        if report.get("errors"):
+            raise GodotError("; ".join(report["errors"]))
+        _derived[command] = report
+    return _derived[command]
 
 
 def table(name: str) -> dict:
@@ -134,6 +180,15 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0"))
         return json.loads(self.rfile.read(length) or b"{}")
 
+    def _static_file(self) -> Path | None:
+        """The view module this request asks for, or None. Only plain file names
+        directly beside index.html resolve, so `..` cannot walk anywhere."""
+        name = self.path.lstrip("/")
+        if "/" in name or not name.endswith(STATIC_SUFFIXES):
+            return None
+        path = HERE / name
+        return path if path.is_file() else None
+
     def do_GET(self) -> None:
         try:
             if self.path in ("/", "/index.html"):
@@ -144,6 +199,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"files": sorted(_snapshot), "project": str(PROJECT_ROOT)})
             elif self.path.startswith("/api/file/"):
                 self._send_json(table(self.path[len("/api/file/"):]))
+            elif self.path in ("/api/curves", "/api/perks"):
+                self._send_json(derived(self.path[len("/api/"):]))
+            elif self._static_file():
+                path = self._static_file()
+                self._send(200, path.read_bytes(), CONTENT_TYPES[path.suffix])
             else:
                 self._send_json({"error": "not found"}, 404)
         except Exception as error:  # surfaced in the page, not just the terminal
@@ -201,6 +261,8 @@ class Handler(BaseHTTPRequestHandler):
                 print("shutdown requested from the page", flush=True)
                 stop_servers()
                 return
+            elif self.path == "/api/sim":
+                self._send_json(simulate(self._body()))
             elif self.path == "/api/reload":
                 load_snapshot()
                 self._send_json({"ok": True, "files": sorted(_snapshot)})

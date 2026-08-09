@@ -1,0 +1,186 @@
+/* Styling for the view modules loaded next to index.html (curves.js, web.js,
+ * sim.js). The palette variables come from index.html, so a colour is defined
+ * once for the whole editor. */
+
+/* The module buttons sit in the header's flex row, not in a box of their own. */
+#extra-views { display: contents; }
+
+#curves-view,
+#web-view,
+#sim-view {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  min-height: 0;
+}
+
+#curves-view[hidden],
+#web-view[hidden],
+#sim-view[hidden] { display: none; }
+
+.curve-canvas,
+.web-canvas,
+.sim-canvas {
+  overflow: auto;
+  min-height: 0;
+  padding: 10px;
+}
+
+.curve-panel,
+.web-panel,
+.sim-panel {
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  overflow: auto;
+  min-height: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* This one scrolls inside its row list instead, see .curve-list. */
+.curve-panel { overflow: hidden; }
+
+.curve-modes,
+.curve-actions,
+.sim-actions,
+.web-modes { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.curve-modes button.active,
+.web-modes button.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* The row list takes the leftover height and scrolls inside it; the legend under
+ * it scrolls inside its own capped box. Neither can push the other's contents
+ * around, which is what a legend in the normal flow did every time a curve was
+ * added or removed. */
+.curve-list { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+.curve-legend-slot {
+  flex: none;
+  max-height: 34vh;
+  overflow: auto;              /* both ways: a widened column scrolls sideways */
+  overscroll-behavior: contain;
+}
+.curve-legend-slot:not(:empty) { border-top: 1px solid var(--line); padding-top: 6px; }
+.curve-file {
+  font: 10px ui-monospace, monospace;
+  color: var(--muted);
+  margin: 8px 0 2px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.curve-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 0;
+  cursor: pointer;
+}
+.curve-row:hover { color: var(--accent); }
+.curve-note { font: 10px ui-monospace, monospace; color: var(--muted); }
+
+/* Fixed layout, and as wide as its columns add up to: a dragged column then
+ * scrolls the legend sideways instead of stealing width from its neighbours. */
+.curve-legend { border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+.curve-legend th {
+  position: relative;
+  text-align: left;
+  font: 10px ui-monospace, monospace;
+  color: var(--muted);
+  font-weight: 400;
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+.curve-legend td {
+  padding: 2px 4px 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.legend-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+.legend-resizer:hover, .legend-resizer.dragging { background: var(--accent); }
+.curve-legend td.swatch i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+.curve-legend td.link { cursor: pointer; }
+.curve-legend td.link:hover { color: var(--accent); text-decoration: underline; }
+
+#curve-chart { width: 100%; height: auto; }
+#curve-chart .grid { stroke: var(--line); stroke-width: 1; }
+#curve-chart .curve { fill: none; stroke-width: 2; }
+#curve-chart .engine { opacity: .55; }
+#curve-chart .axis { fill: var(--muted); font: 10px ui-monospace, monospace; }
+#curve-chart .axis-title { fill: var(--muted); font: 11px ui-sans-serif, system-ui, sans-serif; }
+#curve-chart .empty { fill: var(--muted); font: 12px ui-sans-serif, system-ui, sans-serif; }
+
+/* ------------------------------------------------------------- prestige web */
+
+#web-chart { width: 100%; height: auto; }
+#web-chart .link { stroke-width: 2; fill: none; opacity: .55; }
+#web-chart .perk { cursor: pointer; stroke-width: 2; }
+#web-chart .perk:hover { stroke: var(--text); }
+#web-chart .selected .perk { stroke: var(--accent); stroke-width: 4; }
+#web-chart .selected .perk-label { fill: var(--accent); font-weight: 600; }
+
+.web-editor { display: flex; flex-direction: column; }
+.web-effect { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 4px; }
+.web-editor-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+#web-chart .perk-label { fill: var(--text); font: 9px ui-sans-serif, system-ui, sans-serif; pointer-events: none; }
+#web-chart .scale-tick { fill: var(--muted); font: 10px ui-monospace, monospace; }
+
+.web-table { border-collapse: collapse; font-size: 12px; width: 100%; }
+.web-table th {
+  text-align: left;
+  font: 10px ui-monospace, monospace;
+  color: var(--muted);
+  font-weight: 400;
+  border-bottom: 1px solid var(--line);
+  padding: 2px 6px 2px 0;
+}
+.web-table td { padding: 2px 6px 2px 0; white-space: nowrap; }
+.web-table tr.branch td { border-top: 1px solid var(--line); }
+.web-table td.num { text-align: right; font: 11px ui-monospace, monospace; }
+.web-table td.link { cursor: pointer; }
+.web-table td.link:hover { color: var(--accent); text-decoration: underline; }
+.web-stats { font: 10px ui-monospace, monospace; color: var(--muted); }
+
+/* ---------------------------------------------------------------- simulator */
+
+.sim-form { display: grid; grid-template-columns: auto 1fr; gap: 6px 8px; align-items: center; }
+.sim-form label { font: 11px ui-monospace, monospace; color: var(--muted); }
+.sim-form input, .sim-form select {
+  font: inherit;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text);
+  width: 100%;
+}
+#sim-chart { width: 100%; height: auto; }
+#sim-chart .grid { stroke: var(--line); stroke-width: 1; }
+#sim-chart .track { fill: none; stroke-width: 2; }
+#sim-chart .milestone { stroke: var(--dirty); stroke-width: 1; stroke-dasharray: 4 3; }
+#sim-chart .axis { fill: var(--muted); font: 10px ui-monospace, monospace; }
+#sim-chart .axis-title { fill: var(--muted); font: 11px ui-sans-serif, system-ui, sans-serif; }
+#sim-chart .empty { fill: var(--muted); font: 12px ui-sans-serif, system-ui, sans-serif; }
+.sim-summary {
+  font-size: 13px;
+  font-weight: 600;
+  border-left: 3px solid var(--accent);
+  padding-left: 8px;
+}
+.sim-summary .hint { font-weight: 400; font-size: 11px; }
+.sim-legend { display: flex; flex-wrap: wrap; gap: 8px; font: 11px ui-monospace, monospace; }
+.sim-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
