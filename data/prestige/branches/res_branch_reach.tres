@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="PerkBranchDef" format=3]
 
 [ext_resource type="Script" uid="uid://bidkvks0jdm2w" path="res://model/prestige/gd_perk_branch_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_uer3u"]
 [ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="2_node_script"]
 
 [sub_resource type="Resource" id="node_10"]
@@ -9,7 +10,7 @@ id = &"reach_10"
 display_name = "Reach X"
 description = "Opens Level 10 nodes (Panspore) for growing."
 max_level = 1
-_base_cost_mantissa = 2.0
+_base_cost_mantissa = 1.0
 _base_cost_exponent = 3
 
 [sub_resource type="Resource" id="node_9"]
@@ -20,7 +21,7 @@ display_name = "Reach IX"
 description = "Opens Level 9 nodes (Mycosphere) for growing."
 max_level = 1
 _base_cost_mantissa = 8.0
-_base_cost_exponent = 2
+_base_cost_exponent = 500
 
 [sub_resource type="Resource" id="node_8"]
 script = ExtResource("2_node_script")
@@ -30,7 +31,7 @@ display_name = "Reach VIII"
 description = "Opens Level 8 nodes (Grove) for growing."
 max_level = 1
 _base_cost_mantissa = 3.0
-_base_cost_exponent = 2
+_base_cost_exponent = 100
 
 [sub_resource type="Resource" id="node_7"]
 script = ExtResource("2_node_script")
@@ -40,7 +41,7 @@ display_name = "Reach VII"
 description = "Opens Level 7 nodes (Fairy Ring) for growing."
 max_level = 1
 _base_cost_mantissa = 1.0
-_base_cost_exponent = 2
+_base_cost_exponent = 32
 
 [sub_resource type="Resource" id="node_6"]
 script = ExtResource("2_node_script")
@@ -50,7 +51,7 @@ display_name = "Reach VI"
 description = "Opens Level 6 nodes (Mycorrhiza) for growing."
 max_level = 1
 _base_cost_mantissa = 4.0
-_base_cost_exponent = 1
+_base_cost_exponent = 10
 
 [sub_resource type="Resource" id="node_5"]
 script = ExtResource("2_node_script")
@@ -59,8 +60,8 @@ children = Array[ExtResource("2_node_script")]([SubResource("node_6")])
 display_name = "Reach V"
 description = "Opens Level 5 nodes (Colony) for growing."
 max_level = 1
-_base_cost_mantissa = 1.5
-_base_cost_exponent = 1
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 4
 
 [sub_resource type="Resource" id="node_4"]
 script = ExtResource("2_node_script")
@@ -70,7 +71,6 @@ display_name = "Reach IV"
 description = "Opens Level 4 nodes (Sporocarp) for growing."
 max_level = 1
 _base_cost_mantissa = 5.0
-_base_cost_exponent = 0
 
 [resource]
 script = ExtResource("1_script")

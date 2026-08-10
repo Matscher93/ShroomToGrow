@@ -13,6 +13,13 @@ extends RefCounted
 var mantissa: float  ## Normalised to [1.0, 10.0)  (or 0)
 var exponent: int    ## Power of 10
 
+## Ceiling on the exponent, and the value everything past it saturates to.
+## A super-exponential cost curve (cost_growth_exponent > 1) reaches exponents
+## an int cannot hold within a few hundred levels; int(floor()) then wraps
+## negative and leaves an inf mantissa, which _normalize() would spin on
+## forever. Nothing this large is affordable, so saturating loses no gameplay.
+const MAX_EXPONENT := 1_000_000_000
+
 ## Suffix table: one entry per 3 exponent steps, ending at Decillion. 12 entries
 ## cover exponents 0..35, anything at or above 10^36 falls back to scientific
 ## notation. Extend the table (Ud, Dd, Td, ...) to push that cutoff higher.
@@ -48,6 +55,17 @@ func copy() -> BigNumber:
 func _normalize() -> void:
 	if mantissa == 0.0:
 		exponent = 0
+		return
+	if not is_finite(mantissa):
+		# Both loops below run forever on an inf, and there is no shifting a nan
+		# into range at all, so neither ever reaches them.
+		push_error("BigNumber: non-finite mantissa, saturating")
+		if is_nan(mantissa):
+			mantissa = 0.0
+			exponent = 0
+		else:
+			mantissa = 1.0 if mantissa > 0.0 else -1.0
+			exponent = MAX_EXPONENT
 		return
 	var num_sign := 1.0 if mantissa > 0.0 else -1.0
 	var m := absf(mantissa)
@@ -129,6 +147,10 @@ func pow_float(float_exp: float) -> BigNumber:
 	if mantissa <= 0.0:
 		return BigNumber.new(0.0, 0)
 	var log10_result := log10() * float_exp
+	if log10_result >= float(MAX_EXPONENT):
+		return BigNumber.new(1.0, MAX_EXPONENT)
+	if log10_result <= -float(MAX_EXPONENT):
+		return BigNumber.new(0.0, 0)
 	var result_exponent := int(floor(log10_result))
 	var result_mantissa := pow(10.0, log10_result - result_exponent)
 	return BigNumber.new(result_mantissa, result_exponent)

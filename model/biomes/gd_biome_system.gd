@@ -210,7 +210,7 @@ func size_cost(key: StringName) -> BigNumber:
 	var def := biome_def(key)
 	if def == null:
 		return BigNumber.new(0.0, 0)
-	var scaled_size := pow(float(size(key)), def.size_cost_growth_exponent)
+	var scaled_size := float(size(key)) * pow(def.size_cost_growth_exponent, float(size(key)))
 	return def.size_base_cost.mul(BigNumber.from_value(def.size_cost_growth).pow_float(scaled_size))
 
 func can_buy_size(key: StringName) -> bool:

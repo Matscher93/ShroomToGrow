@@ -4,59 +4,56 @@
 [ext_resource type="Resource" path="res://data/prestige/branches/res_branch_tempo_effect.tres" id="2_effect"]
 [ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
 [ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="4_node_script"]
-
-[sub_resource type="Resource" id="node_4a"]
-script = ExtResource("4_node_script")
-id = &"tempo_4a"
-display_name = "Tempo IV·A"
-description = "Tempo node - kept through every sporation."
-_base_cost_mantissa = 1.6
-_base_cost_exponent = 1
-
-[sub_resource type="Resource" id="node_3a"]
-script = ExtResource("4_node_script")
-id = &"tempo_3a"
-children = Array[ExtResource("4_node_script")]([SubResource("node_4a")])
-display_name = "Tempo III·A"
-description = "Tempo node - kept through every sporation."
-_base_cost_mantissa = 8.0
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_tempo_1_effect.tres" id="5_effect_1"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_tempo_2_effect.tres" id="6_effect_2"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_tempo_3b_effect.tres" id="8_effect_3b"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_tempo_4b_effect.tres" id="10_effect_4b"]
 
 [sub_resource type="Resource" id="node_4b"]
 script = ExtResource("4_node_script")
 id = &"tempo_4b"
-display_name = "Tempo IV·B"
-description = "Tempo node - kept through every sporation."
-max_level = 20
+display_name = "Tempo IV"
+description = "Reduces Tick Timer by 0.01s per level"
+max_level = 150
 _base_cost_mantissa = 1.0
-_base_cost_exponent = 8
+_base_cost_exponent = 150
+cost_growth_exponent = 1.025
+effects = Array[ExtResource("3_effect_script")]([ExtResource("10_effect_4b")])
 
 [sub_resource type="Resource" id="node_3b"]
 script = ExtResource("4_node_script")
 id = &"tempo_3b"
 children = Array[ExtResource("4_node_script")]([SubResource("node_4b")])
-display_name = "Tempo III·B"
-description = "Tempo node - kept through every sporation."
-max_level = 20
+display_name = "Tempo III"
+description = "Reduces Tick Timer by 0.02s per level"
+max_level = 100
 _base_cost_mantissa = 1.0
-_base_cost_exponent = 4
+_base_cost_exponent = 25
+cost_growth_exponent = 1.025
+effects = Array[ExtResource("3_effect_script")]([ExtResource("8_effect_3b")])
 
 [sub_resource type="Resource" id="node_2"]
 script = ExtResource("4_node_script")
 id = &"tempo_2"
-children = Array[ExtResource("4_node_script")]([SubResource("node_3a"), SubResource("node_3b")])
+children = Array[ExtResource("4_node_script")]([SubResource("node_3b")])
 display_name = "Tempo II"
-description = "Tempo node - kept through every sporation."
-max_level = 20
+description = "Reduces Tick Timer by 0.05s per level"
+max_level = 40
 _base_cost_mantissa = 1.0
-_base_cost_exponent = 2
+_base_cost_exponent = 4
+cost_growth_exponent = 1.04
+effects = Array[ExtResource("3_effect_script")]([ExtResource("6_effect_2")])
 
 [sub_resource type="Resource" id="node_1"]
 script = ExtResource("4_node_script")
 id = &"tempo_1"
 children = Array[ExtResource("4_node_script")]([SubResource("node_2")])
 display_name = "Tempo I"
-description = "Tempo node - kept through every sporation."
+description = "Reduces Tick Timer by 0.1s per level"
 max_level = 20
+cost_growth = 1.5
+cost_growth_exponent = 1.05
+effects = Array[ExtResource("3_effect_script")]([ExtResource("5_effect_1")])
 
 [resource]
 script = ExtResource("1_script")

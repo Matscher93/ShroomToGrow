@@ -299,7 +299,7 @@ func test_a_perk_costs_more_than_its_parent() -> void:
 				% [perk.id, perk.base_cost, parent.id, parent.base_cost]).is_true()
 
 func test_currency_bought_upgrades_have_a_rising_cost_curve() -> void:
-	# cost() is base * growth^(level^exponent). A growth of 1 or less makes the
+	# cost() is base * growth^(level * exponent^level). A growth of 1 or less makes the
 	# upgrade flat-priced or free at every level.
 	var priced: Array[UpgradeDef] = []
 	priced.append_array(_symbiosis_defs)

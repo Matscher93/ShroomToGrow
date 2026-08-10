@@ -22,7 +22,7 @@ func _init(player_data: PlayerData, in_node: MyceliumNode, prestige_upgrades: Up
 	node = in_node
 
 func upgrade_cost() -> BigNumber:
-	var scaled_level := pow(float(node.manual_nodes), node.cost_growth_exponent)
+	var scaled_level := float(node.manual_nodes) * pow(node.cost_growth_exponent, float(node.manual_nodes))
 	return node.initial_cost.mul(BigNumber.from_value(node.cost_increase_per_level).pow_float(scaled_level))
 
 ## Higher tiers stay locked until their unlock perk is bought. Perks survive

@@ -26,7 +26,9 @@ var base_cost: BigNumber:
 		_base_cost_mantissa = value.mantissa
 		_base_cost_exponent = value.exponent
 
+## Cost of the next level: base_cost * cost_growth^(level * cost_growth_exponent^level).
 @export var cost_growth: float = 1.6
+@export var cost_growth_exponent: float = 1.0  # >1 steepens the cost curve with level
 
 ## Empty falls back to the branch's default_effects. Most branches give every
 ## node the same effect and only fill this in for the odd one out.

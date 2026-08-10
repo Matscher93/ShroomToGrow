@@ -261,14 +261,19 @@ static func perks() -> Dictionary:
 
 	var rows: Array = []
 	for perk: PerkDef in built:
-		var path_cost := BigNumber.new(0.0, 0)
+		# Ancestors kept apart from the perk's own cost: added to its first level
+		# that sum is what reaching this perk costs before it has been levelled,
+		# which is the cheap end of the web view's gradient.
+		var ancestor_cost := BigNumber.new(0.0, 0)
 		var depth := 0
-		var walker: PerkDef = perk
+		var walker: PerkDef = by_id.get(perk.parent_id)
 		while walker != null:
-			path_cost = path_cost.add(to_max[walker.id])
+			ancestor_cost = ancestor_cost.add(to_max[walker.id])
+			depth += 1
 			walker = by_id.get(walker.parent_id)
-			if walker != null:
-				depth += 1
+		var path_cost := ancestor_cost.add(to_max[perk.id])
+		var first_level_cost := _level_cost(perk, 0)
+		var last_level_cost := _level_cost(perk, perk.max_level - 1)
 		var branch: PerkBranchDef = branches.get(perk.branch_key)
 		var effect: UpgradeEffectDef = perk.effects[0] if not perk.effects.is_empty() else null
 		var row := {
@@ -284,15 +289,22 @@ static func perks() -> Dictionary:
 			"depth": depth,
 			"max_level": perk.max_level,
 			"cost_growth": perk.cost_growth,
+			"cost_growth_exponent": perk.cost_growth_exponent,
 			"base_cost": _big_pair(perk.base_cost),
 			"cost_to_max": _big_pair(to_max[perk.id]),
 			"path_cost": _big_pair(path_cost),
+			# The cheap end of each scale, so the web can draw a perk as the span
+			# it really is - first level to last - instead of one number.
+			"first_level_cost": _big_pair(first_level_cost),
+			"last_level_cost": _big_pair(last_level_cost),
+			"entry_cost": _big_pair(ancestor_cost.add(first_level_cost)),
 		}
 		if effect:
 			row["stat"] = String(effect.stat)
 			row["op"] = _enum_key(UpgradeEffectDef.Op, effect.op)
 			row["per_level"] = effect.per_level
 			row["effect_at_max"] = _big_pair(effect.magnitude(perk.max_level))
+			row["effect_at_first"] = _big_pair(effect.magnitude(1))
 		# Where the effects actually live, so the editor can open them without
 		# walking the branch itself: either on the node or on its branch.
 		var effect_paths: Array = []
@@ -303,6 +315,18 @@ static func perks() -> Dictionary:
 		rows.append(row)
 
 	return {"perks": rows, "branches": _branch_rollup(rows), "errors": []}
+
+
+## What buying the next level costs while sitting at `level`, charged through
+## the same UpgradeSystem the game uses. Clamped to the perk's own range, so a
+## perk with no levels prices at zero rather than off the end of its curve.
+static func _level_cost(perk: PerkDef, level: int) -> BigNumber:
+	if perk.max_level <= 0:
+		return BigNumber.new(0.0, 0)
+	var system := UpgradeSystem.new()
+	system.register(perk)
+	system.from_save({String(perk.id): clampi(level, 0, perk.max_level - 1)})
+	return system.cost(perk.id)
 
 
 ## Every level of one perk added up: what maxing it costs from zero.
@@ -811,7 +835,10 @@ static func _referrers(target: Resource) -> Array[Dictionary]:
 							found.append(entry.merged({"kind": "object"}, true))
 					TYPE_ARRAY:
 						var array := value as Array
-						if array.has(target):
+						# `has` on a typed array validates what it is handed and
+						# logs an error when the types cannot match, so the type
+						# is checked here rather than by trying and failing.
+						if _may_hold(array, target) and array.has(target):
 							found.append(entry.merged({"kind": "object"}, true))
 						elif not identity.is_empty() and array.get_typed_builtin() == TYPE_STRING_NAME \
 								and array.has(StringName(identity)):
@@ -821,6 +848,16 @@ static func _referrers(target: Resource) -> Array[Dictionary]:
 							if value[key] == target:
 								found.append(entry.merged({"kind": "dict", "dict_key": key}, true))
 	return found
+
+
+## True when `array` could hold `target` at all: untyped, or typed to the class
+## the target is. Anything else can be skipped without looking inside it.
+static func _may_hold(array: Array, target: Resource) -> bool:
+	var builtin := array.get_typed_builtin()
+	if builtin != TYPE_NIL and builtin != TYPE_OBJECT:
+		return false
+	var element_script: Variant = array.get_typed_script()
+	return element_script == null or element_script == target.get_script()
 
 
 static func _unlink(referrer: Dictionary, target: Resource) -> void:
@@ -866,6 +903,155 @@ static func _reachable_subresources(file_path: String) -> Dictionary:
 		if "::" in res.resource_path:
 			paths[res.resource_path] = true
 	return paths
+
+#endregion
+
+
+#region Unused
+
+## Read for res:// paths and uids, so a resource the game loads by path counts as
+## used even though no other resource points at it. Reports are deliberately not
+## in here: tools/balance_report.json names every perk file it sampled, and
+## reading it back would keep the whole prestige web alive by accident.
+const SOURCE_SUFFIXES: Array[String] = [".gd", ".tscn", ".cfg", ".godot"]
+
+## Left out of that search. Addons are third-party code that never names game
+## data, and the tools here are the editor rather than the game: they talk about
+## res://data in whole folders and prefix tests, which would keep every file
+## under them alive no matter what the game actually loads.
+const SOURCE_SKIPPED: Array[String] = ["res://addons", "res://reports", "res://tools"]
+
+## Everything under `data_dir` that nothing keeps alive: no other resource points
+## at it, and no script, scene or project file names its path or its uid.
+##
+## Both halves matter. A branch effect dropped from its last node is unreachable
+## but still on disk, and so is a whole upgrade file; meanwhile the registries the
+## game loads by path - all_branches.tres and friends - have no referrer either,
+## and deleting one of those would take the game with it.
+##
+## Sub-resources cannot show up here: they are indexed by walking down from their
+## file's root, so anything listed is reachable, and reachable means referenced.
+##
+## Returns { "unused": [ { "res_path", "type", "label", "in_source": false }, … ],
+##           "checked": int, "kept_by_source": [...], "errors": [...] }
+static func unused(data_dir: String) -> Dictionary:
+	var errors: Array = []
+	_open_files.clear()
+	_subresources.clear()
+
+	var paths := _collect_resource_paths(data_dir)
+	for path: String in paths:
+		if _load_file(path) == null:
+			errors.append("could not load %s" % path)
+
+	var in_source := _paths_named_in_source(paths, data_dir)
+	var rows: Array = []
+	var kept_by_source: Array = []
+	for path: String in paths:
+		var res: Resource = _open_files.get(path)
+		if res == null:
+			continue
+		if in_source.has(path):
+			kept_by_source.append(path)
+			continue
+		if not _referrers(res).is_empty():
+			continue
+		var script: Script = res.get_script()
+		rows.append({
+			"res_path": path,
+			"type": _class_key(script) if script != null else "Resource",
+			"label": _display_label(res),
+		})
+
+	return {"unused": rows, "checked": paths.size(), "kept_by_source": kept_by_source,
+		"errors": errors}
+
+
+## Of `paths`, the ones a script, scene or project file names - by res:// path,
+## by uid (a scene stores both, and either one keeps the file in the game), or by
+## the directory they sit in: UpgradeDefLoader loads whole folders, so naming
+## "res://data/upgrades/symbiosis/" keeps every def inside it.
+static func _paths_named_in_source(paths: Array[String], data_dir: String) -> Dictionary:
+	# "res://data" itself is not a claim on anything: this file names it as the
+	# default the editor scans, and so does the CLI. Only a folder below it says
+	# something about what the game loads.
+	var data_root := data_dir.trim_suffix("/") + "/"
+	var by_uid := {}
+	for path: String in paths:
+		var id := ResourceLoader.get_resource_uid(path)
+		if id != ResourceUID.INVALID_ID:
+			by_uid[ResourceUID.id_to_text(id)] = path
+
+	var sources: Array[String] = []
+	for suffix: String in SOURCE_SUFFIXES:
+		_walk_source("res://", suffix, sources)
+
+	# Every res:// string in the source, split into the files it names outright
+	# and the folders whose whole contents it claims.
+	var named := {}
+	var folders: Array[String] = []
+	var path_finder := RegEx.create_from_string("res://[A-Za-z0-9_./-]*")
+	var uid_finder := RegEx.create_from_string("uid://[a-z0-9]+")
+	var out := {}
+	for source: String in sources:
+		var text := FileAccess.get_file_as_string(source)
+		if text.is_empty():
+			continue
+		for found: RegExMatch in path_finder.search_all(text):
+			var token := found.get_string()
+			if not token.ends_with("/") and not DirAccess.dir_exists_absolute(token):
+				named[token] = true
+				continue
+			var folder := token if token.ends_with("/") else token + "/"
+			if folder != data_root and folder.begins_with(data_root):
+				folders.append(folder)
+		for found: RegExMatch in uid_finder.search_all(text):
+			var target: String = by_uid.get(found.get_string(), "")
+			if not target.is_empty():
+				out[target] = true
+
+	for path: String in paths:
+		if named.has(path):
+			out[path] = true
+			continue
+		for folder: String in folders:
+			if path.begins_with(folder):
+				out[path] = true
+				break
+	return out
+
+
+## Like _walk, minus the directories whose contents say nothing about what the
+## game loads. Kept separate so the plain walk stays a plain walk.
+static func _walk_source(dir_path: String, suffix: String, out: Array[String]) -> void:
+	if SOURCE_SKIPPED.has(dir_path):
+		return
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return
+	dir.list_dir_begin()
+	var entry := dir.get_next()
+	while not entry.is_empty():
+		var full := dir_path.path_join(entry)
+		if dir.current_is_dir():
+			if not entry.begins_with("."):
+				_walk_source(full, suffix, out)
+		elif entry.ends_with(suffix):
+			out.append(full)
+		entry = dir.get_next()
+	dir.list_dir_end()
+
+
+## The most human name a resource carries, for a list the user reads rather than
+## a table keyed by path. Same order of preference the editor's own labels use.
+static func _display_label(res: Resource) -> String:
+	var properties := _properties_by_name(res)
+	for name: StringName in [&"display_name", &"label", &"name", &"key", &"id"]:
+		if properties.has(name):
+			var value := String(res.get(name))
+			if not value.is_empty():
+				return value
+	return res.resource_path.get_file()
 
 #endregion
 

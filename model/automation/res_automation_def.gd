@@ -19,7 +19,7 @@ enum Kind {
 @export var sort_order: int = 0
 @export var kind: Kind
 
-## Crystal cost of the next level: base_cost * cost_growth^(level^cost_growth_exponent).
+## Crystal cost of the next level: base_cost * cost_growth^(level * cost_growth_exponent^level).
 ## Same curve shape as UpgradeSystem.cost().
 @export var _base_cost_mantissa: float = 1.0
 @export var _base_cost_exponent: int = 1

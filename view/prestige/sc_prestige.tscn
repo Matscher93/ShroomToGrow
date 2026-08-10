@@ -9,6 +9,7 @@
 [ext_resource type="Shader" uid="uid://w1sik8tn4xp2" path="res://view/resource_pill/sh_background.gdshader" id="7_qe6gy"]
 [ext_resource type="Script" uid="uid://p7c3cm6dxbjy" path="res://view/offline_income/gd_general_panel_background.gd" id="8_6hxqy"]
 [ext_resource type="Shader" uid="uid://dnsivvo2gt6vf" path="res://view/prestige/sh_web_fade.gdshader" id="9_webfade"]
+[ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="10_hold_repeat"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
 
@@ -103,7 +104,7 @@ shader_parameter/additional_border_offset = 2.0
 shader_parameter/background_alpha = 1.0
 shader_parameter/border_alpha = 1.0
 
-[node name="prestige_screen" type="PanelContainer" unique_id=563082709 node_paths=PackedStringArray("sporate_button", "perk_web", "detail_name", "detail_effect", "detail_level", "buy_button")]
+[node name="prestige_screen" type="PanelContainer" unique_id=563082709 node_paths=PackedStringArray("sporate_button", "perk_web", "detail_name", "detail_description", "detail_level", "buy_button")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -114,7 +115,7 @@ script = ExtResource("1_panel_script")
 sporate_button = NodePath("TopBar/SporateButton")
 perk_web = NodePath("MarginContainer/VBox/WebClip")
 detail_name = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailName")
-detail_effect = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailEffect")
+detail_description = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailDescription")
 detail_level = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/DetailLevel")
 buy_button = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton")
 
@@ -201,8 +202,10 @@ theme_override_constants/separation = 4
 layout_mode = 2
 text = "Sporation"
 
-[node name="DetailEffect" type="Label" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox" unique_id=982891348]
+[node name="DetailDescription" type="Label" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox" unique_id=982891349]
+modulate = Color(1, 1, 1, 0.75)
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 autowrap_mode = 3
 
 [node name="DetailLevel" type="Label" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow" unique_id=1713716696]
@@ -217,3 +220,8 @@ button_color = Color(0.61960787, 0.44313726, 0.9019608, 1)
 disabled_color = Color(0.13709998, 0.098000005, 0.2, 1)
 text_color = Color(1, 1, 1, 1)
 disabled_text_color = Color(0.24, 0.24, 0.24, 1)
+
+[node name="button" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton/MarginContainer" index="0"]
+script = ExtResource("10_hold_repeat")
+
+[editable path="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton"]

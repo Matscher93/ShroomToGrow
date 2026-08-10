@@ -16,6 +16,14 @@ var display_name: String:
 var max_level: int:
 	get: return _def.max_level
 
+## The one line of prose under the perk's name: what the author wrote, or - for
+## the perks that never got a description - the per-level numbers generated from
+## the first effect, so the line still says something. Empty only when a perk has
+## neither, and the panel hides the label rather than leaving a gap.
+var description: String:
+	get:
+		return _def.description if not _def.description.is_empty() else _generated_effect_text()
+
 # --- Read-only display properties bound by the View ---
 var status: String:
 	get: return App.perk_status(_id)
@@ -32,15 +40,6 @@ var level_text: String:
 var tooltip_text: String:
 	get: return "%s | Lv %d/%d" % [_def.display_name, level, max_level]
 
-var detail_effect_text: String:
-	get:
-		if _def.effects.is_empty():
-			return _def.description
-		var effect := _def.effects[0]
-		if effect.op == UpgradeEffectDef.Op.ADD:
-			return "%+.1f %s per level" % [effect.per_level, effect.stat]
-		return "%+.0f%% %s per level" % [effect.per_level * 100.0, effect.stat]
-
 ## the buy button carries the price, so the cost stays visible even while the perk
 ## is locked - "Locked" only prefixes it, it never replaces it. A maxed perk has no
 ## next level to price, so it's the one case without a cost.
@@ -55,6 +54,19 @@ var detail_buy_text: String:
 
 var can_buy: bool:
 	get: return App.can_buy_perk(_id)
+
+# --- Display helpers ---
+
+## Only the first effect is described. Every perk authored so far carries one,
+## and a perk with several would need wording this can't guess at - that is what
+## the description field is for.
+func _generated_effect_text() -> String:
+	if _def.effects.is_empty():
+		return ""
+	var effect := _def.effects[0]
+	if effect.op == UpgradeEffectDef.Op.ADD:
+		return "%+.1f %s per level" % [effect.per_level, effect.stat]
+	return "%+.0f%% %s per level" % [effect.per_level * 100.0, effect.stat]
 
 # --- Lifecycle ---
 

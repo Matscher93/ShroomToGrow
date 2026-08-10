@@ -13,10 +13,24 @@
  * Registered on window.BalanceViews, which index.html turns into a view button.
  */
 (() => {
+  /* Each scale is a span, not a number: `from` is what the perk is worth at its
+   * first level, `to` at its last. A perk is drawn as the gradient between the
+   * two, so a node that stays cheap and one that climbs three decades over its
+   * levels no longer look alike. `to` is what the perk is ranked and compared
+   * by, and is the colour a perk falls back to when its `from` is missing. */
   const SCALES = {
-    path_cost: { label: "Path cost", note: "biomass to reach this perk from the core" },
-    cost_to_max: { label: "Own cost", note: "biomass to max this perk alone" },
-    effect_at_max: { label: "Effect at max", note: "magnitude of its effect when maxed" },
+    path_cost: {
+      label: "Path cost", note: "biomass to reach this perk from the core, first level to last",
+      from: (perk) => perk.entry_cost, to: (perk) => perk.path_cost,
+    },
+    cost_to_max: {
+      label: "Own cost", note: "biomass to max this perk alone, from its first level up",
+      from: (perk) => perk.first_level_cost, to: (perk) => perk.cost_to_max,
+    },
+    effect_at_max: {
+      label: "Effect at max", note: "magnitude of its effect, one level to maxed",
+      from: (perk) => perk.effect_at_first, to: (perk) => perk.effect_at_max,
+    },
   };
 
   const view = {
@@ -45,7 +59,12 @@
     return `${mantissa.toFixed(2)}e${exponent}`;
   };
 
-  const valueOf = (perk) => log10Of(perk[view.scale]);
+  const scaleOf = () => SCALES[view.scale];
+  /** What the perk is worth on the current scale once maxed, and at its first
+   * level. Both in log space, and null when the scale does not apply - a perk
+   * with no effect has neither end on the effect scale. */
+  const valueOf = (perk) => log10Of(scaleOf().to(perk));
+  const startOf = (perk) => log10Of(scaleOf().from(perk));
 
   /** Picks a perk to edit without leaving the web. setFocus keeps the sidebar
    * (and so Save, Revert and Ctrl+S) pointing at the file the perk lives in, and
@@ -57,19 +76,42 @@
   const PAD = 40;
 
   /** Cheap blue→red ramp over the observed range, so the eye reads "expensive"
-   * without a legend lookup. Returns the branch's own hue when the perk has no
-   * value on this scale. */
-  function fill(perk, min, max) {
-    const value = valueOf(perk);
-    if (value === null) return "var(--panel)";
+   * without a legend lookup. */
+  function ramp(value, min, max) {
     const t = max > min ? (value - min) / (max - min) : 0.5;
     return `hsl(${(1 - t) * 220} 70% ${58 - t * 18}%)`;
+  }
+
+  /** How to paint one perk: a gradient running from what its first level is
+   * worth to what it is worth maxed, which is the difference between a perk that
+   * stays cheap and one that climbs decades over its levels.
+   *
+   * Flat when there is only one end to show - a perk with no effect on the
+   * effect scale, a single-level perk, or a report cached by a server started
+   * before the span was reported. Each gradient goes in `defs` once and is
+   * referenced by id. */
+  function paint(perk, min, max, defs) {
+    const value = valueOf(perk);
+    if (value === null) return "var(--panel)";
+    const start = startOf(perk);
+    if (start === null || start === value) return ramp(value, min, max);
+
+    const id = `web-fill-${perk.id}`;
+    const gradient = svgEl("linearGradient", { id, x1: "0%", y1: "0%", x2: "100%", y2: "100%" });
+    gradient.append(svgEl("stop", { offset: "0%", "stop-color": ramp(start, min, max) }));
+    gradient.append(svgEl("stop", { offset: "100%", "stop-color": ramp(value, min, max) }));
+    defs.append(gradient);
+    return `url(#${id})`;
   }
 
   function drawWeb() {
     const perks = view.report.perks;
     const positions = new Map(perks.map((perk) => [perk.id, perk]));
-    const values = perks.map(valueOf).filter((value) => value !== null);
+    // Both ends of every perk's span set the ramp, so the cheap end of the
+    // cheapest perk and the dear end of the dearest are the colours at the far
+    // ends of the legend.
+    const values = perks.flatMap((perk) => [startOf(perk), valueOf(perk)])
+      .filter((value) => value !== null);
     const min = Math.min(...values);
     const max = Math.max(...values);
 
@@ -82,6 +124,8 @@
 
     const svg = svgEl("svg", { id: "web-chart",
       viewBox: `${left} ${top} ${width} ${height}` });
+    const defs = svgEl("defs");
+    svg.append(defs);
 
     for (const perk of perks) {
       const parent = positions.get(perk.parent_id);
@@ -94,7 +138,7 @@
       const group = svgEl("g");
       if (perk.res_path && perk.res_path === state.focus) group.setAttribute("class", "selected");
       const circle = svgEl("circle", { class: "perk", cx: perk.world_x, cy: perk.world_y,
-        r: perk.parent_id ? 15 : 20, fill: fill(perk, min, max),
+        r: perk.parent_id ? 15 : 20, fill: paint(perk, min, max, defs),
         stroke: `hsl(${perk.hue} 60% 55%)` });
       group.append(circle);
 
@@ -103,16 +147,18 @@
       label.textContent = perk.display_name;
       group.append(label);
 
-      const tip = svgEl("title");
-      tip.textContent = [
+      attachTip(group, [
         perk.display_name,
         `branch: ${perk.branch_label} · depth ${perk.depth}`,
-        `max level: ${perk.max_level} · growth ${perk.cost_growth}`,
+        `max level: ${perk.max_level} · growth ${perk.cost_growth}^(level·${perk.cost_growth_exponent}^level)`,
+        `level cost: ${format(perk.first_level_cost)} → ${format(perk.last_level_cost)}`,
         `cost to max: ${format(perk.cost_to_max)}`,
-        `path cost: ${format(perk.path_cost)}`,
+        `path cost: ${format(perk.entry_cost)} to reach → ${format(perk.path_cost)} maxed`,
         perk.stat ? `${perk.stat} (${perk.op}) ${format(perk.effect_at_max)} at max` : "no effect",
-      ].join("\n");
-      group.append(tip);
+        // What the two ends of this perk's gradient stand for on the scale being
+        // shown, so the colouring never has to be guessed at.
+        `${scaleOf().label}: ${format(scaleOf().from(perk))} → ${format(scaleOf().to(perk))}`,
+      ].join("\n"));
 
       if (perk.res_path) group.onclick = () => edit(perk.res_path);
       svg.append(group);
@@ -356,10 +402,16 @@
 
   /* ------------------------------------------------------------------- wiring */
 
+  /** Re-runs PerkTree over what is now on disk. Cheap unless something was
+   * written: the server caches this report until the data changes. */
+  view.invalidate = async () => {
+    view.report = await api("/api/perks");
+  };
+
   view.open = async () => {
     // Rebuilt on every open: a saved edit changes what PerkTree produces, and
     // the server drops its cached report whenever the data is written.
-    view.report = await api("/api/perks");
+    await view.invalidate();
     // Clicking a perk hands over to the graph view, which spans every file and
     // walks the reference edges, so both have to be in memory before it does.
     await loadAllFiles();

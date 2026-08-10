@@ -132,6 +132,21 @@ func test_pow_float_handles_huge_exponents() -> void:
 	assert_int(result.exponent).is_equal(30)
 	assert_float(result.mantissa).is_equal_approx(2.238, 0.01)
 
+func test_pow_float_saturates_instead_of_overflowing_the_exponent() -> void:
+	# A super-exponential cost curve asks for exponents no int can hold within a
+	# few hundred levels. Before the clamp, int(floor()) wrapped negative and the
+	# inf mantissa that followed spun _normalize() forever - a frozen game, not a
+	# wrong number.
+	var huge := BigNumber.from_value(1.5).pow_float(1e21)
+	assert_int(huge.exponent).is_equal(BigNumber.MAX_EXPONENT)
+	assert_float(huge.mantissa).is_equal_approx(1.0, EPS)
+	# Nothing is affordable at that size, which is the only property that matters.
+	assert_bool(huge.gt(BigNumber.new(9.99, 1000))).is_true()
+
+	# The same overflow the other way round collapses to zero rather than to a
+	# denormal that compares as huge.
+	assert_float(BigNumber.from_value(1.5).pow_float(-1e21).to_float()).is_zero()
+
 func test_pow_float_of_a_non_positive_base_is_zero() -> void:
 	# pow_float works in log10 space, which has no answer here. Cost curves only
 	# feed it growth rates (1 + per_level), so this is the corrupt-data path:

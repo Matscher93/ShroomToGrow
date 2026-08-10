@@ -69,6 +69,7 @@ var initial_cost: BigNumber:
 @export var color: Color
 @export var level_font_color: Color
 @export var cost_increase_per_level: float = 1.5
+# Buy cost: initial_cost * cost_increase_per_level^(manual_nodes * cost_growth_exponent^manual_nodes).
 @export var cost_growth_exponent: float = 1.2  # >1 steepens the buy-cost curve with manual_nodes
 
 func has_nodes() -> bool:

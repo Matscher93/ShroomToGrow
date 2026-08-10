@@ -38,6 +38,10 @@ func _bind_presses() -> void:
 		return
 	button.button_down.connect(_on_button_down)
 	button.button_up.connect(_on_button_up)
+	# A wrapped gd_base_button keeps firing while held; without this the panel
+	# would only ever pass on the single release and the hold would do nothing.
+	if button.has_signal(&"repeated"):
+		button.connect(&"repeated", _on_button_repeated)
 
 func set_button_text(button_text: String) -> void:
 	var button := _wrapped_button()
@@ -65,4 +69,7 @@ func _on_button_down() -> void:
 func _on_button_up() -> void:
 	is_button_pressed = false
 	_update_shader()
+	pressed.emit()
+
+func _on_button_repeated() -> void:
 	pressed.emit()

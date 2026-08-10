@@ -8,7 +8,7 @@ extends PanelContainer
 @export var sporate_button: PanelContainer
 @export var perk_web: PerkWeb
 @export var detail_name: Label
-@export var detail_effect: Label
+@export var detail_description: Label
 @export var detail_level: Label
 @export var buy_button: PanelContainer
 
@@ -70,7 +70,11 @@ func _refresh_detail() -> void:
 	if _detail_vm == null:
 		return
 	detail_name.text = _detail_vm.display_name
-	detail_effect.text = _detail_vm.detail_effect_text
+	# A perk with neither a description nor an effect to describe leaves this
+	# empty, and an empty label would still take its separation from the name
+	# above it, so it goes away entirely.
+	detail_description.text = _detail_vm.description
+	detail_description.visible = not detail_description.text.is_empty()
 	detail_level.text = _detail_vm.level_text
 	buy_button.set_button_text(_detail_vm.detail_buy_text)
 	buy_button.set_disabled(not _detail_vm.can_buy)

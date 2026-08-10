@@ -117,10 +117,19 @@
 
   /* ----------------------------------------------------------------- formulas */
 
+  /** Ceiling BigNumber.pow_float() saturates at (BigNumber.MAX_EXPONENT). A
+   * steep growth_exponent runs past it within fifty levels, and a line drawn
+   * beyond the point the game stops counting is a line about nothing. */
+  const MAX_LOG10 = 1e9;
+
   /** log10 of what the next level costs while sitting at `level`.
-   * Mirrors UpgradeSystem.cost(): base * growth^(level^growth_exponent). */
-  const costLog10 = (def, level) =>
-    def.baseLog10 + Math.pow(level, def.growthExponent) * Math.log10(Math.max(def.growth, 1e-12));
+   * Mirrors UpgradeSystem.cost(): base * growth^(level * growth_exponent^level).
+   *
+   * The clamp sits on the power alone, not on the product, because that is where
+   * the engine's sits: pow_float() saturates and cost() then multiplies the base
+   * into the saturated value, landing a base-exponent above the ceiling. */
+  const costLog10 = (def, level) => def.baseLog10 + Math.min(MAX_LOG10,
+    level * Math.pow(def.growthExponent, level) * Math.log10(Math.max(def.growth, 1e-12)));
 
   /** Total effect magnitude at `level`. Mirrors UpgradeEffectDef.magnitude();
    * signed, because a tick_rate effect is authored negative. */
@@ -255,9 +264,20 @@
         `${i ? "L" : "M"}${x(point.level).toFixed(1)} ${y(point.log10).toFixed(1)}`).join(" ");
       svg.append(svgEl("path", { class: "curve", d: line, stroke: color }));
 
+      const engineAt = new Map(entry.reference.map((point) => [point.level, point]));
       for (const point of entry.reference) {
         svg.append(svgEl("circle", { class: "engine", cx: x(point.level), cy: y(point.log10),
           r: 2.6, fill: color }));
+      }
+
+      // A hit target per level, on top of both the line and the dot. Reading a
+      // value off a log axis by eye is guesswork, and the question at a dot is
+      // always the same: which level is this, and what does it cost there.
+      for (const point of entry.points) {
+        const hit = svgEl("circle", { class: "hit", cx: x(point.level), cy: y(point.log10),
+          r: 7, stroke: color });
+        attachTip(hit, pointTip(entry.def, point, engineAt.get(point.level)));
+        svg.append(hit);
       }
       // A negative series (a tick_rate discount) is drawn on the magnitude scale
       // like any other, so say so rather than let it read as a gain.
@@ -272,6 +292,37 @@
 
     return svg;
   }
+
+  /** What one level of one def is worth, as tooltip text.
+   *
+   * All three numbers show whatever the current mode is plotting, because the
+   * question "is this cost worth that effect" is never answered by one of them
+   * alone. `engine` is the sample Godot produced at this level, present only
+   * while the file is unedited, and it is spelled out so a disagreement between
+   * the drawn line and the dot can be read rather than guessed at. */
+  function pointTip(def, point, engine) {
+    const level = point.level;
+    const lines = [`${def.label} · level ${level}`];
+    lines.push(`next level costs ${exp10(costLog10(def, level))}`);
+    if (def.effect) {
+      lines.push(`${def.effect.stat} at this level: ${formatEffect(def, level)}`);
+      const delta = magnitude(def, level + 1) - magnitude(def, level);
+      if (delta !== 0) {
+        lines.push(`one more level adds ${formatMagnitude(def, delta)}, `
+          + `${exp10(Math.log10(Math.abs(delta)) - costLog10(def, level))} per unit spent`);
+      }
+    } else {
+      lines.push("no effect on this def");
+    }
+    if (def.maxLevel > 0 && level >= def.maxLevel) lines.push("(its last level)");
+    if (engine) {
+      lines.push(Math.abs(point.log10 - engine.log10) < 1e-6
+        ? "engine sample agrees"
+        : `engine sample sits at ${exp10(engine.log10)} - the drawn line is wrong`);
+    }
+    return lines.join("\n");
+  }
+
 
   /* -------------------------------------------------------------------- panel */
 
@@ -541,21 +592,29 @@
       : `${mantissa.toFixed(2)}e${exponent}`;
   };
 
-  function formatEffect(def, level) {
-    const value = magnitude(def, level);
+  const formatEffect = (def, level) => formatMagnitude(def, magnitude(def, level));
+
+
+  /** A flat op reads as a number, everything else as the percentage it is. */
+  function formatMagnitude(def, value) {
     if (def.effect.op === "ADD") return value.toPrecision(3);
     return `${(value * 100).toFixed(1)}%`;
   }
 
   /* ------------------------------------------------------------------- wiring */
 
+  /** Re-reads the engine's own samples. Cheap unless something was written: the
+   * server caches this report and only drops it when the data changes. */
+  view.invalidate = async () => {
+    view.reference = (await api("/api/curves")).curves || {};
+  };
+
   view.open = async () => {
     await loadAllFiles();
     buildEdges();
-    if (!Object.keys(view.reference).length) {
-      const report = await api("/api/curves");
-      view.reference = report.curves || {};
-    }
+    // Every time, not just the first: costs saved since the last visit would
+    // otherwise leave the dots sitting on the old curve.
+    await view.invalidate();
     if (!view.selected.size && state.focus) view.selected.add(state.focus);
   };
 

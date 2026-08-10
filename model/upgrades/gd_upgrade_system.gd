@@ -123,7 +123,7 @@ func cost(id: StringName) -> BigNumber:
 	var def: UpgradeDef = _defs.get(id)
 	if def == null:
 		return BigNumber.new(0.0, 0)
-	var scaled_level := pow(float(level(id)), def.cost_growth_exponent)
+	var scaled_level := float(level(id)) * pow(def.cost_growth_exponent, float(level(id)))
 	return def.base_cost.mul(BigNumber.from_value(def.cost_growth).pow_float(scaled_level))
 
 func can_buy(id: StringName, nutrients: BigNumber) -> bool:

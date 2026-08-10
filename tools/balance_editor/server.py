@@ -35,6 +35,11 @@ SIM_SCENE = "tools/sc_balance_sim.tscn"
 # command, which takes seconds.
 SIM_TIMEOUT = 900
 SIM_MAX_TICKS = 200000
+
+# How often an /api/events connection looks for a new version, and how long it
+# stays silent before sending a keep-alive comment.
+EVENT_POLL_SECONDS = 0.5
+EVENT_HEARTBEAT_SECONDS = 15.0
 GODOT_BIN = os.environ.get("GODOT_BIN", "godot")
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("PORT", "8765"))
@@ -43,6 +48,11 @@ OPEN_BROWSER = "--no-browser" not in sys.argv and os.environ.get("NO_BROWSER", "
 # One Godot process at a time: two concurrent saves would race on the same files.
 _godot_lock = threading.Lock()
 _snapshot: dict = {}
+# Bumped every time the .tres files are written through here. Pages watch it over
+# /api/events, so a second window showing a different view redraws when the first
+# one saves. Only writes made through this server count - a change made in the
+# Godot editor is invisible until someone presses "Reload from .tres".
+_version = 0
 _derived: dict = {}      # command name -> its last report, dropped whenever data changes
 _servers: list[ThreadingHTTPServer] = []
 
@@ -82,12 +92,13 @@ def run_godot(args: list[str], entry: list[str] | None = None, timeout: int = 30
 
 def load_snapshot() -> dict:
     """Re-reads every .tres into the in-memory snapshot."""
-    global _snapshot
+    global _snapshot, _version
     report = run_godot(["dump"])
     if report.get("errors"):
         raise GodotError("; ".join(report["errors"]))
     _snapshot = report["data"]
     _derived.clear()     # curves and perks are derived from what just changed
+    _version += 1
     return _snapshot
 
 
@@ -180,6 +191,38 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0"))
         return json.loads(self.rfile.read(length) or b"{}")
 
+    def _events(self) -> None:
+        """Server-sent events: one message per version, forever.
+
+        Every open page listens, so a save made in one window reaches the others
+        without either of them knowing the other exists. Polling a counter beats
+        waking threads through a condition: the loop is one integer comparison
+        twice a second, and a dropped connection is noticed on the next write.
+        """
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        seen = -1
+        idle = 0.0
+        try:
+            while True:
+                if _version != seen:
+                    seen = _version
+                    self.wfile.write(f"data: {seen}\n\n".encode())
+                    self.wfile.flush()
+                    idle = 0.0
+                time.sleep(EVENT_POLL_SECONDS)
+                idle += EVENT_POLL_SECONDS
+                if idle >= EVENT_HEARTBEAT_SECONDS:
+                    # A comment line, ignored by EventSource, but it is what
+                    # notices a browser that closed the tab without saying so.
+                    self.wfile.write(b": ping\n\n")
+                    self.wfile.flush()
+                    idle = 0.0
+        except (BrokenPipeError, ConnectionResetError):
+            return          # the page went away, which is not an error
+
     def _static_file(self) -> Path | None:
         """The view module this request asks for, or None. Only plain file names
         directly beside index.html resolve, so `..` cannot walk anywhere."""
@@ -199,7 +242,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"files": sorted(_snapshot), "project": str(PROJECT_ROOT)})
             elif self.path.startswith("/api/file/"):
                 self._send_json(table(self.path[len("/api/file/"):]))
-            elif self.path in ("/api/curves", "/api/perks"):
+            elif self.path == "/api/events":
+                self._events()
+            elif self.path in ("/api/curves", "/api/perks", "/api/unused"):
                 self._send_json(derived(self.path[len("/api/"):]))
             elif self._static_file():
                 path = self._static_file()
@@ -223,7 +268,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if patch and not payload.get("dry_run"):
                 load_snapshot()          # pick up whatever Godot actually wrote
-            self._send_json({"ok": True, "changes": report["changes"],
+            self._send_json({"ok": True, "version": _version, "changes": report["changes"],
                              "saved": report["saved"], "table": _snapshot.get(name)})
         except Exception as error:
             self._send_json({"error": str(error)}, 400)
@@ -239,7 +284,7 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 if not dry_run:
                     load_snapshot()      # the new row has to appear everywhere
-                self._send_json({"ok": True, "path": report["path"],
+                self._send_json({"ok": True, "version": _version, "path": report["path"],
                                  "changes": report["changes"], "files": sorted(_snapshot)})
             elif self.path == "/api/delete":
                 payload = self._body()
@@ -251,7 +296,7 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 if not dry_run:
                     load_snapshot()
-                self._send_json({"ok": True, "path": report["path"],
+                self._send_json({"ok": True, "version": _version, "path": report["path"],
                                  "changes": report["changes"],
                                  "collateral": report.get("collateral", []),
                                  "needs_force": report.get("needs_force", False),
@@ -265,7 +310,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(simulate(self._body()))
             elif self.path == "/api/reload":
                 load_snapshot()
-                self._send_json({"ok": True, "files": sorted(_snapshot)})
+                self._send_json({"ok": True, "version": _version, "files": sorted(_snapshot)})
             else:
                 self._send_json({"error": "not found"}, 404)
         except Exception as error:

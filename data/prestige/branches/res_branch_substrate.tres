@@ -4,6 +4,12 @@
 [ext_resource type="Resource" path="res://data/prestige/branches/res_branch_substrate_effect.tres" id="2_effect"]
 [ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
 [ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="4_node_script"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_substrate_1_effect.tres" id="5_effect_1"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_substrate_2_effect.tres" id="6_effect_2"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_substrate_3a_effect.tres" id="7_effect_3a"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_substrate_3b_effect.tres" id="8_effect_3b"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_substrate_4a_effect.tres" id="9_effect_4a"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_substrate_4b_effect.tres" id="10_effect_4b"]
 
 [sub_resource type="Resource" id="node_4a"]
 script = ExtResource("4_node_script")
@@ -12,6 +18,7 @@ display_name = "Substrate IV·A"
 description = "Substrate node - kept through every sporation."
 _base_cost_mantissa = 1.6
 _base_cost_exponent = 1
+effects = Array[ExtResource("3_effect_script")]([ExtResource("9_effect_4a")])
 
 [sub_resource type="Resource" id="node_4b"]
 script = ExtResource("4_node_script")
@@ -20,6 +27,7 @@ display_name = "Substrate IV·B"
 description = "Substrate node - kept through every sporation."
 _base_cost_mantissa = 1.6
 _base_cost_exponent = 1
+effects = Array[ExtResource("3_effect_script")]([ExtResource("10_effect_4b")])
 
 [sub_resource type="Resource" id="node_3a"]
 script = ExtResource("4_node_script")
@@ -29,6 +37,7 @@ display_name = "Substrate III·A"
 description = "Substrate node - kept through every sporation."
 _base_cost_mantissa = 8.0
 _base_cost_exponent = 0
+effects = Array[ExtResource("3_effect_script")]([ExtResource("7_effect_3a")])
 
 [sub_resource type="Resource" id="node_3b"]
 script = ExtResource("4_node_script")
@@ -38,6 +47,7 @@ display_name = "Substrate III·B"
 description = "Substrate node - kept through every sporation."
 _base_cost_mantissa = 8.0
 _base_cost_exponent = 0
+effects = Array[ExtResource("3_effect_script")]([ExtResource("8_effect_3b")])
 
 [sub_resource type="Resource" id="node_2"]
 script = ExtResource("4_node_script")
@@ -47,6 +57,7 @@ display_name = "Substrate II"
 description = "Substrate node - kept through every sporation."
 _base_cost_mantissa = 4.0
 _base_cost_exponent = 0
+effects = Array[ExtResource("3_effect_script")]([ExtResource("6_effect_2")])
 
 [sub_resource type="Resource" id="node_1"]
 script = ExtResource("4_node_script")
@@ -54,6 +65,7 @@ id = &"substrate_1"
 children = Array[ExtResource("4_node_script")]([SubResource("node_2")])
 display_name = "Substrate I"
 description = "Substrate node - kept through every sporation."
+effects = Array[ExtResource("3_effect_script")]([ExtResource("5_effect_1")])
 
 [resource]
 script = ExtResource("1_script")

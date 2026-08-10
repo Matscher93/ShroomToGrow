@@ -37,6 +37,7 @@ static func _make_core(core: PerkNodeDef) -> PerkDef:
 	p.max_level = core.max_level
 	p.base_cost = core.base_cost
 	p.cost_growth = core.cost_growth
+	p.cost_growth_exponent = core.cost_growth_exponent
 	p.effects = core.effects
 	p.world_x = CANVAS_CENTER
 	p.world_y = CANVAS_CENTER
@@ -65,6 +66,7 @@ static func _make_perk(branch: PerkBranchDef, node: PerkNodeDef, parent_id: Stri
 	p.max_level = node.max_level
 	p.base_cost = node.base_cost
 	p.cost_growth = node.cost_growth
+	p.cost_growth_exponent = node.cost_growth_exponent
 	p.effects = branch.effects_for(node)
 	var r := ROOT_RADIUS + DEPTH_RADIUS_STEP * depth
 	p.world_x = CANVAS_CENTER + cos(angle) * r

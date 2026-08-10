@@ -114,6 +114,8 @@ func test_cost_grows_with_level() -> void:
 	def.cost_growth = 2.0
 	system.register(def)
 
+	# base * growth^(level * exponent^level), and the default exponent of 1 leaves
+	# that as the plain base * growth^level.
 	assert_float(system.cost(&"Thing").to_float()).is_equal_approx(100.0, 0.001)
 	system.from_save({"Thing": 1})
 	assert_float(system.cost(&"Thing").to_float()).is_equal_approx(200.0, 0.001)

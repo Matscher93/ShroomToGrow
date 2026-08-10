@@ -120,6 +120,11 @@
 #curve-chart .grid { stroke: var(--line); stroke-width: 1; }
 #curve-chart .curve { fill: none; stroke-width: 2; }
 #curve-chart .engine { opacity: .55; }
+/* Invisible until pointed at: one hit target per level, wide enough to catch a
+   pointer without having to land on a 2px dot. The stroke is the series colour,
+   set inline, so the ring that appears on hover names the curve it belongs to. */
+#curve-chart .hit { fill: transparent; stroke-opacity: 0; cursor: crosshair; }
+#curve-chart .hit:hover { stroke-opacity: 1; stroke-width: 1.5; }
 #curve-chart .axis { fill: var(--muted); font: 10px ui-monospace, monospace; }
 #curve-chart .axis-title { fill: var(--muted); font: 11px ui-sans-serif, system-ui, sans-serif; }
 #curve-chart .empty { fill: var(--muted); font: 12px ui-sans-serif, system-ui, sans-serif; }
@@ -184,3 +189,12 @@
 .sim-summary .hint { font-weight: 400; font-size: 11px; }
 .sim-legend { display: flex; flex-wrap: wrap; gap: 8px; font: 11px ui-monospace, monospace; }
 .sim-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
+
+/* ------------------------------------------------------------------- unused */
+
+#unused-view { padding: 12px 14px; overflow: auto; }
+.unused-body { display: flex; flex-direction: column; gap: 10px; max-width: 900px; }
+.unused-body h2 { font-size: 14px; margin: 0; }
+.unused-table td { padding-right: 12px; }
+.unused-table td button { padding: 1px 8px; }
+.unused-body .warn { color: var(--danger); }

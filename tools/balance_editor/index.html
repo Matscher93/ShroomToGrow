@@ -357,6 +357,23 @@
   }
   #clear-log:hover { color: var(--text); }
   .hint { color: var(--muted); }
+  /* Shared hover tooltip. An SVG <title> would need no code at all, but the
+     browser decides when to show one, and that wait is the whole complaint. */
+  #tooltip {
+    position: fixed;
+    z-index: 10;
+    max-width: 380px;
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--panel);
+    color: var(--text);
+    font: 11px/1.45 ui-monospace, monospace;
+    white-space: pre-wrap;
+    pointer-events: none;      /* never stands between the pointer and the mark */
+    box-shadow: 0 2px 10px rgb(0 0 0 / .3);
+  }
+  #tooltip[hidden] { display: none; }
 </style>
 <link rel="stylesheet" href="views.css">
 </head>
@@ -408,6 +425,7 @@
 <script src="curves.js"></script>
 <script src="web.js"></script>
 <script src="sim.js"></script>
+<script src="unused.js"></script>
 
 <script>
 const state = {
@@ -581,6 +599,42 @@ const el = {
   depth: document.getElementById("depth"),
   deps: document.getElementById("deps"),
 };
+
+/* ------------------------------------------------------------------ tooltip */
+
+const tooltip = Object.assign(document.createElement("div"), { id: "tooltip", hidden: true });
+document.body.append(tooltip);
+
+/** Places the tooltip beside the pointer, flipping to the other side rather than
+ * hanging off the window. Measured after it is filled, so the flip knows how big
+ * the text actually is. */
+function moveTip(event) {
+  const gap = 14;
+  const box = tooltip.getBoundingClientRect();
+  const x = event.clientX + gap + box.width > window.innerWidth - 4
+    ? event.clientX - gap - box.width
+    : event.clientX + gap;
+  const y = event.clientY + gap + box.height > window.innerHeight - 4
+    ? event.clientY - gap - box.height
+    : event.clientY + gap;
+  tooltip.style.left = `${Math.max(4, x)}px`;
+  tooltip.style.top = `${Math.max(4, y)}px`;
+}
+
+function hideTip() { tooltip.hidden = true; }
+
+/** Shows `text` while the pointer is over `element`, from the first moment it is
+ * over it. `text` may be a function when the value is only worth computing on
+ * hover. */
+function attachTip(element, text) {
+  element.onpointerenter = (event) => {
+    tooltip.textContent = typeof text === "function" ? text() : text;
+    tooltip.hidden = false;
+    moveTip(event);
+  };
+  element.onpointermove = moveTip;
+  element.onpointerleave = hideTip;
+}
 
 const isDirty = (name) => state.edits.has(name);
 const anyDirty = () => state.edits.size > 0;
@@ -1411,7 +1465,7 @@ function fieldEditor(entry, columnIndex) {
   // panel rebuilding itself out from under the cursor on every keystroke.
   // Whichever view is showing gets the refresh: this editor is used by the
   // graph's side panel and by the web view's, which embeds the same thing.
-  input.addEventListener("change", () => renderActiveView());
+  input.addEventListener("change", () => redrawForField(input));
 
   label.append(revert);
   sync();
@@ -1610,6 +1664,7 @@ async function createChild(entry, column, rule, id, path) {
             link: { res_path: entry.row[0], column } }),
     });
     state.files = result.files;
+    lastVersion = Math.max(lastVersion, result.version || 0);
     state.loaded.clear();
     await loadAllFiles();
     buildEdges();
@@ -1662,6 +1717,7 @@ async function deleteResource(path) {
       body: JSON.stringify({ res_path: path, force: preview.needs_force }),
     });
     state.files = result.files;
+    lastVersion = Math.max(lastVersion, result.version || 0);
     state.edits.clear();
     state.loaded.clear();
     await loadAllFiles();
@@ -1689,12 +1745,72 @@ function setFocus(path) {
   renderActiveView();
 }
 
+/** Drops whatever the view modules derived from the old data, then redraws.
+ *
+ * Curves and the prestige web are not built from the tables alone: each also
+ * holds a report the engine computed from what was on disk. A save makes those
+ * reports history, and a stale one is worse than none - the curves view draws
+ * the engine's samples as dots behind its own line, and dots left over from the
+ * previous costs read as a bug in the maths rather than a stale fetch. */
+async function refreshDerivedViews() {
+  hideTip();
+  for (const module of Object.values(modules)) {
+    if (!module.invalidate) continue;
+    try {
+      await module.invalidate();
+    } catch (error) {
+      log(String(error), true);
+    }
+  }
+  renderActiveView();
+}
+
+/* A field writes its value on every keystroke, but the redraw that refreshes
+ * perk labels and colours waits until the field is left - and leaving it usually
+ * means pressing the pointer on something else. Redrawing right there rebuilt
+ * the panel and the web while the button was still down, so the element the
+ * click was aimed at no longer existed when the click was delivered: picking
+ * another perk cost two clicks, one to commit and one to land. The redraw waits
+ * behind the click now, and is dropped when the click redrew by itself (picking
+ * a perk does) or when the caret landed in another field. */
+let pointerIsDown = false;
+let redrawPending = null;   // the input whose change still owes a redraw
+
 /** Redraws whatever is on screen. The focus and the row data are shared by every
  * view, so a change made in one has to reach the one the user is looking at. */
 function renderActiveView() {
+  // Whatever was hovered is about to be replaced, and a pointerleave never
+  // arrives for an element that stopped existing.
+  hideTip();
+  redrawPending = null;   // this redraw covers whatever a field was waiting for
   if (state.view === "graph") renderGraph();
   else if (modules[state.view]) modules[state.view].render();
   else renderGrid();
+}
+
+window.addEventListener("pointerdown", () => { pointerIsDown = true; }, true);
+for (const done of ["pointerup", "pointercancel"]) {
+  window.addEventListener(done, () => {
+    pointerIsDown = false;
+    if (!redrawPending) return;
+    // The click is dispatched right after pointerup, in the same task. A
+    // timeout puts the redraw behind it rather than in the middle of it.
+    setTimeout(() => { if (redrawPending) redrawForField(redrawPending); }, 0);
+  }, true);
+}
+
+/** Redraws for a field that just committed, unless a click is still in flight
+ * (it would eat that click) or the caret has moved into another field, whose own
+ * change event redraws when it is left in turn. */
+function redrawForField(input) {
+  if (pointerIsDown) {
+    redrawPending = input;
+    return;
+  }
+  redrawPending = null;
+  const active = document.activeElement;
+  if (active !== input && active && active.closest(".field")) return;
+  renderActiveView();
 }
 
 /** Views contributed by the sibling script modules, keyed by name. Each holds
@@ -1776,6 +1892,44 @@ async function openFile(name) {
   }
 }
 
+/** Highest data version this window has already taken account of. The server
+ * hands one back with every write, so a window never reacts to its own save. */
+let lastVersion = 0;
+
+/** Pulls in a change written by another window.
+ *
+ * Files this window is still editing are deliberately left alone: its unsaved
+ * work is the only copy that exists, and silently replacing it with what the
+ * other window wrote would destroy it. Saving afterwards writes this window's
+ * values over theirs - two windows on one file is last-save-wins, and the log
+ * says so rather than pretending otherwise. */
+async function adoptRemoteChange(version) {
+  if (version <= lastVersion) return;
+  lastVersion = version;
+  const kept = [...state.edits.keys()];
+  const info = await api("/api/files");
+  state.files = info.files;
+  for (const name of [...state.loaded.keys()]) {
+    if (state.edits.has(name)) continue;
+    state.loaded.set(name, await api(`/api/file/${name}`));
+  }
+  buildEdges();
+  renderFileList();
+  await refreshDerivedViews();
+  log(kept.length
+    ? `another window saved. Your unsaved edits to ${kept.join(", ")} were kept - `
+      + "saving them now overwrites what the other window wrote."
+    : "reloaded after a save in another window");
+}
+
+/** One connection per page, reconnected by the browser on its own. */
+function watchForChanges() {
+  const events = new EventSource("/api/events");
+  events.onmessage = (event) => {
+    adoptRemoteChange(Number(event.data)).catch((error) => log(String(error), true));
+  };
+}
+
 async function saveFile(name) {
   const data = state.edits.get(name);
   if (!data) return [];
@@ -1788,6 +1942,9 @@ async function saveFile(name) {
   // baseline is what is really on disk rather than what the page hoped for.
   state.loaded.set(name, result.table);
   state.edits.delete(name);
+  // This window is already up to date with what it just wrote, so the event the
+  // server is about to broadcast is not news here.
+  lastVersion = Math.max(lastVersion, result.version || 0);
   return result.changes || [];
 }
 
@@ -1800,7 +1957,7 @@ async function saveCurrent() {
       : `${state.current}: nothing to write`);
   } catch (error) { log(String(error), true); return; }
   renderFileList();
-  renderGrid();
+  await refreshDerivedViews();
 }
 
 async function saveAll() {
@@ -1812,7 +1969,7 @@ async function saveAll() {
       : "nothing to write");
   } catch (error) { log(String(error), true); }
   renderFileList();
-  renderGrid();
+  await refreshDerivedViews();
 }
 
 async function runGodot(path, body, label) {
@@ -1895,6 +2052,7 @@ document.getElementById("reload").onclick = async () => {
   try {
     const result = await api("/api/reload", { method: "POST" });
     state.files = result.files;
+    lastVersion = Math.max(lastVersion, result.version || 0);
     state.edits.clear();
     state.loaded.clear();
     // The graph reads every table, so a reload that restocked only the current
@@ -1902,6 +2060,7 @@ document.getElementById("reload").onclick = async () => {
     if (state.view === "graph") await loadAllFiles();
     log(`reloaded ${state.files.length} resource types`);
     await openFile(state.files.includes(state.current) ? state.current : state.files[0]);
+    await refreshDerivedViews();
   } catch (error) {
     log(String(error), true);
   } finally {
@@ -1923,6 +2082,7 @@ window.addEventListener("beforeunload", (event) => {
 
 (async function start() {
   mountModules();
+  watchForChanges();
   makeGridResizer(document.querySelector("main"), el.files, "files", "start", 240, 140, 560);
   makeGridResizer(el.graphView, el.deps, "deps", "end", 320, 220, 900);
   try {

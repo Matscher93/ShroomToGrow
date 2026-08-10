@@ -261,7 +261,9 @@ func test_actions_per_tick_are_capped() -> void:
 	def.base_runs_per_tick = 1e6
 	var system := _system(def)
 	_data.add_level(&"test_automation")
-	_player.nutrients = BigNumber.from_value(1e30)
+	# Node costs grow super-exponentially with manual_nodes, so the bank has to be
+	# absurd for the cap - not the price - to be what stops the run.
+	_player.nutrients = BigNumber.new(1.0, 900)
 
 	system.handle_tick()
 	assert_int(_total_manual_nodes()).is_equal(AutomationSystem.MAX_RUNS_PER_TICK)

@@ -12,6 +12,12 @@ extends Button
 ## Repeats by re-emitting [signal pressed], so a view binds to it exactly as it
 ## would a plain Button and needs to know nothing about the hold.
 
+## Emitted alongside `pressed` for the repeats only, never for the release that
+## Button emits on its own. Wrappers that re-emit a press from `button_up` (see
+## gd_base_shader_button.gd) listen to this instead of `pressed`, which would
+## double-count that release.
+signal repeated()
+
 @export var initial_delay := 0.4    # before repeating starts
 @export var repeat_rate := 0.08     # interval at the start of a hold
 @export var min_repeat_rate := 0.01 # fastest interval a long hold reaches
@@ -73,3 +79,4 @@ func _current_interval() -> float:
 
 func _fire() -> void:
 	pressed.emit()
+	repeated.emit()
