@@ -179,7 +179,7 @@ func _migrate_lifetime_counters_to_v3(data: Dictionary) -> void:
 	var manual_total := 0
 	# Untyped loop variable with a guard, not `for node: Dictionary in nodes`:
 	# a migration runs against whatever is on disk, so it cannot assume the shape
-	# is intact - see load_mycelium_node_data().
+	# is intact - see App.mycelium_nodes_from_save().
 	for node: Variant in nodes:
 		if not node is Dictionary:
 			continue
@@ -358,54 +358,11 @@ func run_offline_progress_calculation() -> void:
 
 # ---------------------------------------------------------------- hooks
 
+## The game state itself lives on App, which owns every system it is made of.
+## What stays here is the file around it: the version, the timestamp offline
+## progress is measured from, the temp-file-and-rename dance, and the backup.
 func _collect_data() -> Dictionary:
-	var save_state := {
-		"player_data": App.player_data.to_save(),
-		"mycelium_nodes": get_mycelium_node_data(),
-		"upgrades": App.upgrade_system.to_save(),
-		"prestige_upgrades": App.prestige_upgrade_system.to_save(),
-		"biomes": App.biomes_data.to_save(),
-		"biome_upgrades": App.biome_upgrade_system.to_save(),
-		"achievements": App.achievement_progress.to_save(),
-		"automation": App.automation_data.to_save(),
-		"geode_upgrades": App.geode_upgrade_system.to_save()
-	}
-	return save_state
+	return App.to_save()
 
 func _apply_data(game: Dictionary) -> void:
-	App.player_data.load_from_save(game.get("player_data", {}))
-	load_mycelium_node_data(game.get("mycelium_nodes", []))
-	App.upgrade_system.from_save(game.get("upgrades", {}))
-	App.prestige_upgrade_system.from_save(game.get("prestige_upgrades", {}))
-	App.biomes_data.load_from_save(game.get("biomes", {}))
-	App.resolve_context.biome_sizes = App.biomes_data.size.duplicate()
-	App.biome_upgrade_system.from_save(game.get("biome_upgrades", {}))
-	App.achievement_progress.load_from_save(game.get("achievements", {}))
-	# PlayerData.achievement_tiers is a projection of the progress just loaded,
-	# not a saved field, so it has to be rebuilt here.
-	App.achievement_system.sync_tier_count()
-	App.automation_data.load_from_save(game.get("automation", {}))
-	App.geode_upgrade_system.from_save(game.get("geode_upgrades", {}))
-
-func get_mycelium_node_data() -> Array[Dictionary]:
-	var all_node_data: Array[Dictionary] = []
-	for node_data in App.mycelium_node_data:
-		all_node_data.append({
-			"manual_nodes": node_data.node.manual_nodes,
-			"auto_nodes": node_data.node.auto_nodes.to_save()
-		})
-	return all_node_data
-
-## Entries that are not Dictionaries are skipped rather than assigned: the typed
-## local below would take the whole load down on a corrupt save, which is the one
-## path that has to degrade instead. A skipped tier keeps its fresh-start values.
-func load_mycelium_node_data(nodes: Array) -> void:
-	for i in range(App.mycelium_node_data.size()):
-		if i < nodes.size():
-			if not nodes[i] is Dictionary:
-				push_warning("Save entry for mycelium node %d is not a Dictionary, skipping it." % i)
-				continue
-			var node_data := App.mycelium_node_data[i]
-			var loaded_data: Dictionary = nodes[i]
-			node_data.node.manual_nodes = loaded_data.get("manual_nodes", 0)
-			node_data.node.auto_nodes = BigNumber.from_save(loaded_data.get("auto_nodes", {}))
+	App.load_from_save(game)

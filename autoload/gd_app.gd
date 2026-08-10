@@ -226,6 +226,71 @@ func _track_manual_count(node: MyceliumNode) -> void:
 func _update_tick_duration() -> void:
 	tick_timer.wait_time = tick_duration()
 
+# ---------------------------------------------------------------- save state
+
+## Everything a run consists of, in one dictionary.
+##
+## Lives here rather than in SaveManager because this is where the systems being
+## serialised are: a track added to _ready() is a track this has to carry, and
+## the two are one screen apart. SaveManager owns the file the dictionary goes
+## into - the version, the timestamp, the backup - and the balance simulator
+## reads and writes the same shape without a SaveManager at all, which is the
+## other reason it cannot live in one.
+func to_save() -> Dictionary:
+	return {
+		"player_data": player_data.to_save(),
+		"mycelium_nodes": mycelium_nodes_to_save(),
+		"upgrades": upgrade_system.to_save(),
+		"prestige_upgrades": prestige_upgrade_system.to_save(),
+		"biomes": biomes_data.to_save(),
+		"biome_upgrades": biome_upgrade_system.to_save(),
+		"achievements": achievement_progress.to_save(),
+		"automation": automation_data.to_save(),
+		"geode_upgrades": geode_upgrade_system.to_save(),
+	}
+
+## Loads a dictionary from to_save() into the live systems. Every holder is
+## loaded through its own loader with whatever the save had, so a missing key
+## leaves that track at its fresh-start values rather than failing the load.
+func load_from_save(game: Dictionary) -> void:
+	player_data.load_from_save(game.get("player_data", {}))
+	mycelium_nodes_from_save(game.get("mycelium_nodes", []))
+	upgrade_system.from_save(game.get("upgrades", {}))
+	prestige_upgrade_system.from_save(game.get("prestige_upgrades", {}))
+	biomes_data.load_from_save(game.get("biomes", {}))
+	resolve_context.biome_sizes = biomes_data.size.duplicate()
+	biome_upgrade_system.from_save(game.get("biome_upgrades", {}))
+	achievement_progress.load_from_save(game.get("achievements", {}))
+	# PlayerData.achievement_tiers is a projection of the progress just loaded,
+	# not a saved field, so it has to be rebuilt here.
+	achievement_system.sync_tier_count()
+	automation_data.load_from_save(game.get("automation", {}))
+	geode_upgrade_system.from_save(game.get("geode_upgrades", {}))
+
+func mycelium_nodes_to_save() -> Array[Dictionary]:
+	var all_node_data: Array[Dictionary] = []
+	for node_data in mycelium_node_data:
+		all_node_data.append({
+			"manual_nodes": node_data.node.manual_nodes,
+			"auto_nodes": node_data.node.auto_nodes.to_save(),
+		})
+	return all_node_data
+
+## Entries that are not Dictionaries are skipped rather than assigned: the typed
+## local below would take the whole load down on a corrupt save, which is the one
+## path that has to degrade instead. A skipped tier keeps its fresh-start values.
+func mycelium_nodes_from_save(nodes: Array) -> void:
+	for i in range(mycelium_node_data.size()):
+		if i >= nodes.size():
+			continue
+		if not nodes[i] is Dictionary:
+			push_warning("Save entry for mycelium node %d is not a Dictionary, skipping it." % i)
+			continue
+		var node_data := mycelium_node_data[i]
+		var loaded_data: Dictionary = nodes[i]
+		node_data.node.manual_nodes = loaded_data.get("manual_nodes", 0)
+		node_data.node.auto_nodes = BigNumber.from_save(loaded_data.get("auto_nodes", {}))
+
 # ---------------------------------------------------------------------------
 # Delegators. The rules live in ProductionSystem / TickSystem / BiomeSystem /
 # PerkSystem / PrestigeSystem, which hold no App reference and can be built

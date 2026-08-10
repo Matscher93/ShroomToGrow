@@ -145,14 +145,33 @@ def load_snapshot() -> dict:
 
 
 def simulate(request: dict) -> dict:
-    """One simulated run. Not cached: the whole point is to re-run it."""
+    """One simulated run. Not cached: the whole point is to re-run it.
+
+    A `save` in the request starts the run from that state instead of from a
+    fresh one - an uploaded save file, or one savepoint out of an earlier run.
+    `from_tick` and `from_seconds` say where that state already stood, so a
+    continued run's chart carries on from the run it came out of instead of
+    restarting at zero.
+    """
     args = [
         f"--ticks={min(int(request.get('ticks', 20000)), SIM_MAX_TICKS)}",
         f"--prestiges={int(request.get('prestiges', 3))}",
         f"--samples={int(request.get('samples', 200))}",
         f"--policy={str(request.get('policy', 'roi'))}",
     ]
-    report = run_godot(args, entry=[SIM_SCENE], timeout=SIM_TIMEOUT, progress=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        start = request.get("save")
+        if isinstance(start, dict):
+            # Handed over as a file rather than on the command line: a save is
+            # kilobytes of JSON, well past what an argument list wants to carry.
+            start_path = Path(tmp) / "start.json"
+            start_path.write_text(json.dumps(start))
+            args += [
+                f"--load={start_path}",
+                f"--from-tick={max(0, int(request.get('from_tick', 0)))}",
+                f"--from-seconds={max(0.0, float(request.get('from_seconds', 0.0)))}",
+            ]
+        report = run_godot(args, entry=[SIM_SCENE], timeout=SIM_TIMEOUT, progress=True)
     if report.get("errors"):
         raise GodotError("; ".join(report["errors"]))
     return report

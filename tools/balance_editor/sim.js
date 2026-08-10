@@ -44,6 +44,9 @@
     running: false,
     /** Latest /api/sim/progress reading, or null when nothing is running. */
     progress: null,
+    /** Where the next run starts: null for a fresh one, otherwise
+     * `{save, tick, seconds, label}` from an imported file or a savepoint. */
+    start: null,
     shown: new Set(["production", "nodes", "perks"]),
   };
 
@@ -283,12 +286,13 @@
     actions.className = "sim-actions";
     const run = document.createElement("button");
     run.className = "primary";
-    run.textContent = view.running ? "Running…" : "Run";
+    run.textContent = view.running ? "Running…" : view.start ? "Continue" : "Run";
     run.disabled = view.running;
     run.onclick = () => start();
-    actions.append(run);
+    actions.append(run, continueButton(), importButton(), exportButton());
     panel.append(actions);
 
+    panel.append(startFrom());
     if (view.running) panel.append(progressBar());
 
     if (anyDirty()) {
@@ -301,6 +305,110 @@
     if (view.result) panel.append(summary());
     panel.append(trackToggles());
     if (view.result) panel.append(milestoneTable());
+  }
+
+  /* ------------------------------------------------------------------- saves */
+
+  /** What the next run starts from, and a way back to a fresh one.
+   *
+   * Shown only when it is not the default, because "starts from the beginning"
+   * is not news - but starting from somewhere else silently would be. */
+  function startFrom() {
+    const line = document.createElement("div");
+    if (!view.start) return line;
+    line.className = "sim-start";
+    const label = document.createElement("span");
+    label.textContent = `continuing from ${view.start.label}`;
+    label.title = `tick ${view.start.tick} · ${duration(view.start.seconds)} played`;
+    const clear = document.createElement("button");
+    clear.textContent = "start fresh";
+    clear.onclick = () => { view.start = null; view.render(); };
+    line.append(label, clear);
+    return line;
+  }
+
+  /** Plays another `ticks` ticks on from where the last run stopped, under
+   * whatever the form says now.
+   *
+   * One button rather than two, because "carry on" is one thought: it picks the
+   * end of the last run as the starting state and starts. Pressing it again
+   * carries on from the end of *that* run, so a run can be extended as far as
+   * anyone's patience goes without ever exporting a file.
+   *
+   * The prestige target counts afresh each time, since it is a target for the
+   * run being asked for - three more prestiges, not three in total. */
+  function continueButton() {
+    const button = document.createElement("button");
+    button.textContent = "Continue run";
+    button.disabled = view.running || !view.result || !view.result.save;
+    button.title = view.result
+      ? `play ${view.settings.ticks} more ticks on from tick ${view.result.last_tick || 0}`
+      : "runs on from where the last run stopped";
+    button.onclick = () => {
+      view.start = {
+        save: view.result.save,
+        tick: view.result.last_tick || 0,
+        seconds: view.result.seconds || 0,
+        // Named by the tick alone, not by "the end of the last run": press this
+        // again and there is a newer last run, but tick 3000 is still tick 3000.
+        label: `tick ${view.result.last_tick || 0}`,
+      };
+      start();
+    };
+    return button;
+  }
+
+  /** Downloads the state the last run ended on, in the game's own save format -
+   * so it can be dropped into user://save.json and played, or handed back to
+   * this page to carry on from. */
+  function exportButton() {
+    const button = document.createElement("button");
+    button.textContent = "Export save";
+    button.disabled = view.running || !view.result || !view.result.save;
+    button.title = "the state this run ended on, as a save file";
+    button.onclick = () => download(view.result.save,
+      `sim-${view.result.policy}-tick${view.result.last_tick || 0}.json`);
+    return button;
+  }
+
+  /** Loads a save file to start the next run from. Accepts both shapes the
+   * simulator does - a save straight out of the game, and a savepoint exported
+   * from here - because the file picker cannot tell them apart either. */
+  function importButton() {
+    const label = document.createElement("label");
+    label.className = "sim-import";
+    label.textContent = "Import save";
+    label.title = "run from a save file instead of from a fresh start";
+    const picker = document.createElement("input");
+    picker.type = "file";
+    picker.accept = ".json,application/json";
+    picker.onchange = async () => {
+      const file = picker.files && picker.files[0];
+      if (!file) return;
+      try {
+        const save = JSON.parse(await file.text());
+        // A file carries no tick number worth trusting, so a continued run from
+        // one starts its own count at zero rather than inventing an origin.
+        view.start = { save, tick: 0, seconds: 0, label: file.name };
+        log(`starting the next run from ${file.name}`);
+      } catch (error) {
+        log(`${file.name} is not a save file (${error.message})`, true);
+      }
+      picker.value = "";       // so picking the same file twice fires again
+      view.render();
+    };
+    label.append(picker);
+    return label;
+  }
+
+  function download(data, name) {
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(data, null, 1)], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   /** Where the running simulation has got to.
@@ -365,7 +473,7 @@
     const line = document.createElement("div");
     line.className = "sim-summary";
     line.textContent = `${duration(result.seconds)} played · ${last ? last.tick : 0} ticks · `
-      + `${result.prestiges} of ${result.prestige_target} prestiges`;
+      + prestigeCount(result);
     line.title = `${Math.round(result.seconds || 0)} seconds of real time, `
       + `summed from every tick's own duration`;
     const rate = document.createElement("div");
@@ -377,6 +485,19 @@
       : "";
     line.append(rate);
     return line;
+  }
+
+  /** How many prestiges the chart in front of you covers.
+   *
+   * Counted off the milestones rather than read off `prestiges`, which is the
+   * last segment's tally: a run continued three times has three of those and one
+   * milestone list. The target is only quoted for a run that started fresh,
+   * because on a continuation it was a target for that leg alone. */
+  function prestigeCount(result) {
+    const total = result.milestones.filter((row) => row.event === "prestige").length;
+    return result.from_tick
+      ? `${total} prestiges`
+      : `${total} of ${result.prestige_target} prestiges`;
   }
 
   function numberInput(key, min, max) {
@@ -430,17 +551,21 @@
   }
 
   /** The answer the whole view exists for: which tick each thing happened on,
-   * and how long a player would have been sitting there when it did. */
+   * and how long a player would have been sitting there when it did.
+   *
+   * Each row is also a branch point: the run carries a save taken at every one
+   * of these ticks, so any of them can be run on from or downloaded. */
   function milestoneTable() {
     const table = document.createElement("table");
     table.className = "web-table";
     const head = table.insertRow();
-    for (const column of ["tick", "played", "event", "detail"]) {
+    for (const column of ["tick", "played", "event", "detail", ""]) {
       const th = document.createElement("th");
       th.textContent = column;
       head.append(th);
     }
-    for (const milestone of view.result.milestones) {
+    const savepoints = view.result.savepoints || [];
+    view.result.milestones.forEach((milestone, index) => {
       const row = table.insertRow();
       const tick = row.insertCell();
       tick.className = "num";
@@ -451,15 +576,39 @@
       played.title = `${Math.round(milestone.seconds || 0)}s`;
       row.insertCell().textContent = milestone.event;
       row.insertCell().textContent = milestone.detail;
-    }
+      row.insertCell().append(...savepointActions(savepoints[index], milestone));
+    });
     if (!view.result.milestones.length) {
       const row = table.insertRow();
       const cell = row.insertCell();
-      cell.colSpan = 4;
+      cell.colSpan = 5;
       cell.className = "web-stats";
       cell.textContent = "nothing happened in this many ticks";
     }
     return table;
+  }
+
+  /** Run on from this milestone, or take its save away. Nothing at all for a
+   * result from before savepoints existed, rather than two dead buttons. */
+  function savepointActions(point, milestone) {
+    if (!point || !point.save) return [];
+    const label = `${milestone.event} at tick ${milestone.tick}`;
+    const resume = document.createElement("button");
+    resume.className = "sim-tiny";
+    resume.textContent = "continue";
+    resume.title = `start the next run from ${label}`;
+    resume.onclick = () => {
+      view.start = { save: point.save, tick: point.tick, seconds: point.seconds, label };
+      log(`the next run continues from ${label}`);
+      view.render();
+    };
+    const save = document.createElement("button");
+    save.className = "sim-tiny";
+    save.textContent = "save";
+    save.title = `download the save taken at ${label}`;
+    save.onclick = () => download(point.save,
+      `sim-${milestone.event}-tick${milestone.tick}.json`);
+    return [resume, save];
   }
 
   /* ------------------------------------------------------------------- wiring */
@@ -475,13 +624,22 @@
     const started = Date.now();
     setStatus(`simulating ${view.settings.ticks} ticks under ${view.settings.policy}…`);
     const polling = watch();
+    // The starting state travels with the settings rather than in the settings,
+    // so it is never one of the fields the form persists between runs.
+    const request = view.start
+      ? { ...view.settings, save: view.start.save,
+          from_tick: view.start.tick, from_seconds: view.start.seconds }
+      : view.settings;
+    const before = view.start ? view.result : null;
+    const branch = view.start ? view.start.tick : 0;
     try {
-      view.result = await api("/api/sim", {
+      const segment = await api("/api/sim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(view.settings),
+        body: JSON.stringify(request),
       });
-      log(`simulated ${view.result.ticks} ticks in ${((Date.now() - started) / 1000).toFixed(1)}s`);
+      view.result = stitch(before, segment, branch);
+      log(`simulated ${segment.ticks} ticks in ${((Date.now() - started) / 1000).toFixed(1)}s`);
     } catch (error) {
       log(String(error), true);
     } finally {
@@ -490,6 +648,28 @@
       view.progress = null;
       view.render();
     }
+  }
+
+  /** Joins a continued run onto the one it grew out of, so the chart keeps the
+   * whole history instead of restarting at the branch point.
+   *
+   * Everything is labelled with an absolute tick, so this is a concatenation
+   * rather than a merge. What the earlier run had *after* the branch is dropped:
+   * continuing from the end keeps all of it, and branching from a milestone
+   * halfway up drops the road not taken, which is the point of branching.
+   *
+   * The scalars come from the new segment. Its `seconds` was seeded with where
+   * the branch stood, so it is already the total; its `prestiges` deliberately
+   * is not, being a count for the run that was asked for. */
+  function stitch(before, segment, branch) {
+    if (!before) return segment;
+    const upTo = (rows) => (rows || []).filter((row) => row.tick <= branch);
+    return {
+      ...segment,
+      series: [...upTo(before.series), ...segment.series],
+      milestones: [...upTo(before.milestones), ...segment.milestones],
+      savepoints: [...upTo(before.savepoints), ...(segment.savepoints || [])],
+    };
   }
 
   /** Polls the progress endpoint for as long as the run lasts.
@@ -524,8 +704,8 @@
     renderPanel(view.element.querySelector(".sim-panel"));
     if (view.running) return;
     setStatus(view.result
-      ? `${view.result.policy} - ${view.result.prestiges} of `
-        + `${view.result.prestige_target} prestiges in ${duration(view.result.seconds)} of play`
+      ? `${view.result.policy} - ${prestigeCount(view.result)} `
+        + `in ${duration(view.result.seconds)} of play`
       : "simulator - press Run");
   };
 

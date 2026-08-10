@@ -4,7 +4,8 @@ extends Node
 ##
 ##   godot --headless tools/sc_balance_sim.tscn -- \
 ##       [--ticks=20000] [--policy=roi|cheapest|nodes_only] [--prestiges=3] \
-##       [--samples=200] [--stride=100000] [--progress=FILE] --out=FILE
+##       [--samples=200] [--stride=100000] [--progress=FILE] \
+##       [--load=SAVE] [--from-tick=0] [--from-seconds=0] [--save=FILE] --out=FILE
 ##   godot --headless tools/sc_balance_sim.tscn -- --report --out=FILE
 ##
 ## Run as a scene rather than with --script, because the ViewModels App builds
@@ -23,6 +24,10 @@ const BalanceDataScript := preload("res://tools/gd_balance_data.gd")
 ## Preloaded rather than named: a class_name only resolves once the editor has
 ## rescanned, and this script has to run straight from a checkout.
 const BalancePolicyScript := preload("res://tools/gd_balance_policy.gd")
+## Preloaded for its save-file constants alone. The autoload itself is taken out
+## of the tree before a run starts (see _prepare), but the file shape a run
+## exports has to stay the one the game reads.
+const SaveManagerScript := preload("res://autoload/gd_save_manager.gd")
 
 const DEFAULT_TICKS := 20000
 const DEFAULT_PRESTIGES := 3
@@ -76,6 +81,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var app := _prepare()
 	var args := OS.get_cmdline_user_args()
+	# Parsed before anything is done with the App, because --load replaces the
+	# fresh start _prepare() just set up.
 	var out_path := ""
 	var report := false
 	var ticks := DEFAULT_TICKS
@@ -83,6 +90,10 @@ func _ready() -> void:
 	var samples := DEFAULT_SAMPLES
 	var stride := DEFAULT_STRIDE
 	var progress_path := ""
+	var load_path := ""
+	var save_path := ""
+	var from_tick := 0
+	var from_seconds := 0.0
 	var policy_name := "roi"
 
 	for arg: String in args:
@@ -100,6 +111,14 @@ func _ready() -> void:
 			stride = maxi(1, int(arg.trim_prefix("--stride=")))
 		elif arg.begins_with("--progress="):
 			progress_path = arg.trim_prefix("--progress=")
+		elif arg.begins_with("--load="):
+			load_path = arg.trim_prefix("--load=")
+		elif arg.begins_with("--save="):
+			save_path = arg.trim_prefix("--save=")
+		elif arg.begins_with("--from-tick="):
+			from_tick = maxi(0, int(arg.trim_prefix("--from-tick=")))
+		elif arg.begins_with("--from-seconds="):
+			from_seconds = maxf(0.0, float(arg.trim_prefix("--from-seconds=")))
 		elif arg.begins_with("--policy="):
 			policy_name = arg.trim_prefix("--policy=")
 
@@ -111,8 +130,46 @@ func _ready() -> void:
 		printerr("missing --out=FILE")
 		_finish(2)
 		return
-	_finish(_write(out_path, run(app, BalancePolicyScript.kind_from_name(policy_name),
-		ticks, prestiges, samples, stride, progress_path)))
+	if not load_path.is_empty():
+		var loaded := _read_save(load_path)
+		if loaded.is_empty():
+			printerr("could not read a save from %s" % load_path)
+			_finish(2)
+			return
+		app.load_from_save(loaded)
+	var result := run(app, BalancePolicyScript.kind_from_name(policy_name),
+		ticks, prestiges, samples, stride, progress_path, from_tick, from_seconds)
+	if not save_path.is_empty() and _write(save_path, result["save"]) != 0:
+		_finish(2)
+		return
+	_finish(_write(out_path, result))
+
+
+## Reads a save file, accepting either what SaveManager writes - a versioned
+## envelope with the state under "game" - or a bare state on its own. Both turn
+## up: the first is a save lifted straight out of a play session, the second is
+## one savepoint out of a previous simulated run.
+static func _read_save(path: String) -> Dictionary:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not parsed is Dictionary:
+		return {}
+	var data: Dictionary = parsed
+	var game: Variant = data.get("game")
+	return game if game is Dictionary else data
+
+
+## One save, in the shape the game's own save file has, so a run's end state can
+## be dropped into user://save.json and played from.
+static func _save_file(app: Node) -> Dictionary:
+	return {
+		"version": SaveManagerScript.SAVE_VERSION,
+		"saved_at": Time.get_unix_time_from_system(),
+		"game": app.to_save(),
+	}
 
 
 func _finish(code: int) -> void:
@@ -184,12 +241,26 @@ static func _reset(app: Node) -> void:
 ##
 ## `progress_path`, when given, gets how far the run has got written to it as it
 ## goes, for whoever is waiting on it. Empty means nobody is.
+##
+## `from_tick` and `from_seconds` are where the App handed in has already got to,
+## for a run continuing from a savepoint rather than starting fresh. They shift
+## what the trace and the milestones are labelled with, so a continued run's
+## chart lines up with the run it came out of. They deliberately do not shift the
+## tick budget: `ticks` is always how many ticks *this* run may play.
 static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges: int,
-		samples: int, stride: int = DEFAULT_STRIDE, progress_path: String = "") -> Dictionary:
+		samples: int, stride: int = DEFAULT_STRIDE, progress_path: String = "",
+		from_tick: int = 0, from_seconds: float = 0.0) -> Dictionary:
 	var policy := BalancePolicyScript.new(app, kind)
 	var milestones: Array = []
+	# One save per milestone, so a run can be picked up again from any of the
+	# points worth naming rather than only from where it stopped.
+	var savepoints: Array = []
 	var series: Array = []
-	var unlocked := {}
+	# Which biomes are already open, so only the ones this run actually opens are
+	# reported. Seeded rather than started empty: the free biomes are open before
+	# the first tick, and a run continuing from a savepoint starts with whatever
+	# that savepoint had earned.
+	var unlocked := _unlocked_now(app)
 	var prestige_count := 0
 	var last_prestige_tick := 0
 	# Trace points are spaced geometrically, not evenly, because the chart's tick
@@ -214,7 +285,7 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 	# &"tick_rate" upgrade shortens it, and the perks doing that survive a
 	# prestige, so a later run advances the same tick count in less real time.
 	# Accumulated per tick rather than derived from the trace, which is thinned.
-	var seconds := 0.0
+	var seconds := from_seconds
 
 	# Ticks where the last one bought nothing are candidates for a stride, which
 	# is why the loop counts rather than iterating a range: a stride moves the
@@ -249,19 +320,21 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 			if unlocked.has(def.key) or not app.biomes_data.is_unlocked(def.key):
 				continue
 			unlocked[def.key] = tick
-			milestones.append({"tick": tick, "seconds": seconds, "event": "biome",
-				"detail": String(def.key)})
+			_mark(milestones, savepoints, app, from_tick + tick, seconds, "biome",
+				String(def.key))
 
 		if tick % PRESTIGE_CHECK_EVERY == 0 and _should_prestige(app, tick - last_prestige_tick):
 			var gain: BigNumber = app.preview_biomass_gain()
 			app.prestige()
 			prestige_count += 1
 			last_prestige_tick = tick
-			unlocked.clear()   # a prestige relocks them, so the next run re-earns them
-			milestones.append({"tick": tick, "seconds": seconds, "event": "prestige",
-				"detail": "#%d, +%s biomass" % [prestige_count, gain.to_scientific()]})
+			# A prestige relocks them, so the next run re-earns them - all but the
+			# free ones, which reset() hands straight back.
+			unlocked = _unlocked_now(app)
+			_mark(milestones, savepoints, app, from_tick + tick, seconds, "prestige",
+				"#%d, +%s biomass" % [prestige_count, gain.to_scientific()])
 			if prestige_count >= prestiges:
-				series.append(_sample(app, tick, seconds))
+				series.append(_sample(app, from_tick + tick, seconds))
 				break
 
 		if tick >= next_sample:
@@ -269,7 +342,7 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 			# due: a stride can overshoot the ladder, and measuring from where
 			# the run really is keeps the spacing geometric either way.
 			next_sample = maxi(tick + 1, int(float(tick) * ratio))
-			series.append(_sample(app, tick, seconds))
+			series.append(_sample(app, from_tick + tick, seconds))
 			if series.size() > keep * 2:
 				series = _thin(series)
 				ratio *= ratio
@@ -278,6 +351,14 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 		"policy": BalancePolicyScript.name_of(kind),
 		"ticks": ticks,
 		"seconds": seconds,
+		"from_tick": from_tick,
+		"from_seconds": from_seconds,
+		"last_tick": from_tick + tick,
+		# Where the run stopped, and every point on the way worth stopping at.
+		# Both in the game's own save-file shape, so either can be dropped into
+		# user://save.json and played, or handed back to --load to carry on.
+		"save": _save_file(app),
+		"savepoints": savepoints,
 		"prestige_target": prestiges,
 		"prestiges": prestige_count,
 		"milestones": milestones,
@@ -285,6 +366,31 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 		"errors": [],
 	}
 	return result
+
+
+## The biome keys currently open, as a set.
+static func _unlocked_now(app: Node) -> Dictionary:
+	var open_now := {}
+	for def: BiomeDef in app.biomes.biomes:
+		if app.biomes_data.is_unlocked(def.key):
+			open_now[def.key] = true
+	return open_now
+
+
+## Records one tick worth naming, twice: once lean for the table that lists them,
+## and once with the run's whole state attached so it can be started again from
+## exactly here.
+##
+## The state is taken *after* the event has been applied - after the prestige,
+## after the biome opened - because that is the state the run went on with, and
+## therefore the one a continuation has to pick up.
+static func _mark(milestones: Array, savepoints: Array, app: Node, tick: int, seconds: float,
+		event: String, detail: String) -> void:
+	var row := {"tick": tick, "seconds": seconds, "event": event, "detail": detail}
+	milestones.append(row)
+	var point := row.duplicate()
+	point["save"] = _save_file(app)
+	savepoints.append(point)
 
 
 ## Writes how far the run has got, for whoever is waiting on it.

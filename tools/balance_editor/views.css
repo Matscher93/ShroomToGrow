@@ -180,6 +180,26 @@
 #sim-chart .axis { fill: var(--muted); font: 10px ui-monospace, monospace; }
 #sim-chart .axis-title { fill: var(--muted); font: 11px ui-sans-serif, system-ui, sans-serif; }
 #sim-chart .empty { fill: var(--muted); font: 12px ui-sans-serif, system-ui, sans-serif; }
+/* The file input itself is never shown - the label is the button. */
+.sim-import input { display: none; }
+.sim-import {
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.sim-import:hover { border-color: var(--accent); color: var(--accent); }
+.sim-start {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  font: 11px ui-monospace, monospace;
+  border-left: 3px solid var(--dirty);
+  padding-left: 8px;
+}
+.sim-tiny { font: 10px ui-monospace, monospace; padding: 1px 5px; margin-right: 3px; }
 .sim-progress { display: grid; gap: 4px; }
 .sim-bar {
   display: grid;
