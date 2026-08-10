@@ -15,6 +15,20 @@ var _prestige: UpgradeSystem
 var _geodes: UpgradeSystem
 var _ctx: ResolveContext
 
+## Resolved results, dropped whole the moment any track changes. One stack() is
+## four UpgradeSystem.modify() calls and node_production_bonus() is three
+## stacks, so a tick that reads the same node's bonus for production, for a
+## purchase decision and again for an automation paid nine resolves for one
+## answer. Nothing in a ResolveContext moves without an invalidate() (it says so
+## itself), so "any track changed" is the only staleness there is.
+##
+## Shape: stat -> target -> [base_mantissa, base_exponent, value]. Two dictionary
+## lookups and two float compares, rather than one composite key that would cost
+## a String to build on every hot-path read.
+var _memo: Dictionary = {}
+var _memo_external: Dictionary = {}
+var _memo_version := -1
+
 ## `geodes` defaults to an empty track so the callers that predate the geode
 ## menu - and the tests that only care about one of the other three - keep
 ## building a ProductionSystem with four arguments. An empty UpgradeSystem
@@ -31,18 +45,63 @@ func _init(symbiosis: UpgradeSystem, biome: UpgradeSystem, prestige: UpgradeSyst
 ## Runs base through all three tracks. `target` scopes the lookup to one node id
 ## or biome key, leave it empty for a global stat.
 func stack(stat: StringName, base: BigNumber, target: StringName = &"") -> BigNumber:
+	var hit := _recall(_memo, stat, base, target)
+	if hit != null:
+		return hit
 	var value := _symbiosis.modify(stat, base, _ctx, [], target)
 	value = _biome.modify(stat, value, _ctx, [], target)
 	value = _prestige.modify(stat, value, _ctx, [], target)
-	return _geodes.modify(stat, value, _ctx, [], target)
+	value = _geodes.modify(stat, value, _ctx, [], target)
+	return _remember(_memo, stat, base, target, value)
 
 ## Everything boosting the stat *except* the player's own symbiosis levels.
 ## Scales a symbiosis upgrade's marginal per-level rate for display, so the
 ## shown rate includes the boosts applied on top of it.
 func stack_external(stat: StringName, base: BigNumber, target: StringName = &"") -> BigNumber:
+	var hit := _recall(_memo_external, stat, base, target)
+	if hit != null:
+		return hit
 	var value := _biome.modify(stat, base, _ctx, [], target)
 	value = _prestige.modify(stat, value, _ctx, [], target)
-	return _geodes.modify(stat, value, _ctx, [], target)
+	value = _geodes.modify(stat, value, _ctx, [], target)
+	return _remember(_memo_external, stat, base, target, value)
+
+# ---------------------------------------------------------------- memo
+
+## The memoised result for this exact call, or null when there is none. Clears
+## both memos first if any track has moved since they were filled.
+func _recall(memo: Dictionary, stat: StringName, base: BigNumber,
+		target: StringName) -> BigNumber:
+	var live := _version()
+	if live != _memo_version:
+		_memo.clear()
+		_memo_external.clear()
+		_memo_version = live
+		return null
+	var entry: Variant = memo.get(stat, {}).get(target)
+	if entry == null:
+		return null
+	# One stat is read with more than one base (biomass and crystal gain both
+	# stack their own running total), so the base is part of the identity.
+	if entry[0] != base.mantissa or entry[1] != base.exponent:
+		return null
+	var value: BigNumber = entry[2]
+	return value
+
+## Files a result under its call, and hands it straight back so callers can
+## `return _remember(...)`. BigNumber has no mutating operation, so sharing the
+## instance with every later caller is safe.
+func _remember(memo: Dictionary, stat: StringName, base: BigNumber, target: StringName,
+		value: BigNumber) -> BigNumber:
+	if not memo.has(stat):
+		memo[stat] = {}
+	memo[stat][target] = [base.mantissa, base.exponent, value]
+	return value
+
+## Where all four tracks are, as one number. Any purchase, reset, save load or
+## invalidate() moves it.
+func _version() -> int:
+	return _symbiosis.version + _biome.version + _prestige.version + _geodes.version
 
 # ---------------------------------------------------------------- node output
 

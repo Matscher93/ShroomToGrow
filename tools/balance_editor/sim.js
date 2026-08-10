@@ -42,6 +42,8 @@
     settings: { ticks: 20000, policy: "roi", prestiges: 3, samples: 200 },
     result: null,
     running: false,
+    /** Latest /api/sim/progress reading, or null when nothing is running. */
+    progress: null,
     shown: new Set(["production", "nodes", "perks"]),
   };
 
@@ -261,7 +263,7 @@
       form.append(name, control);
     };
 
-    const ticks = numberInput("ticks", 1, 200000);
+    const ticks = numberInput("ticks", 1, 10000000);
     const prestiges = numberInput("prestiges", 1, 50);
     const samples = numberInput("samples", 10, 2000);
     const policy = document.createElement("select");
@@ -287,6 +289,8 @@
     actions.append(run);
     panel.append(actions);
 
+    if (view.running) panel.append(progressBar());
+
     if (anyDirty()) {
       const warning = document.createElement("div");
       warning.className = "hint";
@@ -297,6 +301,59 @@
     if (view.result) panel.append(summary());
     panel.append(trackToggles());
     if (view.result) panel.append(milestoneTable());
+  }
+
+  /** Where the running simulation has got to.
+   *
+   * A run takes anywhere from seconds to minutes and used to show nothing at all
+   * while it did, which reads identically to a hung server. Two bars, because a
+   * run has two ends it can finish at: it stops at the tick budget or at the
+   * prestige target, whichever it reaches first, and which one is moving faster
+   * is the interesting part. */
+  function progressBar() {
+    const wrap = document.createElement("div");
+    wrap.className = "sim-progress";
+    const at = view.progress;
+    if (!at || typeof at.tick !== "number") {
+      const waiting = document.createElement("div");
+      waiting.className = "hint";
+      waiting.textContent = "starting Godot…";
+      wrap.append(waiting);
+      return wrap;
+    }
+
+    wrap.append(
+      bar("ticks", at.tick, at.ticks, `${at.tick} of ${at.ticks}`),
+      bar("prestiges", at.prestiges, at.prestige_target,
+        `${at.prestiges} of ${at.prestige_target}`));
+
+    const line = document.createElement("div");
+    line.className = "hint";
+    // The played span is what the run is actually measuring, so it goes next to
+    // the wall clock rather than being left to the summary at the end.
+    line.textContent = `${at.played || duration(at.seconds)} played`
+      + (at.elapsed ? ` · ${at.elapsed.toFixed(0)}s elapsed` : "");
+    wrap.append(line);
+    return wrap;
+  }
+
+  /** One labelled bar. A zero-length target would divide by zero, and a run can
+   * legitimately be asked for zero prestiges. */
+  function bar(label, value, target, text) {
+    const row = document.createElement("div");
+    row.className = "sim-bar";
+    const name = document.createElement("span");
+    name.textContent = label;
+    const track = document.createElement("div");
+    track.className = "sim-bar-track";
+    const fill = document.createElement("i");
+    fill.style.width = `${Math.min(100, target > 0 ? (value / target) * 100 : 0)}%`;
+    track.append(fill);
+    const count = document.createElement("span");
+    count.className = "num";
+    count.textContent = text;
+    row.append(name, track, count);
+    return row;
   }
 
   /** What the run cost in real time. Ticks are the simulator's unit, but nobody
@@ -407,11 +464,17 @@
 
   /* ------------------------------------------------------------------- wiring */
 
+  /** How often the page asks the server where the run has got to. The simulator
+   * republishes every 250ms, so anything faster only re-reads the same file. */
+  const POLL_MS = 300;
+
   async function start() {
     view.running = true;
+    view.progress = null;
     view.render();
     const started = Date.now();
     setStatus(`simulating ${view.settings.ticks} ticks under ${view.settings.policy}…`);
+    const polling = watch();
     try {
       view.result = await api("/api/sim", {
         method: "POST",
@@ -422,9 +485,31 @@
     } catch (error) {
       log(String(error), true);
     } finally {
+      clearInterval(polling);
       view.running = false;
+      view.progress = null;
       view.render();
     }
+  }
+
+  /** Polls the progress endpoint for as long as the run lasts.
+   *
+   * Redraws only the panel, not the chart: the chart has nothing new to show
+   * until the run returns, and rebuilding its SVG three times a second for
+   * nothing is visible as a flicker. A failed poll is ignored rather than
+   * reported - the run is what matters, and it is still going. */
+  function watch() {
+    return setInterval(async () => {
+      if (!view.running) return;
+      try {
+        const at = await api("/api/sim/progress");
+        if (!view.running || !at.running) return;
+        view.progress = at;
+        renderPanel(view.element.querySelector(".sim-panel"));
+      } catch (error) {
+        // still running, still nothing to say about it
+      }
+    }, POLL_MS);
   }
 
   view.mount = () => {

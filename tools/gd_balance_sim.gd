@@ -4,7 +4,7 @@ extends Node
 ##
 ##   godot --headless tools/sc_balance_sim.tscn -- \
 ##       [--ticks=20000] [--policy=roi|cheapest|nodes_only] [--prestiges=3] \
-##       [--samples=200] --out=FILE
+##       [--samples=200] [--stride=100000] [--progress=FILE] --out=FILE
 ##   godot --headless tools/sc_balance_sim.tscn -- --report --out=FILE
 ##
 ## Run as a scene rather than with --script, because the ViewModels App builds
@@ -28,6 +28,12 @@ const DEFAULT_TICKS := 20000
 const DEFAULT_PRESTIGES := 3
 const DEFAULT_SAMPLES := 200
 
+## Ceiling on how many idle ticks one stride may skip. There is no correctness
+## reason for a ceiling - the jump is exact at any length - but a bounded stride
+## keeps the cost of a mistaken idle judgement bounded too, and the trace's own
+## sampling interval caps most strides well below this anyway.
+const DEFAULT_STRIDE := 100000
+
 ## Report path used when --report is given without --out. A plain path, relative
 ## to wherever godot was started, rather than a res:// one: the report is a file
 ## in the repository, not a resource the game loads.
@@ -42,6 +48,27 @@ const PRESTIGE_GAIN_FACTOR := 2.0
 ## can always afford one does not spend the whole simulation resetting.
 const MIN_TICKS_BETWEEN_PRESTIGES := 50
 
+## How often the run asks whether it should prestige. Asking costs a
+## can_prestige() and a preview_biomass_gain(), and asking every tick was a
+## sizeable slice of a long run for an answer that cannot change quickly:
+## nothing may prestige inside MIN_TICKS_BETWEEN_PRESTIGES anyway, and a real
+## gap runs to hundreds of ticks. A prestige therefore lands up to this many
+## ticks late, which is well inside the noise of a pacing measurement.
+const PRESTIGE_CHECK_EVERY := 10
+
+## How often the run tells --progress=FILE where it has got to. A run takes
+## minutes and the page watching it has nothing else to go on, so this wants to
+## be often enough to look alive and rare enough to stay free: at 250ms a
+## 20,000-tick run writes it a couple of hundred times.
+const PROGRESS_EVERY_MS := 250
+
+## How often achievements are evaluated. The game drains them once a frame off a
+## dirty flag that every tick sets, so a per-tick evaluation is the faithful
+## thing - but it walks every achievement, and the only thing riding on it here
+## is when crystals arrive. Completing a tier a few ticks late costs a run
+## nothing it can measure.
+const ACHIEVEMENTS_EVERY := 5
+
 
 func _ready() -> void:
 	# The root is still busy adding this scene, and _prepare() has to take two
@@ -54,6 +81,8 @@ func _ready() -> void:
 	var ticks := DEFAULT_TICKS
 	var prestiges := DEFAULT_PRESTIGES
 	var samples := DEFAULT_SAMPLES
+	var stride := DEFAULT_STRIDE
+	var progress_path := ""
 	var policy_name := "roi"
 
 	for arg: String in args:
@@ -67,6 +96,10 @@ func _ready() -> void:
 			prestiges = int(arg.trim_prefix("--prestiges="))
 		elif arg.begins_with("--samples="):
 			samples = int(arg.trim_prefix("--samples="))
+		elif arg.begins_with("--stride="):
+			stride = maxi(1, int(arg.trim_prefix("--stride=")))
+		elif arg.begins_with("--progress="):
+			progress_path = arg.trim_prefix("--progress=")
 		elif arg.begins_with("--policy="):
 			policy_name = arg.trim_prefix("--policy=")
 
@@ -79,7 +112,7 @@ func _ready() -> void:
 		_finish(2)
 		return
 	_finish(_write(out_path, run(app, BalancePolicyScript.kind_from_name(policy_name),
-		ticks, prestiges, samples)))
+		ticks, prestiges, samples, stride, progress_path)))
 
 
 func _finish(code: int) -> void:
@@ -144,34 +177,73 @@ static func _reset(app: Node) -> void:
 ## The returned dictionary holds `milestones` (the ticks worth naming) and
 ## `series` (a downsampled trace), plus the settings that produced them so a
 ## saved result is self-describing.
+##
+## `stride` caps how many idle ticks may be skipped in one step. 1 disables
+## striding, which is the setting to reach for when a result looks wrong: the
+## two paths must agree, and if they don't, this one is the suspect.
+##
+## `progress_path`, when given, gets how far the run has got written to it as it
+## goes, for whoever is waiting on it. Empty means nobody is.
 static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges: int,
-		samples: int) -> Dictionary:
+		samples: int, stride: int = DEFAULT_STRIDE, progress_path: String = "") -> Dictionary:
 	var policy := BalancePolicyScript.new(app, kind)
 	var milestones: Array = []
 	var series: Array = []
 	var unlocked := {}
 	var prestige_count := 0
 	var last_prestige_tick := 0
-	# Sampling starts dense and thins out as the trace fills (see _thin), rather
-	# than spacing points over the tick budget: a run usually ends at its prestige
-	# target long before the budget, and a fixed spacing leaves such a run with
-	# two points on the chart.
-	var every := 1
+	# Trace points are spaced geometrically, not evenly, because the chart's tick
+	# axis goes logarithmic as soon as a run spans more than a few decades - and
+	# every run of any length does. Even spacing on a log axis piles almost every
+	# point into the last decade and leaves the first biome, the first automation
+	# and the first prestige sharing a handful of pixels' worth of samples. A
+	# constant ratio puts the same number of points in every decade instead.
+	#
+	# The ratio comes from the tick budget, so the trace fills to about `samples`
+	# points whatever the run is asked for. It still thins if a run outlives the
+	# estimate (see _thin), and squaring the ratio then keeps the spacing
+	# geometric, exactly as doubling kept it even before.
 	var keep := maxi(2, samples)
+	var ratio := pow(maxf(2.0, float(ticks)), 1.0 / float(keep))
+	# Which tick the last trace point was taken on, and where the next one is
+	# due. Read from the tick counter rather than tested with a modulo, because a
+	# stride moves the tick number by more than one and would step straight over
+	# any exact multiple.
+	var next_sample := 1
 	# Wall clock the run would have taken. A tick is not a fixed span: every
 	# &"tick_rate" upgrade shortens it, and the perks doing that survive a
 	# prestige, so a later run advances the same tick count in less real time.
 	# Accumulated per tick rather than derived from the trace, which is thinned.
 	var seconds := 0.0
 
-	for tick in range(1, ticks + 1):
+	# Ticks where the last one bought nothing are candidates for a stride, which
+	# is why the loop counts rather than iterating a range: a stride moves the
+	# tick number by more than one.
+	var tick := 0
+	var idle := false
+	var told_at := Time.get_ticks_msec()
+	while tick < ticks:
+		if not progress_path.is_empty() and Time.get_ticks_msec() - told_at >= PROGRESS_EVERY_MS:
+			told_at = Time.get_ticks_msec()
+			_report_progress(progress_path, tick, ticks, prestige_count, prestiges, seconds)
+		if idle and stride > 1:
+			var room := mini(stride, ticks - tick - 1)
+			var jump := _stride(app, policy, room, tick - last_prestige_tick)
+			if jump > 0:
+				# Exact: nothing inside the span is bought, so nothing shortens
+				# the tick either.
+				seconds += float(jump) * app.tick_duration()
+				app.tick_system.advance(jump)
+				tick += jump
+		tick += 1
 		seconds += app.tick_duration()
 		app.handle_tick()
 		# App drains this once per frame in _process, and the loop here never
 		# yields a frame. Without it no achievement ever completes and the run
 		# earns no crystals, so no automation is ever affordable.
-		app.achievement_system.evaluate()
-		policy.spend()
+		if tick % ACHIEVEMENTS_EVERY == 0:
+			app.achievement_system.evaluate()
+		idle = policy.spend() == 0
 
 		for def: BiomeDef in app.biomes.biomes:
 			if unlocked.has(def.key) or not app.biomes_data.is_unlocked(def.key):
@@ -180,7 +252,7 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 			milestones.append({"tick": tick, "seconds": seconds, "event": "biome",
 				"detail": String(def.key)})
 
-		if _should_prestige(app, tick - last_prestige_tick):
+		if tick % PRESTIGE_CHECK_EVERY == 0 and _should_prestige(app, tick - last_prestige_tick):
 			var gain: BigNumber = app.preview_biomass_gain()
 			app.prestige()
 			prestige_count += 1
@@ -192,11 +264,15 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 				series.append(_sample(app, tick, seconds))
 				break
 
-		if tick % every == 0:
+		if tick >= next_sample:
+			# Stepped off the tick actually reached, not off the tick that was
+			# due: a stride can overshoot the ladder, and measuring from where
+			# the run really is keeps the spacing geometric either way.
+			next_sample = maxi(tick + 1, int(float(tick) * ratio))
 			series.append(_sample(app, tick, seconds))
 			if series.size() > keep * 2:
 				series = _thin(series)
-				every *= 2
+				ratio *= ratio
 
 	var result := {
 		"policy": BalancePolicyScript.name_of(kind),
@@ -211,10 +287,173 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 	return result
 
 
+## Writes how far the run has got, for whoever is waiting on it.
+##
+## Through a temporary file and a rename, because the reader polls on its own
+## schedule and would otherwise catch a half-written line and see a run that had
+## gone backwards. A rename inside one directory is atomic; a write is not.
+##
+## Failures are ignored on purpose: nothing about the run depends on anyone
+## reading this, and a run that has taken minutes must not die at the end of it
+## because a temporary directory went away.
+static func _report_progress(path: String, tick: int, ticks: int, prestiges: int,
+		prestige_target: int, seconds: float) -> void:
+	var staging := path + ".part"
+	var file := FileAccess.open(staging, FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string(JSON.stringify({
+		"tick": tick,
+		"ticks": ticks,
+		"prestiges": prestiges,
+		"prestige_target": prestige_target,
+		"seconds": seconds,
+		"played": format_duration(seconds),
+	}))
+	file.close()
+	DirAccess.rename_absolute(staging, path)
+
+
+# -------------------------------------------------------------------- striding
+
+## How many of the next `limit` ticks can be skipped outright, which is the last
+## one where the run still wants nothing.
+##
+## A run spends almost all of its ticks waiting: 97% of them, measured, buy
+## nothing at all and only let nutrients pile up. TickSystem.advance() can land
+## on the end of such a stretch in one step, and this is what decides how long
+## the stretch is.
+##
+## Bisection is sound because every quantity that moves during an idle stretch
+## only ever grows - nutrients, lifetime totals, tick count - while every price
+## it is measured against is frozen, since a price only moves when something is
+## bought. So "the run still wants nothing" is true up to some tick and false
+## after it, and the search finds that tick in a dozen probes rather than
+## walking the thousands of ticks in between.
+##
+## Each probe advances a throwaway copy of the state and puts it back, so a
+## rejected probe leaves nothing behind.
+##
+## The search doubles before it bisects, so its cost tracks the stretch it
+## actually finds rather than the ceiling it was handed: a hundred-tick lull
+## costs about fourteen probes whether the ceiling was a thousand or a million.
+##
+## Everything a probe would otherwise re-derive is hoisted into `watch` first,
+## because none of it can move while nothing is bought. A probe is then a
+## weighted sum, three comparisons and a look at the handful of achievements
+## whose measure grows on its own.
+static func _stride(app: Node, policy: BalancePolicy, limit: int, gap: int) -> int:
+	if limit < 1:
+		return 0
+	var watch := _watch(app, policy)
+	if watch.is_empty():
+		return 0     # something already wants attention, so nothing can be skipped
+	var snapshot := _snapshot(app)
+	var best := 0
+	var high := 1
+	while high <= limit and _probe(app, snapshot, watch, high, gap):
+		best = high
+		high *= 2
+	if best == 0:
+		return 0
+
+	# Somewhere in (best, min(high, limit)] the run stops being idle. Nothing
+	# below `best` needs re-testing: every quantity in play only grows, so a
+	# tick that wanted nothing had every earlier tick want nothing too.
+	var low := best + 1
+	high = mini(high - 1, limit)
+	while low <= high:
+		@warning_ignore("integer_division")
+		var mid := low + (high - low) / 2
+		if _probe(app, snapshot, watch, mid, gap):
+			best = mid
+			low = mid + 1
+		else:
+			high = mid - 1
+	return best
+
+
+## What has to be watched across an idle stretch, and what it is measured
+## against. Empty when the stretch cannot start at all: something already wants
+## buying, an achievement is already standing on its goal, or a prestige is
+## already due, and there is nothing to skip.
+##
+## The three prices are read once because a price only moves when a level does,
+## and nothing buys a level inside a stride. The achievements are filtered to the
+## ones whose measure can move on its own - a tick count and a nutrient total -
+## since every other one is counting something only a purchase changes.
+static func _watch(app: Node, policy: BalancePolicy) -> Dictionary:
+	if app.has_achievement_claims():
+		return {}
+	var growing: Array[AchievementDef] = []
+	for def: AchievementDef in app.achievements.achievements:
+		if app.achievement_system.is_maxed(def):
+			continue
+		if app.achievement_system.current_value(def).gte(app.achievement_system.current_goal(def)):
+			return {}
+		if def.stat == AchievementDef.Stat.LIFETIME_TICKS \
+				or def.stat == AchievementDef.Stat.LIFETIME_NUTRIENTS:
+			growing.append(def)
+	return {
+		"price": policy.cheapest_price(),
+		"perk": _cheapest_locked_perk_cost(app),
+		"growing": growing,
+		"kernel": app.tick_system.jump_kernel(),
+	}
+
+
+## Whether the run would still want nothing `jump` ticks from now. Leaves the
+## state exactly as it found it.
+static func _probe(app: Node, snapshot: Dictionary, watch: Dictionary, jump: int,
+		gap: int) -> bool:
+	app.tick_system.advance_by(jump, watch["kernel"])
+	var quiet := _settled(app, watch, gap + jump)
+	_restore(app, snapshot)
+	return quiet
+
+
+## Whether the run would do nothing at all from this state: buy nothing, complete
+## no achievement, take no prestige. The three things a tick can produce.
+static func _settled(app: Node, watch: Dictionary, gap: int) -> bool:
+	var price: BigNumber = watch["price"]
+	if price != null and app.player_data.nutrients.gte(price):
+		return false
+	for def: AchievementDef in watch["growing"]:
+		if app.achievement_system.current_value(def).gte(app.achievement_system.current_goal(def)):
+			return false
+	return not _should_prestige(app, gap, watch["perk"])
+
+
+## Everything TickSystem.advance() moves, and nothing else - which is the whole
+## list, since a stride is only ever taken across ticks that buy nothing.
+## BigNumber has no mutating operation, so holding the references is a copy.
+static func _snapshot(app: Node) -> Dictionary:
+	var autos: Array[BigNumber] = []
+	for node: MyceliumNode in app.nodes.mycelium_nodes:
+		autos.append(node.auto_nodes)
+	return {
+		"auto_nodes": autos,
+		"nutrients": app.player_data.nutrients,
+		"lifetime_nutrients": app.player_data.lifetime_nutrients,
+		"tick_count": app.player_data.tick_count,
+		"lifetime_ticks": app.player_data.lifetime_ticks,
+	}
+
+
+static func _restore(app: Node, snapshot: Dictionary) -> void:
+	var autos: Array = snapshot["auto_nodes"]
+	for i in app.nodes.mycelium_nodes.size():
+		app.nodes.mycelium_nodes[i].auto_nodes = autos[i]
+	app.player_data.nutrients = snapshot["nutrients"]
+	app.player_data.lifetime_nutrients = snapshot["lifetime_nutrients"]
+	app.player_data.tick_count = snapshot["tick_count"]
+	app.player_data.lifetime_ticks = snapshot["lifetime_ticks"]
+
+
 ## Drops every second point, halving a full trace so sampling can carry on at
-## twice the interval. Spacing stays even, which is what a chart needs; the run
-## keeps whatever length it turns out to have, which is what a fixed interval
-## cannot do.
+## the squared ratio. Spacing stays geometric, which is what a log axis needs;
+## the run keeps whatever length it turns out to have, which is what a fixed
+## interval cannot do.
 static func _thin(series: Array) -> Array:
 	var kept: Array = []
 	for i in range(0, series.size(), 2):
@@ -229,13 +468,18 @@ static func _thin(series: Array) -> Array:
 ## that is currently out of reach into reach, otherwise the run is thrown away
 ## for nothing. On top of that it has to be worth more than what is already
 ## banked, so a run does not reset for a rounding error late on.
-static func _should_prestige(app: Node, ticks_since_last: int) -> bool:
+##
+## `next_perk` is the answer _cheapest_locked_perk_cost() would give, passed in
+## by a caller that has it already: it walks every perk, and a stride asks this
+## question a dozen times over a stretch where the answer cannot have changed.
+static func _should_prestige(app: Node, ticks_since_last: int,
+		next_perk: Variant = null) -> bool:
 	if ticks_since_last < MIN_TICKS_BETWEEN_PRESTIGES or not app.can_prestige():
 		return false
 	var gain: BigNumber = app.preview_biomass_gain()
 	var held: BigNumber = app.player_data.biomass
-	var next_perk := _cheapest_locked_perk_cost(app)
-	if next_perk != null and not held.add(gain).gte(next_perk):
+	var perk: BigNumber = next_perk if next_perk != null else _cheapest_locked_perk_cost(app)
+	if perk != null and not held.add(gain).gte(perk):
 		return false
 	if held.mantissa == 0.0:
 		return true

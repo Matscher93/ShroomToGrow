@@ -31,10 +31,14 @@ PROJECT_ROOT = HERE.parent.parent
 CLI_SCRIPT = "tools/gd_balance_cli.gd"
 SIM_SCENE = "tools/sc_balance_sim.tscn"
 
-# A simulated run of the default length takes minutes, unlike every read-only
-# command, which takes seconds.
+# A simulated run takes far longer than any read-only command, which is seconds.
+#
+# The ceiling is high because the simulator strides over idle stretches rather
+# than playing them out, so a run's cost tracks how often it buys something
+# rather than how many ticks it was given: ten million ticks is months of game
+# time and still finishes in about the time a fifth of that used to take.
 SIM_TIMEOUT = 900
-SIM_MAX_TICKS = 200000
+SIM_MAX_TICKS = 10_000_000
 
 # How often an /api/events connection looks for a new version, and how long it
 # stays silent before sending a keep-alive comment.
@@ -54,6 +58,10 @@ _snapshot: dict = {}
 # Godot editor is invisible until someone presses "Reload from .tres".
 _version = 0
 _derived: dict = {}      # command name -> its last report, dropped whenever data changes
+# Where the running simulation is writing its progress, and when it started.
+# Empty whenever nothing is running, which is what /api/sim/progress reports as
+# "not running". Only ever written under _godot_lock, so there is only ever one.
+_progress: dict = {}
 _servers: list[ThreadingHTTPServer] = []
 
 # Everything the page may load next to index.html. An allowlist rather than a
@@ -66,17 +74,28 @@ class GodotError(Exception):
     pass
 
 
-def run_godot(args: list[str], entry: list[str] | None = None, timeout: int = 300) -> dict:
+def run_godot(args: list[str], entry: list[str] | None = None, timeout: int = 300,
+              progress: bool = False) -> dict:
     """Runs a headless Godot tool and returns the JSON report it wrote to --out.
 
     `entry` says what to run: the balance CLI by default, or the simulator scene,
     which cannot use --script because the ViewModels App builds address the App
     autoload by name.
+
+    `progress` asks the tool to keep a file saying how far it has got, and
+    publishes where that file is while the run lasts, for /api/sim/progress to
+    read. Only the simulator writes one - it is the only command that takes long
+    enough for anyone to want it.
     """
     with _godot_lock, tempfile.TemporaryDirectory() as tmp:
         out_path = Path(tmp) / "report.json"
         command = [GODOT_BIN, "--headless", *(entry or ["--script", CLI_SCRIPT]), "--",
                    *args, f"--out={out_path}"]
+        if progress:
+            progress_path = Path(tmp) / "progress.json"
+            command.append(f"--progress={progress_path}")
+            _progress["path"] = progress_path
+            _progress["started"] = time.time()
         try:
             done = subprocess.run(command, cwd=PROJECT_ROOT, capture_output=True,
                                   text=True, timeout=timeout)
@@ -84,10 +103,33 @@ def run_godot(args: list[str], entry: list[str] | None = None, timeout: int = 30
             raise GodotError(f"{GODOT_BIN} not found - set GODOT_BIN")
         except subprocess.TimeoutExpired:
             raise GodotError(f"godot timed out after {timeout}s")
+        finally:
+            # The temporary directory goes with this block, so the path has to
+            # stop being published before it does.
+            _progress.clear()
         if not out_path.exists():
             detail = (done.stderr or done.stdout or "").strip().splitlines()
             raise GodotError("godot wrote no report: " + " / ".join(detail[-3:]))
         return json.loads(out_path.read_text())
+
+
+def sim_progress() -> dict:
+    """How far the running simulation has got, for a page that is waiting.
+
+    Read on demand rather than pushed: this is polled while a run lasts and
+    forgotten the rest of the time. A run that has not written its first update
+    yet, or one caught mid-write, reports as running with nothing to show rather
+    than as an error - the next poll is 300ms away.
+    """
+    path = _progress.get("path")
+    if path is None:
+        return {"running": False}
+    state = {"running": True, "elapsed": round(time.time() - _progress.get("started", 0.0), 1)}
+    try:
+        state.update(json.loads(Path(path).read_text()))
+    except (OSError, ValueError):
+        pass
+    return state
 
 
 def load_snapshot() -> dict:
@@ -110,7 +152,7 @@ def simulate(request: dict) -> dict:
         f"--samples={int(request.get('samples', 200))}",
         f"--policy={str(request.get('policy', 'roi'))}",
     ]
-    report = run_godot(args, entry=[SIM_SCENE], timeout=SIM_TIMEOUT)
+    report = run_godot(args, entry=[SIM_SCENE], timeout=SIM_TIMEOUT, progress=True)
     if report.get("errors"):
         raise GodotError("; ".join(report["errors"]))
     return report
@@ -244,6 +286,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(table(self.path[len("/api/file/"):]))
             elif self.path == "/api/events":
                 self._events()
+            elif self.path == "/api/sim/progress":
+                self._send_json(sim_progress())
             elif self.path in ("/api/curves", "/api/perks", "/api/unused"):
                 self._send_json(derived(self.path[len("/api/"):]))
             elif self._static_file():

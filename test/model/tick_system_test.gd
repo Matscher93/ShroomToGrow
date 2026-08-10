@@ -158,3 +158,73 @@ func test_passed_in_bonuses_are_used_verbatim() -> void:
 	system.handle_tick(hoisted)
 
 	assert_float(_player.nutrients.to_float()).is_equal_approx(1.0, EPS)
+
+# ─── Striding ────────────────────────────────────────────────────────────────
+
+## Runs the same chain twice, once tick by tick and once in one jump, and
+## reports both end states so a test can compare them.
+func _strided_against_looped(manual: Array[int], bonuses: Array[BigNumber],
+		count: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for strided in [false, true]:
+		_player = PlayerData.new()
+		_player.nutrients = BigNumber.from_value(0.0)
+		_player.lifetime_nutrients = BigNumber.from_value(0.0)
+		var nodes := _chain(manual)
+		var system := _system(nodes)
+		if strided:
+			system.advance(count, bonuses)
+		else:
+			for _i in count:
+				system.handle_tick(bonuses)
+		var tiers: Array[float] = []
+		for node in nodes:
+			tiers.append(node.auto_nodes.to_float())
+		out.append({
+			"tiers": tiers,
+			"nutrients": _player.nutrients.to_float(),
+			"lifetime": _player.lifetime_nutrients.to_float(),
+			"ticks": _player.tick_count,
+		})
+	return out
+
+func _assert_stride_matches(manual: Array[int], bonuses: Array[BigNumber], count: int) -> void:
+	var runs := _strided_against_looped(manual, bonuses, count)
+	var looped: Dictionary = runs[0]
+	var strided: Dictionary = runs[1]
+	assert_int(strided["ticks"]).is_equal(looped["ticks"])
+	assert_float(strided["nutrients"]).is_equal_approx(looped["nutrients"],
+		maxf(EPS, absf(looped["nutrients"]) * 1e-9))
+	assert_float(strided["lifetime"]).is_equal_approx(looped["lifetime"],
+		maxf(EPS, absf(looped["lifetime"]) * 1e-9))
+	for i in looped["tiers"].size():
+		assert_float(strided["tiers"][i]).is_equal_approx(looped["tiers"][i],
+			maxf(EPS, absf(looped["tiers"][i]) * 1e-9))
+
+func test_one_strided_tick_is_one_tick() -> void:
+	_assert_stride_matches([2, 3, 1] as Array[int], [] as Array[BigNumber], 1)
+
+func test_a_stride_lands_where_the_loop_lands() -> void:
+	# The whole premise: the closed form is exact, not an approximation, for a
+	# span where nothing is bought.
+	_assert_stride_matches([2, 3, 1] as Array[int], [] as Array[BigNumber], 250)
+
+func test_a_stride_lands_where_the_loop_lands_with_bonuses() -> void:
+	var bonuses: Array[BigNumber] = [BigNumber.from_value(2.5),
+		BigNumber.from_value(1.5), BigNumber.from_value(3.0)]
+	_assert_stride_matches([2, 0, 1] as Array[int], bonuses, 120)
+
+func test_a_long_chain_strides_exactly() -> void:
+	# Eight tiers is deep enough that the binomial series has to run its full
+	# length before the differences vanish.
+	_assert_stride_matches([1, 1, 1, 1, 1, 1, 1, 1] as Array[int],
+		[] as Array[BigNumber], 60)
+
+func test_an_idle_chain_strides_to_nothing() -> void:
+	_assert_stride_matches([0, 0, 0] as Array[int], [] as Array[BigNumber], 1000)
+
+func test_a_stride_of_zero_ticks_changes_nothing() -> void:
+	var nodes := _chain([5] as Array[int])
+	_system(nodes).advance(0)
+	assert_int(_player.tick_count).is_zero()
+	assert_float(_player.nutrients.to_float()).is_zero()

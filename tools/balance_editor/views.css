@@ -180,6 +180,24 @@
 #sim-chart .axis { fill: var(--muted); font: 10px ui-monospace, monospace; }
 #sim-chart .axis-title { fill: var(--muted); font: 11px ui-sans-serif, system-ui, sans-serif; }
 #sim-chart .empty { fill: var(--muted); font: 12px ui-sans-serif, system-ui, sans-serif; }
+.sim-progress { display: grid; gap: 4px; }
+.sim-bar {
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  gap: 6px;
+  align-items: center;
+  font: 11px ui-monospace, monospace;
+  color: var(--muted);
+}
+.sim-bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+/* Transitioned, so a stride jumping thousands of ticks at once slides instead
+   of teleporting - the jump is the interesting part, not a glitch. */
+.sim-bar-track i { display: block; height: 100%; background: var(--accent); transition: width 0.3s linear; }
 .sim-summary {
   font-size: 13px;
   font-weight: 600;

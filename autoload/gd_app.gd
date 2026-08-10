@@ -384,6 +384,11 @@ func is_biome_upgrade_unlocked(id: StringName, key: StringName) -> bool:
 func can_buy_biome_upgrade(id: StringName, key: StringName) -> bool:
 	return biome_system.can_buy_upgrade(id, key)
 
+## can_buy_biome_upgrade() without the point-budget half, for a caller testing
+## many upgrades against one budget it read itself. See BiomeSystem.
+func has_biome_upgrade_room(id: StringName, key: StringName) -> bool:
+	return biome_system.has_upgrade_room(id, key)
+
 func buy_biome_upgrade(id: StringName, key: StringName) -> bool:
 	return biome_system.buy_upgrade(id, key)
 

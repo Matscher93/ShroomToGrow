@@ -14,8 +14,35 @@ signal upgrades_changed
 
 var _defs: Dictionary = {}      # id -> UpgradeDef
 var _levels: Dictionary = {}    # id -> int, this is the save data
+
+## The resolved effects, in two layers, because a purchase invalidates far less
+## than it used to redo.
+##
+## _contrib holds what one upgrade contributes at its current level, with its
+## ScalingSourceDef already applied - the expensive half, since a magnitude is a
+## pow() and a dependency is a context read. _cache holds the summed buckets one
+## stat resolves through, which is the only thing modify() actually reads.
+##
+## Buying a level makes exactly one upgrade's contribution stale, and through it
+## only the stats that upgrade writes. invalidate() makes the context-reading
+## upgrades stale and nothing else. Both layers rebuild lazily, per stat, on the
+## next read - so a stat nothing asks for is never summed at all.
 var _cache: Dictionary = {}     # stat -> { scope_key -> {add, inc, more} }
-var _dirty := true
+var _contrib: Dictionary = {}   # id -> Array[Dictionary] {stat, key, op, mag}
+var _stat_ids: Dictionary = {}  # stat -> { id -> true }, who writes into it
+var _stale: Dictionary = {}     # id -> true, contributions to recompute
+var _stat_dirty: Dictionary = {}  # stat -> true, buckets to re-sum
+
+## Upgrades whose magnitude reads the ResolveContext, and so the only ones an
+## invalidate() can have moved. Everything else is a pure function of its level.
+var _context_readers: Dictionary = {}
+
+## Bumped by every change that makes the resolved effects stale. A caller
+## stacking several tracks can memoise a resolved value and drop it the moment
+## any track moves, without knowing what moved - see ProductionSystem, which
+## resolves the same handful of stats dozens of times per tick from unchanged
+## levels.
+var version: int = 0
 
 ## While non-zero, changes still mark the cache stale immediately but hold their
 ## signal until the outermost end_batch(). See begin_batch().
@@ -43,7 +70,11 @@ func register(def: UpgradeDef) -> void:
 	_defs[def.id] = def
 	if not _levels.has(def.id):
 		_levels[def.id] = 0
-	_dirty = true
+	if _reads_context(def):
+		_context_readers[def.id] = true
+	else:
+		_context_readers.erase(def.id)   # a re-register may have dropped the dependency
+	_touch([def.id])
 
 func has_def(id: StringName) -> bool:
 	return _defs.has(id)
@@ -56,9 +87,30 @@ func level(id: StringName) -> int:
 
 ## Marks the cache stale. Call when something a ScalingSourceDef depends on
 ## changes (e.g. manual node count) so those sources get re-evaluated.
+##
+## Only the upgrades that actually read a context are re-evaluated. The rest
+## resolve from their level alone, and a manual node count moving cannot change
+## what they contribute.
 func invalidate() -> void:
-	_dirty = true
+	_touch(_context_readers.keys())
 	_emit_changed()
+
+## Stale, and say so. Every write path goes through here rather than touching
+## the caches itself, so no change can move the levels without moving `version`
+## - which is what a caller memoising across tracks watches. `ids` may be empty
+## and the version still moves: an invalidate() with no context-reading upgrades
+## in this track can still have moved another one.
+func _touch(ids: Array) -> void:
+	for id: StringName in ids:
+		_stale[id] = true
+	version += 1
+
+## True when any of this upgrade's effects scales by something outside itself.
+static func _reads_context(def: UpgradeDef) -> bool:
+	for e: UpgradeEffectDef in def.effects:
+		if e.dependency != null and e.dependency.kind != ScalingSourceDef.Kind.NONE:
+			return true
+	return false
 
 ## Collapses a burst of purchases into one upgrades_changed.
 ##
@@ -141,7 +193,7 @@ func buy(id: StringName, player_data: PlayerData, currency: StringName = &"nutri
 	player_data.set(currency, current.sub(cost(id)))
 	_levels[id] = level(id) + 1
 	lifetime_levels += 1
-	_dirty = true
+	_touch([id])
 	_emit_changed()
 	return true
 
@@ -160,7 +212,7 @@ func buy_with_points(id: StringName, has_point_available: bool) -> bool:
 		return false
 	_levels[id] = level(id) + 1
 	lifetime_levels += 1
-	_dirty = true
+	_touch([id])
 	_emit_changed()
 	return true
 
@@ -178,7 +230,7 @@ func reset() -> void:
 	_levels.clear()
 	for id in _defs:
 		_levels[id] = 0
-	_dirty = true
+	_touch(_defs.keys())
 	_emit_changed()
 
 func to_save() -> Dictionary:
@@ -193,7 +245,7 @@ func to_save() -> Dictionary:
 
 ## Levels for unknown ids are dropped, not stored. A renamed or deleted
 ## UpgradeDef, or a data directory that failed to load, would otherwise leave an
-## id in _levels that _rebuild() has no def for.
+## id in _levels that no def backs.
 func from_save(data: Dictionary) -> void:
 	for key in data:
 		if key == LIFETIME_KEY:
@@ -204,7 +256,7 @@ func from_save(data: Dictionary) -> void:
 			push_warning("Save contains unknown upgrade '%s', dropping its level." % key)
 			continue
 		_levels[id] = int(data[key])
-	_dirty = true
+	_touch(_defs.keys())
 	_emit_changed()
 
 # Authoring side: which bucket does this effect write into?
@@ -233,32 +285,65 @@ func _applicable_keys(tags: PackedStringArray, node_id: StringName) -> PackedStr
 		keys.append(_K_NODE + String(node_id))
 	return keys
 
-func _rebuild(ctx: ResolveContext) -> void:
-	_cache.clear()
-	for id in _levels:
-		var lvl: int = _levels[id]
-		if lvl <= 0: continue
-		var upgrade_def: UpgradeDef = _defs.get(id)
-		if upgrade_def == null:
-			continue
-		for e in upgrade_def.effects:
-			var mag: BigNumber = e.magnitude(lvl)
-			if e.dependency:
-				mag = mag.scale(e.dependency.evaluate(ctx))
-			var key := _scope_key(e.scope, e.target)
-			var bucket: Dictionary = _cache.get(e.stat, {})
-			var agg: Dictionary = bucket.get(key, {
+## Re-resolves every upgrade marked stale, and marks the stats they write - the
+## ones they used to write included, so an upgrade that stops contributing takes
+## its old bucket down with it.
+func _resolve_stale(ctx: ResolveContext) -> void:
+	for id: StringName in _stale:
+		_forget(id)
+		_remember(id, ctx)
+	_stale.clear()
+
+func _forget(id: StringName) -> void:
+	for c: Dictionary in _contrib.get(id, []):
+		_stat_dirty[c["stat"]] = true
+		var writers: Dictionary = _stat_ids.get(c["stat"], {})
+		writers.erase(id)
+	_contrib.erase(id)
+
+## What this upgrade contributes at its current level. Nothing at level zero, and
+## nothing for an id no def backs - a save can carry one past a rename.
+func _remember(id: StringName, ctx: ResolveContext) -> void:
+	var lvl: int = _levels.get(id, 0)
+	if lvl <= 0: return
+	var upgrade_def: UpgradeDef = _defs.get(id)
+	if upgrade_def == null: return
+	var out: Array[Dictionary] = []
+	for e: UpgradeEffectDef in upgrade_def.effects:
+		var mag: BigNumber = e.magnitude(lvl)
+		if e.dependency:
+			mag = mag.scale(e.dependency.evaluate(ctx))
+		out.append({"stat": e.stat, "key": _scope_key(e.scope, e.target), "op": e.op, "mag": mag})
+		_stat_dirty[e.stat] = true
+		if not _stat_ids.has(e.stat):
+			_stat_ids[e.stat] = {}
+		_stat_ids[e.stat][id] = true
+	_contrib[id] = out
+
+## One stat's buckets, summed from the upgrades writing it. Re-summed only when
+## one of those upgrades moved, and only when something asks for this stat.
+func _bucket(stat: StringName) -> Dictionary:
+	if not _stat_dirty.has(stat):
+		return _cache.get(stat, {})
+	_stat_dirty.erase(stat)
+	var bucket := {}
+	for id: StringName in _stat_ids.get(stat, {}):
+		for c: Dictionary in _contrib.get(id, []):
+			if c["stat"] != stat:
+				continue     # a multi-effect upgrade writing more than one stat
+			var agg: Dictionary = bucket.get(c["key"], {
 				"add": BigNumber.new(0.0, 0),
 				"inc": BigNumber.new(0.0, 0),
 				"more": BigNumber.from_value(1.0),
 			})
-			match e.op:
+			var mag: BigNumber = c["mag"]
+			match c["op"]:
 				UpgradeEffectDef.Op.ADD:       agg.add  = agg.add.add(mag)
 				UpgradeEffectDef.Op.INCREASED: agg.inc  = agg.inc.add(mag)
 				UpgradeEffectDef.Op.MORE:      agg.more = agg.more.mul(BigNumber.from_value(1.0).add(mag))
-			bucket[key] = agg
-			_cache[e.stat] = bucket
-	_dirty = false
+			bucket[c["key"]] = agg
+	_cache[stat] = bucket
+	return bucket
 
 ## Hot path: every displayed stat resolves through this, three times over (one
 ## per track), and the automation tick drives it hundreds of times a tick. Hence
@@ -267,9 +352,9 @@ func _rebuild(ctx: ResolveContext) -> void:
 ## the cost of a cache hit.
 func modify(stat: StringName, base: BigNumber, ctx: ResolveContext, tags: PackedStringArray = [],
 			node_id: StringName = &"") -> BigNumber:
-	if _dirty:
-		_rebuild(ctx)
-	var bucket: Dictionary = _cache.get(stat, {})
+	if not _stale.is_empty():
+		_resolve_stale(ctx)
+	var bucket := _bucket(stat)
 	if bucket.is_empty():
 		return base.copy()
 	var add: BigNumber = null
@@ -279,7 +364,7 @@ func modify(stat: StringName, base: BigNumber, ctx: ResolveContext, tags: Packed
 		var agg: Variant = bucket.get(key)
 		if agg == null:
 			continue
-		# _rebuild() always writes all three, so no per-key defaults are needed.
+		# _bucket() always writes all three, so no per-key defaults are needed.
 		add = agg["add"] if add == null else add.add(agg["add"])
 		inc = agg["inc"] if inc == null else inc.add(agg["inc"])
 		more = agg["more"] if more == null else more.mul(agg["more"])

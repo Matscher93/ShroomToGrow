@@ -51,3 +51,114 @@ func handle_tick(bonuses: Array[BigNumber] = []) -> void:
 		else:
 			_player_data.nutrients = _player_data.nutrients.add(node_change)
 			_player_data.lifetime_nutrients = _player_data.lifetime_nutrients.add(node_change)
+
+## Advances `count` ticks in one step, landing on exactly the state `count`
+## calls to handle_tick() would have reached.
+##
+## Only sound while nothing is bought in between: manual counts and bonuses are
+## read once and treated as fixed for the whole span, which is what makes the
+## jump possible at all. The caller owns that guarantee - see the simulator,
+## which only strides across stretches it has established are idle.
+##
+## The trick is that one tick is a *linear* map on (auto nodes, nutrients) once
+## the manual counts are held still: each tier adds a fixed multiple of itself to
+## the tier below. Its linear part differs from the identity only by a nilpotent
+## one - a tier can only ever feed downwards - so the map's powers terminate:
+##
+##     T^K(v) = v + sum_j C(K, j) * d_j,  where d_1 = T(v) - v and d_(j+1) is the
+##                                        same difference taken again
+##
+## and d_j is zero once j passes the number of tiers. A dozen differences
+## therefore describe a jump of any length, which is what lets a week of game
+## time cost about what a single tick costs. Nothing here approximates: for
+## count = 1 the sum is exactly T(v).
+func advance(count: int, bonuses: Array[BigNumber] = []) -> void:
+	advance_by(count, jump_kernel(bonuses))
+
+## The differences a jump from *this* state is built from. They depend on the
+## state and the bonuses but not on how far the jump goes, so a caller trying
+## several lengths from the same state - the simulator, searching for how long a
+## lull lasts - builds this once and pays only the weighted sum per attempt.
+##
+## Valid exactly as long as advance_by() is: until something is bought, or the
+## state moves by any route other than advance_by() itself.
+func jump_kernel(bonuses: Array[BigNumber] = []) -> Array:
+	if bonuses.is_empty():
+		bonuses = node_production_bonuses()
+	# One entry per tier plus the nutrients they pour into. The first difference
+	# is taken with the manual counts, since those are the map's constant term;
+	# every later one is a difference of differences, where the constant has
+	# already cancelled.
+	var kernel: Array = []
+	var difference := _difference(_state(), bonuses, true)
+	for _j in range(1, _nodes.size() + 2):
+		if _is_zero(difference):
+			break
+		kernel.append(difference)
+		difference = _difference(difference, bonuses, false)
+	return kernel
+
+## Advances `count` ticks using a kernel from jump_kernel(), taken at the state
+## this is being applied to.
+func advance_by(count: int, kernel: Array) -> void:
+	if count <= 0:
+		return
+	_player_data.tick_count += count
+	_player_data.lifetime_ticks += count
+
+	var totals := _state()
+	var binomial := BigNumber.from_value(1.0)
+	for j in kernel.size():
+		# C(count, j+1) from C(count, j), which keeps the whole series to one
+		# multiply each - and a factorial of a dozen never gets built.
+		binomial = binomial.scale(float(count - j) / float(j + 1))
+		if binomial.mantissa == 0.0:
+			break     # count ticks cannot reach this far down the chain yet
+		totals = _add_scaled(totals, kernel[j], binomial)
+
+	for i in _nodes.size():
+		_nodes[i].auto_nodes = totals[i]
+	var gained: BigNumber = totals[_nodes.size()].sub(_player_data.nutrients)
+	_player_data.nutrients = totals[_nodes.size()]
+	_player_data.lifetime_nutrients = _player_data.lifetime_nutrients.add(gained)
+
+## The live state as the flat vector the jump works on: one auto-node count per
+## tier, then nutrients.
+func _state() -> Array:
+	var out: Array = []
+	for node in _nodes:
+		out.append(node.auto_nodes)
+	out.append(_player_data.nutrients)
+	return out
+
+## One tick's worth of change to `vector`, which is the tick itself minus what
+## went in. `with_manual` is true only for the first difference: hand-bought
+## nodes are the map's constant term, and a difference of differences has
+## already cancelled it.
+func _difference(vector: Array, bonuses: Array[BigNumber], with_manual: bool) -> Array:
+	var moved := vector.duplicate()
+	for i in range(_nodes.size() - 1, -1, -1):
+		var producing: BigNumber = moved[i]
+		if with_manual:
+			producing = producing.add(BigNumber.from_value(_nodes[i].manual_nodes))
+		var change := producing.mul(bonuses[i])
+		if i != 0:
+			moved[i - 1] = moved[i - 1].add(change)
+		else:
+			moved[_nodes.size()] = moved[_nodes.size()].add(change)
+	var out: Array = []
+	for i in moved.size():
+		out.append(moved[i].sub(vector[i]))
+	return out
+
+func _is_zero(vector: Array) -> bool:
+	for value: BigNumber in vector:
+		if value.mantissa != 0.0:
+			return false
+	return true
+
+func _add_scaled(vector: Array, addend: Array, factor: BigNumber) -> Array:
+	var out: Array = []
+	for i in vector.size():
+		out.append(vector[i].add(addend[i].mul(factor)))
+	return out
