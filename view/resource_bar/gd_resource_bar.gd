@@ -9,6 +9,7 @@ const PILL_SCENE := preload("res://view/resource_pill/sc_resource_pill.tscn")
 @export var pill_container: HBoxContainer
 @export var progress_rect: ColorRect
 @export var lbl_time_left: Label
+@export var lbl_tick_duration: Label
 
 var _vm: ScreensViewModel
 var _tick_timer: Timer
@@ -35,6 +36,7 @@ func _process(_delta: float) -> void:
 	var tick_duration := _tick_timer.wait_time
 	progress_rect.material.set_shader_parameter("tick_progress", 1.0 - time_left / tick_duration)
 	lbl_time_left.text = "%.1fs" % [time_left]
+	lbl_tick_duration.text = "/ %.1fs" % [tick_duration]
 
 # --- VM -> View ---
 func _on_property_changed(property: StringName) -> void:

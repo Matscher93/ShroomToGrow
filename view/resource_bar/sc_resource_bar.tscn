@@ -1,23 +1,23 @@
 [gd_scene format=3 uid="uid://dq2xr8vk1nba7"]
 
 [ext_resource type="Script" path="res://view/resource_bar/gd_resource_bar.gd" id="1_bar"]
-[ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="2_grotesk"]
 [ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="3_mono"]
 [ext_resource type="Shader" uid="uid://djm4kfwj0ikno" path="res://view/resource_bar/sh_tick_progress.gdshader" id="4_tick"]
 [ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_base_color_rect.gd" id="5_colorrect"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bar"]
 
-[sub_resource type="LabelSettings" id="LabelSettings_nexttick"]
-font = ExtResource("2_grotesk")
-font_size = 11
-font_color = Color(0.37254903, 0.44705883, 0.40784314, 1)
-
 [sub_resource type="LabelSettings" id="LabelSettings_timeleft"]
 resource_local_to_scene = true
 font = ExtResource("3_mono")
 font_size = 16
 font_color = Color(0, 1, 0.9490196, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_tickduration"]
+resource_local_to_scene = true
+font = ExtResource("3_mono")
+font_size = 12
+font_color = Color(0.69, 0.69, 0.69, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_tick"]
 shader = ExtResource("4_tick")
@@ -32,7 +32,7 @@ shader_parameter/background_alpha = 0.2
 shader_parameter/border_alpha = 0.3
 shader_parameter/tick_progress = 0.5
 
-[node name="resource_bar" type="PanelContainer" node_paths=PackedStringArray("pill_container", "progress_rect", "lbl_time_left")]
+[node name="resource_bar" type="PanelContainer" node_paths=PackedStringArray("pill_container", "progress_rect", "lbl_time_left", "lbl_tick_duration")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -43,6 +43,7 @@ script = ExtResource("1_bar")
 pill_container = NodePath("MarginContainer/VBoxContainer/HBoxContainer/pill_container")
 progress_rect = NodePath("MarginContainer/VBoxContainer/ColorRect")
 lbl_time_left = NodePath("MarginContainer/VBoxContainer/HBoxContainer/tick_group/lbl_time_left")
+lbl_tick_duration = NodePath("MarginContainer/VBoxContainer/HBoxContainer/tick_group/lbl_tick_duration")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2
@@ -70,20 +71,18 @@ size_flags_horizontal = 8
 size_flags_vertical = 4
 theme_override_constants/separation = 7
 
-[node name="lbl_next_tick" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/tick_group"]
-layout_mode = 2
-size_flags_vertical = 4
-text = "NEXT
-TICK"
-label_settings = SubResource("LabelSettings_nexttick")
-horizontal_alignment = 2
-vertical_alignment = 1
-
 [node name="lbl_time_left" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/tick_group"]
 layout_mode = 2
 size_flags_vertical = 4
 text = "1.0s"
 label_settings = SubResource("LabelSettings_timeleft")
+horizontal_alignment = 2
+
+[node name="lbl_tick_duration" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/tick_group"]
+layout_mode = 2
+size_flags_vertical = 4
+text = "/ 1.0s"
+label_settings = SubResource("LabelSettings_tickduration")
 horizontal_alignment = 2
 
 [node name="ColorRect" type="ColorRect" parent="MarginContainer/VBoxContainer"]

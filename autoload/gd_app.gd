@@ -223,8 +223,23 @@ func _track_manual_count(node: MyceliumNode) -> void:
 		upgrade_system.invalidate()
 	)
 
+## Timer.wait_time only takes hold on the timer's next cycle, so writing it alone
+## leaves the cycle already in flight running at its old length. That is most
+## visible at startup: the timer autostarts at BASE_TICK_DURATION while App is
+## built, and SaveManager loads the save afterwards, so the first tick of a
+## session would count down from 10s no matter what the save's tick_rate says.
+##
+## start() is the only way to move time_left, and it overwrites wait_time, hence
+## the write after it - the setter leaves time_left alone, so the shortened cycle
+## survives. Only ever shortens: a duration change never stretches the tick the
+## player is already waiting on. Skipped while stopped so the offline catch-up,
+## which stops the timer and drives handle_tick() itself, isn't restarted
+## mid-loop.
 func _update_tick_duration() -> void:
-	tick_timer.wait_time = tick_duration()
+	var duration := tick_duration()
+	if not tick_timer.is_stopped() and tick_timer.time_left > duration:
+		tick_timer.start(duration)
+	tick_timer.wait_time = duration
 
 # ---------------------------------------------------------------- save state
 
