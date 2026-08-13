@@ -40,10 +40,25 @@ var biome_color: Color:
 var biome_shader: Shader:
 	get: return _def.biome_shader
 
-var unlock_info_text: String:
-	get: return "Unlocks %s" % _def.display_name
-
 # --- Read-only display properties bound by the View ---
+## What buying this biome gets you. Several biomes bring a whole nav tab with
+## them, and that was advertised nowhere - the biome's one-line description was
+## the only hint that unlocking it opened a screen rather than just another card.
+##
+## Only while the screen is still shut: after a prestige the biome relocks but
+## its tab stays, so the line would be selling something the player already has.
+var unlock_info_text: String:
+	get:
+		var body := "Unlocks %s" % _def.display_name
+		if _def.screen_type == ScreenTypes.Types.BIOMES:
+			return body
+		if App.is_screen_unlocked(_def.screen_type):
+			return body
+		var screen := App.screens_vm.get_screen_data(_def.screen_type)
+		if screen == null:
+			return body
+		return "%s and the %s screen" % [body, screen.screen_name]
+
 var unlocked: bool:
 	get: return App.biomes_data.is_unlocked(_key)
 

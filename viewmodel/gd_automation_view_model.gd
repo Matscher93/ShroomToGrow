@@ -14,6 +14,7 @@ const PROP_RATE_TEXT := &"rate_text"
 const PROP_IS_OWNED := &"is_owned"
 const PROP_IS_ENABLED := &"is_enabled"
 const PROP_IS_UNLOCKED := &"is_unlocked"
+const PROP_LOCK_TEXT := &"lock_text"
 
 var _def: AutomationDef
 
@@ -41,16 +42,28 @@ var level_text: String:
 			return "Lv %d" % [lvl]
 		return "Lv %d/%d" % [lvl, ceiling]
 
-## Doubles as the lock notice, the way the node panel's buy button does: the
-## price is meaningless until the perk is bought, and naming the perk is what
-## tells the player where to go for it.
+## Price only. The lock notice used to live here, which put a sentence in the
+## label that is tinted the crystal colour everywhere else on the screen - it
+## read as a price. It has its own line now, see lock_text.
 var cost_text: String:
 	get:
 		if not is_unlocked:
-			return "Needs %s" % [_unlock_perk_name()]
+			return ""
 		if App.is_automation_maxed(_def.id):
 			return "MAX"
 		return App.automation_cost(_def.id).to_display()
+
+## Why this card cannot be bought yet, and where to go about it. Empty once
+## unlocked.
+##
+## The card stays visible while locked - a hidden one gives the player nothing to
+## work towards - but naming the perk was not enough on its own: the perk web is
+## a screen away and several branches wide, so the line names the branch too.
+var lock_text: String:
+	get:
+		if is_unlocked:
+			return ""
+		return "Locked - needs %s (Prestige > %s)" % [_unlock_perk_name(), _unlock_branch_name()]
 
 var can_buy: bool:
 	get: return App.can_buy_automation(_def.id)
@@ -73,12 +86,22 @@ var rate_text: String:
 	get:
 		if not is_owned:
 			return ""
-		var ticks := App.automation_ticks_per_run(_def.id)
-		if ticks > 1:
-			return "every %d ticks" % [ticks]
-		if ticks == 1:
-			return "every tick"
-		return "%.1fx per tick" % [App.automation_runs_per_tick(_def.id)]
+		return _rate_at(App.automation_level(_def.id))
+
+## What the next level buys, so the price on the card has something to be weighed
+## against. Blank while locked or maxed, and while the next level would round to
+## the same reading - "every 2 ticks -> every 2 ticks" is worse than silence.
+var next_rate_text: String:
+	get:
+		if not is_unlocked or App.is_automation_maxed(_def.id):
+			return ""
+		var next := _rate_at(App.automation_level(_def.id) + 1)
+		if not is_owned:
+			return next
+		var current := _rate_at(App.automation_level(_def.id))
+		if next == current:
+			return ""
+		return "-> %s" % [next]
 
 # --- Lifecycle ---
 
@@ -133,12 +156,30 @@ func _on_rate_changed() -> void:
 func _on_perks_changed() -> void:
 	_notify(PROP_RATE_TEXT)
 	_notify(PROP_IS_UNLOCKED)
+	_notify(PROP_LOCK_TEXT)
 	_notify(PROP_LEVEL_TEXT)
 	_notify(PROP_COST_TEXT)
 	_notify(PROP_CAN_BUY)
 
 # --- Formatting ---
 
+## Below one action a tick it reads as a countdown, above it as a per-tick count,
+## since "0.3x per tick" says much less than "every 4 ticks".
+func _rate_at(lvl: int) -> String:
+	var ticks := App.automation_ticks_per_run_at(_def.id, lvl)
+	if ticks > 1:
+		return "every %d ticks" % [ticks]
+	if ticks == 1:
+		return "every tick"
+	return "%.1fx per tick" % [App.automation_runs_per_tick_at(_def.id, lvl)]
+
 func _unlock_perk_name() -> String:
 	var def := App.perk_def(_def.unlock_perk_id)
 	return def.display_name if def != null else "a prestige perk"
+
+func _unlock_branch_name() -> String:
+	var def := App.perk_def(_def.unlock_perk_id)
+	if def == null:
+		return "the web"
+	var branch := App.perk_branches.branch(def.branch_key)
+	return branch.label if branch != null else "the web"

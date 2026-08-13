@@ -2,14 +2,19 @@
 extends PanelContainer
 ## VIEW: the Crystal Caves screen. Three tabs: the crystal-bought automations,
 ## the geode sink crystals are melted down into, and the per-biome sequences
-## the point-spending automation replays. The crystal balance stays in a shared
-## header above them, since it is what they are all spent from.
+## the point-spending automation replays.
+##
+## The crystal balance is not repeated here. The screen definition lists crystals
+## as its currency, so the top bar already shows it labelled above every tab; a
+## second bare number under it was one readout too many.
 ##
 ## The Geodes tab is a self-contained scene with its own ViewModel (see
 ## view/geodes/), so it needs no wiring here beyond sitting in the TabContainer.
 ##
 ## Sequences sit last because they are set up once and then left alone, and the
 ## rows are long enough that they crowded the upgrade list they used to share.
+## Each biome's auto-buy-after-sporation lives in that biome's section rather
+## than under the automation cards: it is per-biome the way the cards are not.
 ##
 ## The achievement archive that mints those crystals used to lead here as a third
 ## tab. It moved to the top-bar overlay, which is reachable from every screen -
@@ -20,16 +25,14 @@ extends PanelContainer
 ## lives on the Biomes screen like every other biome. This screen is the hub the
 ## biome unlocks, not a second copy of that card.
 
-@export var lbl_crystals: Label
 @export var tab_container: TabContainer
 @export var geodes_tab: Control
+@export var automations_tab: ScrollContainer
+@export var sequences_tab: ScrollContainer
 @export var vbox_automations: VBoxContainer
-@export var auto_unlock_section: VBoxContainer
-@export var vbox_auto_unlocks: VBoxContainer
 @export var vbox_sequences: VBoxContainer
 @export var automation_card_scene: PackedScene
 @export var biome_sequence_scene: PackedScene
-@export var auto_unlock_row_scene: PackedScene
 
 var _vm: CrystalCavesViewModel
 
@@ -41,16 +44,15 @@ func _ready() -> void:
 
 	bind(App.crystal_caves_vm)
 	_build_automations()
-	_build_auto_unlocks()
 	_build_sequences()
 	_refresh_geodes_tab()
+	await _restore_view_state()
 
 func bind(vm: CrystalCavesViewModel) -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 	_vm = vm
 	_vm.property_changed.connect(_on_property_changed)
-	_refresh_header()
 
 func _exit_tree() -> void:
 	if _vm:
@@ -59,10 +61,10 @@ func _exit_tree() -> void:
 
 func _on_property_changed(property: StringName) -> void:
 	match property:
-		CrystalCavesViewModel.PROP_CRYSTALS_TEXT:
-			_refresh_header()
 		CrystalCavesViewModel.PROP_GEODES_VISIBLE:
 			_refresh_geodes_tab()
+		CrystalCavesViewModel.PROP_SECTIONS_CHANGED:
+			_build_sequences()
 
 ## Geodes leads the tabs, so it is also the one the screen opens on. Hiding the
 ## current tab leaves TabContainer pointing at a tab that is no longer there, so
@@ -77,8 +79,39 @@ func _refresh_geodes_tab() -> void:
 			tab_container.current_tab = i
 			return
 
-func _refresh_header() -> void:
-	lbl_crystals.text = _vm.crystals_text
+# --- View state ---
+
+## Puts the screen back where the player left it. Screens are freed on every nav
+## switch (see GameScreens), so without this a glance at another screen costs the
+## player their tab, their place in the list and every section they had opened -
+## which on a long sequence is a dozen taps to get back to.
+##
+## Scroll is restored a frame late on purpose: a ScrollContainer has no content
+## height until it has been laid out once, and setting an offset before then is
+## clamped to zero.
+func _restore_view_state() -> void:
+	if not tab_container.is_tab_hidden(_vm.current_tab):
+		tab_container.current_tab = _vm.current_tab
+	tab_container.tab_changed.connect(_on_tab_changed)
+	for tab in _scrolling_tabs():
+		tab.get_v_scroll_bar().value_changed.connect(_on_scrolled.bind(tab))
+	await get_tree().process_frame
+	# The player can leave the screen inside that frame, which frees this node.
+	if not is_inside_tree() or _vm == null:
+		return
+	for tab in _scrolling_tabs():
+		tab.scroll_vertical = int(_vm.scroll_offsets.get(tab.get_index(), 0))
+
+func _scrolling_tabs() -> Array[ScrollContainer]:
+	return [automations_tab, sequences_tab]
+
+func _on_tab_changed(tab: int) -> void:
+	_vm.current_tab = tab
+
+func _on_scrolled(value: float, tab: ScrollContainer) -> void:
+	_vm.scroll_offsets[tab.get_index()] = int(value)
+
+# --- Building ---
 
 func _build_automations() -> void:
 	_clear(vbox_automations)
@@ -87,25 +120,13 @@ func _build_automations() -> void:
 		vbox_automations.add_child(card)
 		card.bind(vm)
 
-## One row per biome that can relock and has been reached at least once, under
-## the automation cards: it is the same kind of purchase, and it is per-biome the
-## way the cards are not. A biome shut by the last sporation keeps its row, since
-## buying the row is how the player stops doing that unlock by hand.
-## Built once for the same reason the sections are - the screen is respawned on
-## every tab switch. The whole block hides while no biome offers one, so a fresh
-## run does not carry a heading over an empty list.
-func _build_auto_unlocks() -> void:
-	_clear(vbox_auto_unlocks)
-	var vms := _vm.auto_unlock_vms()
-	auto_unlock_section.visible = not vms.is_empty()
-	for vm in vms:
-		var row := auto_unlock_row_scene.instantiate()
-		vbox_auto_unlocks.add_child(row)
-		row.bind(vm)
-
-## One section per unlocked biome, each owning the sequence the point-spending
-## automation replays for it. Built once: the screen is respawned on every tab
-## switch, so a biome unlocked elsewhere shows up on the way back in.
+## One section per biome the save has ever reached, each owning the sequence the
+## point-spending automation replays for it and that biome's auto-buy purchase.
+##
+## Rebuilt whenever the set of biomes changes rather than only at _ready: the
+## screen keeps its state across nav switches now, so it no longer gets a free
+## rebuild every time the player comes back. Expansion and page live on the
+## persistent per-biome ViewModels, so a rebuild does not disturb them.
 func _build_sequences() -> void:
 	_clear(vbox_sequences)
 	for vm in _vm.sequence_vms():

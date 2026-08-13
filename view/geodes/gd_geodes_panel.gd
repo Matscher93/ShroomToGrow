@@ -3,10 +3,10 @@ extends PanelContainer
 ## into. A header stating what crystals are worth in geodes right now, and one
 ## card per boost.
 ##
-## Lives under the Caves rather than as a tab of its own because crystals are
-## what it is bought with, and that balance is already in the Caves header above
-## these tabs - a second copy of it here would be the only thing a top-level tab
-## added.
+## Lives under the Crystals screen rather than as a tab of its own because
+## crystals are what it is bought with, and the top bar already shows that
+## balance for this screen - a top-level tab would add nothing but a second
+## place to look for the same number.
 ##
 ## There is no geode wallet and nothing to mint by hand: a boost is priced in
 ## geodes and buying one melts the crystals it is worth on the spot, so the

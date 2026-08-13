@@ -309,10 +309,11 @@ func handle_tick(bonuses: Array[BigNumber] = []) -> void:
 	# After production, so an automation spends the nutrients this tick just
 	# paid out rather than always working a tick behind.
 	if automations_running:
-		# Batched: one automation may buy up to MAX_RUNS_PER_TICK levels in this
-		# one call, and every upgrades_changed listener (tick duration, the biome
-		# panels' slot grids, every node card) refreshes synchronously. The
-		# player sees one tick, so they get one refresh.
+		# Batched: one automation may buy many levels in this one call - the tick
+		# is bounded by time, not by a level count - and every upgrades_changed
+		# listener (tick duration, the biome panels' slot grids, every node card)
+		# refreshes synchronously. The player sees one tick, so they get one
+		# refresh.
 		upgrade_system.begin_batch()
 		biome_upgrade_system.begin_batch()
 		prestige_upgrade_system.begin_batch()
@@ -537,8 +538,14 @@ func automation_cost(id: StringName) -> BigNumber:
 func automation_runs_per_tick(id: StringName) -> float:
 	return automation_system.runs_per_tick(id)
 
+func automation_runs_per_tick_at(id: StringName, lvl: int) -> float:
+	return automation_system.runs_per_tick_at(id, lvl)
+
 func automation_ticks_per_run(id: StringName) -> int:
 	return automation_system.ticks_per_run(id)
+
+func automation_ticks_per_run_at(id: StringName, lvl: int) -> int:
+	return automation_system.ticks_per_run_at(id, lvl)
 
 func is_automation_owned(id: StringName) -> bool:
 	return automation_system.is_owned(id)

@@ -254,19 +254,35 @@ func test_a_rate_above_one_acts_several_times_in_a_tick() -> void:
 	system.handle_tick()
 	assert_int(_total_manual_nodes()).is_equal(3)
 
-func test_actions_per_tick_are_capped() -> void:
-	# An uncapped &"automation_rate" stack would otherwise stall the frame, since
-	# each action walks every node tier.
+## There is no ceiling on actions per tick - a fixed one silently ate the rate
+## upgrades that pushed past it. A tick is bounded by time instead, so a rate
+## this absurd has to stop somewhere well short of what it asked for, and finish.
+func test_a_tick_stops_at_its_time_budget_rather_than_running_forever() -> void:
 	var def := _def(AutomationDef.Kind.BUY_NODES)
 	def.base_runs_per_tick = 1e6
 	var system := _system(def)
 	_data.add_level(&"test_automation")
 	# Node costs grow super-exponentially with manual_nodes, so the bank has to be
-	# absurd for the cap - not the price - to be what stops the run.
+	# absurd for the budget - not the price - to be what stops the run.
 	_player.nutrients = BigNumber.new(1.0, 900)
 
 	system.handle_tick()
-	assert_int(_total_manual_nodes()).is_equal(AutomationSystem.MAX_RUNS_PER_TICK)
+	assert_int(_total_manual_nodes()).is_greater(0)
+	assert_int(_total_manual_nodes()).is_less(int(1e6))
+
+## Actions the budget cut short are owed, not lost: the rate was paid for, so the
+## following ticks pick them up.
+func test_actions_cut_short_by_the_budget_are_banked_for_the_next_tick() -> void:
+	var def := _def(AutomationDef.Kind.BUY_NODES)
+	def.base_runs_per_tick = 1e6
+	var system := _system(def)
+	_data.add_level(&"test_automation")
+	_player.nutrients = BigNumber.new(1.0, 900)
+
+	system.handle_tick()
+	var after_one := _total_manual_nodes()
+	system.handle_tick()
+	assert_int(_total_manual_nodes()).is_greater(after_one)
 
 func test_ticking_a_switched_off_automation_does_nothing() -> void:
 	var system := _system(_def(AutomationDef.Kind.BUY_NODES))
@@ -671,29 +687,27 @@ func test_a_new_upgrade_is_not_added_to_an_existing_sequence() -> void:
 
 	assert_int(_data.sequence_for(&"meadow", meadow.upgrade_ids).size()).is_equal(1)
 
-func test_moving_a_step_reorders_the_sequence() -> void:
+## Removal only ever takes the tail. Taking one out of the middle would pull
+## every step below it up past the gate it was recorded against, and the replay
+## would then skip it without saying so - which is the whole reason reordering
+## and mid-list removal do not exist.
+func test_removing_takes_the_last_step_and_leaves_the_rest_in_place() -> void:
 	var meadow := _biome_system.biome_def(&"meadow")
 	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[0])
 	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[1])
 
-	assert_bool(_data.move_sequence_entry(&"meadow", 1, 0)).is_true()
-	assert_str(String(_data.upgrade_sequences[&"meadow"][0])) \
-		.is_equal(String(meadow.upgrade_ids[1]))
-
-func test_moving_off_either_end_is_refused() -> void:
-	var meadow := _biome_system.biome_def(&"meadow")
-	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[0])
-	assert_bool(_data.move_sequence_entry(&"meadow", 0, -1)).is_false()
-	assert_bool(_data.move_sequence_entry(&"meadow", 0, 1)).is_false()
-
-func test_removing_and_clearing_steps() -> void:
-	var meadow := _biome_system.biome_def(&"meadow")
-	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[0])
-	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[1])
-
-	assert_bool(_data.remove_from_sequence(&"meadow", 0)).is_true()
+	assert_bool(_data.remove_last_from_sequence(&"meadow")).is_true()
 	assert_int(_data.upgrade_sequences[&"meadow"].size()).is_equal(1)
-	assert_bool(_data.remove_from_sequence(&"meadow", 5)).is_false()
+	assert_str(String(_data.upgrade_sequences[&"meadow"][0])) \
+		.is_equal(String(meadow.upgrade_ids[0]))
+
+func test_removing_from_an_empty_sequence_is_refused() -> void:
+	assert_bool(_data.remove_last_from_sequence(&"meadow")).is_false()
+
+func test_clearing_empties_the_sequence() -> void:
+	var meadow := _biome_system.biome_def(&"meadow")
+	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[0])
+	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[1])
 
 	_data.clear_sequence(&"meadow")
 	assert_array(_data.upgrade_sequences[&"meadow"]).is_empty()

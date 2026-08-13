@@ -16,13 +16,15 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="automation_card" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_description", "lbl_level", "lbl_rate", "lbl_cost", "btn_buy", "btn_enabled")]
+[node name="automation_card" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_description", "lbl_lock", "lbl_level", "lbl_rate", "lbl_next_rate", "lbl_cost", "btn_buy", "btn_enabled")]
 theme_override_styles/panel = SubResource("StyleBoxFlat_automation_card")
 script = ExtResource("1_script")
 lbl_name = NodePath("VBoxContainer/header/lbl_name")
 lbl_description = NodePath("VBoxContainer/lbl_description")
+lbl_lock = NodePath("VBoxContainer/lbl_lock")
 lbl_level = NodePath("VBoxContainer/header/lbl_level")
 lbl_rate = NodePath("VBoxContainer/footer/lbl_rate")
+lbl_next_rate = NodePath("VBoxContainer/footer/lbl_next_rate")
 lbl_cost = NodePath("VBoxContainer/footer/lbl_cost")
 btn_buy = NodePath("VBoxContainer/footer/btn_buy")
 btn_enabled = NodePath("VBoxContainer/header/btn_enabled")
@@ -43,14 +45,20 @@ text = "Automation"
 layout_mode = 2
 text = "Lv 0"
 
-[node name="btn_enabled" type="Button" parent="VBoxContainer/header"]
+[node name="btn_enabled" type="CheckButton" parent="VBoxContainer/header"]
 layout_mode = 2
-text = "On"
+text = "Enabled"
 
 [node name="lbl_description" type="Label" parent="VBoxContainer"]
 modulate = Color(1, 1, 1, 0.65)
 layout_mode = 2
 text = "What this one buys for you."
+autowrap_mode = 3
+
+[node name="lbl_lock" type="Label" parent="VBoxContainer"]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 2
+text = ""
 autowrap_mode = 3
 
 [node name="footer" type="HBoxContainer" parent="VBoxContainer"]
@@ -59,6 +67,11 @@ theme_override_constants/separation = 8
 
 [node name="lbl_rate" type="Label" parent="VBoxContainer/footer"]
 modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+text = ""
+
+[node name="lbl_next_rate" type="Label" parent="VBoxContainer/footer"]
+modulate = Color(1, 1, 1, 0.45)
 layout_mode = 2
 size_flags_horizontal = 3
 text = ""

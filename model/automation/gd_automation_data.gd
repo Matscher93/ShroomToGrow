@@ -22,6 +22,12 @@ var enabled: Dictionary = {}     # StringName -> bool
 ## targets, and makes replaying one after a prestige the same operation as
 ## running it the first time - see AutomationSystem's next_sequence_step().
 ##
+## Append-only, apart from dropping the last step or clearing outright. Neither
+## of those shifts a surviving step's index, and the editor refuses to append a
+## step whose point gate is above the length so far, so every step in a sequence
+## the player built is reachable by construction. Inserting or reordering would
+## break that, which is why neither exists.
+##
 ## Empty by default. A biome with no sequence is simply skipped, rather than
 ## falling back to grid order and buying something the player never asked for.
 var upgrade_sequences: Dictionary = {}
@@ -73,23 +79,14 @@ func append_to_sequence(biome_key: StringName, id: StringName, count: int = 1) -
 		sequence.append(id)
 	sequence_changed.emit(biome_key)
 
-func remove_from_sequence(biome_key: StringName, index: int) -> bool:
+## Drops the last step. The only removal there is: taking one out of the middle
+## would pull every step below it up by one, past the gate it was recorded
+## against, and the replay would then skip it without saying so.
+func remove_last_from_sequence(biome_key: StringName) -> bool:
 	var sequence := _sequence(biome_key)
-	if index < 0 or index >= sequence.size():
+	if sequence.is_empty():
 		return false
-	sequence.remove_at(index)
-	sequence_changed.emit(biome_key)
-	return true
-
-func move_sequence_entry(biome_key: StringName, from_index: int, to_index: int) -> bool:
-	var sequence := _sequence(biome_key)
-	if from_index < 0 or from_index >= sequence.size():
-		return false
-	if to_index < 0 or to_index >= sequence.size() or to_index == from_index:
-		return false
-	var id := sequence[from_index]
-	sequence.remove_at(from_index)
-	sequence.insert(to_index, id)
+	sequence.resize(sequence.size() - 1)
 	sequence_changed.emit(biome_key)
 	return true
 

@@ -1,7 +1,13 @@
 extends PanelContainer
 ## VIEW: one biome's section of the Crystal Caves Sequences tab. Holds the upgrade
-## sequence the point-spending automation replays for that biome, plus the slot
-## grid that appends a step to it.
+## sequence the point-spending automation replays for that biome, the slot grid
+## that appends a step to it, and the biome's own auto-buy-after-sporation
+## purchase.
+##
+## The auto-buy sits here rather than with the automation cards because it is
+## per-biome the way those are not, and it is bound to the same ViewModel this
+## section already holds. One place per biome now covers everything that biome
+## does across a sporation.
 ##
 ## The grid and its controls are always visible, since recording is what the
 ## section is for and the grid is a fixed 5x2 either way. Only the recorded steps
@@ -15,8 +21,15 @@ extends PanelContainer
 @export var lbl_summary: Label
 @export var lbl_status: Label
 @export var lbl_empty: Label
+@export var lbl_slot_status: Label
 @export var expansion_arrow: ColorRect
+@export var auto_unlock_row: HBoxContainer
+@export var lbl_auto_unlock: Label
+@export var lbl_auto_unlock_cost: Label
+@export var btn_auto_unlock_buy: Button
+@export var btn_auto_unlock_enabled: CheckButton
 @export var btn_clear: Button
+@export var btn_remove_last: Button
 @export var btn_step_amount: Button
 @export var pagination_row: HBoxContainer
 @export var btn_page_back: Button
@@ -31,19 +44,30 @@ extends PanelContainer
 ## motion from touch, so a scroll drag starts as a press here too.
 const TAP_CANCEL_DISTANCE := 10.0
 
+## How long Clear stays armed after the first press. Long enough to be a
+## deliberate second tap, short enough that a section left alone cannot be
+## cleared by a stray press minutes later.
+const CLEAR_CONFIRM_SECONDS := 2.0
+
 var _vm: BiomeSequenceViewModel
-var _expanded := false
 var _slot_ids: Array[StringName] = []
 var _press_active := false
 var _press_start := Vector2.ZERO
+## Clear is the one action here that cannot be undone and can throw away
+## hundreds of steps, so it takes two presses. Armed state lives on the section
+## rather than the VM: it is about this button, and it must not survive the
+## screen being rebuilt.
+var _clear_armed := false
 
 func _ready() -> void:
 	grid_upgrade_slots.columns = UpgradeSlotGrid.COLUMNS
 	btn_clear.pressed.connect(_on_clear_pressed)
+	btn_remove_last.pressed.connect(_on_remove_last_pressed)
 	btn_step_amount.pressed.connect(_on_step_amount_pressed)
 	btn_page_back.pressed.connect(_on_page_back_pressed)
 	btn_page_forward.pressed.connect(_on_page_forward_pressed)
-	_apply_expanded()
+	btn_auto_unlock_buy.pressed.connect(_on_auto_unlock_buy_pressed)
+	btn_auto_unlock_enabled.toggled.connect(_on_auto_unlock_toggled)
 
 func bind(vm: BiomeSequenceViewModel) -> void:
 	if _vm:
@@ -52,6 +76,9 @@ func bind(vm: BiomeSequenceViewModel) -> void:
 	_vm.property_changed.connect(_on_property_changed)
 	lbl_name.text = _vm.display_name
 	lbl_name.modulate = _vm.biome_color
+	# Expansion is parked on the VM, which outlives this screen, so a section
+	# opened before a trip to another screen is still open on the way back.
+	_apply_expanded()
 	_spawn_grid_slots()
 	refresh()
 
@@ -67,7 +94,10 @@ func refresh() -> void:
 	lbl_summary.text = _vm.summary_text
 	lbl_status.text = _vm.status_text
 	lbl_status.visible = not lbl_status.text.is_empty()
+	lbl_slot_status.text = _vm.slot_status_text
+	lbl_slot_status.visible = not lbl_slot_status.text.is_empty()
 	btn_step_amount.text = _vm.step_amount_text
+	_refresh_auto_unlock()
 	_refresh_grid_slots()
 	_rebuild_steps()
 
@@ -94,19 +124,46 @@ func _is_in_body(global_pos: Vector2) -> bool:
 	return vbox_body.visible and vbox_body.get_global_rect().has_point(global_pos)
 
 func _toggle_expanded() -> void:
-	_expanded = not _expanded
+	_vm.expanded = not _vm.expanded
 	_apply_expanded()
 
 func _apply_expanded() -> void:
-	vbox_body.visible = _expanded
-	expansion_arrow.offset_transform_rotation = PI if _expanded else 0.0
+	vbox_body.visible = _vm.expanded
+	expansion_arrow.offset_transform_rotation = PI if _vm.expanded else 0.0
+
+# --- Auto-buy after sporation ---
+
+## Buy and switch are never both up: the purchase is one-off, so its button gives
+## way to the switch it unlocks rather than sitting there disabled forever. The
+## prose line says which of "never bought" and "switched off" is in force, since
+## the Buy button is gone in both cases.
+##
+## A starter biome never relocks, so it gets no row at all rather than one that
+## can only ever say so.
+func _refresh_auto_unlock() -> void:
+	auto_unlock_row.visible = _vm.offers_auto_unlock
+	if not _vm.offers_auto_unlock:
+		return
+	lbl_auto_unlock.text = _vm.auto_unlock_text
+	var for_sale := not _vm.has_auto_unlock
+	lbl_auto_unlock_cost.visible = for_sale
+	btn_auto_unlock_buy.visible = for_sale
+	btn_auto_unlock_enabled.visible = not for_sale
+	if for_sale:
+		lbl_auto_unlock_cost.text = _vm.auto_unlock_cost_text
+		btn_auto_unlock_buy.disabled = not _vm.can_buy_auto_unlock
+	else:
+		# No-signal, or every refresh would report a toggle back at the model and
+		# fight whatever just changed.
+		btn_auto_unlock_enabled.set_pressed_no_signal(_vm.auto_unlock_enabled)
 
 # --- Slot grid ---
 
 ## The same numbered 5x2 grid the biome card shows, so a slot is in the same
-## place on both screens. What it *counts* is different: here it is the levels
-## the sequence asks for, not the ones the biome has bought. Pressing one appends
-## that upgrade as the next step.
+## place on both screens. What it *counts* is different - here it is the levels
+## the sequence asks for, not the ones the biome has bought - which is what the
+## caption above the grid is there to say. Pressing one appends that upgrade as
+## the next step.
 func _spawn_grid_slots() -> void:
 	for child in grid_upgrade_slots.get_children():
 		grid_upgrade_slots.remove_child(child)
@@ -120,46 +177,50 @@ func _spawn_grid_slots() -> void:
 
 ## Three states, so the grid reads as a picture of the recording rather than a
 ## menu: bright for upgrades the sequence already asks for, mid for ones it could
-## take next, faint and dead for ones it cannot reach yet.
+## take next, faint for ones it cannot reach yet.
+##
+## A blocked slot is dimmed but deliberately still pressable. Godot swallows
+## input on a disabled Button, and pressing a blocked slot is how the status line
+## below is asked why it is blocked - the reason used to be a tooltip, which does
+## not exist on touch. Nothing can be recorded by mistake: append_step records
+## steps_to_append(), which is zero for exactly these slots.
+##
+## The whole grid does go dead for a biome that is shut this run. Its section is
+## still listed so the auto-buy above can be bought, but there is nothing to plan
+## against until the biome is back.
 func _refresh_grid_slots() -> void:
+	var biome_open := _vm.is_unlocked
 	for i in range(_slot_ids.size()):
 		var id: StringName = _slot_ids[i]
 		var slot := grid_upgrade_slots.get_child(i) as Button
 		UpgradeSlotGrid.set_level_text(slot, _vm.upgrade_slot_text(id))
-		var blocked := _vm.record_blocked_reason(id)
-		slot.disabled = not blocked.is_empty()
-		if _vm.is_recorded(id):
-			slot.modulate = Color.WHITE
-		elif slot.disabled:
+		slot.disabled = not biome_open
+		if not biome_open:
 			slot.modulate = UpgradeSlotGrid.UNAVAILABLE_MODULATE
-		else:
+		elif _vm.is_recorded(id):
+			slot.modulate = Color.WHITE
+		elif _vm.can_record(id):
 			slot.modulate = UpgradeSlotGrid.LOCKED_MODULATE
-		# The amount can be more than the upgrade's cap has room for, so the
-		# tooltip advertises what a press would actually record, not what the
-		# selector says.
-		slot.tooltip_text = "%s - adds %d" % [_vm.upgrade_name(id), _vm.steps_to_append(id)] \
-			if blocked.is_empty() else "%s - %s" % [_vm.upgrade_name(id), blocked]
+		else:
+			slot.modulate = UpgradeSlotGrid.UNAVAILABLE_MODULATE
 
-## Rebuilt wholesale rather than patched: the rows carry their index, so moving
-## or removing one shifts every index below it anyway.
-##
-## Only the current page is spawned, but first/last are judged against the whole
-## sequence, so the top row of page two can still be nudged up onto page one.
+## Rebuilt wholesale rather than patched: only the current page is spawned, and
+## a step added or dropped shifts which steps that is.
 func _rebuild_steps() -> void:
 	for child in vbox_steps.get_children():
 		vbox_steps.remove_child(child)
 		child.queue_free()
 	var total := _vm.step_count
 	lbl_empty.visible = total == 0
+	btn_remove_last.disabled = total == 0
 	btn_clear.disabled = total == 0
+	# An emptied sequence has nothing left to confirm away.
+	if total == 0:
+		_disarm_clear()
 	for row_data in _vm.page_rows():
 		var row := sequence_row_scene.instantiate()
 		vbox_steps.add_child(row)
-		var index: int = row_data["index"]
-		row.set_row(row_data, index == 0, index == total - 1)
-		row.move_up_pressed.connect(_on_move_up)
-		row.move_down_pressed.connect(_on_move_down)
-		row.remove_pressed.connect(_on_remove)
+		row.set_row(row_data)
 
 	pagination_row.visible = _vm.has_pages
 	lbl_page.text = _vm.page_text
@@ -180,14 +241,28 @@ func _on_page_back_pressed() -> void:
 func _on_page_forward_pressed() -> void:
 	_vm.page_forward()
 
-func _on_move_up(index: int) -> void:
-	_vm.move_step_up(index)
+func _on_remove_last_pressed() -> void:
+	_vm.remove_last()
 
-func _on_move_down(index: int) -> void:
-	_vm.move_step_down(index)
+func _on_auto_unlock_buy_pressed() -> void:
+	_vm.buy_auto_unlock()
 
-func _on_remove(index: int) -> void:
-	_vm.remove_step(index)
+func _on_auto_unlock_toggled(_pressed: bool) -> void:
+	_vm.toggle_auto_unlock()
 
+## First press arms, second within the window clears. The timer disarms on its
+## own, so a section left alone goes back to a plain Clear rather than sitting
+## one stray tap away from wiping the sequence.
 func _on_clear_pressed() -> void:
-	_vm.clear()
+	if _clear_armed:
+		_disarm_clear()
+		_vm.clear()
+		return
+	_clear_armed = true
+	btn_clear.text = "Sure?"
+	var timer := get_tree().create_timer(CLEAR_CONFIRM_SECONDS)
+	timer.timeout.connect(_disarm_clear)
+
+func _disarm_clear() -> void:
+	_clear_armed = false
+	btn_clear.text = "Clear"

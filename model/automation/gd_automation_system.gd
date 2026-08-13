@@ -21,10 +21,16 @@ const SYNERGY_GATE_BIOME := &"forest"
 ## rather than each of them hard-coding the id.
 const SEQUENCE_AUTOMATION_ID := &"AutoSpendPoints"
 
-## Ceiling on actions one automation may take in a single tick. Stacked
-## &"automation_rate" bonuses have no cap of their own, and each action walks
-## every node tier or biome, so an uncapped rate would stall the frame.
-const MAX_RUNS_PER_TICK := 50
+## How long one automation may spend firing in a single tick. There is no ceiling
+## on the *number* of actions: a fixed one silently ate the rate upgrades that
+## pushed past it, while the card kept counting up and reporting a rate the tick
+## never delivered.
+##
+## A budget instead of a count, because the cost that mattered was always frame
+## time - each action walks every node tier or biome - and that is what this
+## measures directly. Actions the budget cuts short are banked, not dropped, so a
+## rate high enough to overrun simply spreads across the ticks that follow.
+const RUN_BUDGET_USEC := 2000
 
 var _automations: AutomationList
 var _data: AutomationData
@@ -132,10 +138,15 @@ func buy(id: StringName) -> bool:
 ## Actions this automation gets per game tick. Levels add to the authored rate,
 ## then every &"automation_rate" upgrade multiplies the total.
 func runs_per_tick(id: StringName) -> float:
+	return runs_per_tick_at(id, level(id))
+
+## The same rate at a level the automation is not necessarily on, so the card can
+## price the next one: a level's worth of crystals is unanswerable without seeing
+## what it buys.
+func runs_per_tick_at(id: StringName, lvl: int) -> float:
 	var def := automation_def(id)
 	if def == null:
 		return 0.0
-	var lvl := level(id)
 	if lvl <= 0:
 		return 0.0
 	var rate := def.base_runs_per_tick + def.runs_per_level * float(lvl - 1)
@@ -144,7 +155,10 @@ func runs_per_tick(id: StringName) -> float:
 ## Ticks until the next action, for display. 0 when it fires at least once a
 ## tick, so callers can show a per-tick count instead.
 func ticks_per_run(id: StringName) -> int:
-	var rate := runs_per_tick(id)
+	return ticks_per_run_at(id, level(id))
+
+func ticks_per_run_at(id: StringName, lvl: int) -> int:
+	var rate := runs_per_tick_at(id, lvl)
 	if rate <= 0.0 or rate >= 1.0:
 		return 0
 	return int(ceil(1.0 / rate))
@@ -188,11 +202,17 @@ func _run_pending(id: StringName) -> void:
 		_pending.erase(id)
 		return
 	var banked: float = _pending.get(id, 0.0) + runs_per_tick(id)
-	var runs: int = mini(int(floor(banked)), MAX_RUNS_PER_TICK)
+	var runs := int(floor(banked))
 	_pending[id] = banked - floor(banked)
+	var deadline := Time.get_ticks_usec() + RUN_BUDGET_USEC
 	for i in range(runs):
 		if not run(id):
 			break  # nothing left it can afford, don't spin through the rest
+		if Time.get_ticks_usec() >= deadline:
+			# Out of budget with actions still owed. Bank them whole so the next
+			# tick picks them up rather than losing what the rate paid for.
+			_pending[id] += float(runs - i - 1)
+			break
 
 # ---------------------------------------------------------------- firing
 

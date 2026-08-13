@@ -63,8 +63,8 @@ func test_the_amount_cycle_wraps_back_round() -> void:
 	assert_array(seen).is_equal(BiomeSequenceViewModel.STEP_AMOUNTS)
 	assert_int(_vm.step_amount).is_equal(BiomeSequenceViewModel.STEP_AMOUNTS[0])
 
-## "Max" fills the upgrade's remaining cap rather than taking a fixed count.
-func test_max_fills_the_remaining_cap() -> void:
+## "Fill" takes the upgrade to its remaining cap rather than a fixed count.
+func test_fill_takes_the_upgrade_to_its_cap() -> void:
 	var id := _ungated_id()
 	var def := App.biome_upgrade_system.def(id)
 	if def == null or def.max_level <= 0:
@@ -129,12 +129,16 @@ func test_rows_carry_their_absolute_index() -> void:
 		assert_int(rows[i].index).is_equal(i)
 		assert_str(String(rows[i].id)).is_equal(String(id))
 
-func test_removing_a_step_shortens_the_sequence() -> void:
+func test_removing_the_last_step_shortens_the_sequence() -> void:
 	var id := _ungated_id()
 	_vm.cycle_step_amount()          # x5
 	_vm.append_step(id)
-	assert_bool(_vm.remove_step(0)).is_true()
+	assert_bool(_vm.remove_last()).is_true()
 	assert_int(_vm.step_count).is_equal(4)
+
+func test_removing_from_an_empty_sequence_is_refused() -> void:
+	assert_bool(_vm.remove_last()).is_false()
+	assert_int(_vm.step_count).is_zero()
 
 # ─── Pagination ──────────────────────────────────────────────────────────────
 
@@ -193,7 +197,7 @@ func test_clearing_from_a_late_page_returns_to_the_first() -> void:
 ## Records past PAGE_SIZE steps, spreading across upgrades so no single cap is
 ## hit. Returns the number of steps that landed.
 func _fill_past_one_page() -> int:
-	while _vm.step_amount > 0:                    # "Max", to fill caps fast
+	while _vm.step_amount > 0:                    # "Fill", to reach caps fast
 		_vm.cycle_step_amount()
 	for id in _def.upgrade_ids:
 		if _vm.step_count > BiomeSequenceViewModel.PAGE_SIZE:

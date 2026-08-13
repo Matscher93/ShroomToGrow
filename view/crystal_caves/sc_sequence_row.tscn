@@ -13,15 +13,12 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[node name="sequence_row" type="PanelContainer" node_paths=PackedStringArray("lbl_step", "lbl_name", "btn_up", "btn_down", "btn_remove")]
+[node name="sequence_row" type="PanelContainer" node_paths=PackedStringArray("lbl_step", "lbl_name")]
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_sequence_row")
 script = ExtResource("1_script")
 lbl_step = NodePath("HBoxContainer/lbl_step")
 lbl_name = NodePath("HBoxContainer/lbl_name")
-btn_up = NodePath("HBoxContainer/btn_up")
-btn_down = NodePath("HBoxContainer/btn_down")
-btn_remove = NodePath("HBoxContainer/btn_remove")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 2
@@ -37,15 +34,3 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Upgrade"
 text_overrun_behavior = 3
-
-[node name="btn_up" type="Button" parent="HBoxContainer"]
-layout_mode = 2
-text = "^"
-
-[node name="btn_down" type="Button" parent="HBoxContainer"]
-layout_mode = 2
-text = "v"
-
-[node name="btn_remove" type="Button" parent="HBoxContainer"]
-layout_mode = 2
-text = "x"
