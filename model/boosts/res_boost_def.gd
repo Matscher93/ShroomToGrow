@@ -1,11 +1,11 @@
-class_name GeodeBoostDef
+class_name BoostDef
 extends Resource
-## MODEL: static definition of one geode-bought boost - what stat it raises, how
-## fast its payoff climbs across tiers, and what it costs.
+## MODEL: static definition of one crystal-bought boost - what stat it raises,
+## how fast its payoff climbs across tiers, and what it costs.
 ##
-## Both curves live here rather than in GeodeTiers so two boosts can be shaped
+## Both curves live here rather than in BoostTiers so two boosts can be shaped
 ## differently: a cheap, shallow one and an expensive, steep one are a data edit,
-## not a second ladder. GeodeTiers keeps only what every boost shares - how many
+## not a second ladder. BoostTiers keeps only what every boost shares - how many
 ## levels a tier holds and how many tiers there are.
 
 @export var id: StringName
@@ -43,7 +43,7 @@ extends Resource
 
 # ---------------------------------------------------------------- cost curve
 
-## Geodes for the first level of tier 1. Every tier restarts its own curve from
+## Crystals for the first level of tier 1. Every tier restarts its own curve from
 ## tier_base_cost(), which is this scaled up by tier_cost_growth.
 @export var base_cost: float = 1.0
 
@@ -52,8 +52,8 @@ extends Resource
 
 ## Per-tier growth of the starting price. Prices restart at each boundary, and
 ## without this they restart at the same number every time - so tier 5, worth
-## orders of magnitude more per level, would open at the same geode price tier 1
-## did.
+## orders of magnitude more per level, would open at the same crystal price
+## tier 1 did.
 ##
 ## Must be greater than 1.0, or the tiers do not escalate at all.
 @export var tier_cost_growth: float = 10.0
@@ -66,11 +66,11 @@ extends Resource
 @export var unlock_perk_id: StringName = &""
 
 ## How far up the ladder this boost may be bought before a perk widens it.
-## 0 = the whole GeodeTiers ladder, i.e. no gate of its own.
+## 0 = the whole BoostTiers ladder, i.e. no gate of its own.
 @export var base_max_level: int = 0
 
 ## Perk whose levels raise that ceiling, and by how many levels each. The result
-## is still clamped to GeodeTiers.max_level() - the ladder's tiers are what the
+## is still clamped to BoostTiers.max_level() - the ladder's tiers are what the
 ## rates and prices are authored against, so nothing may reach past them.
 @export var max_level_perk_id: StringName = &""
 @export var max_level_per_perk_level: int = 0
@@ -80,6 +80,7 @@ extends Resource
 func per_level(tier: int) -> float:
 	return base_per_level * pow(per_level_growth, float(tier - 1))
 
-## Geodes the first level of the given tier costs, before the within-tier curve.
+## Crystals the first level of the given tier costs, before the within-tier
+## curve.
 func tier_base_cost(tier: int) -> float:
 	return base_cost * pow(tier_cost_growth, float(tier - 1))

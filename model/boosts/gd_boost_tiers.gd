@@ -1,14 +1,13 @@
-class_name GeodeTiers
+class_name BoostTiers
 extends RefCounted
 ## MODEL: the boost ladder's fixed numbers, in one place.
 ##
-## The tiers are on the *boost*, not on the geode: a geode is one thing, and what
-## changes every LEVELS_PER_TIER levels is how much a level of that boost is
+## What changes every LEVELS_PER_TIER levels is how much a level of that boost is
 ## worth and what it costs.
 ##
-## Both of those curves are authored per boost (see GeodeBoostDef.per_level and
+## Both of those curves are authored per boost (see BoostDef.per_level and
 ## tier_base_cost). What lives here is only what every boost shares: how tall a
-## tier is, how many there are, and what a geode costs in crystals.
+## tier is and how many there are.
 ##
 ## Levels multiply rather than add: a boost at level n of one tier is worth
 ## (1 + per_level)^n, so a hundred levels of a tier is worth its per-level rate
@@ -20,14 +19,6 @@ extends RefCounted
 
 const MAX_TIER := 5
 const LEVELS_PER_TIER := 100
-
-## Crystals melted down per geode. The published rate before any upgrade lowers
-## it - GeodeSystem.conversion_rate() is what callers should ask, never this.
-const CRYSTALS_PER_GEODE := 100.0
-
-## Never let an upgrade drive the conversion below one crystal per geode: at zero
-## the exchange stops being a price at all.
-const MIN_CRYSTALS_PER_GEODE := 1.0
 
 ## Highest boost level the ladder can reach, i.e. every tier maxed.
 static func max_level() -> int:

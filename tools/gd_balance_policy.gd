@@ -99,7 +99,7 @@ func _end_batch() -> void:
 ## fifth one is batched the day it is added.
 func _tracks() -> Array:
 	return [_app.upgrade_system, _app.biome_upgrade_system, _app.prestige_upgrade_system,
-		_app.geode_upgrade_system]
+		_app.boost_upgrade_system]
 
 
 ## Whether spend() would buy anything right now, without buying it. Read-only

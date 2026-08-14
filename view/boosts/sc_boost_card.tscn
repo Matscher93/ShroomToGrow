@@ -1,9 +1,9 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://view/geodes/gd_geode_boost_card.gd" id="1_script"]
+[ext_resource type="Script" path="res://view/boosts/gd_boost_card.gd" id="1_script"]
 [ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="2_hold_repeat"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_geode_boost_card"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_boost_card"]
 content_margin_left = 12.0
 content_margin_top = 10.0
 content_margin_right = 12.0
@@ -16,8 +16,8 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="geode_boost_card" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_description", "lbl_bonus", "lbl_level", "lbl_tier", "lbl_next", "lbl_cost", "btn_buy")]
-theme_override_styles/panel = SubResource("StyleBoxFlat_geode_boost_card")
+[node name="boost_card" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_description", "lbl_bonus", "lbl_level", "lbl_tier", "lbl_next", "lbl_cost", "btn_buy")]
+theme_override_styles/panel = SubResource("StyleBoxFlat_boost_card")
 script = ExtResource("1_script")
 lbl_name = NodePath("VBoxContainer/header/lbl_name")
 lbl_description = NodePath("VBoxContainer/lbl_description")
@@ -63,7 +63,7 @@ text = "Lv 0 / 500"
 [node name="lbl_tier" type="Label" parent="VBoxContainer/progress"]
 modulate = Color(1, 1, 1, 0.65)
 layout_mode = 2
-text = "T1 geodes - 0 / 100"
+text = "Tier 1 - 0 / 100"
 
 [node name="footer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2

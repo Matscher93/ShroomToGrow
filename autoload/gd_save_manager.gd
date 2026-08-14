@@ -5,7 +5,7 @@ extends Node
 const SAVE_PATH   := "user://save.json"
 const BACKUP_PATH := "user://save.bak.json"
 const TMP_PATH    := "user://save.tmp.json"
-const SAVE_VERSION := 6
+const SAVE_VERSION := 7
 
 ## The three UpgradeSystem buckets in a save, for migrations that touch all of
 ## them. Order is irrelevant, each is keyed independently.
@@ -150,6 +150,8 @@ func _migrate(data: Dictionary) -> bool:
 		_migrate_lifetime_upgrade_levels_to_v5(data)
 	if version < 6:
 		_migrate_point_plan_to_sequences_v6(data)
+	if version < 7:
+		_migrate_geodes_to_boosts_v7(data)
 	data["version"] = SAVE_VERSION
 	return true
 
@@ -252,6 +254,32 @@ func _migrate_point_plan_to_sequences_v6(data: Dictionary) -> void:
 	automation["upgrade_sequences"] = sequences
 	automation.erase("point_plan")
 	game["automation"] = automation
+
+## v6 -> v7: the geode conversion is gone. Boosts are priced in crystals
+## directly, so the track they live in is "boost_upgrades" and every id in it
+## lost its "geode_" prefix. The levels themselves carry over untouched -
+## UpgradeSystem.from_save() would otherwise drop every one of them as unknown.
+##
+## Two things the player had are not carried over, because nothing in the build
+## can hold them any more: the "Softer Stone" perk (it discounted the conversion
+## that no longer exists) and the crystals spent on it. Its key is erased rather
+## than left to from_save(), which would only push a warning per load.
+func _migrate_geodes_to_boosts_v7(data: Dictionary) -> void:
+	if not data.has("game"):
+		return
+	var game: Dictionary = data["game"]
+	var perks: Dictionary = game.get("prestige_upgrades", {})
+	perks.erase("instinct_conversion")
+	var levels: Dictionary = game.get("geode_upgrades", {})
+	var migrated := {}
+	for key in levels:
+		# UpgradeSystem.LIFETIME_KEY carries no prefix and passes through as-is.
+		var id := String(key)
+		if id.begins_with("geode_"):
+			id = "boost_" + id.trim_prefix("geode_")
+		migrated[id] = levels[key]
+	game["boost_upgrades"] = migrated
+	game.erase("geode_upgrades")
 
 func _read(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):

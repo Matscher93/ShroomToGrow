@@ -1,6 +1,6 @@
 extends PanelContainer
-## VIEW: one geode boost in the Geode menu. Bound to a persistent
-## GeodeBoostViewModel owned by App.
+## VIEW: one boost in the Boosts tab. Bound to a persistent BoostViewModel owned
+## by App.
 
 @export var lbl_name: Label
 @export var lbl_description: Label
@@ -11,12 +11,12 @@ extends PanelContainer
 @export var lbl_cost: Label
 @export var btn_buy: Button
 
-var _vm: GeodeBoostViewModel
+var _vm: BoostViewModel
 
 func _ready() -> void:
 	btn_buy.pressed.connect(_on_buy_pressed)
 
-func bind(vm: GeodeBoostViewModel) -> void:
+func bind(vm: BoostViewModel) -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 	_vm = vm

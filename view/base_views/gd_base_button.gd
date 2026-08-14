@@ -1,7 +1,7 @@
 extends Button
 ## VIEW: a button that keeps firing while it is held down, for the actions a
 ## player buys dozens of in a row - node tiers, Biome Size, biome upgrades,
-## geode boost levels, automation levels, and claiming a stack of achievement
+## boost levels, automation levels, and claiming a stack of achievement
 ## tiers.
 ##
 ## The repeat accelerates: it opens at repeat_rate and ramps to min_repeat_rate

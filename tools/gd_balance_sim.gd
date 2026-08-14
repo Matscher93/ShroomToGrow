@@ -210,7 +210,7 @@ static func _reset(app: Node) -> void:
 	app.upgrade_system.reset()
 	app.biome_upgrade_system.reset()
 	app.prestige_upgrade_system.reset()
-	app.geode_upgrade_system.reset()
+	app.boost_upgrade_system.reset()
 	app.biome_system.reset()
 	app.biome_system.unlock_free_biomes()
 

@@ -1,15 +1,16 @@
 @tool
 extends PanelContainer
-## VIEW: the Crystal Caves screen. Three tabs: the crystal-bought automations,
-## the geode sink crystals are melted down into, and the per-biome sequences
-## the point-spending automation replays.
+## VIEW: the Crystal Caves screen. Three tabs: the crystal-bought boosts, the
+## crystal-bought automations, and the per-biome sequences the point-spending
+## automation replays.
 ##
 ## The crystal balance is not repeated here. The screen definition lists crystals
 ## as its currency, so the top bar already shows it labelled above every tab; a
 ## second bare number under it was one readout too many.
 ##
-## The Geodes tab is a self-contained scene with its own ViewModel (see
-## view/geodes/), so it needs no wiring here beyond sitting in the TabContainer.
+## The Boosts tab is a self-contained scene (see view/boosts/) that binds the
+## same CrystalCavesViewModel for its card list, so it needs no wiring here
+## beyond sitting in the TabContainer.
 ##
 ## Sequences sit last because they are set up once and then left alone, and the
 ## rows are long enough that they crowded the upgrade list they used to share.
@@ -25,8 +26,8 @@ extends PanelContainer
 ## lives on the Biomes screen like every other biome. This screen is the hub the
 ## biome unlocks, not a second copy of that card.
 
-@export var tab_container: TabContainer
-@export var geodes_tab: Control
+@export var tab_container: FullWidthTabContainer
+@export var boosts_tab: Control
 @export var automations_tab: ScrollContainer
 @export var sequences_tab: ScrollContainer
 @export var vbox_automations: VBoxContainer
@@ -45,7 +46,7 @@ func _ready() -> void:
 	bind(App.crystal_caves_vm)
 	_build_automations()
 	_build_sequences()
-	_refresh_geodes_tab()
+	_refresh_boosts_tab()
 	await _restore_view_state()
 
 func bind(vm: CrystalCavesViewModel) -> void:
@@ -61,18 +62,20 @@ func _exit_tree() -> void:
 
 func _on_property_changed(property: StringName) -> void:
 	match property:
-		CrystalCavesViewModel.PROP_GEODES_VISIBLE:
-			_refresh_geodes_tab()
+		CrystalCavesViewModel.PROP_BOOSTS_VISIBLE:
+			_refresh_boosts_tab()
 		CrystalCavesViewModel.PROP_SECTIONS_CHANGED:
 			_build_sequences()
 
-## Geodes leads the tabs, so it is also the one the screen opens on. Hiding the
+## Boosts leads the tabs, so it is also the one the screen opens on. Hiding the
 ## current tab leaves TabContainer pointing at a tab that is no longer there, so
 ## the selection is moved to the first one still showing.
-func _refresh_geodes_tab() -> void:
-	var index := geodes_tab.get_index()
-	tab_container.set_tab_hidden(index, not _vm.geodes_visible)
-	if _vm.geodes_visible or tab_container.current_tab != index:
+func _refresh_boosts_tab() -> void:
+	var index := boosts_tab.get_index()
+	tab_container.set_tab_hidden(index, not _vm.boosts_visible)
+	# One fewer tab to share the bar, so what is left has to be repadded.
+	tab_container.spread_tabs()
+	if _vm.boosts_visible or tab_container.current_tab != index:
 		return
 	for i in range(tab_container.get_tab_count()):
 		if not tab_container.is_tab_hidden(i):

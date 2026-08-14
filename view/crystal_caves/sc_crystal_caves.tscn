@@ -4,7 +4,8 @@
 [ext_resource type="PackedScene" path="res://view/crystal_caves/sc_automation_card.tscn" id="2_automation_card"]
 [ext_resource type="PackedScene" path="res://view/crystal_caves/sc_biome_sequence_section.tscn" id="4_biome_sequence"]
 [ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="6_touch_scroll"]
-[ext_resource type="PackedScene" path="res://view/geodes/sc_geodes.tscn" id="7_geodes"]
+[ext_resource type="PackedScene" path="res://view/boosts/sc_boosts.tscn" id="7_boosts"]
+[ext_resource type="Script" path="res://view/base_views/gd_full_width_tab_container.gd" id="8_full_width_tabs"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_crystal_caves"]
 content_margin_bottom = 8.0
@@ -22,7 +23,7 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[node name="crystal_caves" type="PanelContainer" node_paths=PackedStringArray("tab_container", "geodes_tab", "automations_tab", "sequences_tab", "vbox_automations", "vbox_sequences")]
+[node name="crystal_caves" type="PanelContainer" node_paths=PackedStringArray("tab_container", "boosts_tab", "automations_tab", "sequences_tab", "vbox_automations", "vbox_sequences")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -31,7 +32,7 @@ grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxEmpty_crystal_caves")
 script = ExtResource("1_script")
 tab_container = NodePath("VBoxContainer/TabContainer")
-geodes_tab = NodePath("VBoxContainer/TabContainer/Geodes")
+boosts_tab = NodePath("VBoxContainer/TabContainer/Boosts")
 automations_tab = NodePath("VBoxContainer/TabContainer/Automations")
 sequences_tab = NodePath("VBoxContainer/TabContainer/Sequences")
 vbox_automations = NodePath("VBoxContainer/TabContainer/Automations/MarginContainer/VBoxContainer/vbox_automations")
@@ -44,14 +45,16 @@ layout_mode = 2
 theme_override_constants/separation = 6
 
 [node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
+script = ExtResource("8_full_width_tabs")
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxEmpty_tab_panel")
 theme_override_styles/tabbar_background = SubResource("StyleBoxFlat_tabbar")
 tabs_position = 1
+tab_alignment = 1
 current_tab = 0
 
-[node name="Geodes" parent="VBoxContainer/TabContainer" instance=ExtResource("7_geodes")]
+[node name="Boosts" parent="VBoxContainer/TabContainer" instance=ExtResource("7_boosts")]
 layout_mode = 2
 
 [node name="Automations" type="ScrollContainer" parent="VBoxContainer/TabContainer"]

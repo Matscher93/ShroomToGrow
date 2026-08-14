@@ -5,13 +5,13 @@ extends ViewModel
 ## follows. Owns formatting and derived state.
 ## References the model, never a Node.
 ##
-## The per-automation cards bind their own VMs (App.automation_vms); this one
-## owns what is shared across the screen. The achievement archive the crystals
-## come from lives in the top-bar overlay (App.achievements_vm), not here. The
-## crystal balance is shown by the top bar, from the screen definition's
-## currencies - this screen does not repeat it.
+## The per-automation and per-boost cards bind their own VMs (App.automation_vms,
+## App.boost_vms); this one owns what is shared across the screen. The achievement
+## archive the crystals come from lives in the top-bar overlay
+## (App.achievements_vm), not here. The crystal balance is shown by the top bar,
+## from the screen definition's currencies - this screen does not repeat it.
 
-const PROP_GEODES_VISIBLE := &"geodes_visible"
+const PROP_BOOSTS_VISIBLE := &"boosts_visible"
 const PROP_SECTIONS_CHANGED := &"sections_changed"
 
 # --- View state ---
@@ -25,14 +25,14 @@ var current_tab := 0
 var scroll_offsets: Dictionary = {}
 
 # --- Read-only display properties bound by the View ---
-## Whether the Geodes tab belongs on screen at all. Every boost is behind its own
+## Whether the Boosts tab belongs on screen at all. Every boost is behind its own
 ## prestige perk, so before the first of them the tab is a page of locked cards
-## explaining a currency the player has no way to spend - one tab too many on a
-## screen reached from a phone's thumb.
-var geodes_visible: bool:
+## and nothing the player can act on - one tab too many on a screen reached from
+## a phone's thumb.
+var boosts_visible: bool:
 	get:
-		for def in App.geode_boosts.boosts:
-			if App.is_geode_boost_unlocked(def.id):
+		for def in App.boosts.boosts:
+			if App.is_boost_unlocked(def.id):
 				return true
 		return false
 
@@ -41,6 +41,13 @@ var automation_vms_ordered: Array[AutomationViewModel]:
 		var ordered: Array[AutomationViewModel] = []
 		for def in App.automations.automations:
 			ordered.append(App.automation_vms[def.id])
+		return ordered
+
+var boost_vms_ordered: Array[BoostViewModel]:
+	get:
+		var ordered: Array[BoostViewModel] = []
+		for def in App.boosts.boosts:
+			ordered.append(App.boost_vms[def.id])
 		return ordered
 
 # --- Biome sequence sections ---
@@ -65,7 +72,7 @@ func sequence_vms() -> Array[BiomeSequenceViewModel]:
 # --- Lifecycle ---
 
 func _init() -> void:
-	# Buying the first geode unlock perk is what brings the tab in, and that can
+	# Buying the first boost unlock perk is what brings the tab in, and that can
 	# happen while this screen is open - the perk web is a screen away.
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_perks_changed)
 	# Reaching a biome adds its section. The screen used to be rebuilt on every
@@ -80,7 +87,7 @@ func dispose() -> void:
 # --- Model -> notification plumbing ---
 
 func _on_perks_changed() -> void:
-	_notify(PROP_GEODES_VISIBLE)
+	_notify(PROP_BOOSTS_VISIBLE)
 
 func _on_sections_changed() -> void:
 	_notify(PROP_SECTIONS_CHANGED)

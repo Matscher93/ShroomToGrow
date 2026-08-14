@@ -29,7 +29,7 @@ func _emitters() -> Array[Object]:
 		App.upgrade_system,
 		App.biome_upgrade_system,
 		App.prestige_upgrade_system,
-		App.geode_upgrade_system,
+		App.boost_upgrade_system,
 		App.screens_data,
 	]
 	for node in App.nodes.mycelium_nodes:
@@ -87,10 +87,10 @@ func test_automation_view_model_disposes_cleanly() -> void:
 		_assert_symmetric("AutomationViewModel(%s)" % def.id,
 			func() -> ViewModel: return AutomationViewModel.new(def))
 
-func test_geode_boost_view_model_disposes_cleanly() -> void:
-	for def in App.geode_boosts.boosts:
-		_assert_symmetric("GeodeBoostViewModel(%s)" % def.id,
-			func() -> ViewModel: return GeodeBoostViewModel.new(def.id, def))
+func test_boost_view_model_disposes_cleanly() -> void:
+	for def in App.boosts.boosts:
+		_assert_symmetric("BoostViewModel(%s)" % def.id,
+			func() -> ViewModel: return BoostViewModel.new(def.id, def))
 
 func test_mycelium_node_view_model_disposes_cleanly() -> void:
 	for node_data in App.mycelium_node_data:
@@ -114,10 +114,6 @@ func test_prestige_view_model_disposes_cleanly() -> void:
 func test_achievements_view_model_disposes_cleanly() -> void:
 	_assert_symmetric("AchievementsViewModel",
 		func() -> ViewModel: return AchievementsViewModel.new())
-
-func test_geodes_view_model_disposes_cleanly() -> void:
-	_assert_symmetric("GeodesViewModel",
-		func() -> ViewModel: return GeodesViewModel.new())
 
 func test_crystal_caves_view_model_disposes_cleanly() -> void:
 	_assert_symmetric("CrystalCavesViewModel",

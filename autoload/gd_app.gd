@@ -23,11 +23,11 @@ var tick_timer: Timer
 var upgrade_system: UpgradeSystem
 var prestige_upgrade_system: UpgradeSystem
 var biome_upgrade_system: UpgradeSystem
-## Levels of the two geode boosts, one UpgradeDef per boost per tier. A track of
-## its own rather than a corner of the prestige one: geodes are permanent, the
-## defs are generated from GeodeTiers instead of authored, and it saves and
+## Levels of the two crystal boosts, one UpgradeDef per boost per tier. A track of
+## its own rather than a corner of the prestige one: boosts are permanent, the
+## defs are generated from BoostTiers instead of authored, and it saves and
 ## resets on its own terms.
-var geode_upgrade_system: UpgradeSystem
+var boost_upgrade_system: UpgradeSystem
 var resolve_context := ResolveContext.new()
 
 ## Game rules, split out by domain. Each is constructed with the state it needs
@@ -55,10 +55,9 @@ var achievement_system: AchievementSystem
 var achievement_vms: Dictionary = {}  # StringName -> AchievementViewModel
 var achievements_vm: AchievementsViewModel
 
-var geode_boosts := load("res://data/geodes/all_geode_boosts.tres") as GeodeBoostList
-var geode_system: GeodeSystem
-var geode_boost_vms: Dictionary = {}  # StringName -> GeodeBoostViewModel
-var geodes_vm: GeodesViewModel
+var boosts := load("res://data/boosts/all_boosts.tres") as BoostList
+var boost_system: BoostSystem
+var boost_vms: Dictionary = {}  # StringName -> BoostViewModel
 
 var automations := load("res://data/automation/all_automations.tres") as AutomationList
 var automation_data: AutomationData
@@ -97,12 +96,12 @@ func _ready() -> void:
 	for def in UpgradeDefLoader.load_all(UpgradeDefLoader.BIOME_PATH):
 		biome_upgrade_system.register(def)
 
-	geode_upgrade_system = UpgradeSystem.new()
-	for def in GeodeBoostTree.build(geode_boosts):
-		geode_upgrade_system.register(def)
+	boost_upgrade_system = UpgradeSystem.new()
+	for def in BoostTree.build(boosts):
+		boost_upgrade_system.register(def)
 
 	production_system = ProductionSystem.new(upgrade_system, biome_upgrade_system,
-		prestige_upgrade_system, resolve_context, geode_upgrade_system)
+		prestige_upgrade_system, resolve_context, boost_upgrade_system)
 	tick_system = TickSystem.new(nodes.mycelium_nodes, player_data, production_system)
 
 	for perk in PerkTree.build(perk_branches):
@@ -136,8 +135,8 @@ func _ready() -> void:
 	achievement_system = AchievementSystem.new(achievements, achievement_progress, player_data,
 		production_system, upgrade_system, biomes_data)
 
-	geode_system = GeodeSystem.new(player_data, geode_upgrade_system, production_system,
-		geode_boosts, prestige_upgrade_system)
+	boost_system = BoostSystem.new(player_data, boost_upgrade_system, boosts,
+		prestige_upgrade_system)
 
 	automation_data = AutomationData.new()
 	automation_system = AutomationSystem.new(automations, automation_data, player_data,
@@ -154,10 +153,10 @@ func _ready() -> void:
 		automation_vms[def.id] = AutomationViewModel.new(def)
 	for def in biomes.biomes:
 		biome_sequence_vms[def.key] = BiomeSequenceViewModel.new(def.key, def)
+	for def in boosts.boosts:
+		boost_vms[def.id] = BoostViewModel.new(def.id, def)
+	# After boost_vms: the Caves screen's VM hands out those cards.
 	crystal_caves_vm = CrystalCavesViewModel.new()
-	for def in geode_boosts.boosts:
-		geode_boost_vms[def.id] = GeodeBoostViewModel.new(def.id, def)
-	geodes_vm = GeodesViewModel.new()
 
 	screens_data = ScreensData.new(screens.screens, screens.initial_screen)
 	screens_vm = ScreensViewModel.new(screens_data)
@@ -175,7 +174,7 @@ func _ready() -> void:
 	upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	biome_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	prestige_upgrade_system.upgrades_changed.connect(_update_tick_duration)
-	geode_upgrade_system.upgrades_changed.connect(_update_tick_duration)
+	boost_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	_update_tick_duration()
 
 	_connect_achievement_sources()
@@ -200,7 +199,7 @@ func _connect_achievement_sources() -> void:
 	upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	biome_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	prestige_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
-	geode_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
+	boost_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	biomes_data.biome_unlocked.connect(mark_achievements_dirty.unbind(1))
 	player_data.prestige_count_changed.connect(mark_achievements_dirty.unbind(1))
 	biome_size_changed.connect(mark_achievements_dirty.unbind(1))
@@ -261,7 +260,7 @@ func to_save() -> Dictionary:
 		"biome_upgrades": biome_upgrade_system.to_save(),
 		"achievements": achievement_progress.to_save(),
 		"automation": automation_data.to_save(),
-		"geode_upgrades": geode_upgrade_system.to_save(),
+		"boost_upgrades": boost_upgrade_system.to_save(),
 	}
 
 ## Loads a dictionary from to_save() into the live systems. Every holder is
@@ -280,7 +279,7 @@ func load_from_save(game: Dictionary) -> void:
 	# not a saved field, so it has to be rebuilt here.
 	achievement_system.sync_tier_count()
 	automation_data.load_from_save(game.get("automation", {}))
-	geode_upgrade_system.from_save(game.get("geode_upgrades", {}))
+	boost_upgrade_system.from_save(game.get("boost_upgrades", {}))
 
 func mycelium_nodes_to_save() -> Array[Dictionary]:
 	var all_node_data: Array[Dictionary] = []
@@ -371,46 +370,37 @@ func can_prestige() -> bool:
 func prestige() -> void:
 	prestige_system.prestige()
 
-# ---------------------------------------------------------------- geodes
+# ---------------------------------------------------------------- boosts
 
-func geode_conversion_rate() -> BigNumber:
-	return geode_system.conversion_rate()
+func boost_level(boost_id: StringName) -> int:
+	return boost_system.boost_level(boost_id)
 
-func available_geodes() -> BigNumber:
-	return geode_system.available_geodes()
+func boost_tier(boost_id: StringName) -> int:
+	return boost_system.boost_tier(boost_id)
 
-func geode_boost_crystal_cost(boost_id: StringName) -> BigNumber:
-	return geode_system.boost_crystal_cost(boost_id)
+func boost_multiplier(boost_id: StringName) -> BigNumber:
+	return boost_system.boost_multiplier(boost_id)
 
-func geode_boost_level(boost_id: StringName) -> int:
-	return geode_system.boost_level(boost_id)
+func boost_next_gain(boost_id: StringName) -> float:
+	return boost_system.next_level_gain(boost_id)
 
-func geode_boost_tier(boost_id: StringName) -> int:
-	return geode_system.boost_tier(boost_id)
+func boost_cost(boost_id: StringName) -> BigNumber:
+	return boost_system.boost_cost(boost_id)
 
-func geode_boost_multiplier(boost_id: StringName) -> BigNumber:
-	return geode_system.boost_multiplier(boost_id)
+func is_boost_maxed(boost_id: StringName) -> bool:
+	return boost_system.is_maxed(boost_id)
 
-func geode_boost_next_gain(boost_id: StringName) -> float:
-	return geode_system.next_level_gain(boost_id)
+func is_boost_unlocked(boost_id: StringName) -> bool:
+	return boost_system.is_unlocked(boost_id)
 
-func geode_boost_cost(boost_id: StringName) -> BigNumber:
-	return geode_system.boost_cost(boost_id)
+func boost_max_level(boost_id: StringName) -> int:
+	return boost_system.max_level(boost_id)
 
-func is_geode_boost_maxed(boost_id: StringName) -> bool:
-	return geode_system.is_maxed(boost_id)
+func can_buy_boost(boost_id: StringName) -> bool:
+	return boost_system.can_buy_boost(boost_id)
 
-func is_geode_boost_unlocked(boost_id: StringName) -> bool:
-	return geode_system.is_unlocked(boost_id)
-
-func geode_boost_max_level(boost_id: StringName) -> int:
-	return geode_system.max_level(boost_id)
-
-func can_buy_geode_boost(boost_id: StringName) -> bool:
-	return geode_system.can_buy_boost(boost_id)
-
-func buy_geode_boost(boost_id: StringName) -> bool:
-	return geode_system.buy_boost(boost_id)
+func buy_boost(boost_id: StringName) -> bool:
+	return boost_system.buy_boost(boost_id)
 
 # ---------------------------------------------------------------- biomes
 
