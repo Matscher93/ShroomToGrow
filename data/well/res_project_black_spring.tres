@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_warm"]
+script = ExtResource("3_effect_script")
+stat = &"water_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.055
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_warm"]
+script = ExtResource("2_boon_script")
+display_name = "Warm Rise"
+description = "x1.055 water per pump, per level, compounding."
+unlock_at_level = 1
+effect = SubResource("effect_warm")
+
+[sub_resource type="Resource" id="effect_mineral"]
+script = ExtResource("3_effect_script")
+stat = &"biomass_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.045
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_mineral"]
+script = ExtResource("2_boon_script")
+display_name = "Mineral Load"
+description = "x1.045 biomass gained on sporation, per level, compounding."
+unlock_at_level = 5
+effect = SubResource("effect_mineral")
+
+[sub_resource type="Resource" id="effect_pressure2"]
+script = ExtResource("3_effect_script")
+stat = &"water_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.18
+level_scaling = 0
+max_magnitude = 3.5
+
+[sub_resource type="Resource" id="boon_pressure2"]
+script = ExtResource("2_boon_script")
+display_name = "Deep Pressure"
+description = "-0.18 ticks between pumps, per level, up to -3.50."
+unlock_at_level = 15
+effect = SubResource("effect_pressure2")
+
+[sub_resource type="Resource" id="effect_black"]
+script = ExtResource("3_effect_script")
+stat = &"biomass_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.03
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_black"]
+script = ExtResource("2_boon_script")
+display_name = "The Black"
+description = "x1.03 biomass gained on sporation, per level, compounding."
+unlock_at_level = 40
+effect = SubResource("effect_black")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_black"
+display_name = "Black Spring"
+description = "It comes up warm, and nothing that goes down comes back to say why."
+max_level = 60
+min_project_levels = 577
+_base_cost_mantissa = 2.5
+_base_cost_exponent = 9
+cost_growth = 1.49
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_warm"), SubResource("boon_mineral"), SubResource("boon_pressure2"), SubResource("boon_black")])

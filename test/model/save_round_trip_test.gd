@@ -45,6 +45,13 @@ func test_achievement_tiers_is_not_saved_on_player_data() -> void:
 	original.achievement_tiers = 17
 	assert_bool(original.to_save().has("achievement_tiers")).is_false()
 
+func test_well_project_levels_is_not_saved_on_player_data() -> void:
+	# Same contract as achievement_tiers above: a projection of the project
+	# UpgradeSystem, rebuilt by WellSystem.sync_project_levels() on load.
+	var original := PlayerData.new()
+	original.well_project_levels = 9
+	assert_bool(original.to_save().has("well_project_levels")).is_false()
+
 func test_player_data_loads_in_place_so_viewmodels_stay_bound() -> void:
 	# Replacing App.player_data would orphan every VM already holding it, so
 	# load_from_save must mutate through the setters instead.

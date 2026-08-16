@@ -74,6 +74,39 @@
   /* ------------------------------------------------------------------ drawing */
 
   const PAD = 40;
+  /* World units, matching the width sc_perk_node.tscn wraps a perk name at. The
+   * positions here are PerkTree's, so a name that needs two lines in the game
+   * needs two lines here, and a label that would sit on its neighbour in one
+   * view sits on it in the other. */
+  const LABEL_WIDTH = 88;
+  const LABEL_LINE = 10;   // the 9px .perk-label font, leaded
+
+  /* SVG text does not wrap, so a long name is measured and broken by hand.
+   * measureText on a 2d context is the same shaping the SVG text will get, as
+   * long as it is asked in the font the stylesheet gives .perk-label. */
+  const measure = (() => {
+    const context = document.createElement("canvas").getContext("2d");
+    context.font = "9px ui-sans-serif, system-ui, sans-serif";
+    return (text) => context.measureText(text).width;
+  })();
+
+  function wrapLabel(text) {
+    const lines = [];
+    let line = "";
+    for (const word of text.split(" ")) {
+      const candidate = line ? `${line} ${word}` : word;
+      // A single word wider than the wrap width still goes on its own line:
+      // there is nowhere else to put it, and breaking mid-word reads worse.
+      if (line && measure(candidate) > LABEL_WIDTH) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = candidate;
+      }
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
 
   /** Cheap blue→red ramp over the observed range, so the eye reads "expensive"
    * without a legend lookup. */
@@ -144,7 +177,13 @@
 
       const label = svgEl("text", { class: "perk-label", x: perk.world_x, y: perk.world_y + 28 });
       label.setAttribute("text-anchor", "middle");
-      label.textContent = perk.display_name;
+      for (const [index, line] of wrapLabel(perk.display_name).entries()) {
+        // x repeated per tspan: without it a wrapped line resumes where the
+        // previous one ended instead of centring under the node again.
+        const span = svgEl("tspan", { x: perk.world_x, dy: index ? LABEL_LINE : 0 });
+        span.textContent = line;
+        label.append(span);
+      }
       group.append(label);
 
       attachTip(group, [
@@ -248,7 +287,10 @@
       reload.title = "Re-read the web from disk";
       reload.onclick = async () => {
         try {
-          view.report = await api("/api/perks");
+          // ?fresh=1 rather than the plain path: the server caches this report
+          // until the data is written, and what this button is pressed after is
+          // usually a layout constant moving in PerkTree, which no write touches.
+          view.report = await api("/api/perks?fresh=1");
           view.render();
         } catch (error) { log(String(error), true); }
       };

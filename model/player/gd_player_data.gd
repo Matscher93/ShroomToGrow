@@ -9,6 +9,7 @@ signal crystals_changed(value: BigNumber)
 signal tick_count_changed(value: int)
 signal prestige_count_changed(value: int)
 signal achievement_tiers_changed(value: int)
+signal well_project_levels_changed(value: int)
 
 ## The BigNumber setters below guard with same_value(), not ==. BigNumber is a
 ## RefCounted, so == is an identity check, false for every freshly built
@@ -71,6 +72,21 @@ var achievement_tiers: int = 0:
 			return
 		achievement_tiers = value
 		achievement_tiers_changed.emit(achievement_tiers)
+
+## Times any well project has been funded, summed. Doubles as the Underground
+## Lake's XP source (BiomeDef.XpSource.WELL_PROJECTS), so it needs a change
+## signal.
+##
+## Same contract as achievement_tiers above: a cached projection of the project
+## UpgradeSystem's levels, rewritten by WellSystem and re-synced after the
+## project bucket is loaded. Deliberately not in _PLAIN_FIELDS - saving it too
+## would let the two drift.
+var well_project_levels: int = 0:
+	set(value):
+		if well_project_levels == value:
+			return
+		well_project_levels = value
+		well_project_levels_changed.emit(well_project_levels)
 
 ## Lifetime totals the achievement ladder measures against. Unlike tick_count and
 ## the currencies above, these are never reset, so an achievement goal stays

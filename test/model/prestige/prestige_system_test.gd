@@ -183,6 +183,21 @@ func test_perk_levels_survive_the_reset() -> void:
 
 	assert_int(_perks.level(&"Perk")).is_equal(4)
 
+func test_well_project_levels_survive_the_reset() -> void:
+	# Water is a run currency the reset wipes, but what it was spent on is
+	# permanent - the same split crystals and boosts have. PrestigeSystem is not
+	# even handed the project track, and this is what says that is deliberate.
+	_make_prestige_available()
+	var projects := UpgradeSystem.new()
+	_register(projects, &"project_sluice_b0", 6)
+	_player.well_project_levels = 6
+
+	_system.prestige()
+
+	assert_float(_player.water.to_float()).is_zero()
+	assert_int(projects.level(&"project_sluice_b0")).is_equal(6)
+	assert_int(_player.well_project_levels).is_equal(6)
+
 func test_biomes_are_relocked_but_stay_reachable() -> void:
 	_make_prestige_available()
 

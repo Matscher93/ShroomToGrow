@@ -8,11 +8,16 @@ extends RefCounted
 ## is affordable.
 ##
 ## Progression purchases - unlocking a biome, spending biome points, buying a
-## perk, growing a biome - are taken by every policy as soon as they are
-## affordable, because they are not really choices: the game hands them out on
-## its own through automations, and a policy that skipped them would measure a
-## way nobody plays. What the policies actually differ on is the one real
-## decision, nodes versus symbiosis levels.
+## perk, growing a biome, levelling a crystal boost, funding a well project - are
+## taken by every policy as soon as they are affordable, because they are not
+## really choices: the game hands them out on its own through automations, and a
+## policy that skipped them would measure a way nobody plays. What the policies
+## actually differ on is the one real decision, nodes versus symbiosis levels.
+##
+## That covers three currencies besides nutrients, and each has exactly one sink
+## worth spending it on - crystals buy automations and boosts, water funds well
+## projects, biomass buys perks - so "cheapest first until nothing is affordable"
+## is the whole of the decision for them.
 
 ## Which purchase the policy prefers when several are affordable.
 enum Kind {
@@ -99,7 +104,7 @@ func _end_batch() -> void:
 ## fifth one is batched the day it is added.
 func _tracks() -> Array:
 	return [_app.upgrade_system, _app.biome_upgrade_system, _app.prestige_upgrade_system,
-		_app.boost_upgrade_system]
+		_app.boost_upgrade_system, _app.project_upgrade_system]
 
 
 ## Whether spend() would buy anything right now, without buying it. Read-only
@@ -107,13 +112,14 @@ func _tracks() -> Array:
 ## skipped while the answer stays no.
 ##
 ## Asked only after a tick that bought nothing, which is what lets it be this
-## short. Everything spend() buys that is *not* priced in nutrients - a perk, a
-## biome upgrade, an automation level - is paid for in a currency that only a
-## purchase can move, so it was already unaffordable a tick ago and still is.
-## What grows on its own is nutrients, and these are the four things nutrients
-## buy.
-## What the cheapest of those four costs, or null when the run has nothing left
-## it could buy at any price.
+## short. Most of what spend() buys that is *not* priced in nutrients - a perk, a
+## biome upgrade, an automation level, a crystal boost - is paid for in a currency
+## that only a purchase can move, so it was already unaffordable a tick ago and
+## still is. The two currencies that grow on their own are nutrients, covered
+## here, and water, covered by cheapest_water_price() below.
+##
+## What the cheapest of those four nutrient sinks costs, or null when the run has
+## nothing left it could buy at any price.
 ##
 ## Returned as a price rather than a yes/no because every one of these prices is
 ## frozen for as long as nothing is bought - a cost only moves when a level does
@@ -145,20 +151,48 @@ func cheapest_price() -> BigNumber:
 	return cheapest
 
 
+## The water twin of cheapest_price(): what the cheapest well project the run
+## could fund costs, or null when none is open and unmaxed.
+##
+## Needed for the same reason and read the same way. Water is the second thing a
+## run accumulates without buying anything - the Underground Lake pumps it every
+## few ticks, and TickSystem moves it across a strided span exactly as it does
+## across a walked one - so a stride that only watched nutrients would sail past
+## the tick a project became affordable on.
+##
+## Locked projects are left out and stay left out for the length of a stride: a
+## project opens on the well's total funding, and nothing inside a stride funds
+## anything. Same for the price itself, which only moves when a level does.
+func cheapest_water_price() -> BigNumber:
+	var cheapest: BigNumber = null
+	for def: ProjectDef in _app.projects.projects:
+		if not _app.is_project_unlocked(def.id) or _app.is_project_maxed(def.id):
+			continue
+		cheapest = _lower(cheapest, _app.project_cost(def.id))
+	return cheapest
+
+
 func _lower(cheapest: BigNumber, price: BigNumber) -> BigNumber:
 	return price if cheapest == null or price.lt(cheapest) else cheapest
 
 
 # ------------------------------------------------------------------ progression
 
-## The purchases that are not a choice: gates, points, perks and automations.
+## The purchases that are not a choice: gates, points, perks, automations, crystal
+## boosts and well projects.
 func _progression() -> int:
 	var made := 0
 	# Claimed first: the crystals pay for the automations bought further down.
 	if _app.has_achievement_claims():
 		_app.claim_all_achievements()
 		made += 1
+	# Automations before boosts, and both out of the same crystals: an automation
+	# is what makes a tier produce at all, a boost only multiplies what is already
+	# produced, so a run that let a cheap boost tier outbid the next automation
+	# would be measuring a mistake nobody makes.
 	made += _buy_cheapest_automation()
+	made += _buy_cheapest_boost()
+	made += _fund_cheapest_project()
 	for def: BiomeDef in _app.biomes.biomes:
 		if _app.can_unlock_biome(def.key):
 			_app.unlock_biome(def.key)
@@ -214,8 +248,8 @@ func _buy_cheapest_perk() -> int:
 	return 1 if _app.buy_perk(best) else 0
 
 
-## One automation level per call, cheapest first. Crystals buy nothing else, so
-## an unspent one is a level the run should already have had.
+## One automation level per call, cheapest first. Crystals buy only this and the
+## boosts below, so an unspent one is a level the run should already have had.
 func _buy_cheapest_automation() -> int:
 	var best: StringName = &""
 	var best_cost: BigNumber = null
@@ -229,6 +263,44 @@ func _buy_cheapest_automation() -> int:
 	if best.is_empty():
 		return 0
 	return 1 if _app.buy_automation(best) else 0
+
+
+## One boost level per call, cheapest first, out of whatever crystals the
+## automations above left. Cheapest rather than by effect: a boost's ladder is
+## bought bottom-up whatever order it is asked for - a tier only opens once the
+## one below it is full - so the only choice left is which of the boosts to feed,
+## and their per-level rates are close enough that price is the honest tiebreak.
+func _buy_cheapest_boost() -> int:
+	var best: StringName = &""
+	var best_cost: BigNumber = null
+	for def: BoostDef in _app.boosts.boosts:
+		if not _app.can_buy_boost(def.id):
+			continue
+		var cost: BigNumber = _app.boost_cost(def.id)
+		if best_cost == null or cost.lt(best_cost):
+			best = def.id
+			best_cost = cost
+	if best.is_empty():
+		return 0
+	return 1 if _app.buy_boost(best) else 0
+
+
+## One well project funded per call, cheapest first. Water buys nothing else, and
+## the ladder's later projects open on how far the well has been funded overall,
+## so the cheapest funding available is also the one that opens the next project.
+func _fund_cheapest_project() -> int:
+	var best: StringName = &""
+	var best_cost: BigNumber = null
+	for def: ProjectDef in _app.projects.projects:
+		if not _app.can_invest_project(def.id):
+			continue
+		var cost: BigNumber = _app.project_cost(def.id)
+		if best_cost == null or cost.lt(best_cost):
+			best = def.id
+			best_cost = cost
+	if best.is_empty():
+		return 0
+	return 1 if _app.invest_project(best) else 0
 
 
 # --------------------------------------------------------------------- shopping

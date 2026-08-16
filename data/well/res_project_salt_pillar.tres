@@ -1,0 +1,82 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_crust"]
+script = ExtResource("3_effect_script")
+stat = &"crystal_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.05
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_crust"]
+script = ExtResource("2_boon_script")
+display_name = "Salt Crust"
+description = "x1.05 crystals from achievements, per level, compounding."
+unlock_at_level = 1
+effect = SubResource("effect_crust")
+
+[sub_resource type="Resource" id="effect_halite"]
+script = ExtResource("3_effect_script")
+stat = &"crystal_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.055
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_halite"]
+script = ExtResource("2_boon_script")
+display_name = "Halite Seams"
+description = "x1.055 crystals from achievements, per level, compounding."
+unlock_at_level = 5
+effect = SubResource("effect_halite")
+
+[sub_resource type="Resource" id="effect_brine"]
+script = ExtResource("3_effect_script")
+stat = &"water_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.055
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_brine"]
+script = ExtResource("2_boon_script")
+display_name = "Brine Draw"
+description = "x1.055 water per pump, per level, compounding."
+unlock_at_level = 15
+effect = SubResource("effect_brine")
+
+[sub_resource type="Resource" id="effect_pillar2"]
+script = ExtResource("3_effect_script")
+stat = &"crystal_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.025
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_pillar2"]
+script = ExtResource("2_boon_script")
+display_name = "The Pillar"
+description = "x1.02 crystals from achievements, per level, compounding."
+unlock_at_level = 40
+effect = SubResource("effect_pillar2")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_salt"
+display_name = "Salt Pillar"
+description = "Left behind by a sea that is not coming back."
+max_level = 60
+min_project_levels = 675
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 10
+cost_growth = 1.5
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_crust"), SubResource("boon_halite"), SubResource("boon_brine"), SubResource("boon_pillar2")])

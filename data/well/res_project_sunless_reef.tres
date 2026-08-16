@@ -1,0 +1,82 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_coral"]
+script = ExtResource("3_effect_script")
+stat = &"node_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.035
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_coral"]
+script = ExtResource("2_boon_script")
+display_name = "Coral Frame"
+description = "x1.035 production on every node, per level, compounding."
+unlock_at_level = 1
+effect = SubResource("effect_coral")
+
+[sub_resource type="Resource" id="effect_polyp"]
+script = ExtResource("3_effect_script")
+stat = &"biomass_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.05
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_polyp"]
+script = ExtResource("2_boon_script")
+display_name = "Polyp Bloom"
+description = "x1.05 biomass gained on sporation, per level, compounding."
+unlock_at_level = 5
+effect = SubResource("effect_polyp")
+
+[sub_resource type="Resource" id="effect_tenders"]
+script = ExtResource("3_effect_script")
+stat = &"boost_power"
+op = 2
+scope = 2
+target = &"boost_biomass"
+per_level = 0.025
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_tenders"]
+script = ExtResource("2_boon_script")
+display_name = "Reef Tenders"
+description = "x1.025 Spore Density strength, per level, compounding."
+unlock_at_level = 15
+effect = SubResource("effect_tenders")
+
+[sub_resource type="Resource" id="effect_reef2"]
+script = ExtResource("3_effect_script")
+stat = &"biomass_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.035
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_reef2"]
+script = ExtResource("2_boon_script")
+display_name = "The Reef"
+description = "x1.03 biomass gained on sporation, per level, compounding."
+unlock_at_level = 40
+effect = SubResource("effect_reef2")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_reef"
+display_name = "Sunless Reef"
+description = "A reef built by things that have never needed the sun."
+max_level = 60
+min_project_levels = 891
+_base_cost_mantissa = 2.5
+_base_cost_exponent = 11
+cost_growth = 1.52
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_coral"), SubResource("boon_polyp"), SubResource("boon_tenders"), SubResource("boon_reef2")])

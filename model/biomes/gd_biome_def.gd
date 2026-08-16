@@ -3,7 +3,8 @@ extends Resource
 ## MODEL: static definition of one biome. What it unlocks, what it costs and
 ## where its XP comes from. Parallel to MyceliumNode / UpgradeDef.
 
-enum XpSource { TOTAL_NODES, SYMBIOSIS_LEVELS, PRESTIGE_COUNT, ACHIEVEMENT_TIERS }
+enum XpSource { TOTAL_NODES, SYMBIOSIS_LEVELS, PRESTIGE_COUNT, ACHIEVEMENT_TIERS,
+	WELL_PROJECTS }
 
 @export var key: StringName
 @export var display_name: String

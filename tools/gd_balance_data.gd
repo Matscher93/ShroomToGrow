@@ -181,6 +181,8 @@ static func curve_for(res: Resource, fallback_effects: Array) -> Dictionary:
 	system.register(def)
 
 	var own_effects: Array = res.get(&"effects") if properties.has(&"effects") else []
+	if own_effects.is_empty():
+		own_effects = _boon_effects(res, properties)
 	var effects: Array = own_effects if not own_effects.is_empty() else fallback_effects
 	var effect: UpgradeEffectDef = effects[0] if not effects.is_empty() else null
 
@@ -208,6 +210,25 @@ static func curve_for(res: Resource, fallback_effects: Array) -> Dictionary:
 		curve["level_scaling"] = _enum_key(UpgradeEffectDef.LevelScaling, effect.level_scaling)
 		curve["effect_count"] = effects.size()
 	return curve
+
+
+## The effect a priced def carries on a boon rather than in an `effects` array,
+## which is how a well project is authored: the price sits on the ProjectDef and
+## the payoff on its first boon.
+##
+## Only the first boon's, and deliberately so - it mirrors ProjectTree, where
+## boon 0 is the def actually bought with water and every later boon gets a def
+## and a curve of its own. Named by shape, not by class, for the same reason
+## _is_priced() is: this file prices what it is handed without knowing what the
+## model calls it.
+static func _boon_effects(res: Resource, properties: Dictionary) -> Array:
+	if not properties.has(&"boons"):
+		return []
+	var boons: Array = res.get(&"boons")
+	if boons.is_empty() or boons[0] == null:
+		return []
+	var effect: Variant = boons[0].get(&"effect")
+	return [effect] if effect != null else []
 
 
 static func _big_pair(value: BigNumber) -> Array:

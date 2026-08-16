@@ -14,6 +14,10 @@ const KNOWN_STATS: Array[StringName] = [
 	&"potency_production", &"synergy_production", &"node_production",
 	&"biomass_gain", &"tick_rate", &"biome_points",
 	&"crystal_gain", &"automation_rate",
+	&"water_production", &"water_rate",
+	# Read by BoostSystem rather than ProductionSystem: the Well's projects reach
+	# a crystal boost's ceiling and its per-level rate through these.
+	&"boost_max_level", &"boost_power",
 ]
 
 ## The sentence every biome upgrade's description ends with, since all of them
@@ -28,6 +32,7 @@ var _biome_defs: Array[UpgradeDef]
 var _achievements: Array[AchievementDef]
 var _automations: Array[AutomationDef]
 var _boosts: Array[BoostDef]
+var _projects: Array[ProjectDef]
 
 func before_test() -> void:
 	_nodes = (load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes).mycelium_nodes
@@ -38,15 +43,19 @@ func before_test() -> void:
 	_achievements = (load("res://data/achievements/all_achievements.tres") as AchievementList).achievements
 	_automations = (load("res://data/automation/all_automations.tres") as AutomationList).automations
 	_boosts = (load("res://data/boosts/all_boosts.tres") as BoostList).boosts
+	_projects = (load("res://data/well/all_projects.tres") as ProjectList).projects
 
-## Node tiers and biomes both address by StringName, and NODE-scoped effects use
-## one field for both, so a target is valid if it names either.
+## Node tiers, biomes and crystal boosts all address by StringName, and
+## NODE-scoped effects use one field for all three, so a target is valid if it
+## names any of them.
 func _scope_targets() -> Dictionary:
 	var targets := {}
 	for node in _nodes:
 		targets[node.id_key] = true
 	for biome in _biomes:
 		targets[biome.key] = true
+	for boost in _boosts:
+		targets[boost.id] = true
 	return targets
 
 func _biome_keys() -> Dictionary:
@@ -522,6 +531,145 @@ func test_every_capped_automation_has_a_perk_that_raises_the_cap() -> void:
 			.override_failure_message("Automation '%s' names a max-level perk that adds nothing." \
 				% def.id).is_greater(0)
 
+# ---------------------------------------------------------------- well projects
+
+func test_project_ids_are_unique() -> void:
+	var seen := {}
+	for def in _projects:
+		assert_bool(seen.has(def.id)) \
+			.override_failure_message("Project id '%s' is authored twice." % def.id).is_false()
+		seen[def.id] = true
+
+func test_every_project_has_boons() -> void:
+	for def in _projects:
+		assert_bool(def.boons.is_empty()) \
+			.override_failure_message("Project '%s' has no boons, so funding it buys nothing." \
+				% def.id).is_false()
+
+func test_every_projects_first_boon_opens_at_level_one() -> void:
+	# Boon 0 carries the project's own level and water price (see ProjectTree), so
+	# a project whose first rung opens later can never be funded at all.
+	for def in _projects:
+		assert_int(def.boons[0].unlock_at_level) \
+			.override_failure_message("Project '%s' opens its first boon at level %d, not 1." \
+				% [def.id, def.boons[0].unlock_at_level]).is_equal(1)
+
+func test_project_boon_thresholds_climb() -> void:
+	# The card lists them in ladder order and the player reads that order as the
+	# order they arrive in. A threshold that dips means a later rung opens first.
+	for def in _projects:
+		for i in range(1, def.boons.size()):
+			assert_int(def.boons[i].unlock_at_level) \
+				.override_failure_message("Project '%s' boon %d opens at %d, no later than the rung before it." \
+					% [def.id, i, def.boons[i].unlock_at_level]) \
+				.is_greater(def.boons[i - 1].unlock_at_level)
+
+func test_every_project_boon_opens_within_its_project() -> void:
+	# A threshold past the project's own ceiling is a rung no funding can reach.
+	for def in _projects:
+		if def.max_level <= 0:
+			continue
+		for boon in def.boons:
+			assert_int(boon.unlock_at_level) \
+				.override_failure_message("Project '%s' boon '%s' opens at %d, past its cap of %d." \
+					% [def.id, boon.display_name, boon.unlock_at_level, def.max_level]) \
+				.is_less_equal(def.max_level)
+
+func test_every_project_boon_has_an_effect_naming_a_real_stat() -> void:
+	for def in _projects:
+		for boon in def.boons:
+			assert_object(boon.effect) \
+				.override_failure_message("Project '%s' boon '%s' has no effect." \
+					% [def.id, boon.display_name]).is_not_null()
+			assert_bool(KNOWN_STATS.has(boon.effect.stat)) \
+				.override_failure_message("Project '%s' boon '%s' targets stat '%s', which nothing reads." \
+					% [def.id, boon.display_name, boon.effect.stat]).is_true()
+
+func test_every_project_boon_target_resolves() -> void:
+	var targets := _scope_targets()
+	for def in _projects:
+		for boon in def.boons:
+			if boon.effect == null or boon.effect.scope != UpgradeEffectDef.Scope.NODE:
+				continue
+			assert_bool(targets.has(boon.effect.target)) \
+				.override_failure_message("Project '%s' boon '%s' targets '%s', which is no node tier." \
+					% [def.id, boon.display_name, boon.effect.target]).is_true()
+
+func test_the_project_depth_perk_exists_in_the_perk_tree() -> void:
+	# Same silent failure as the boosts': a typo leaves every project pinned at
+	# its authored ceiling forever, with nothing reported at load.
+	var list := load("res://data/well/all_projects.tres") as ProjectList
+	if list.max_level_perk_id.is_empty():
+		return
+	var perk_ids := {}
+	for perk in _perks:
+		perk_ids[perk.id] = true
+	assert_bool(perk_ids.has(list.max_level_perk_id)) \
+		.override_failure_message("The Well names perk '%s', which no branch authors." \
+			% list.max_level_perk_id).is_true()
+
+func test_the_project_depth_perk_actually_raises_something() -> void:
+	var list := load("res://data/well/all_projects.tres") as ProjectList
+	if list.max_level_perk_id.is_empty():
+		return
+	assert_int(list.max_level_per_perk_level) \
+		.override_failure_message("The Well's depth perk raises the ceiling by 0 per level.") \
+		.is_greater(0)
+
+func test_at_least_one_project_is_open_from_the_start() -> void:
+	# The only levels that count towards a gate are levels bought at the Well, so
+	# a ladder whose every rung is gated can never have its first rung funded.
+	# Nothing at runtime reports that - the screen just sits there dead.
+	var open_from_zero := false
+	for def in _projects:
+		if def.min_project_levels <= 0:
+			open_from_zero = true
+	assert_bool(open_from_zero) \
+		.override_failure_message("Every project is gated, so the Well can never be started.") \
+		.is_true()
+
+func test_project_gates_are_reachable() -> void:
+	# A threshold past what the whole ladder can ever be funded to is a project no
+	# save can open. Uncapped projects make the total unbounded, so they are only
+	# checked against each other.
+	var total := 0
+	for def in _projects:
+		if def.max_level <= 0:
+			return
+		total += def.max_level
+	for def in _projects:
+		assert_int(def.min_project_levels) \
+			.override_failure_message("Project '%s' opens at %d well levels, past the %d the ladder holds." \
+				% [def.id, def.min_project_levels, total]).is_less_equal(total)
+
+func test_project_gates_climb_with_display_order() -> void:
+	# The list is the order the cards are shown in, and a player reads that top to
+	# bottom as the order they arrive in. A gate that dips means a card lower down
+	# opens first.
+	for i in range(1, _projects.size()):
+		assert_int(_projects[i].min_project_levels) \
+			.override_failure_message("Project '%s' opens at %d, before '%s' above it at %d." \
+				% [_projects[i].id, _projects[i].min_project_levels,
+					_projects[i - 1].id, _projects[i - 1].min_project_levels]) \
+			.is_greater_equal(_projects[i - 1].min_project_levels)
+
+func test_project_cost_curves_rise() -> void:
+	# A flat curve makes a project free to max out, and the ladder's late rungs
+	# are priced against the assumption that it does not.
+	for def in _projects:
+		assert_float(def.cost_growth) \
+			.override_failure_message("Project '%s' has a cost curve that never rises." \
+				% def.id).is_greater(1.0)
+
+func test_project_upgrade_ids_are_unique_across_the_built_tree() -> void:
+	# ProjectTree ids are derived from the project id, so two projects sharing one
+	# would silently share their levels too.
+	var seen := {}
+	for def in ProjectTree.build(load("res://data/well/all_projects.tres") as ProjectList):
+		assert_bool(seen.has(def.id)) \
+			.override_failure_message("Project upgrade id '%s' is built twice." % def.id).is_false()
+		seen[def.id] = true
+
 # ---------------------------------------------------------------- boosts
 
 func test_every_boost_perk_id_exists_in_the_perk_tree() -> void:
@@ -625,5 +773,8 @@ func test_the_generated_tier_defs_cover_the_whole_ladder() -> void:
 	var defs := BoostTree.build(load("res://data/boosts/all_boosts.tres") as BoostList)
 	assert_int(defs.size()).is_equal(_boosts.size() * BoostTiers.MAX_TIER)
 	for def in defs:
-		assert_int(def.max_level).is_equal(BoostTiers.LEVELS_PER_TIER)
+		# Uncapped on purpose: BoostSystem owns the ceiling now, because a
+		# &"boost_max_level" upgrade can move it past the last authored tier and a
+		# number baked in here could not follow.
+		assert_int(def.max_level).is_zero()
 		assert_int(def.effects.size()).is_equal(1)

@@ -228,3 +228,49 @@ func test_a_stride_of_zero_ticks_changes_nothing() -> void:
 	_system(nodes).advance(0)
 	assert_int(_player.tick_count).is_zero()
 	assert_float(_player.nutrients.to_float()).is_zero()
+
+# ─── The well rides the same tick ────────────────────────────────────────────
+
+## Water is driven from here rather than from App so that every caller advancing
+## ticks moves it: the live timer, the offline catch-up (which walks
+## handle_tick() one tick at a time) and the simulator (which strides through
+## advance_by()). A well wired at the App level would have produced nothing
+## offline and nothing in the simulator.
+func _well_system(nodes: Array[MyceliumNode], biomes_data: BiomesData) -> TickSystem:
+	return TickSystem.new(nodes, _player, _production,
+		WaterSystem.new(_player, biomes_data, _production))
+
+func test_walking_ticks_pumps_water() -> void:
+	var biomes_data := BiomesData.new()
+	biomes_data.unlock(WaterSystem.LAKE_KEY)
+	var system := _well_system(_chain([1] as Array[int]), biomes_data)
+	for _i in int(WaterSystem.BASE_INTERVAL) * 3:
+		system.handle_tick()
+	assert_float(_player.water.to_float()) \
+		.is_equal_approx(WaterSystem.BASE_YIELD * 3.0, EPS)
+
+func test_striding_ticks_pumps_the_same_water_as_walking_them() -> void:
+	# The offline catch-up walks and the simulator strides. Both have to land on
+	# the same number or a night away is worth a different amount depending on
+	# which code path measured it.
+	var span := 137
+	var biomes_data := BiomesData.new()
+	biomes_data.unlock(WaterSystem.LAKE_KEY)
+
+	var walked := _well_system(_chain([1] as Array[int]), biomes_data)
+	for _i in span:
+		walked.handle_tick()
+	var by_walking := _player.water.to_float()
+
+	_player = PlayerData.new()
+	_player.nutrients = BigNumber.from_value(0.0)
+	_well_system(_chain([1] as Array[int]), biomes_data).advance(span)
+
+	assert_float(_player.water.to_float()).is_equal_approx(by_walking, EPS)
+
+func test_a_tick_system_without_a_well_still_runs() -> void:
+	# Every existing caller builds this with three arguments.
+	var system := _system(_chain([2] as Array[int]))
+	system.handle_tick()
+	assert_float(_player.water.to_float()).is_zero()
+	assert_float(_player.nutrients.to_float()).is_greater(0.0)

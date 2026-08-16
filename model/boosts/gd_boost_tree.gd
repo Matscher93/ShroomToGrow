@@ -38,7 +38,11 @@ static func _build_tier(boost: BoostDef, tier: int) -> UpgradeDef:
 	def.id = BoostTiers.upgrade_id(boost.id, tier)
 	def.display_name = "%s (T%d)" % [boost.display_name, tier]
 	def.description = boost.description
-	def.max_level = BoostTiers.LEVELS_PER_TIER
+	# Deliberately uncapped, however tall a tier nominally is: a &"boost_max_level"
+	# upgrade can push the ladder past its last tier, and every level past it is
+	# bought into the top tier's counter. BoostSystem.is_maxed() owns the ceiling,
+	# because it is the only thing that knows where the ceiling currently is.
+	def.max_level = 0
 	# Each tier restarts the within-tier curve, but from a higher opening price
 	# than the tier below - see BoostDef.tier_cost_growth.
 	def.base_cost = BigNumber.from_value(boost.tier_base_cost(tier))

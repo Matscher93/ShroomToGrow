@@ -21,9 +21,11 @@ const PERK_IDS_V1_TO_V2 := {
 	"bioI": "fruiting_1", "bioII": "fruiting_2",
 	"bioIII·A": "fruiting_3a", "bioIII·B": "fruiting_3b",
 	"bioIV·A": "fruiting_4a", "bioIV·B": "fruiting_4b",
+	# Tempo has no a-side: tempo_3a/tempo_4a were dropped from the branch, so
+	# "tmpIII·A"/"tmpIV·A" have nothing to map to and fall through as unknown.
 	"tmpI": "tempo_1", "tmpII": "tempo_2",
-	"tmpIII·A": "tempo_3a", "tmpIII·B": "tempo_3b",
-	"tmpIV·A": "tempo_4a", "tmpIV·B": "tempo_4b",
+	"tmpIII·B": "tempo_3b",
+	"tmpIV·B": "tempo_4b",
 	"bntI": "bounty_1", "bntII": "bounty_2",
 	"bntIII·A": "bounty_3a", "bntIII·B": "bounty_3b",
 	"bntIV·A": "bounty_4a", "bntIV·B": "bounty_4b",

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ScreenDefinition" format=3]
+
+[ext_resource type="PackedScene" path="res://view/well/sc_well.tscn" id="1_scene"]
+[ext_resource type="Script" uid="uid://cfbpk4evittcm" path="res://model/screens/gd_screen_definition.gd" id="2_script"]
+[ext_resource type="Script" uid="uid://d285gd4vuvyo4" path="res://model/currencies/gd_currency_def.gd" id="3_curdef"]
+[ext_resource type="Resource" uid="uid://byespeth6sl5t" path="res://data/currencies/res_water_def.tres" id="4_water"]
+
+[resource]
+script = ExtResource("2_script")
+screen_name = "Well"
+screen_scene = ExtResource("1_scene")
+currencies = Array[ExtResource("3_curdef")]([ExtResource("4_water")])
+metadata/_custom_type_script = "uid://cfbpk4evittcm"

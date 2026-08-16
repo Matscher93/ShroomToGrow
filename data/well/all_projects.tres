@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="ProjectList" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_list.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="2_project_script"]
+[ext_resource type="Resource" path="res://data/well/res_project_sluice_gate.tres" id="3_sluice"]
+[ext_resource type="Resource" path="res://data/well/res_project_cistern.tres" id="4_cistern"]
+[ext_resource type="Resource" path="res://data/well/res_project_pressure_shaft.tres" id="5_shaft"]
+[ext_resource type="Resource" path="res://data/well/res_project_sunken_shrine.tres" id="6_shrine"]
+[ext_resource type="Resource" path="res://data/well/res_project_silt_terraces.tres" id="7_terraces"]
+[ext_resource type="Resource" path="res://data/well/res_project_abyssal_cistern.tres" id="8_abyss"]
+[ext_resource type="Resource" path="res://data/well/res_project_weeping_wall.tres" id="9_weeping"]
+[ext_resource type="Resource" path="res://data/well/res_project_stalactite_font.tres" id="10_font"]
+[ext_resource type="Resource" path="res://data/well/res_project_blind_fish_run.tres" id="11_fish"]
+[ext_resource type="Resource" path="res://data/well/res_project_chalk_filter.tres" id="12_chalk"]
+[ext_resource type="Resource" path="res://data/well/res_project_siphon_bridge.tres" id="13_bridge"]
+[ext_resource type="Resource" path="res://data/well/res_project_drowned_forest.tres" id="14_forest"]
+[ext_resource type="Resource" path="res://data/well/res_project_mirror_pool.tres" id="15_mirror"]
+[ext_resource type="Resource" path="res://data/well/res_project_glacier_melt.tres" id="16_glacier"]
+[ext_resource type="Resource" path="res://data/well/res_project_sump_gallery.tres" id="17_sump"]
+[ext_resource type="Resource" path="res://data/well/res_project_karst_vault.tres" id="18_karst"]
+[ext_resource type="Resource" path="res://data/well/res_project_black_spring.tres" id="19_black"]
+[ext_resource type="Resource" path="res://data/well/res_project_tide_lock.tres" id="20_lock"]
+[ext_resource type="Resource" path="res://data/well/res_project_salt_pillar.tres" id="21_salt"]
+[ext_resource type="Resource" path="res://data/well/res_project_hollow_depths.tres" id="22_hollow"]
+[ext_resource type="Resource" path="res://data/well/res_project_moon_pool.tres" id="23_moon"]
+[ext_resource type="Resource" path="res://data/well/res_project_lantern_shoal.tres" id="24_lantern"]
+[ext_resource type="Resource" path="res://data/well/res_project_sunless_reef.tres" id="25_reef"]
+[ext_resource type="Resource" path="res://data/well/res_project_leviathan_bore.tres" id="26_leviathan"]
+[ext_resource type="Resource" path="res://data/well/res_project_world_sink.tres" id="27_sink"]
+[ext_resource type="Resource" path="res://data/well/res_project_ur_ocean.tres" id="28_urocean"]
+
+[resource]
+script = ExtResource("1_script")
+max_level_perk_id = &"tide_depth"
+max_level_per_perk_level = 10
+projects = Array[ExtResource("2_project_script")]([ExtResource("3_sluice"), ExtResource("4_cistern"), ExtResource("5_shaft"), ExtResource("6_shrine"), ExtResource("7_terraces"), ExtResource("8_abyss"), ExtResource("9_weeping"), ExtResource("10_font"), ExtResource("11_fish"), ExtResource("12_chalk"), ExtResource("13_bridge"), ExtResource("14_forest"), ExtResource("15_mirror"), ExtResource("16_glacier"), ExtResource("17_sump"), ExtResource("18_karst"), ExtResource("19_black"), ExtResource("20_lock"), ExtResource("21_salt"), ExtResource("22_hollow"), ExtResource("23_moon"), ExtResource("24_lantern"), ExtResource("25_reef"), ExtResource("26_leviathan"), ExtResource("27_sink"), ExtResource("28_urocean")])

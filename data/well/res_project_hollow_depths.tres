@@ -1,0 +1,82 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_descent"]
+script = ExtResource("3_effect_script")
+stat = &"node_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.03
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_descent"]
+script = ExtResource("2_boon_script")
+display_name = "Descent"
+description = "x1.03 production on every node, per level, compounding."
+unlock_at_level = 1
+effect = SubResource("effect_descent")
+
+[sub_resource type="Resource" id="effect_lower"]
+script = ExtResource("3_effect_script")
+stat = &"node_production"
+op = 2
+scope = 2
+target = &"7"
+per_level = 0.06
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_lower"]
+script = ExtResource("2_boon_script")
+display_name = "Lower Beds"
+description = "x1.06 production on tier 7 nodes, per level, compounding."
+unlock_at_level = 5
+effect = SubResource("effect_lower")
+
+[sub_resource type="Resource" id="effect_lowest"]
+script = ExtResource("3_effect_script")
+stat = &"node_production"
+op = 2
+scope = 2
+target = &"8"
+per_level = 0.065
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_lowest"]
+script = ExtResource("2_boon_script")
+display_name = "Lowest Beds"
+description = "x1.065 production on tier 8 nodes, per level, compounding."
+unlock_at_level = 15
+effect = SubResource("effect_lowest")
+
+[sub_resource type="Resource" id="effect_hollow2"]
+script = ExtResource("3_effect_script")
+stat = &"node_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.035
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_hollow2"]
+script = ExtResource("2_boon_script")
+display_name = "Hollowing"
+description = "x1.035 production on every node, per level, compounding."
+unlock_at_level = 40
+effect = SubResource("effect_hollow2")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_hollow"
+display_name = "Hollow Depths"
+description = "x1.035 production on every node, per level, compounding."
+max_level = 60
+min_project_levels = 727
+_base_cost_mantissa = 2.5
+_base_cost_exponent = 10
+cost_growth = 1.5
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_descent"), SubResource("boon_lower"), SubResource("boon_lowest"), SubResource("boon_hollow2")])

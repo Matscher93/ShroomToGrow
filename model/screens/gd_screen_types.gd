@@ -2,7 +2,7 @@ class_name ScreenTypes
 extends RefCounted
 
 ## Append only: the ordinal is the dictionary key in all_screens.tres.
-enum Types {BIOMES, NODES, PRESTIGE, CRYSTAL_CAVES}
+enum Types {BIOMES, NODES, PRESTIGE, CRYSTAL_CAVES, WELL}
 
 ## Bottom-bar tab order GameScreens._rebuild_nav_buttons() iterates. Kept apart
 ## from the enum because the ordinals are save/resource keys and cannot move.
@@ -11,5 +11,6 @@ const NAV_ORDER: Array[Types] = [
 	Types.BIOMES,
 	Types.NODES,
 	Types.CRYSTAL_CAVES,
+	Types.WELL,
 	Types.PRESTIGE,
 ]

@@ -22,6 +22,11 @@ static func xp_for(def: BiomeDef, mycelium_nodes: Array[MyceliumNode],
 			return player_data.prestige_count * 10
 		BiomeDef.XpSource.ACHIEVEMENT_TIERS:
 			return player_data.achievement_tiers
+		BiomeDef.XpSource.WELL_PROJECTS:
+			# Read off PlayerData's cached projection rather than the project
+			# UpgradeSystem, so this stays a pure function of the four arguments
+			# it already takes. WellSystem keeps the two in step.
+			return player_data.well_project_levels * 3
 		_:
 			return 0
 

@@ -19,12 +19,18 @@ var _by_id: Dictionary = {}   # StringName -> BoostDef
 ## Levels of the perks the boosts are gated behind. Read-only from here: perks
 ## are bought with biomass through PerkSystem, never with crystals.
 var _prestige_upgrades: UpgradeSystem
+## Resolves the two stats the Well's projects reach a boost through:
+## &"boost_max_level" and &"boost_power", both scoped to a boost id. Optional so
+## the suites that only exercise the crystal economy keep building this with four
+## arguments.
+var _production: ProductionSystem
 
 func _init(player_data: PlayerData, upgrades: UpgradeSystem, list: BoostList,
-		prestige_upgrades: UpgradeSystem) -> void:
+		prestige_upgrades: UpgradeSystem, production: ProductionSystem = null) -> void:
 	_player_data = player_data
 	_upgrades = upgrades
 	_prestige_upgrades = prestige_upgrades
+	_production = production
 	if list != null:
 		_boosts = list.boosts
 	for boost in _boosts:
@@ -63,15 +69,68 @@ func is_unlocked(boost_id: StringName) -> bool:
 	return _prestige_upgrades.level(def.unlock_perk_id) > 0
 
 ## How far up the ladder this boost may currently be bought: its authored
-## ceiling plus whatever its perk has added, never past the ladder's own end.
+## ceiling, plus whatever its perk has added, plus whatever the Well's projects
+## have.
+##
+## No longer clamped to BoostTiers.max_level(). A &"boost_max_level" upgrade is
+## allowed to push past the last authored tier, and every level past it is bought
+## into the top tier - tier_for_level() clamps there already, so those levels are
+## priced and paid at the top tier's rate rather than falling off the table.
 func max_level(boost_id: StringName) -> int:
 	var def: BoostDef = _by_id.get(boost_id)
-	if def == null or def.base_max_level <= 0:
-		return BoostTiers.max_level()
-	var ceiling := def.base_max_level
+	if def == null:
+		return 0
+	var ceiling := BoostTiers.max_level() if def.base_max_level <= 0 else def.base_max_level
 	if not def.max_level_perk_id.is_empty():
 		ceiling += def.max_level_per_perk_level * _prestige_upgrades.level(def.max_level_perk_id)
-	return clampi(ceiling, 0, BoostTiers.max_level())
+	return maxi(0, ceiling + extra_max_levels(boost_id))
+
+## Levels the Well's projects have added to this boost's ceiling. Zero without a
+## ProductionSystem, which is what the four-argument construction leaves.
+func extra_max_levels(boost_id: StringName) -> int:
+	if _production == null:
+		return 0
+	return int(_production.stack(&"boost_max_level", BigNumber.new(0.0, 0), boost_id).to_float())
+
+## What the Well's projects multiply this boost's per-level rate by. 1.0 when
+## nothing targets it, so the authored ladder is the default.
+func power(boost_id: StringName) -> float:
+	if _production == null:
+		return 1.0
+	return maxf(0.0, _production.stack(&"boost_power", BigNumber.from_value(1.0),
+		boost_id).to_float())
+
+## The rate one level of the given tier is actually bought at: the authored rate
+## scaled by whatever the Well has added. The single place that pairing is made,
+## so the resolved effect and the displayed multiplier cannot disagree.
+func per_level(boost_id: StringName, tier: int) -> float:
+	var def: BoostDef = _by_id.get(boost_id)
+	if def == null:
+		return 0.0
+	return def.per_level(tier) * power(boost_id)
+
+## Rewrites every tier's effect with the rate power() now says it has, and
+## re-registers it so UpgradeSystem recomputes what it contributes.
+##
+## Needed because a boost's per-level rate is baked into its UpgradeDef at build
+## time - that is what keeps the hot path free of a context lookup per resolve.
+## The rate only moves when a project is funded, so refreshing on that signal
+## costs one rebuild per purchase rather than one per tick.
+##
+## Batched: one call re-registers every tier of every boost, and each register()
+## would otherwise announce itself.
+func refresh_power() -> void:
+	if _production == null:
+		return
+	_upgrades.begin_batch()
+	for boost in _boosts:
+		for tier in range(1, BoostTiers.MAX_TIER + 1):
+			var def := _upgrades.def(BoostTiers.upgrade_id(boost.id, tier))
+			if def == null or def.effects.is_empty():
+				continue
+			def.effects[0].per_level = per_level(boost.id, tier)
+			_upgrades.register(def)
+	_upgrades.end_batch()
 
 func is_maxed(boost_id: StringName) -> bool:
 	return boost_level(boost_id) >= max_level(boost_id)
@@ -92,17 +151,16 @@ func boost_multiplier(boost_id: StringName) -> BigNumber:
 		var levels := _upgrades.level(BoostTiers.upgrade_id(boost_id, tier))
 		if levels <= 0:
 			continue
-		var per_level := BigNumber.from_value(1.0 + def.per_level(tier))
-		total = total.mul(per_level.pow_float(float(levels)))
+		var rate := BigNumber.from_value(1.0 + per_level(boost_id, tier))
+		total = total.mul(rate.pow_float(float(levels)))
 	return total
 
 ## What one more level multiplies by, as a fraction above 1.0 (0.05 for a
 ## x1.05). Zero once maxed.
 func next_level_gain(boost_id: StringName) -> float:
-	var def: BoostDef = _by_id.get(boost_id)
-	if def == null or is_maxed(boost_id):
+	if not _by_id.has(boost_id) or is_maxed(boost_id):
 		return 0.0
-	return def.per_level(boost_tier(boost_id))
+	return per_level(boost_id, boost_tier(boost_id))
 
 ## Crystals the next level costs. Zero once maxed, which is also what
 ## can_buy_boost() reports on.

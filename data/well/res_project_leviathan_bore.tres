@@ -1,0 +1,84 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_bore2"]
+script = ExtResource("3_effect_script")
+stat = &"water_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.06
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_bore2"]
+script = ExtResource("2_boon_script")
+display_name = "The Bore"
+description = "x1.06 water per pump, per level, compounding."
+unlock_at_level = 1
+effect = SubResource("effect_bore2")
+
+[sub_resource type="Resource" id="effect_wake"]
+script = ExtResource("3_effect_script")
+stat = &"water_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.3
+level_scaling = 0
+max_magnitude = 6.0
+
+[sub_resource type="Resource" id="boon_wake"]
+script = ExtResource("2_boon_script")
+display_name = "Wake"
+description = "-0.30 ticks between pumps, per level, up to -6.00."
+unlock_at_level = 5
+effect = SubResource("effect_wake")
+
+[sub_resource type="Resource" id="effect_passage"]
+script = ExtResource("3_effect_script")
+stat = &"tick_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.04
+level_scaling = 0
+max_magnitude = 1.0
+
+[sub_resource type="Resource" id="boon_passage"]
+script = ExtResource("2_boon_script")
+display_name = "Passage"
+description = "-0.04s tick duration, per level, up to -1.00s."
+unlock_at_level = 15
+effect = SubResource("effect_passage")
+
+[sub_resource type="Resource" id="effect_leviathan2"]
+script = ExtResource("3_effect_script")
+stat = &"water_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.04
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_leviathan2"]
+script = ExtResource("2_boon_script")
+display_name = "What Dug It"
+description = "x1.04 water per pump, per level, compounding."
+unlock_at_level = 40
+effect = SubResource("effect_leviathan2")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_leviathan"
+display_name = "Leviathan Bore"
+description = "The tunnel is round, and smooth, and something made it that way."
+max_level = 60
+min_project_levels = 949
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 11
+cost_growth = 1.52
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_bore2"), SubResource("boon_wake"), SubResource("boon_passage"), SubResource("boon_leviathan2")])

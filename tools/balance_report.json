@@ -122,55 +122,37 @@
 			"id": "tempo_1",
 			"branch": "tmp",
 			"depth": 1,
-			"max_level": 5,
-			"cost_to_max": "3.16e1",
-			"path_cost": "3.26e1",
-			"effect_at_max": "-5.00e-1"
+			"max_level": 20,
+			"cost_to_max": "6.73e8",
+			"path_cost": "6.73e8",
+			"effect_at_max": "-2.00e0"
 		},
 		{
 			"id": "tempo_2",
 			"branch": "tmp",
 			"depth": 2,
-			"max_level": 5,
-			"cost_to_max": "6.32e1",
-			"path_cost": "9.59e1",
-			"effect_at_max": "-5.00e-1"
-		},
-		{
-			"id": "tempo_3a",
-			"branch": "tmp",
-			"depth": 3,
-			"max_level": 5,
-			"cost_to_max": "1.26e2",
-			"path_cost": "2.22e2",
-			"effect_at_max": "-5.00e-1"
-		},
-		{
-			"id": "tempo_4a",
-			"branch": "tmp",
-			"depth": 4,
-			"max_level": 5,
-			"cost_to_max": "2.53e2",
-			"path_cost": "4.75e2",
-			"effect_at_max": "-5.00e-1"
+			"max_level": 40,
+			"cost_to_max": "5.64e40",
+			"path_cost": "5.64e40",
+			"effect_at_max": "-2.00e0"
 		},
 		{
 			"id": "tempo_3b",
 			"branch": "tmp",
 			"depth": 3,
-			"max_level": 5,
-			"cost_to_max": "1.26e2",
-			"path_cost": "2.22e2",
-			"effect_at_max": "-5.00e-1"
+			"max_level": 100,
+			"cost_to_max": "8.08e257",
+			"path_cost": "8.08e257",
+			"effect_at_max": "-2.00e0"
 		},
 		{
 			"id": "tempo_4b",
 			"branch": "tmp",
 			"depth": 4,
-			"max_level": 5,
-			"cost_to_max": "2.53e2",
-			"path_cost": "4.75e2",
-			"effect_at_max": "-5.00e-1"
+			"max_level": 150,
+			"cost_to_max": "6.85e1354",
+			"path_cost": "6.85e1354",
+			"effect_at_max": "-1.50e0"
 		},
 		{
 			"id": "bounty_1",
@@ -240,8 +222,8 @@
 			"branch": "rch",
 			"depth": 2,
 			"max_level": 1,
-			"cost_to_max": "1.50e1",
-			"path_cost": "2.10e1",
+			"cost_to_max": "1.00e4",
+			"path_cost": "1.00e4",
 			"effect_at_max": ""
 		},
 		{
@@ -249,8 +231,8 @@
 			"branch": "rch",
 			"depth": 3,
 			"max_level": 1,
-			"cost_to_max": "4.00e1",
-			"path_cost": "6.10e1",
+			"cost_to_max": "4.00e10",
+			"path_cost": "4.00e10",
 			"effect_at_max": ""
 		},
 		{
@@ -258,8 +240,8 @@
 			"branch": "rch",
 			"depth": 4,
 			"max_level": 1,
-			"cost_to_max": "1.00e2",
-			"path_cost": "1.61e2",
+			"cost_to_max": "1.00e32",
+			"path_cost": "1.00e32",
 			"effect_at_max": ""
 		},
 		{
@@ -267,8 +249,8 @@
 			"branch": "rch",
 			"depth": 5,
 			"max_level": 1,
-			"cost_to_max": "3.00e2",
-			"path_cost": "4.61e2",
+			"cost_to_max": "3.00e100",
+			"path_cost": "3.00e100",
 			"effect_at_max": ""
 		},
 		{
@@ -276,8 +258,8 @@
 			"branch": "rch",
 			"depth": 6,
 			"max_level": 1,
-			"cost_to_max": "8.00e2",
-			"path_cost": "1.26e3",
+			"cost_to_max": "8.00e500",
+			"path_cost": "8.00e500",
 			"effect_at_max": ""
 		},
 		{
@@ -285,8 +267,8 @@
 			"branch": "rch",
 			"depth": 7,
 			"max_level": 1,
-			"cost_to_max": "2.00e3",
-			"path_cost": "3.26e3",
+			"cost_to_max": "1.00e1000",
+			"path_cost": "1.00e1000",
 			"effect_at_max": ""
 		},
 		{
@@ -371,15 +353,6 @@
 			"effect_at_max": ""
 		},
 		{
-			"id": "instinct_conversion",
-			"branch": "ins",
-			"depth": 7,
-			"max_level": 5,
-			"cost_to_max": "7.90e5",
-			"path_cost": "8.04e5",
-			"effect_at_max": "-5.00e-1"
-		},
-		{
 			"id": "instinct_density_cap",
 			"branch": "ins",
 			"depth": 7,
@@ -404,6 +377,78 @@
 			"max_level": 5,
 			"cost_to_max": "9.49e2",
 			"path_cost": "9.85e2",
+			"effect_at_max": ""
+		},
+		{
+			"id": "tide_seep",
+			"branch": "tid",
+			"depth": 1,
+			"max_level": 5,
+			"cost_to_max": "1.26e2",
+			"path_cost": "1.27e2",
+			"effect_at_max": "1.25e0"
+		},
+		{
+			"id": "tide_runnel",
+			"branch": "tid",
+			"depth": 2,
+			"max_level": 5,
+			"cost_to_max": "3.95e2",
+			"path_cost": "5.23e2",
+			"effect_at_max": "1.25e0"
+		},
+		{
+			"id": "tide_pressure",
+			"branch": "tid",
+			"depth": 3,
+			"max_level": 5,
+			"cost_to_max": "1.26e3",
+			"path_cost": "1.79e3",
+			"effect_at_max": "-2.50e0"
+		},
+		{
+			"id": "tide_wellspring",
+			"branch": "tid",
+			"depth": 4,
+			"max_level": 1,
+			"cost_to_max": "3.00e2",
+			"path_cost": "2.09e3",
+			"effect_at_max": ""
+		},
+		{
+			"id": "tide_wellspring_cap",
+			"branch": "tid",
+			"depth": 5,
+			"max_level": 4,
+			"cost_to_max": "1.39e4",
+			"path_cost": "1.60e4",
+			"effect_at_max": ""
+		},
+		{
+			"id": "tide_shrine",
+			"branch": "tid",
+			"depth": 4,
+			"max_level": 1,
+			"cost_to_max": "6.00e2",
+			"path_cost": "2.39e3",
+			"effect_at_max": "1.00e0"
+		},
+		{
+			"id": "tide_draw",
+			"branch": "tid",
+			"depth": 3,
+			"max_level": 5,
+			"cost_to_max": "1.90e3",
+			"path_cost": "2.42e3",
+			"effect_at_max": "2.00e0"
+		},
+		{
+			"id": "tide_depth",
+			"branch": "tid",
+			"depth": 4,
+			"max_level": 5,
+			"cost_to_max": "6.32e3",
+			"path_cost": "8.74e3",
 			"effect_at_max": ""
 		}
 	],
@@ -438,12 +483,12 @@
 		},
 		{
 			"branch": "tmp",
-			"perks": 6,
+			"perks": 4,
 			"max_depth": 4,
-			"total_cost_to_max": "8.54e2",
-			"deepest_path_cost": "4.75e2",
+			"total_cost_to_max": "6.85e1354",
+			"deepest_path_cost": "6.85e1354",
 			"stats": {
-				"tick_rate (ADD)": "-3.00e0"
+				"tick_rate (ADD)": "-7.50e0"
 			}
 		},
 		{
@@ -460,18 +505,27 @@
 			"branch": "rch",
 			"perks": 7,
 			"max_depth": 7,
-			"total_cost_to_max": "3.26e3",
-			"deepest_path_cost": "3.26e3",
+			"total_cost_to_max": "1.00e1000",
+			"deepest_path_cost": "1.00e1000",
 			"stats": {}
 		},
 		{
 			"branch": "ins",
-			"perks": 13,
+			"perks": 12,
 			"max_depth": 7,
-			"total_cost_to_max": "1.06e6",
-			"deepest_path_cost": "8.04e5",
+			"total_cost_to_max": "2.70e5",
+			"deepest_path_cost": "1.98e5",
+			"stats": {}
+		},
+		{
+			"branch": "tid",
+			"perks": 8,
+			"max_depth": 5,
+			"total_cost_to_max": "2.48e4",
+			"deepest_path_cost": "1.60e4",
 			"stats": {
-				"geode_conversion (INCREASED)": "-5.00e-1"
+				"water_production (INCREASED)": "5.50e0",
+				"water_rate (ADD)": "-2.50e0"
 			}
 		}
 	],
@@ -785,6 +839,76 @@
 			"cost_to_max": "2.03e2"
 		},
 		{
+			"path": "res://data/upgrades/biomes/underground_lake/abyssal_spring_def.tres",
+			"max_level": 10,
+			"stat": "water_production",
+			"per_level": 0.4,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/underground_lake/deep_channel_def.tres",
+			"max_level": 10,
+			"stat": "node_production",
+			"per_level": 0.1,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/underground_lake/groundswell_def.tres",
+			"max_level": 10,
+			"stat": "water_production",
+			"per_level": 0.3,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/underground_lake/lake_seep_def.tres",
+			"max_level": 10,
+			"stat": "water_production",
+			"per_level": 0.2,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/underground_lake/meltwater_def.tres",
+			"max_level": 10,
+			"stat": "biomass_gain",
+			"per_level": 0.15,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/underground_lake/silt_filter_def.tres",
+			"max_level": 10,
+			"stat": "water_production",
+			"per_level": 0.15,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/underground_lake/still_waters_def.tres",
+			"max_level": 10,
+			"stat": "tick_rate",
+			"per_level": -0.1,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/underground_lake/sunken_roots_def.tres",
+			"max_level": 10,
+			"stat": "water_production",
+			"per_level": 0.25,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/underground_lake/tide_draw_def.tres",
+			"max_level": 10,
+			"stat": "water_rate",
+			"per_level": -0.2,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/underground_lake/undertow_def.tres",
+			"max_level": 10,
+			"stat": "water_rate",
+			"per_level": -0.3,
+			"cost_to_max": "2.03e2"
+		},
+		{
 			"path": "res://data/upgrades/symbiosis/node0/node0_potency_def.tres",
 			"max_level": 0,
 			"stat": "potency_production",
@@ -923,72 +1047,286 @@
 			"stat": "synergy_production",
 			"per_level": 0.01,
 			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/well/res_project_abyssal_cistern.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "4.78e16"
+		},
+		{
+			"path": "res://data/well/res_project_black_spring.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "1.26e20"
+		},
+		{
+			"path": "res://data/well/res_project_blind_fish_run.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "5.34e16"
+		},
+		{
+			"path": "res://data/well/res_project_chalk_filter.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "1.07e17"
+		},
+		{
+			"path": "res://data/well/res_project_cistern.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "3.66e10"
+		},
+		{
+			"path": "res://data/well/res_project_drowned_forest.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "7.90e17"
+		},
+		{
+			"path": "res://data/well/res_project_glacier_melt.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "5.82e18"
+		},
+		{
+			"path": "res://data/well/res_project_hollow_depths.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "1.84e21"
+		},
+		{
+			"path": "res://data/well/res_project_karst_vault.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "3.42e19"
+		},
+		{
+			"path": "res://data/well/res_project_lantern_shoal.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "1.07e22"
+		},
+		{
+			"path": "res://data/well/res_project_leviathan_bore.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "7.83e22"
+		},
+		{
+			"path": "res://data/well/res_project_mirror_pool.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "2.33e18"
+		},
+		{
+			"path": "res://data/well/res_project_moon_pool.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "5.37e21"
+		},
+		{
+			"path": "res://data/well/res_project_pressure_shaft.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "1.63e12"
+		},
+		{
+			"path": "res://data/well/res_project_salt_pillar.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "7.35e20"
+		},
+		{
+			"path": "res://data/well/res_project_silt_terraces.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "3.68e14"
+		},
+		{
+			"path": "res://data/well/res_project_siphon_bridge.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "3.95e17"
+		},
+		{
+			"path": "res://data/well/res_project_sluice_gate.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "1.89e9"
+		},
+		{
+			"path": "res://data/well/res_project_stalactite_font.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "1.80e16"
+		},
+		{
+			"path": "res://data/well/res_project_sump_gallery.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "1.71e19"
+		},
+		{
+			"path": "res://data/well/res_project_sunken_shrine.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "1.07e12"
+		},
+		{
+			"path": "res://data/well/res_project_sunless_reef.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "3.91e22"
+		},
+		{
+			"path": "res://data/well/res_project_tide_lock.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "2.51e20"
+		},
+		{
+			"path": "res://data/well/res_project_ur_ocean.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "4.78e26"
+		},
+		{
+			"path": "res://data/well/res_project_weeping_wall.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "7.22e15"
+		},
+		{
+			"path": "res://data/well/res_project_world_sink.tres",
+			"max_level": 60,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "2.28e24"
 		}
 	],
 	"pacing": {
 		"policy": "roi",
-		"tick_budget": 5000,
+		"tick_budget": 20000,
 		"prestiges": 3,
+		"seconds": 1114.6,
+		"played": "18m 35s",
 		"milestones": [
 			{
-				"tick": 1,
-				"event": "biome",
-				"detail": "meadow"
-			},
-			{
-				"tick": 44,
+				"tick": 6,
+				"seconds": 49.5,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
-				"tick": 71,
+				"tick": 14,
+				"seconds": 115.5,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
-				"tick": 71,
-				"event": "prestige",
-				"detail": "#1, +2.00e0 biomass"
-			},
-			{
-				"tick": 72,
+				"tick": 15,
+				"seconds": 123.75,
 				"event": "biome",
-				"detail": "meadow"
+				"detail": "crystal_caves"
 			},
 			{
-				"tick": 114,
+				"tick": 19,
+				"seconds": 156.75,
+				"event": "biome",
+				"detail": "underground_lake"
+			},
+			{
+				"tick": 50,
+				"seconds": 412.5,
+				"event": "prestige",
+				"detail": "#1, +6.34e2 biomass"
+			},
+			{
+				"tick": 52,
+				"seconds": 428.6,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
-				"tick": 141,
+				"tick": 54,
+				"seconds": 444.1,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
-				"tick": 141,
-				"event": "prestige",
-				"detail": "#2, +5.00e0 biomass"
-			},
-			{
-				"tick": 142,
+				"tick": 54,
+				"seconds": 444.1,
 				"event": "biome",
-				"detail": "meadow"
+				"detail": "crystal_caves"
 			},
 			{
-				"tick": 175,
+				"tick": 55,
+				"seconds": 451.85,
+				"event": "biome",
+				"detail": "underground_lake"
+			},
+			{
+				"tick": 100,
+				"seconds": 800.6,
+				"event": "prestige",
+				"detail": "#2, +5.65e6 biomass"
+			},
+			{
+				"tick": 102,
+				"seconds": 815.9,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
-				"tick": 206,
+				"tick": 103,
+				"seconds": 823.15,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
-				"tick": 206,
+				"tick": 103,
+				"seconds": 823.15,
+				"event": "biome",
+				"detail": "crystal_caves"
+			},
+			{
+				"tick": 104,
+				"seconds": 829.4,
+				"event": "biome",
+				"detail": "underground_lake"
+			},
+			{
+				"tick": 150,
+				"seconds": 1114.6,
 				"event": "prestige",
-				"detail": "#3, +6.00e0 biomass"
+				"detail": "#3, +3.63e7 biomass"
 			}
 		]
 	},

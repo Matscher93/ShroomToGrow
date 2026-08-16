@@ -9,12 +9,18 @@ extends RefCounted
 var _nodes: Array[MyceliumNode]
 var _player_data: PlayerData
 var _production: ProductionSystem
+## The well's pump, driven from here so every caller that advances ticks - the
+## live timer, the offline catch-up and the simulator's strides - moves water
+## too. Optional so a test that only cares about the node cascade can build this
+## with three arguments.
+var _water: WaterSystem
 
 func _init(nodes: Array[MyceliumNode], player_data: PlayerData,
-		production: ProductionSystem) -> void:
+		production: ProductionSystem, water: WaterSystem = null) -> void:
 	_nodes = nodes
 	_player_data = player_data
 	_production = production
+	_water = water
 
 ## Per-node production multiplier, indexed like the node array. Callers driving
 ## many ticks back-to-back (offline catch-up) compute this once and pass it into
@@ -32,8 +38,13 @@ func node_production_bonuses() -> Array[BigNumber]:
 ## Advances the game one tick. Pass `bonuses` to reuse a hoisted set, leave it
 ## empty to compute them fresh.
 func handle_tick(bonuses: Array[BigNumber] = []) -> void:
+	# Read before the counter moves: the pump is due on multiples of its interval,
+	# so it needs the tick the span starts from, not the one it ends on.
+	var before := _player_data.tick_count
 	_player_data.tick_count += 1
 	_player_data.lifetime_ticks += 1
+	if _water != null:
+		_water.handle_ticks(before, 1)
 	if bonuses.is_empty():
 		bonuses = node_production_bonuses()
 	# Highest tier first, and that order is load-bearing: each tier writes into
@@ -103,8 +114,14 @@ func jump_kernel(bonuses: Array[BigNumber] = []) -> Array:
 func advance_by(count: int, kernel: Array) -> void:
 	if count <= 0:
 		return
+	# Same contract as handle_tick(): the pump counts the multiples that fall
+	# inside the span, which is what makes a stride pay exactly what walking the
+	# span one tick at a time would.
+	var before := _player_data.tick_count
 	_player_data.tick_count += count
 	_player_data.lifetime_ticks += count
+	if _water != null:
+		_water.handle_ticks(before, count)
 
 	var totals := _state()
 	var binomial := BigNumber.from_value(1.0)

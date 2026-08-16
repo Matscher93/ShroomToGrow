@@ -9,6 +9,7 @@
 [ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="6_yd3cl"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_161fk"]
+resource_local_to_scene = true
 shader = ExtResource("1_7aoqu")
 shader_parameter/rect_size = Vector2(0, 40)
 shader_parameter/box_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
@@ -20,6 +21,7 @@ shader_parameter/background_alpha = 0.1
 shader_parameter/border_alpha = 0.3
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sy85a"]
+resource_local_to_scene = true
 shader = ExtResource("3_yd3cl")
 shader_parameter/rect_size = Vector2(48, 48)
 shader_parameter/box_color = Color(0.9019608, 0.7254902, 0.33333334, 1)

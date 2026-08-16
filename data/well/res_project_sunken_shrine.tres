@@ -1,0 +1,82 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_offering"]
+script = ExtResource("3_effect_script")
+stat = &"biomass_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.035
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_offering"]
+script = ExtResource("2_boon_script")
+display_name = "Offering"
+description = "x1.035 biomass gained on sporation, per level, compounding."
+unlock_at_level = 1
+effect = SubResource("effect_offering")
+
+[sub_resource type="Resource" id="effect_votive"]
+script = ExtResource("3_effect_script")
+stat = &"crystal_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.035
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_votive"]
+script = ExtResource("2_boon_script")
+display_name = "Votive Crystals"
+description = "x1.035 crystals from achievements, per level, compounding."
+unlock_at_level = 5
+effect = SubResource("effect_votive")
+
+[sub_resource type="Resource" id="effect_drowned"]
+script = ExtResource("3_effect_script")
+stat = &"biomass_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.045
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_drowned"]
+script = ExtResource("2_boon_script")
+display_name = "Drowned Roots"
+description = "x1.045 biomass gained on sporation, per level, compounding."
+unlock_at_level = 15
+effect = SubResource("effect_drowned")
+
+[sub_resource type="Resource" id="effect_rite"]
+script = ExtResource("3_effect_script")
+stat = &"crystal_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.03
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_rite"]
+script = ExtResource("2_boon_script")
+display_name = "Abyssal Rite"
+description = "x1.03 crystals from achievements, per level, compounding."
+unlock_at_level = 40
+effect = SubResource("effect_rite")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_shrine"
+display_name = "Sunken Shrine"
+description = "Something older than the colony is down there. What it gives back outlasts every sporation."
+max_level = 60
+min_project_levels = 55
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 2
+cost_growth = 1.45
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_offering"), SubResource("boon_votive"), SubResource("boon_drowned"), SubResource("boon_rite")])

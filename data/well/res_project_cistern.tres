@@ -1,0 +1,82 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_catchment"]
+script = ExtResource("3_effect_script")
+stat = &"water_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.035
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_catchment"]
+script = ExtResource("2_boon_script")
+display_name = "Catchment"
+description = "x1.035 water per pump, per level, compounding."
+unlock_at_level = 1
+effect = SubResource("effect_catchment")
+
+[sub_resource type="Resource" id="effect_siphon"]
+script = ExtResource("3_effect_script")
+stat = &"water_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.1
+level_scaling = 0
+
+[sub_resource type="Resource" id="boon_siphon"]
+script = ExtResource("2_boon_script")
+display_name = "Siphon"
+description = "-0.1 ticks between pumps, per level."
+unlock_at_level = 5
+effect = SubResource("effect_siphon")
+
+[sub_resource type="Resource" id="effect_reservoir"]
+script = ExtResource("3_effect_script")
+stat = &"water_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.02
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_reservoir"]
+script = ExtResource("2_boon_script")
+display_name = "Reservoir"
+description = "x1.02 water per pump, per level, compounding."
+unlock_at_level = 15
+effect = SubResource("effect_reservoir")
+
+[sub_resource type="Resource" id="effect_artesian"]
+script = ExtResource("3_effect_script")
+stat = &"water_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.15
+level_scaling = 0
+
+[sub_resource type="Resource" id="boon_artesian"]
+script = ExtResource("2_boon_script")
+display_name = "Artesian Head"
+description = "-0.15 ticks between pumps, per level."
+unlock_at_level = 40
+effect = SubResource("effect_artesian")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_cistern"
+display_name = "Cistern"
+description = "Line the shaft and hold what it draws. Every rung makes the well pay for the next one faster."
+max_level = 60
+min_project_levels = 8
+_base_cost_mantissa = 2.5
+_base_cost_exponent = 1
+cost_growth = 1.4
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_catchment"), SubResource("boon_siphon"), SubResource("boon_reservoir"), SubResource("boon_artesian")])

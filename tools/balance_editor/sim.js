@@ -17,14 +17,24 @@
     production: { label: "Production / tick", log: true },
     nutrients: { label: "Nutrients", log: true },
     biomass: { label: "Biomass", log: true },
+    // The Caves' currency and the Well's. Both are held rather than produced -
+    // crystals only arrive on an achievement claim, water only on a pump - so a
+    // sawtooth here is the run spending them and a plateau is it saving up.
+    crystals: { label: "Crystals", log: true },
+    water: { label: "Water", log: true },
     nodes: { label: "Nodes bought", log: false },
     symbiosis: { label: "Symbiosis levels", log: false },
     biome_upgrades: { label: "Biome upgrade levels", log: false },
     perks: { label: "Perk levels", log: false },
+    boosts: { label: "Boost levels", log: false },
+    well_projects: { label: "Well fundings", log: false },
     // What a tick is worth in real seconds. Every &"tick_rate" upgrade shortens
     // it, and the perks doing that outlive a prestige, so this is where a run
     // shows itself getting faster rather than just richer.
     tick_duration: { label: "Tick duration", log: false, unit: " (seconds)" },
+    // Ticks between pumps. Goes the same way and for the same reason: every
+    // &"water_rate" upgrade shortens it, down to WaterSystem.MIN_INTERVAL.
+    water_interval: { label: "Pump interval", log: false, unit: " (ticks)" },
   };
 
   /** Seconds as a span someone can judge. Mirrors BalanceSim.format_duration. */

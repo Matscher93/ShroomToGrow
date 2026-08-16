@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeEffectDef" format=3]
+
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/upgrades/dependencies/underground_lake_size_source.tres" id="2_dep"]
+
+[resource]
+script = ExtResource("1_script")
+stat = &"water_production"
+op = 1
+scope = 0
+target = &""
+per_level = 0.4
+level_scaling = 0
+dependency = ExtResource("2_dep")

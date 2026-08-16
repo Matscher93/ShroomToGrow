@@ -40,6 +40,13 @@ func _update_visuals() -> void:
 
 	if icon_rect:
 		icon_rect.set_shader_color(currency_def.main_color)
+		# Same contract as the resource pill's header: the ordinal *is* the icon
+		# the shader draws. Authored into the scene it would pin every instance to
+		# nutrients, which is what the .tscn's icon_id = 0 used to do when this
+		# panel had only one user. Both of its ShaderMaterials are
+		# resource_local_to_scene so writing here cannot reach another instance.
+		if icon_rect.material:
+			icon_rect.material.set_shader_parameter("icon_id", currency_def.currency_type)
 
 func set_currency_change(change: BigNumber) -> void:
 	currency_change.text = "+%s" % [change.to_display()]

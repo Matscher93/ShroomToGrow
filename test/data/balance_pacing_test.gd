@@ -23,9 +23,15 @@ const BalanceDataScript := preload("res://tools/gd_balance_data.gd")
 const MIN_FIRST_PRESTIGE_TICK := 20
 const MAX_FIRST_PRESTIGE_TICK := 1500
 
-## Every biome the reference run has to reach at least once. Crystal Caves is not
-## on the list: the run stops at its prestige target, which comes first.
-const REQUIRED_BIOMES: Array[String] = ["meadow", "forest", "permafrost"]
+## Every biome the reference run has to reach at least once. Crystal Caves and
+## Underground Lake are not on the list: the run stops at its prestige target,
+## which comes first.
+##
+## Meadow is not on it either, and cannot be: it is always_unlocked, so the
+## simulator seeds it into the already-open set before the first tick and never
+## emits a milestone for it (see BalanceSim.run). A starter biome is reached by
+## definition; what this guards is the ones a run has to earn.
+const REQUIRED_BIOMES: Array[String] = ["forest", "permafrost"]
 
 ## A cost curve that does not rise makes an upgrade free to max out.
 const MIN_COST_GROWTH := 1.0

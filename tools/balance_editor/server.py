@@ -177,12 +177,17 @@ def simulate(request: dict) -> dict:
     return report
 
 
-def derived(command: str) -> dict:
+def derived(command: str, fresh: bool = False) -> dict:
     """One of the read-only report commands, cached until the data changes.
 
     Each is a fresh Godot process, so they are computed on demand rather than
     alongside the dump every save does.
+
+    `fresh` forces the Godot run. Callers use it when what changed is upstream of
+    the data - the report is derived by GDScript, and nothing here notices that.
     """
+    if fresh:
+        _derived.pop(command, None)
     if command not in _derived:
         report = run_godot([command])
         if report.get("errors"):
@@ -307,8 +312,13 @@ class Handler(BaseHTTPRequestHandler):
                 self._events()
             elif self.path == "/api/sim/progress":
                 self._send_json(sim_progress())
-            elif self.path in ("/api/curves", "/api/perks", "/api/unused"):
-                self._send_json(derived(self.path[len("/api/"):]))
+            elif self.path.split("?")[0] in ("/api/curves", "/api/perks", "/api/unused"):
+                # ?fresh=1 drops the cache first. The cache is keyed off data
+                # writes, so a change to the .gd that *derives* the report - a
+                # layout constant in PerkTree, a new column in gd_balance_data -
+                # leaves a stale report served until the server restarts.
+                path, _, query = self.path.partition("?")
+                self._send_json(derived(path[len("/api/"):], "fresh=1" in query))
             elif self._static_file():
                 path = self._static_file()
                 self._send(200, path.read_bytes(), CONTENT_TYPES[path.suffix])

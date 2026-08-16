@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_channel"]
+script = ExtResource("3_effect_script")
+stat = &"node_production"
+op = 2
+scope = 2
+target = &"0"
+per_level = 0.03
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_channel"]
+script = ExtResource("2_boon_script")
+display_name = "Open Channel"
+description = "x1.03 nutrient production, per level, compounding."
+unlock_at_level = 1
+effect = SubResource("effect_channel")
+
+[sub_resource type="Resource" id="effect_silt"]
+script = ExtResource("3_effect_script")
+stat = &"node_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.02
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_silt"]
+script = ExtResource("2_boon_script")
+display_name = "Silt Bed"
+description = "x1.02 production on every node, per level, compounding."
+unlock_at_level = 5
+effect = SubResource("effect_silt")
+
+[sub_resource type="Resource" id="effect_intake"]
+script = ExtResource("3_effect_script")
+stat = &"node_production"
+op = 2
+scope = 2
+target = &"3"
+per_level = 0.04
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_intake"]
+script = ExtResource("2_boon_script")
+display_name = "Deep Intake"
+description = "x1.04 production on tier 3 nodes, per level, compounding."
+unlock_at_level = 15
+effect = SubResource("effect_intake")
+
+[sub_resource type="Resource" id="effect_floodgate"]
+script = ExtResource("3_effect_script")
+stat = &"tick_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.05
+level_scaling = 0
+max_magnitude = 1.0
+
+[sub_resource type="Resource" id="boon_floodgate"]
+script = ExtResource("2_boon_script")
+display_name = "Floodgate"
+description = "-0.05s tick duration, per level, up to -1.00s."
+unlock_at_level = 40
+effect = SubResource("effect_floodgate")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_sluice"
+display_name = "Sluice Gate"
+description = "Channel the lake into the substrate. Funding it widens the cut and, deep enough, opens gates further down."
+max_level = 60
+min_project_levels = 0
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 1
+cost_growth = 1.35
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_channel"), SubResource("boon_silt"), SubResource("boon_intake"), SubResource("boon_floodgate")])

@@ -15,6 +15,7 @@
 [ext_resource type="Shader" uid="uid://bldghbtldukkw" path="res://view/offline_income/sh_background_offline_income.gdshader" id="11_373pk"]
 [ext_resource type="PackedScene" uid="uid://c8l0gpyp3ccv4" path="res://view/offline_income/sc_mycelium_node_change_panel.tscn" id="11_txtru"]
 [ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="20_touch_scroll"]
+[ext_resource type="Resource" uid="uid://byespeth6sl5t" path="res://data/currencies/res_water_def.tres" id="21_water"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_eqbyr"]
 
@@ -102,7 +103,7 @@ shader_parameter/additional_border_offset = 2.0
 shader_parameter/background_alpha = 1.0
 shader_parameter/border_alpha = 1.0
 
-[node name="offline_income" type="PanelContainer" unique_id=1005754687 node_paths=PackedStringArray("label_ticks", "label_time", "nutrient_panel", "offline_income_button", "vbox_node_change", "offline_time_container", "label_away_for")]
+[node name="offline_income" type="PanelContainer" unique_id=1005754687 node_paths=PackedStringArray("label_ticks", "label_time", "nutrient_panel", "water_panel", "offline_income_button", "vbox_node_change", "offline_time_container", "label_away_for")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -113,6 +114,7 @@ script = ExtResource("1_w73ta")
 label_ticks = NodePath("MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/OfflineTimeContainer/MarginContainer/HBoxContainer/label_ticks")
 label_time = NodePath("MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/OfflineTimeContainer/MarginContainer/HBoxContainer/lable_time")
 nutrient_panel = NodePath("MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer/NutrientsPanel")
+water_panel = NodePath("MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer/WaterPanel")
 offline_income_button = NodePath("MarginContainer/VBoxContainer/offline_income_button")
 vbox_node_change = NodePath("MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer2/PanelContainer2/MarginContainer/vbox_node_change")
 mycelium_node_change_item = ExtResource("11_txtru")
@@ -229,6 +231,10 @@ label_settings = SubResource("LabelSettings_1fw70")
 
 [node name="NutrientsPanel" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer" unique_id=1541256804 instance=ExtResource("10_puft7")]
 layout_mode = 2
+
+[node name="WaterPanel" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3/VBoxContainer" instance=ExtResource("10_puft7")]
+layout_mode = 2
+currency_def = ExtResource("21_water")
 
 [node name="VBoxContainer2" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/VBoxContainer3" unique_id=1902434239]
 layout_mode = 2

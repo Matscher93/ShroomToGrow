@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_dredge"]
+script = ExtResource("3_effect_script")
+stat = &"boost_max_level"
+op = 0
+scope = 2
+target = &"boost_water"
+per_level = 3.0
+level_scaling = 0
+
+[sub_resource type="Resource" id="boon_dredge"]
+script = ExtResource("2_boon_script")
+display_name = "Dredge Line"
+description = "+3 max levels for Aquifer Pressure, per level."
+unlock_at_level = 1
+effect = SubResource("effect_dredge")
+
+[sub_resource type="Resource" id="effect_pulley"]
+script = ExtResource("3_effect_script")
+stat = &"boost_power"
+op = 2
+scope = 2
+target = &"boost_water"
+per_level = 0.02
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_pulley"]
+script = ExtResource("2_boon_script")
+display_name = "Pulley Gallery"
+description = "x1.02 Aquifer Pressure strength, per level, compounding."
+unlock_at_level = 5
+effect = SubResource("effect_pulley")
+
+[sub_resource type="Resource" id="effect_shortcut"]
+script = ExtResource("3_effect_script")
+stat = &"tick_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.03
+level_scaling = 0
+max_magnitude = 0.7
+
+[sub_resource type="Resource" id="boon_shortcut"]
+script = ExtResource("2_boon_script")
+display_name = "Shortcut"
+description = "-0.03s tick duration, per level, up to -0.70s."
+unlock_at_level = 15
+effect = SubResource("effect_shortcut")
+
+[sub_resource type="Resource" id="effect_relay"]
+script = ExtResource("3_effect_script")
+stat = &"boost_max_level"
+op = 0
+scope = 2
+target = &"boost_water"
+per_level = 4.0
+level_scaling = 0
+
+[sub_resource type="Resource" id="boon_relay"]
+script = ExtResource("2_boon_script")
+display_name = "Relay Chain"
+description = "+4 max levels for Aquifer Pressure, per level."
+unlock_at_level = 40
+effect = SubResource("effect_relay")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_sump"
+display_name = "Relay Chain"
+description = "+4 max levels for Aquifer Pressure, per level."
+max_level = 60
+min_project_levels = 485
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 8
+cost_growth = 1.48
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_dredge"), SubResource("boon_pulley"), SubResource("boon_shortcut"), SubResource("boon_relay")])

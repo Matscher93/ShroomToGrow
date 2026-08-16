@@ -211,6 +211,9 @@ static func _reset(app: Node) -> void:
 	app.biome_upgrade_system.reset()
 	app.prestige_upgrade_system.reset()
 	app.boost_upgrade_system.reset()
+	# Reset here even though a prestige never touches it: the well's projects are
+	# permanent *within* a run, and this is starting a new one.
+	app.project_upgrade_system.reset()
 	app.biome_system.reset()
 	app.biome_system.unlock_free_biomes()
 
@@ -218,6 +221,9 @@ static func _reset(app: Node) -> void:
 	app.automation_data.load_from_save({})
 	app.achievement_progress.load_from_save({})
 	app.achievement_system.sync_tier_count()
+	# PlayerData.well_project_levels is a projection of the levels just cleared,
+	# and it is the Underground Lake's XP source, so it has to follow them down.
+	app.well_system.sync_project_levels()
 
 	# Tier 0 keeps one node for the same reason PrestigeSystem leaves it one:
 	# with nothing producing, a run can never earn the first purchase back.
@@ -261,6 +267,10 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 	# the first tick, and a run continuing from a savepoint starts with whatever
 	# that savepoint had earned.
 	var unlocked := _unlocked_now(app)
+	# Which well projects have been funded at least once, so the ladder's steps get
+	# a tick each. Not rebuilt on a prestige, unlike `unlocked`: the sporation
+	# wipes the water but never what the water was spent on.
+	var funded := _funded_now(app)
 	var prestige_count := 0
 	var last_prestige_tick := 0
 	# Trace points are spaced geometrically, not evenly, because the chart's tick
@@ -323,6 +333,13 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 			_mark(milestones, savepoints, app, from_tick + tick, seconds, "biome",
 				String(def.key))
 
+		for def: ProjectDef in app.projects.projects:
+			if funded.has(def.id) or app.project_level(def.id) <= 0:
+				continue
+			funded[def.id] = tick
+			_mark(milestones, savepoints, app, from_tick + tick, seconds, "project",
+				String(def.id))
+
 		if tick % PRESTIGE_CHECK_EVERY == 0 and _should_prestige(app, tick - last_prestige_tick):
 			var gain: BigNumber = app.preview_biomass_gain()
 			app.prestige()
@@ -375,6 +392,17 @@ static func _unlocked_now(app: Node) -> Dictionary:
 		if app.biomes_data.is_unlocked(def.key):
 			open_now[def.key] = true
 	return open_now
+
+
+## The well project ids already funded at least once, as a set. Non-empty only
+## for a run continuing from a savepoint, which is the point of reading it rather
+## than starting empty.
+static func _funded_now(app: Node) -> Dictionary:
+	var done := {}
+	for def: ProjectDef in app.projects.projects:
+		if app.project_level(def.id) > 0:
+			done[def.id] = true
+	return done
 
 
 ## Records one tick worth naming, twice: once lean for the table that lists them,
@@ -488,6 +516,12 @@ static func _stride(app: Node, policy: BalancePolicy, limit: int, gap: int) -> i
 ## and nothing buys a level inside a stride. The achievements are filtered to the
 ## ones whose measure can move on its own - a tick count and a nutrient total -
 ## since every other one is counting something only a purchase changes.
+##
+## The water price is watched for the same reason nutrients are: the Underground
+## Lake pumps whether or not anything is bought, so a stride has to stop on the
+## tick a well project becomes fundable exactly as it stops on the tick a node
+## becomes affordable. Crystals need no such watch - only an achievement claim
+## moves them, and a pending claim ends the stretch two lines below.
 static func _watch(app: Node, policy: BalancePolicy) -> Dictionary:
 	if app.has_achievement_claims():
 		return {}
@@ -502,6 +536,7 @@ static func _watch(app: Node, policy: BalancePolicy) -> Dictionary:
 			growing.append(def)
 	return {
 		"price": policy.cheapest_price(),
+		"water": policy.cheapest_water_price(),
 		"perk": _cheapest_locked_perk_cost(app),
 		"growing": growing,
 		"kernel": app.tick_system.jump_kernel(),
@@ -524,6 +559,9 @@ static func _settled(app: Node, watch: Dictionary, gap: int) -> bool:
 	var price: BigNumber = watch["price"]
 	if price != null and app.player_data.nutrients.gte(price):
 		return false
+	var water: BigNumber = watch["water"]
+	if water != null and app.player_data.water.gte(water):
+		return false
 	for def: AchievementDef in watch["growing"]:
 		if app.achievement_system.current_value(def).gte(app.achievement_system.current_goal(def)):
 			return false
@@ -543,6 +581,7 @@ static func _snapshot(app: Node) -> Dictionary:
 		"lifetime_nutrients": app.player_data.lifetime_nutrients,
 		"tick_count": app.player_data.tick_count,
 		"lifetime_ticks": app.player_data.lifetime_ticks,
+		"water": app.player_data.water,
 	}
 
 
@@ -554,6 +593,7 @@ static func _restore(app: Node, snapshot: Dictionary) -> void:
 	app.player_data.lifetime_nutrients = snapshot["lifetime_nutrients"]
 	app.player_data.tick_count = snapshot["tick_count"]
 	app.player_data.lifetime_ticks = snapshot["lifetime_ticks"]
+	app.player_data.water = snapshot["water"]
 
 
 ## Drops every second point, halving a full trace so sampling can carry on at
@@ -630,11 +670,21 @@ static func _sample(app: Node, tick: int, seconds: float) -> Dictionary:
 		"nutrients": _log10(app.player_data.nutrients),
 		"production": _log10(production),
 		"biomass": _log10(app.player_data.biomass),
+		"crystals": _log10(app.player_data.crystals),
+		"water": _log10(app.player_data.water),
 		"nodes": manual,
 		"symbiosis": app.upgrade_system.total_levels(),
 		"biome_upgrades": app.biome_upgrade_system.total_levels(),
 		"perks": app.prestige_upgrade_system.total_levels(),
+		# Levels up the crystal ladders, summed across the boosts and their tiers -
+		# the Caves' half of what crystals are spent on.
+		"boosts": app.boost_upgrade_system.total_levels(),
+		# Fundings across every well project. Counted through WellSystem rather
+		# than off the project track's total_levels(), which counts the boons
+		# riding along with each funding as well.
+		"well_projects": app.well_total_levels(),
 		"tick_duration": app.tick_duration(),
+		"water_interval": app.water_pump_interval(),
 	}
 
 

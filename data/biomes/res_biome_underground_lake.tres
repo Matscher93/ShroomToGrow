@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BiomeDef" format=3]
+
+[ext_resource type="Script" uid="uid://beyspvlhwfx6a" path="res://model/biomes/gd_biome_def.gd" id="1_script"]
+[ext_resource type="Shader" path="res://shaders/icons/biomes/sh_underground_lake.gdshader" id="1_shader"]
+
+[resource]
+script = ExtResource("1_script")
+key = &"underground_lake"
+display_name = "Underground Lake"
+description = "Sink a well and pump the deep water"
+screen_type = 4
+xp_source = 4
+xp_label = "projects funded"
+biome_color = Color(0.24705882, 0.5568628, 0.827451, 1)
+biome_shader = ExtResource("1_shader")
+upgrade_ids = Array[StringName]([&"LakeSeep", &"SiltFilter", &"TideDraw", &"DeepChannel", &"SunkenRoots", &"Undertow", &"StillWaters", &"Groundswell", &"Meltwater", &"AbyssalSpring"])
+_unlock_cost_mantissa = 1.0
+_unlock_cost_exponent = 6
+_size_base_cost_mantissa = 5.0
+_size_base_cost_exponent = 4
+_auto_unlock_cost_mantissa = 5.0
+_auto_unlock_cost_exponent = 3
+metadata/_custom_type_script = "uid://beyspvlhwfx6a"

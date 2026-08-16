@@ -26,7 +26,29 @@ func before_test() -> void:
 	_list = _boost_list()
 	for def in BoostTree.build(_list):
 		_upgrades.register(def)
-	_system = BoostSystem.new(_player, _upgrades, _list, _prestige)
+	_system = BoostSystem.new(_player, _upgrades, _list, _prestige, _production)
+
+## Registers one Well-style upgrade writing `per_level` into `stat`, scoped to a
+## boost id the way a project boon reaches a boost. Levelled straight in: what a
+## project costs is WellSystem's rule, not this system's.
+func _well_upgrade(id: StringName, stat: StringName, boost_id: StringName,
+		op: UpgradeEffectDef.Op, per_level: float, level: int) -> void:
+	var effect := UpgradeEffectDef.new()
+	effect.stat = stat
+	effect.op = op
+	effect.scope = UpgradeEffectDef.Scope.NODE
+	effect.target = boost_id
+	effect.per_level = per_level
+	var effects: Array[UpgradeEffectDef] = [effect]
+	var def := UpgradeDef.new()
+	def.id = id
+	def.effects = effects
+	# The projects track is not one of the five this suite's ProductionSystem
+	# folds, so these ride in on the prestige track - the stat is what matters,
+	# and every track writes into the same buckets.
+	_prestige.register(def)
+	_prestige.from_save({String(id): level})
+	_system.refresh_power()
 
 func _boost_list() -> BoostList:
 	# Node-scoped to tier 0, mirroring the shipped Nutrient Flow: tier 0 is the
@@ -246,12 +268,91 @@ func test_a_cap_perk_opens_the_next_stretch_of_the_ladder() -> void:
 
 ## The tiers are what the rates and prices are authored against, so no stack of
 ## cap perks may buy a level past the end of the table.
-func test_the_ceiling_never_passes_the_end_of_the_ladder() -> void:
+func test_perks_alone_stop_at_the_end_of_the_ladder() -> void:
+	# The authored cap perks are sized to reach exactly the ladder's end and no
+	# further - only a &"boost_max_level" upgrade goes past it, and this suite
+	# builds no ProductionSystem, so nothing here can.
 	_gate(&"test_nutrients", &"", BoostTiers.LEVELS_PER_TIER, &"instinct_flow_cap",
 		BoostTiers.LEVELS_PER_TIER)
-	_own_perk(&"instinct_flow_cap", 50)
+	_own_perk(&"instinct_flow_cap", 4)
 
 	assert_int(_system.max_level(&"test_nutrients")).is_equal(BoostTiers.max_level())
+
+# ------------------------------------------------- what the Well reaches
+
+func test_boost_max_level_widens_only_the_boost_it_names() -> void:
+	_gate(&"test_nutrients", &"", 100)
+	_gate(&"test_biomass", &"", 100)
+	_well_upgrade(&"WellCeiling", &"boost_max_level", &"test_nutrients",
+		UpgradeEffectDef.Op.ADD, 3.0, 10)
+
+	assert_int(_system.max_level(&"test_nutrients")).is_equal(130)
+	assert_int(_system.max_level(&"test_biomass")).is_equal(100)
+
+func test_boost_max_level_can_push_past_the_end_of_the_ladder() -> void:
+	# The perks stop at the ladder's end; the Well is what goes beyond it. Every
+	# level past the last tier is bought into that tier, which tier_for_level()
+	# already clamps to, so it is priced and paid rather than falling off.
+	_gate(&"test_nutrients", &"", BoostTiers.max_level())
+	_well_upgrade(&"WellCeiling", &"boost_max_level", &"test_nutrients",
+		UpgradeEffectDef.Op.ADD, 5.0, 20)
+
+	assert_int(_system.max_level(&"test_nutrients")) \
+		.is_equal(BoostTiers.max_level() + 100)
+
+func test_a_boost_at_the_old_ceiling_becomes_buyable_again() -> void:
+	_gate(&"test_nutrients", &"", 2)
+	_player.crystals = _big(1.0e12)
+	assert_bool(_system.buy_boost(&"test_nutrients")).is_true()
+	assert_bool(_system.buy_boost(&"test_nutrients")).is_true()
+	assert_bool(_system.is_maxed(&"test_nutrients")).is_true()
+
+	_well_upgrade(&"WellCeiling", &"boost_max_level", &"test_nutrients",
+		UpgradeEffectDef.Op.ADD, 1.0, 3)
+
+	assert_bool(_system.is_maxed(&"test_nutrients")).is_false()
+	assert_bool(_system.buy_boost(&"test_nutrients")).is_true()
+	assert_int(_system.boost_level(&"test_nutrients")).is_equal(3)
+
+func test_boost_power_raises_the_rate_each_level_is_bought_at() -> void:
+	# base_per_level is 0.01 at tier 1 for the nutrient test boost.
+	assert_float(_system.per_level(&"test_nutrients", 1)).is_equal_approx(0.01, EPS)
+
+	_well_upgrade(&"WellPower", &"boost_power", &"test_nutrients",
+		UpgradeEffectDef.Op.INCREASED, 0.5, 2)   # x2 into the additive pool
+
+	assert_float(_system.power(&"test_nutrients")).is_equal_approx(2.0, EPS)
+	assert_float(_system.per_level(&"test_nutrients", 1)).is_equal_approx(0.02, EPS)
+
+func test_boost_power_reaches_the_resolved_stat_not_only_the_display() -> void:
+	# The rate is baked into each tier's UpgradeDef, so a power change that only
+	# moved boost_multiplier() would show a number the game never applied.
+	_player.crystals = _big(1.0e12)
+	for _i in 10:
+		assert_bool(_system.buy_boost(&"test_nutrients")).is_true()
+	var before := _production.stack(&"node_production", _big(1.0), &"0").to_float()
+
+	_well_upgrade(&"WellPower", &"boost_power", &"test_nutrients",
+		UpgradeEffectDef.Op.INCREASED, 1.0, 1)   # x2
+
+	var after := _production.stack(&"node_production", _big(1.0), &"0").to_float()
+	assert_float(after).is_greater(before)
+	# Ten levels at x1.02 rather than at x1.01.
+	assert_float(after).is_equal_approx(pow(1.02, 10.0), EPS)
+	assert_float(_system.boost_multiplier(&"test_nutrients").to_float()) \
+		.is_equal_approx(after, EPS)
+
+func test_boost_power_leaves_the_other_boost_alone() -> void:
+	_player.crystals = _big(1.0e12)
+	for _i in 5:
+		assert_bool(_system.buy_boost(&"test_biomass")).is_true()
+	var before := _system.boost_multiplier(&"test_biomass").to_float()
+
+	_well_upgrade(&"WellPower", &"boost_power", &"test_nutrients",
+		UpgradeEffectDef.Op.INCREASED, 1.0, 1)
+
+	assert_float(_system.boost_multiplier(&"test_biomass").to_float()) \
+		.is_equal_approx(before, EPS)
 
 func test_the_two_boosts_keep_separate_ladders() -> void:
 	_player.crystals = _big(100000.0)

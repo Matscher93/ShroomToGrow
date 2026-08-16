@@ -189,6 +189,100 @@ func test_dependency_scales_the_effect() -> void:
 	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx).to_float()) \
 		.is_equal_approx(5.0, EPS)
 
+# ─── Capped effects ──────────────────────────────────────────────────────────
+
+func test_an_uncapped_effect_keeps_growing() -> void:
+	var e := _effect(&"stat", 0.5, UpgradeEffectDef.Op.ADD)
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Free", [e]))
+	system.from_save({"Free": 10})
+
+	assert_float(system.effect_amount(&"Free", ResolveContext.new()).to_float()) \
+		.is_equal_approx(5.0, EPS)
+
+func test_max_magnitude_caps_what_an_effect_contributes() -> void:
+	var e := _effect(&"stat", 0.5, UpgradeEffectDef.Op.ADD)
+	e.max_magnitude = 2.0
+	var ctx := ResolveContext.new()
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Capped", [e]))
+
+	system.from_save({"Capped": 4})     # exactly on the ceiling
+	assert_float(system.effect_amount(&"Capped", ctx).to_float()).is_equal_approx(2.0, EPS)
+
+	system.from_save({"Capped": 40})    # far past it
+	assert_float(system.effect_amount(&"Capped", ctx).to_float()).is_equal_approx(2.0, EPS)
+
+func test_the_cap_bounds_a_negative_effect_by_its_absolute_value() -> void:
+	# The case the field was added for: tick_rate improves by going down, so a
+	# cap that only clamped positives would not bound it at all.
+	var e := _effect(&"tick_rate", -0.05, UpgradeEffectDef.Op.ADD)
+	e.max_magnitude = 1.0
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Floodgate", [e]))
+	system.from_save({"Floodgate": 100})
+
+	assert_float(system.effect_amount(&"Floodgate", ResolveContext.new()).to_float()) \
+		.is_equal_approx(-1.0, EPS)
+
+func test_a_capped_effect_stops_reaching_the_stat() -> void:
+	var e := _effect(&"stat", 0.5, UpgradeEffectDef.Op.ADD)
+	e.max_magnitude = 2.0
+	var ctx := ResolveContext.new()
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Capped", [e]))
+	system.from_save({"Capped": 40})
+
+	# The bucket sees the capped contribution, not the raw magnitude: a cap the
+	# display honoured but resolution ignored would be worse than none.
+	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx).to_float()) \
+		.is_equal_approx(3.0, EPS)
+
+func test_a_capped_effect_advertises_no_further_gain() -> void:
+	# next_level_delta feeds the "per level" figure on a card. Left as a
+	# difference of uncapped magnitudes it would promise a full level's worth
+	# forever, on a rung that pays nothing.
+	var e := _effect(&"stat", 0.5, UpgradeEffectDef.Op.ADD)
+	e.max_magnitude = 2.0
+	var ctx := ResolveContext.new()
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Capped", [e]))
+
+	system.from_save({"Capped": 1})
+	assert_float(system.next_level_delta(&"Capped", ctx).to_float()).is_equal_approx(0.5, EPS)
+
+	system.from_save({"Capped": 4})
+	assert_float(system.next_level_delta(&"Capped", ctx).to_float()).is_zero()
+
+func test_the_cap_is_applied_after_the_dependency() -> void:
+	# Capping the bare magnitude would let a Size-scaled upgrade multiply its way
+	# past its own ceiling, which is the one thing max_magnitude exists to stop.
+	var source := ScalingSourceDef.new()
+	source.kind = ScalingSourceDef.Kind.NODE_COUNT
+	source.key = &"3"
+	var e := _effect(&"stat", 0.5, UpgradeEffectDef.Op.ADD)
+	e.dependency = source
+	e.max_magnitude = 2.0
+
+	var ctx := ResolveContext.new()
+	ctx.manual_counts[&"3"] = 10        # would take one level to 5.0 uncapped
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Scaled", [e]))
+	system.from_save({"Scaled": 1})
+
+	assert_float(system.effect_amount(&"Scaled", ctx).to_float()).is_equal_approx(2.0, EPS)
+
+func test_a_compound_effect_can_be_capped_too() -> void:
+	var e := _effect(&"stat", 0.5, UpgradeEffectDef.Op.MORE)
+	e.level_scaling = UpgradeEffectDef.LevelScaling.COMPOUND
+	e.max_magnitude = 1.0
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Compounding", [e]))
+	system.from_save({"Compounding": 10})   # 1.5^10 - 1, far past the ceiling
+
+	assert_float(system.effect_amount(&"Compounding", ResolveContext.new()).to_float()) \
+		.is_equal_approx(1.0, EPS)
+
 # ─── Batching ────────────────────────────────────────────────────────────────
 
 ## Counts upgrades_changed without needing a Node to connect from.

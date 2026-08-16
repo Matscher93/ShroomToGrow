@@ -28,6 +28,11 @@ var biome_upgrade_system: UpgradeSystem
 ## defs are generated from BoostTiers instead of authored, and it saves and
 ## resets on its own terms.
 var boost_upgrade_system: UpgradeSystem
+## Levels of the well's projects, one UpgradeDef per project per boon. Its own
+## track for the same reasons the boosts have one: the defs are generated from
+## ProjectTree rather than authored, and it is permanent - the sporation wipes
+## the water but never what the water was spent on.
+var project_upgrade_system: UpgradeSystem
 var resolve_context := ResolveContext.new()
 
 ## Game rules, split out by domain. Each is constructed with the state it needs
@@ -39,6 +44,8 @@ var biome_system: BiomeSystem
 var perk_system: PerkSystem
 var tick_system: TickSystem
 var prestige_system: PrestigeSystem
+var water_system: WaterSystem
+var well_system: WellSystem
 
 var biomes := load("res://data/biomes/all_biomes.tres") as BiomeList
 var biomes_data: BiomesData
@@ -58,6 +65,10 @@ var achievements_vm: AchievementsViewModel
 var boosts := load("res://data/boosts/all_boosts.tres") as BoostList
 var boost_system: BoostSystem
 var boost_vms: Dictionary = {}  # StringName -> BoostViewModel
+
+var projects := load("res://data/well/all_projects.tres") as ProjectList
+var project_vms: Dictionary = {}  # StringName -> ProjectViewModel
+var well_vm: WellViewModel
 
 var automations := load("res://data/automation/all_automations.tres") as AutomationList
 var automation_data: AutomationData
@@ -100,9 +111,19 @@ func _ready() -> void:
 	for def in BoostTree.build(boosts):
 		boost_upgrade_system.register(def)
 
+	project_upgrade_system = UpgradeSystem.new()
+	for def in ProjectTree.build(projects):
+		project_upgrade_system.register(def)
+
 	production_system = ProductionSystem.new(upgrade_system, biome_upgrade_system,
-		prestige_upgrade_system, resolve_context, boost_upgrade_system)
-	tick_system = TickSystem.new(nodes.mycelium_nodes, player_data, production_system)
+		prestige_upgrade_system, resolve_context, boost_upgrade_system,
+		project_upgrade_system)
+	# Built before the tick system, which drives the pump: the well's rate and
+	# yield are stats like any other, but whether it runs at all is a biome unlock.
+	biomes_data = BiomesData.new()
+	water_system = WaterSystem.new(player_data, biomes_data, production_system)
+	tick_system = TickSystem.new(nodes.mycelium_nodes, player_data, production_system,
+		water_system)
 
 	for perk in PerkTree.build(perk_branches):
 		prestige_upgrade_system.register(perk)
@@ -114,7 +135,6 @@ func _ready() -> void:
 		perk_vms[id] = PerkViewModel.new(id, perk_defs[id])
 	prestige_vm = PrestigeViewModel.new()
 
-	biomes_data = BiomesData.new()
 	biome_system = BiomeSystem.new(biomes, biomes_data, player_data, nodes.mycelium_nodes,
 		production_system, upgrade_system, biome_upgrade_system, prestige_upgrade_system,
 		resolve_context)
@@ -136,7 +156,17 @@ func _ready() -> void:
 		production_system, upgrade_system, biomes_data)
 
 	boost_system = BoostSystem.new(player_data, boost_upgrade_system, boosts,
+		prestige_upgrade_system, production_system)
+
+	well_system = WellSystem.new(player_data, project_upgrade_system, projects,
 		prestige_upgrade_system)
+
+	# A boost's per-level rate is baked into its UpgradeDef, and the Well's
+	# projects move it. Funding one is the only thing that can, so the rebuild
+	# rides that signal rather than a tick. Run once up front too: a save loaded
+	# after this point re-fires it, but a fresh game never would.
+	project_upgrade_system.upgrades_changed.connect(boost_system.refresh_power)
+	boost_system.refresh_power()
 
 	automation_data = AutomationData.new()
 	automation_system = AutomationSystem.new(automations, automation_data, player_data,
@@ -155,8 +185,12 @@ func _ready() -> void:
 		biome_sequence_vms[def.key] = BiomeSequenceViewModel.new(def.key, def)
 	for def in boosts.boosts:
 		boost_vms[def.id] = BoostViewModel.new(def.id, def)
+	for def in projects.projects:
+		project_vms[def.id] = ProjectViewModel.new(def.id, def)
 	# After boost_vms: the Caves screen's VM hands out those cards.
 	crystal_caves_vm = CrystalCavesViewModel.new()
+	# After project_vms, for the same reason.
+	well_vm = WellViewModel.new()
 
 	screens_data = ScreensData.new(screens.screens, screens.initial_screen)
 	screens_vm = ScreensViewModel.new(screens_data)
@@ -175,6 +209,7 @@ func _ready() -> void:
 	biome_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	prestige_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	boost_upgrade_system.upgrades_changed.connect(_update_tick_duration)
+	project_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	_update_tick_duration()
 
 	_connect_achievement_sources()
@@ -200,6 +235,7 @@ func _connect_achievement_sources() -> void:
 	biome_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	prestige_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	boost_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
+	project_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	biomes_data.biome_unlocked.connect(mark_achievements_dirty.unbind(1))
 	player_data.prestige_count_changed.connect(mark_achievements_dirty.unbind(1))
 	biome_size_changed.connect(mark_achievements_dirty.unbind(1))
@@ -261,6 +297,7 @@ func to_save() -> Dictionary:
 		"achievements": achievement_progress.to_save(),
 		"automation": automation_data.to_save(),
 		"boost_upgrades": boost_upgrade_system.to_save(),
+		"project_upgrades": project_upgrade_system.to_save(),
 	}
 
 ## Loads a dictionary from to_save() into the live systems. Every holder is
@@ -280,6 +317,10 @@ func load_from_save(game: Dictionary) -> void:
 	achievement_system.sync_tier_count()
 	automation_data.load_from_save(game.get("automation", {}))
 	boost_upgrade_system.from_save(game.get("boost_upgrades", {}))
+	project_upgrade_system.from_save(game.get("project_upgrades", {}))
+	# PlayerData.well_project_levels is a projection of the levels just loaded,
+	# not a saved field, so it has to be rebuilt here - same as achievement_tiers.
+	well_system.sync_project_levels()
 
 func mycelium_nodes_to_save() -> Array[Dictionary]:
 	var all_node_data: Array[Dictionary] = []
@@ -401,6 +442,62 @@ func can_buy_boost(boost_id: StringName) -> bool:
 
 func buy_boost(boost_id: StringName) -> bool:
 	return boost_system.buy_boost(boost_id)
+
+# ---------------------------------------------------------------- well
+
+func is_well_pumping() -> bool:
+	return water_system.is_pumping()
+
+func water_pump_yield() -> BigNumber:
+	return water_system.pump_yield()
+
+func water_pump_interval() -> int:
+	return water_system.interval()
+
+func ticks_until_water_pump() -> int:
+	return water_system.ticks_until_pump(player_data.tick_count)
+
+func project_level(project_id: StringName) -> int:
+	return well_system.level(project_id)
+
+func project_max_level(project_id: StringName) -> int:
+	return well_system.max_level(project_id)
+
+func project_cost(project_id: StringName) -> BigNumber:
+	return well_system.cost(project_id)
+
+func is_project_unlocked(project_id: StringName) -> bool:
+	return well_system.is_unlocked(project_id)
+
+func project_levels_until_unlock(project_id: StringName) -> int:
+	return well_system.levels_until_unlock(project_id)
+
+func project_min_levels(project_id: StringName) -> int:
+	return well_system.min_project_levels(project_id)
+
+func well_total_levels() -> int:
+	return well_system.total_levels()
+
+func is_project_maxed(project_id: StringName) -> bool:
+	return well_system.is_maxed(project_id)
+
+func can_invest_project(project_id: StringName) -> bool:
+	return well_system.can_invest(project_id)
+
+func invest_project(project_id: StringName) -> bool:
+	return well_system.invest(project_id)
+
+func is_project_boon_unlocked(project_id: StringName, index: int) -> bool:
+	return well_system.is_boon_unlocked(project_id, index)
+
+func project_boon_level(project_id: StringName, index: int) -> int:
+	return well_system.boon_level(project_id, index)
+
+func project_boon_amount(project_id: StringName, index: int) -> BigNumber:
+	return well_system.boon_amount(project_id, index, resolve_context)
+
+func project_boon_next_level_delta(project_id: StringName, index: int) -> BigNumber:
+	return well_system.boon_next_level_delta(project_id, index, resolve_context)
 
 # ---------------------------------------------------------------- biomes
 

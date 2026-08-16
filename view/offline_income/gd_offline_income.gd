@@ -14,6 +14,10 @@ var _node_change_rows: Array[MyceliumNodeChangePanel] = []
 @export var label_ticks: Label
 @export var label_time: Label
 @export var nutrient_panel: PanelContainer
+## Hidden whenever the gap produced no water, which is every run before the
+## Underground Lake is open. A "+0 Water" row on a save that has never seen the
+## biome is a line about a feature the player has not met yet.
+@export var water_panel: PanelContainer
 @export var offline_income_button: PanelContainer
 @export var vbox_node_change: VBoxContainer
 @export var mycelium_node_change_item: PackedScene
@@ -29,6 +33,10 @@ func bind(vm: OfflineIncomeViewModel) -> void:
 		_vm.property_changed.disconnect(_on_property_changed)
 	_vm = vm
 	_vm.property_changed.connect(_on_property_changed)
+	# Authored visible so the row can be laid out in the editor. Nothing knows
+	# whether the gap produced any water until the first _render_deltas, and the
+	# placeholder text it ships with would read as a real payout until then.
+	water_panel.visible = false
 	_refresh()
 	if not offline_income_button.pressed.is_connected(_on_dismiss_pressed):
 		offline_income_button.pressed.connect(_on_dismiss_pressed)
@@ -53,7 +61,8 @@ func _refresh() -> void:
 		_set_tick_progress(progress)
 		label_ticks.text = "%d / %d" % [_vm.calc_ticks_done, _vm.calc_ticks_total]
 		label_time.text = "Calculating… %d%%" % [roundi(progress * 100.0)]
-		_render_deltas(_initial_nutrients, App.player_data.nutrients, _initial_node_counts,
+		_render_deltas(_initial_nutrients, App.player_data.nutrients,
+			_initial_water, App.player_data.water, _initial_node_counts,
 			func(i: int) -> BigNumber: return App.mycelium_node_data[i].node.auto_nodes)
 		return
 	_initial_state_captured = false
@@ -64,11 +73,13 @@ func _refresh() -> void:
 ## diffed against it every time progress is reported.
 var _initial_state_captured := false
 var _initial_nutrients: BigNumber
+var _initial_water: BigNumber
 var _initial_node_counts: Array[BigNumber]
 
 func _capture_initial_state() -> void:
 	_initial_state_captured = true
 	_initial_nutrients = App.player_data.nutrients
+	_initial_water = App.player_data.water
 	_initial_node_counts.clear()
 	for node_data in App.mycelium_node_data:
 		_initial_node_counts.append(node_data.node.auto_nodes)
@@ -82,8 +93,17 @@ func _set_tick_progress(progress: float) -> void:
 ## loop, so rebuilding the list each time would be allocation churn inside the
 ## loop SaveManager's frame budget is protecting.
 func _render_deltas(initial_nutrient: BigNumber, final_nutrient: BigNumber,
+		initial_water: BigNumber, final_water: BigNumber,
 		initial_node_counts: Array[BigNumber], final_node_count_fn: Callable) -> void:
 	nutrient_panel.set_currency_change(final_nutrient.sub(initial_nutrient))
+
+	# The well pumps through the same handle_tick() the catch-up loop drives, so
+	# a gap spent with the lake open has already produced this by the time the
+	# popup renders. Shown only when there is some: see water_panel.
+	var water_change := final_water.sub(initial_water)
+	water_panel.visible = water_change.gt(BigNumber.from_value(0.0))
+	if water_panel.visible:
+		water_panel.set_currency_change(water_change)
 
 	var nodes := App.nodes.mycelium_nodes
 	_ensure_node_change_rows(nodes.size())
@@ -125,7 +145,8 @@ func _update_visuals() -> void:
 		for i in range(App.nodes.mycelium_nodes.size()):
 			initial_node_counts.append(_get_node_count(_snapshots[0], i))
 		var last_snapshot := _snapshots[_snapshots.size()-1]
-		_render_deltas(initial_nutrient, _get_nutrient_count(last_snapshot), initial_node_counts,
+		_render_deltas(initial_nutrient, _get_nutrient_count(last_snapshot),
+			_get_water_count(_snapshots[0]), _get_water_count(last_snapshot), initial_node_counts,
 			func(i: int) -> BigNumber: return _get_node_count(last_snapshot, i))
 
 static func format_duration(total_seconds: float, max_units := 2) -> String:
@@ -166,3 +187,7 @@ func _get_node_count(save_data: Dictionary, index: int) -> BigNumber:
 func _get_nutrient_count(save_data: Dictionary) -> BigNumber:
 	var player_data := PlayerData.from_save(save_data.get("player_data", {}))
 	return player_data.nutrients
+
+func _get_water_count(save_data: Dictionary) -> BigNumber:
+	var player_data := PlayerData.from_save(save_data.get("player_data", {}))
+	return player_data.water

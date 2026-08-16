@@ -1,0 +1,85 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_crest"]
+script = ExtResource("3_effect_script")
+stat = &"water_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.1
+level_scaling = 0
+max_magnitude = 2.0
+
+[sub_resource type="Resource" id="boon_crest"]
+script = ExtResource("2_boon_script")
+display_name = "Crest"
+description = "-0.10 ticks between pumps, per level, up to -2.00."
+unlock_at_level = 1
+effect = SubResource("effect_crest")
+
+[sub_resource type="Resource" id="effect_draw2"]
+script = ExtResource("3_effect_script")
+stat = &"water_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.045
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_draw2"]
+script = ExtResource("2_boon_script")
+display_name = "Long Draw"
+description = "x1.045 water per pump, per level, compounding."
+unlock_at_level = 5
+effect = SubResource("effect_draw2")
+
+[sub_resource type="Resource" id="effect_momentum"]
+script = ExtResource("3_effect_script")
+stat = &"tick_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.025
+level_scaling = 0
+max_magnitude = 0.6
+
+[sub_resource type="Resource" id="boon_momentum"]
+script = ExtResource("2_boon_script")
+display_name = "Momentum"
+description = "-0.03s tick duration, per level, up to -0.60s."
+unlock_at_level = 15
+effect = SubResource("effect_momentum")
+
+[sub_resource type="Resource" id="effect_overrun"]
+script = ExtResource("3_effect_script")
+stat = &"water_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.15
+level_scaling = 0
+max_magnitude = 3.0
+
+[sub_resource type="Resource" id="boon_overrun"]
+script = ExtResource("2_boon_script")
+display_name = "Overrun"
+description = "-0.15 ticks between pumps, per level, up to -3.00."
+unlock_at_level = 40
+effect = SubResource("effect_overrun")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_bridge"
+display_name = "Siphon Bridge"
+description = "Water climbing uphill, because the far side is lower than the near one."
+max_level = 60
+min_project_levels = 320
+_base_cost_mantissa = 2.5
+_base_cost_exponent = 7
+cost_growth = 1.46
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_crest"), SubResource("boon_draw2"), SubResource("boon_momentum"), SubResource("boon_overrun")])

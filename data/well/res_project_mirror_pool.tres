@@ -1,0 +1,82 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_still"]
+script = ExtResource("3_effect_script")
+stat = &"water_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.045
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_still"]
+script = ExtResource("2_boon_script")
+display_name = "Stillness"
+description = "x1.045 water per pump, per level, compounding."
+unlock_at_level = 1
+effect = SubResource("effect_still")
+
+[sub_resource type="Resource" id="effect_reflect"]
+script = ExtResource("3_effect_script")
+stat = &"crystal_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.045
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_reflect"]
+script = ExtResource("2_boon_script")
+display_name = "Reflection"
+description = "x1.045 crystals from achievements, per level, compounding."
+unlock_at_level = 5
+effect = SubResource("effect_reflect")
+
+[sub_resource type="Resource" id="effect_double"]
+script = ExtResource("3_effect_script")
+stat = &"water_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.025
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_double"]
+script = ExtResource("2_boon_script")
+display_name = "Doubling"
+description = "x1.02 water per pump, per level, compounding."
+unlock_at_level = 15
+effect = SubResource("effect_double")
+
+[sub_resource type="Resource" id="effect_image"]
+script = ExtResource("3_effect_script")
+stat = &"crystal_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.02
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_image"]
+script = ExtResource("2_boon_script")
+display_name = "The Other Colony"
+description = "x1.02 crystals from achievements, per level, compounding."
+unlock_at_level = 40
+effect = SubResource("effect_image")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_mirror"
+display_name = "Mirror Pool"
+description = "Perfectly still, and it shows you a colony that is doing rather better."
+max_level = 60
+min_project_levels = 399
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 8
+cost_growth = 1.47
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_still"), SubResource("boon_reflect"), SubResource("boon_double"), SubResource("boon_image")])

@@ -10,9 +10,15 @@ extends RefCounted
 
 const CANVAS_CENTER := 520.0
 const ROOT_RADIUS := 150.0
-const DEPTH_RADIUS_STEP := 103.0
+## Node circles are 40px and the label block under one is about 60px tall, so a
+## step much under this puts a node's labels on top of whatever the next ring
+## over happens to sit beneath it. perk_node_test.gd is what pins that down.
+const DEPTH_RADIUS_STEP := 140.0
 const SIBLING_SPREAD_DEG := 26.0
 const BRANCH_START_DEG := -90.0  ## first branch points straight up from the core
+## Fraction of its slice of the circle a branch may fill. The rest is the gutter
+## that keeps neighbouring branches from touching.
+const BRANCH_SLICE_FILL := 0.8
 
 static func build(branch_list: PerkBranchList) -> Array[PerkDef]:
 	var seen: Dictionary = {}  # StringName id -> true, across all branches
@@ -21,11 +27,29 @@ static func build(branch_list: PerkBranchList) -> Array[PerkDef]:
 	# Branches fan out evenly in list order. Spacing is derived, not authored,
 	# so adding or removing a branch can't leave the web lopsided or overlapping.
 	var step := 360.0 / float(maxi(1, branch_list.branches.size()))
+	var half_slice := deg_to_rad(step * 0.5 * BRANCH_SLICE_FILL)
 	for i in branch_list.branches.size():
 		var branch: PerkBranchDef = branch_list.branches[i]
 		_place_children(branch, branch.roots, branch_list.core.id,
-			deg_to_rad(BRANCH_START_DEG + step * float(i)), 0, seen, perks)
+			deg_to_rad(BRANCH_START_DEG + step * float(i)), 0,
+			_spread_for(branch, half_slice), seen, perks)
 	return perks
+
+## Sibling spacing for one branch, shrunk if the branch is wide enough to spill
+## out of its slice. A node's angle is its branch's centre line plus the spacing
+## times the sibling offsets accumulated down to it, so the largest offset in the
+## branch is what decides the largest spacing that still fits.
+static func _spread_for(branch: PerkBranchDef, half_slice: float) -> float:
+	var spread := deg_to_rad(SIBLING_SPREAD_DEG)
+	var widest := _widest_offset(branch.roots, 0.0)
+	return spread if widest <= 0.0 else minf(spread, half_slice / widest)
+
+static func _widest_offset(siblings: Array[PerkNodeDef], parent_offset: float) -> float:
+	var widest := absf(parent_offset)
+	for i in siblings.size():
+		var offset := parent_offset + float(i) - (siblings.size() - 1) / 2.0
+		widest = maxf(widest, _widest_offset(siblings[i].children, offset))
+	return widest
 
 static func _make_core(core: PerkNodeDef) -> PerkDef:
 	var p := PerkDef.new()
@@ -44,8 +68,7 @@ static func _make_core(core: PerkNodeDef) -> PerkDef:
 	return p
 
 static func _place_children(branch: PerkBranchDef, siblings: Array[PerkNodeDef], parent_id: StringName,
-		parent_angle: float, depth: int, seen: Dictionary, out: Array[PerkDef]) -> void:
-	var spread := deg_to_rad(SIBLING_SPREAD_DEG)
+		parent_angle: float, depth: int, spread: float, seen: Dictionary, out: Array[PerkDef]) -> void:
 	for i in siblings.size():
 		var node: PerkNodeDef = siblings[i]
 		if seen.has(node.id):
@@ -54,7 +77,7 @@ static func _place_children(branch: PerkBranchDef, siblings: Array[PerkNodeDef],
 		seen[node.id] = true
 		var angle := parent_angle + spread * (float(i) - (siblings.size() - 1) / 2.0)
 		out.append(_make_perk(branch, node, parent_id, angle, depth))
-		_place_children(branch, node.children, node.id, angle, depth + 1, seen, out)
+		_place_children(branch, node.children, node.id, angle, depth + 1, spread, seen, out)
 
 static func _make_perk(branch: PerkBranchDef, node: PerkNodeDef, parent_id: StringName, angle: float, depth: int) -> PerkDef:
 	var p := PerkDef.new()

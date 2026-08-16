@@ -1,0 +1,84 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_bore"]
+script = ExtResource("3_effect_script")
+stat = &"boost_max_level"
+op = 0
+scope = 2
+target = &"boost_nutrients"
+per_level = 2.0
+level_scaling = 0
+
+[sub_resource type="Resource" id="boon_bore"]
+script = ExtResource("2_boon_script")
+display_name = "Bore Head"
+description = "+2 max levels for Nutrient Flow, per level."
+unlock_at_level = 1
+effect = SubResource("effect_bore")
+
+[sub_resource type="Resource" id="effect_standpipe"]
+script = ExtResource("3_effect_script")
+stat = &"tick_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.02
+level_scaling = 0
+max_magnitude = 0.75
+
+[sub_resource type="Resource" id="boon_standpipe"]
+script = ExtResource("2_boon_script")
+display_name = "Standpipe"
+description = "-0.02s tick duration, per level, up to -0.75s."
+unlock_at_level = 5
+effect = SubResource("effect_standpipe")
+
+[sub_resource type="Resource" id="effect_surge"]
+script = ExtResource("3_effect_script")
+stat = &"boost_power"
+op = 2
+scope = 2
+target = &"boost_nutrients"
+per_level = 0.015
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_surge"]
+script = ExtResource("2_boon_script")
+display_name = "Surge Tank"
+description = "x1.015 Nutrient Flow strength, per level, compounding."
+unlock_at_level = 15
+effect = SubResource("effect_surge")
+
+[sub_resource type="Resource" id="effect_hammer"]
+script = ExtResource("3_effect_script")
+stat = &"water_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.08
+level_scaling = 0
+max_magnitude = 2.0
+
+[sub_resource type="Resource" id="boon_hammer"]
+script = ExtResource("2_boon_script")
+display_name = "Hammer Drive"
+description = "-0.08 ticks between pumps, per level, up to -2.00."
+unlock_at_level = 40
+effect = SubResource("effect_hammer")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_shaft"
+display_name = "Pressure Shaft"
+description = "Sink the bore deeper and let the head of water do the work the colony was doing by hand."
+max_level = 60
+min_project_levels = 25
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 2
+cost_growth = 1.42
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_bore"), SubResource("boon_standpipe"), SubResource("boon_surge"), SubResource("boon_hammer")])

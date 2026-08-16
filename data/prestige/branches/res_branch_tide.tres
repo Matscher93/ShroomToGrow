@@ -1,0 +1,98 @@
+[gd_resource type="Resource" script_class="PerkBranchDef" format=3]
+
+[ext_resource type="Script" uid="uid://bidkvks0jdm2w" path="res://model/prestige/gd_perk_branch_def.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="2_node_script"]
+[ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_tide_seep_effect.tres" id="4_seep_effect"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_tide_draw_effect.tres" id="5_draw_effect"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_tide_pressure_effect.tres" id="6_pressure_effect"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_tide_offering_effect.tres" id="7_offering_effect"]
+
+[sub_resource type="Resource" id="node_wellspring_cap"]
+script = ExtResource("2_node_script")
+id = &"tide_wellspring_cap"
+display_name = "Deeper Pressure"
+description = "Raises Aquifer Pressure's max level by 100 per level."
+max_level = 4
+_base_cost_mantissa = 1.5
+_base_cost_exponent = 3
+
+[sub_resource type="Resource" id="node_wellspring"]
+script = ExtResource("2_node_script")
+id = &"tide_wellspring"
+children = Array[ExtResource("2_node_script")]([SubResource("node_wellspring_cap")])
+display_name = "Wellspring"
+description = "Opens Aquifer Pressure for buying in Boosts."
+max_level = 1
+_base_cost_mantissa = 3.0
+_base_cost_exponent = 2
+
+[sub_resource type="Resource" id="node_shrine"]
+script = ExtResource("2_node_script")
+id = &"tide_shrine"
+display_name = "Drowned Offering"
+description = "+100% water per pump."
+max_level = 1
+_base_cost_mantissa = 6.0
+_base_cost_exponent = 2
+effects = Array[ExtResource("3_effect_script")]([ExtResource("7_offering_effect")])
+
+[sub_resource type="Resource" id="node_pressure"]
+script = ExtResource("2_node_script")
+id = &"tide_pressure"
+children = Array[ExtResource("2_node_script")]([SubResource("node_wellspring"), SubResource("node_shrine")])
+display_name = "Pressure Head"
+description = "Half a tick less between pumps, per level."
+max_level = 5
+_base_cost_mantissa = 8.0
+_base_cost_exponent = 1
+effects = Array[ExtResource("3_effect_script")]([ExtResource("6_pressure_effect")])
+
+[sub_resource type="Resource" id="node_depth"]
+script = ExtResource("2_node_script")
+id = &"tide_depth"
+display_name = "Deeper Workings"
+description = "Raises every Well project's max level by 10 per level."
+max_level = 5
+_base_cost_mantissa = 4.0
+_base_cost_exponent = 2
+
+[sub_resource type="Resource" id="node_draw"]
+script = ExtResource("2_node_script")
+id = &"tide_draw"
+children = Array[ExtResource("2_node_script")]([SubResource("node_depth")])
+display_name = "Deep Draw"
+description = "+40% water per pump, per level."
+max_level = 5
+_base_cost_mantissa = 1.2
+_base_cost_exponent = 2
+effects = Array[ExtResource("3_effect_script")]([ExtResource("5_draw_effect")])
+
+[sub_resource type="Resource" id="node_runnel"]
+script = ExtResource("2_node_script")
+id = &"tide_runnel"
+children = Array[ExtResource("2_node_script")]([SubResource("node_pressure"), SubResource("node_draw")])
+display_name = "Runnel"
+description = "+25% water per pump, per level."
+max_level = 5
+_base_cost_mantissa = 2.5
+_base_cost_exponent = 1
+effects = Array[ExtResource("3_effect_script")]([ExtResource("4_seep_effect")])
+
+[sub_resource type="Resource" id="node_seep"]
+script = ExtResource("2_node_script")
+id = &"tide_seep"
+children = Array[ExtResource("2_node_script")]([SubResource("node_runnel")])
+display_name = "Seep"
+description = "+25% water per pump, per level."
+max_level = 5
+_base_cost_mantissa = 8.0
+_base_cost_exponent = 0
+effects = Array[ExtResource("3_effect_script")]([ExtResource("4_seep_effect")])
+
+[resource]
+script = ExtResource("1_script")
+key = &"tid"
+label = "Tide"
+hue = 220.0
+roots = Array[ExtResource("2_node_script")]([SubResource("node_seep")])

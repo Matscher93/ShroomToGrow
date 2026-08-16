@@ -142,26 +142,23 @@ func effect_amount(id: StringName, ctx: ResolveContext) -> BigNumber:
 	var def: UpgradeDef = _defs.get(id)
 	if def == null or def.effects.is_empty():
 		return BigNumber.new(0.0, 0)
-	var lvl := level(id)
-	var e: UpgradeEffectDef = def.effects[0]
-	var mag := e.magnitude(lvl)
-	if e.dependency:
-		mag = mag.scale(e.dependency.evaluate(ctx))
-	return mag
+	return def.effects[0].contribution(level(id), ctx)
 
 ## Marginal gain one more level adds at the current level, ScalingSourceDef
-## dependency included. The dependency has to be applied here, otherwise the
-## panel advertises a gain the upgrade will never deliver.
+## dependency and cap included. Both have to be applied here, otherwise the panel
+## advertises a gain the upgrade will never deliver.
+##
+## Taken as the difference of two contributions rather than of two magnitudes: a
+## capped effect has to report zero once it is sitting on its ceiling, and the
+## difference of the uncapped magnitudes would keep promising a full level's
+## worth forever.
 func next_level_delta(id: StringName, ctx: ResolveContext) -> BigNumber:
 	var def: UpgradeDef = _defs.get(id)
 	if def == null or def.effects.is_empty():
 		return BigNumber.new(0.0, 0)
 	var lvl := level(id)
 	var e: UpgradeEffectDef = def.effects[0]
-	var delta := e.magnitude(lvl + 1).sub(e.magnitude(lvl))
-	if e.dependency:
-		delta = delta.scale(e.dependency.evaluate(ctx))
-	return delta
+	return e.contribution(lvl + 1, ctx).sub(e.contribution(lvl, ctx))
 
 ## Combines several upgrades' effects into one overall % bonus, assuming each
 ## contributes multiplicatively (op MORE), e.g. potency * synergy.
@@ -310,9 +307,7 @@ func _remember(id: StringName, ctx: ResolveContext) -> void:
 	if upgrade_def == null: return
 	var out: Array[Dictionary] = []
 	for e: UpgradeEffectDef in upgrade_def.effects:
-		var mag: BigNumber = e.magnitude(lvl)
-		if e.dependency:
-			mag = mag.scale(e.dependency.evaluate(ctx))
+		var mag: BigNumber = e.contribution(lvl, ctx)
 		out.append({"stat": e.stat, "key": _scope_key(e.scope, e.target), "op": e.op, "mag": mag})
 		_stat_dirty[e.stat] = true
 		if not _stat_ids.has(e.stat):

@@ -5,6 +5,12 @@ extends Control
 ## sh_perk_node.gdshader on "background") plus non-interactive name and level
 ## labels beneath it. PerkWeb positions and sizes this root against NODE_SIZE,
 ## which matches "background" exactly, so the labels hang off the bottom.
+##
+## The labels sit in a VBox of a fixed width and the name wraps inside it, so a
+## long perk name grows downward into empty space instead of sideways over its
+## neighbours. Both halves of that matter: perk_node_test.gd pins the width
+## against the tightest node spacing PerkTree can produce, and the stacking is
+## what keeps a wrapped second line off the level label.
 
 signal pressed
 

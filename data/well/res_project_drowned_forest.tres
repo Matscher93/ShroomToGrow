@@ -1,0 +1,82 @@
+[gd_resource type="Resource" script_class="ProjectDef" format=3]
+
+[ext_resource type="Script" path="res://model/well/res_project_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/well/res_project_boon_def.gd" id="2_boon_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="3_effect_script"]
+
+[sub_resource type="Resource" id="effect_roots2"]
+script = ExtResource("3_effect_script")
+stat = &"node_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.03
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_roots2"]
+script = ExtResource("2_boon_script")
+display_name = "Sunken Roots"
+description = "x1.03 production on every node, per level, compounding."
+unlock_at_level = 1
+effect = SubResource("effect_roots2")
+
+[sub_resource type="Resource" id="effect_standing"]
+script = ExtResource("3_effect_script")
+stat = &"biomass_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.04
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_standing"]
+script = ExtResource("2_boon_script")
+display_name = "Standing Timber"
+description = "x1.04 biomass gained on sporation, per level, compounding."
+unlock_at_level = 5
+effect = SubResource("effect_standing")
+
+[sub_resource type="Resource" id="effect_canopy"]
+script = ExtResource("3_effect_script")
+stat = &"node_production"
+op = 2
+scope = 2
+target = &"5"
+per_level = 0.055
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_canopy"]
+script = ExtResource("2_boon_script")
+display_name = "Drowned Canopy"
+description = "x1.055 production on tier 5 nodes, per level, compounding."
+unlock_at_level = 15
+effect = SubResource("effect_canopy")
+
+[sub_resource type="Resource" id="effect_rot"]
+script = ExtResource("3_effect_script")
+stat = &"biomass_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.045
+level_scaling = 1
+
+[sub_resource type="Resource" id="boon_rot"]
+script = ExtResource("2_boon_script")
+display_name = "Slow Rot"
+description = "x1.045 biomass gained on sporation, per level, compounding."
+unlock_at_level = 40
+effect = SubResource("effect_rot")
+
+[resource]
+script = ExtResource("1_script")
+id = &"project_forest"
+display_name = "Drowned Forest"
+description = "x1.045 biomass gained on sporation, per level, compounding."
+max_level = 60
+min_project_levels = 359
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 7
+cost_growth = 1.46
+cost_growth_exponent = 1.0
+boons = Array[ExtResource("2_boon_script")]([SubResource("boon_roots2"), SubResource("boon_standing"), SubResource("boon_canopy"), SubResource("boon_rot")])

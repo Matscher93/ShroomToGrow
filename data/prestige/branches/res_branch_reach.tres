@@ -11,7 +11,7 @@ display_name = "Reach X"
 description = "Opens Level 10 nodes (Panspore) for growing."
 max_level = 1
 _base_cost_mantissa = 1.0
-_base_cost_exponent = 3
+_base_cost_exponent = 1000
 
 [sub_resource type="Resource" id="node_9"]
 script = ExtResource("2_node_script")

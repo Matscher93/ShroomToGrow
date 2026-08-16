@@ -30,6 +30,21 @@ func test_branches_are_spread_evenly_around_the_core() -> void:
 			.is_equal_approx(0.0, EPS)
 		expected += step
 
+func test_no_branch_reaches_out_of_its_own_slice() -> void:
+	var step := 360.0 / float(_branches.branches.size())
+	var limit := deg_to_rad(step * 0.5 * PerkTree.BRANCH_SLICE_FILL)
+	var centre := deg_to_rad(PerkTree.BRANCH_START_DEG)
+	for branch in _branches.branches:
+		for perk in _perks.values():
+			if perk.branch_key != branch.key:
+				continue
+			var offset := wrapf(_angle_of(perk) - centre, -PI, PI)
+			assert_float(absf(offset)).override_failure_message(
+				"Perk '%s' sits %.1f degrees off the '%s' centre line, past the %.1f allowed." \
+					% [perk.id, rad_to_deg(absf(offset)), branch.key, rad_to_deg(limit)]) \
+				.is_less_equal(limit + EPS)
+		centre += deg_to_rad(step)
+
 func test_pricing_is_carried_over_from_the_authored_node() -> void:
 	var node := PerkNodeDef.new()
 	node.id = &"steep"
