@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="6_touch_scroll"]
 [ext_resource type="PackedScene" path="res://view/boosts/sc_boosts.tscn" id="7_boosts"]
 [ext_resource type="Script" path="res://view/base_views/gd_full_width_tab_container.gd" id="8_full_width_tabs"]
+[ext_resource type="FontFile" uid="uid://bfcncplwx4kw5" path="res://fonts/Space_Grotesk/SpaceGrotesk-Bold.ttf" id="9_bold"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_crystal_caves"]
 content_margin_bottom = 8.0
@@ -23,7 +24,23 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[node name="crystal_caves" type="PanelContainer" node_paths=PackedStringArray("tab_container", "boosts_tab", "automations_tab", "sequences_tab", "vbox_automations", "vbox_sequences")]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tab_chip"]
+content_margin_left = 14.0
+content_margin_top = 7.0
+content_margin_right = 14.0
+content_margin_bottom = 7.0
+bg_color = Color(0.36078432, 0.78431374, 0.9019608, 0.12)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36078432, 0.78431374, 0.9019608, 0.28)
+corner_radius_top_left = 99
+corner_radius_top_right = 99
+corner_radius_bottom_right = 99
+corner_radius_bottom_left = 99
+
+[node name="crystal_caves" type="PanelContainer" node_paths=PackedStringArray("tab_container", "boosts_tab", "automations_tab", "sequences_tab", "vbox_automations", "vbox_sequences", "lbl_current_tab")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -37,6 +54,7 @@ automations_tab = NodePath("VBoxContainer/TabContainer/Automations")
 sequences_tab = NodePath("VBoxContainer/TabContainer/Sequences")
 vbox_automations = NodePath("VBoxContainer/TabContainer/Automations/MarginContainer/VBoxContainer/vbox_automations")
 vbox_sequences = NodePath("VBoxContainer/TabContainer/Sequences/MarginContainer/VBoxContainer/vbox_sequences")
+lbl_current_tab = NodePath("VBoxContainer/panel_current_tab/lbl_current_tab")
 automation_card_scene = ExtResource("2_automation_card")
 biome_sequence_scene = ExtResource("4_biome_sequence")
 
@@ -44,12 +62,25 @@ biome_sequence_scene = ExtResource("4_biome_sequence")
 layout_mode = 2
 theme_override_constants/separation = 6
 
+[node name="panel_current_tab" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_tab_chip")
+
+[node name="lbl_current_tab" type="Label" parent="VBoxContainer/panel_current_tab"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.36078432, 0.78431374, 0.9019608, 1)
+theme_override_fonts/font = ExtResource("9_bold")
+theme_override_font_sizes/font_size = 15
+text = "Boosts"
+
 [node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
 script = ExtResource("8_full_width_tabs")
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxEmpty_tab_panel")
 theme_override_styles/tabbar_background = SubResource("StyleBoxFlat_tabbar")
+tabs_visible = false
 tabs_position = 1
 tab_alignment = 1
 current_tab = 0
@@ -69,7 +100,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 2
+theme_override_constants/margin_bottom = 118
 
 [node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Automations/MarginContainer"]
 layout_mode = 2
@@ -92,7 +123,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 2
+theme_override_constants/margin_bottom = 118
 
 [node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Sequences/MarginContainer"]
 layout_mode = 2

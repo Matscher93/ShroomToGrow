@@ -1,0 +1,108 @@
+[gd_scene format=3 uid="uid://cnavsubrow0001"]
+
+[ext_resource type="Script" path="res://view/navigation/gd_nav_sub_row.gd" id="1_script"]
+[ext_resource type="FontFile" uid="uid://bfcncplwx4kw5" path="res://fonts/Space_Grotesk/SpaceGrotesk-Bold.ttf" id="2_bold"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="3_mono"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sub_row"]
+resource_local_to_scene = true
+content_margin_left = 15.0
+content_margin_top = 13.0
+content_margin_right = 15.0
+content_margin_bottom = 13.0
+bg_color = Color(1, 1, 1, 0.03)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.06)
+corner_radius_top_left = 15
+corner_radius_top_right = 15
+corner_radius_bottom_right = 15
+corner_radius_bottom_left = 15
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dot"]
+resource_local_to_scene = true
+bg_color = Color(1, 1, 1, 0.22)
+corner_radius_top_left = 99
+corner_radius_top_right = 99
+corner_radius_bottom_right = 99
+corner_radius_bottom_left = 99
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_badge"]
+resource_local_to_scene = true
+content_margin_left = 9.0
+content_margin_top = 2.0
+content_margin_right = 9.0
+content_margin_bottom = 2.0
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 99
+corner_radius_top_right = 99
+corner_radius_bottom_right = 99
+corner_radius_bottom_left = 99
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_btn_normal"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_btn_pressed"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_btn_hover"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_btn_disabled"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_btn_focus"]
+
+[node name="nav_sub_row" type="PanelContainer" node_paths=PackedStringArray("dot", "lbl_name", "panel_badge", "lbl_badge", "button")]
+custom_minimum_size = Vector2(0, 62)
+theme_override_styles/panel = SubResource("StyleBoxFlat_sub_row")
+script = ExtResource("1_script")
+dot = NodePath("HBoxContainer/dot")
+lbl_name = NodePath("HBoxContainer/lbl_name")
+panel_badge = NodePath("HBoxContainer/panel_badge")
+lbl_badge = NodePath("HBoxContainer/panel_badge/lbl_badge")
+button = NodePath("button")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 13
+
+[node name="dot" type="PanelContainer" parent="HBoxContainer"]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_dot")
+
+[node name="lbl_name" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_fonts/font = ExtResource("2_bold")
+theme_override_font_sizes/font_size = 17
+text = "Sub view"
+
+[node name="panel_badge" type="PanelContainer" parent="HBoxContainer"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_badge")
+
+[node name="lbl_badge" type="Label" parent="HBoxContainer/panel_badge"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_fonts/font = ExtResource("3_mono")
+theme_override_font_sizes/font_size = 13
+text = "0"
+
+[node name="button" type="Button" parent="."]
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/normal = SubResource("StyleBoxEmpty_btn_normal")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_btn_disabled")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_btn_focus")

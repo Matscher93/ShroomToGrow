@@ -4,10 +4,14 @@
 [ext_resource type="Script" uid="uid://cfbpk4evittcm" path="res://model/screens/gd_screen_definition.gd" id="1_rwors"]
 [ext_resource type="Script" uid="uid://d285gd4vuvyo4" path="res://model/currencies/gd_currency_def.gd" id="2_curdef"]
 [ext_resource type="Resource" uid="uid://cu7pu8ny7a7lb" path="res://data/currencies/res_nutrients_def.tres" id="3_nutr"]
+[ext_resource type="Shader" uid="uid://dcv4q0ccwchsx" path="res://shaders/icons/biomes/sh_meadow.gdshader" id="9_icon"]
 
 [resource]
 script = ExtResource("1_rwors")
 screen_name = "Nodes"
 screen_scene = ExtResource("1_h1kwa")
 currencies = Array[ExtResource("2_curdef")]([ExtResource("3_nutr")])
+subtitle = "mycelium colony"
+accent_color = Color(0.49019608, 0.9411765, 0.8235294, 1)
+icon_shader = ExtResource("9_icon")
 metadata/_custom_type_script = "uid://cfbpk4evittcm"

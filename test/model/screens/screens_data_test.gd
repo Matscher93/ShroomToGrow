@@ -51,3 +51,48 @@ func test_the_screen_registry_is_exposed_as_given() -> void:
 
 	assert_int(data.screen_data.size()).is_equal(1)
 	assert_object(data.screen_data[ScreenTypes.Types.NODES]).is_same(definition)
+
+## The nav menu taps a sub-view row and expects to land on that screen showing
+## that sub-view. Both halves come out of one call so a view never has to
+## sequence the two writes itself.
+func test_select_emits_the_sub_request_before_the_screen_change() -> void:
+	var data := _data(ScreenTypes.Types.BIOMES)
+	var order: Array[String] = []
+	data.sub_screen_requested.connect(
+		func(_screen: ScreenTypes.Types, _index: int) -> void: order.append("sub"))
+	data.screen_changed.connect(
+		func(_screen: ScreenTypes.Types) -> void: order.append("screen"))
+
+	data.select(ScreenTypes.Types.CRYSTAL_CAVES, 2)
+
+	# The screen is spawned synchronously off screen_changed and reads its
+	# remembered sub-view in _ready(), so the sub request has to land first or
+	# the screen opens on the old tab and corrects itself a frame later.
+	assert_array(order).is_equal(["sub", "screen"])
+	assert_int(data.current_screen).is_equal(ScreenTypes.Types.CRYSTAL_CAVES)
+
+## The guarded setter stays silent for the screen already up, but the sub-view
+## still has to move - that is the whole point of tapping a sub-row from the
+## screen it belongs to.
+func test_select_still_requests_a_sub_view_on_the_current_screen() -> void:
+	var data := _data(ScreenTypes.Types.CRYSTAL_CAVES)
+	var requested: Array[int] = []
+	data.sub_screen_requested.connect(
+		func(_screen: ScreenTypes.Types, index: int) -> void: requested.append(index))
+
+	data.select(ScreenTypes.Types.CRYSTAL_CAVES, 1)
+
+	assert_array(requested).is_equal([1])
+	assert_int(_emitted[0]).is_zero()
+
+## A top-level row leaves the target screen on whatever sub-view it remembers.
+func test_select_without_a_sub_index_requests_nothing() -> void:
+	var data := _data(ScreenTypes.Types.BIOMES)
+	var requested: Array[int] = []
+	data.sub_screen_requested.connect(
+		func(_screen: ScreenTypes.Types, index: int) -> void: requested.append(index))
+
+	data.select(ScreenTypes.Types.NODES)
+
+	assert_array(requested).is_empty()
+	assert_int(_emitted[0]).is_equal(1)

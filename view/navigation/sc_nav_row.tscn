@@ -1,0 +1,130 @@
+[gd_scene format=3 uid="uid://cnavrow00001"]
+
+[ext_resource type="Script" path="res://view/navigation/gd_nav_row.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://bp8a4qvdlryx5" path="res://view/base_views/gd_base_color_rect.gd" id="2_colorrect"]
+[ext_resource type="Shader" uid="uid://suf78e2uwfmi" path="res://shaders/icons/biomes/sh_forest.gdshader" id="3_icon_shader"]
+[ext_resource type="FontFile" uid="uid://bfcncplwx4kw5" path="res://fonts/Space_Grotesk/SpaceGrotesk-Bold.ttf" id="4_bold"]
+[ext_resource type="FontFile" uid="uid://b4ofq423vxqms" path="res://fonts/Space_Grotesk/SpaceGrotesk-Regular.ttf" id="5_regular"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="6_mono"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_row"]
+resource_local_to_scene = true
+content_margin_left = 17.0
+content_margin_top = 15.0
+content_margin_right = 17.0
+content_margin_bottom = 15.0
+bg_color = Color(1, 1, 1, 0.035)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.07)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_icon"]
+resource_local_to_scene = true
+shader = ExtResource("3_icon_shader")
+shader_parameter/rect_size = Vector2(42, 42)
+shader_parameter/box_color = Color(0.624, 0.714, 0.675, 1)
+shader_parameter/trunk_color = Color(0.3321732, 0.19756943, 0.089644365, 1)
+shader_parameter/leaves_color = Color(1, 1, 1, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 14.0
+shader_parameter/highlight_radius = 0.7
+shader_parameter/higlight_offset = Vector2(0, 0.5)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_badge"]
+resource_local_to_scene = true
+content_margin_left = 10.0
+content_margin_top = 3.0
+content_margin_right = 10.0
+content_margin_bottom = 3.0
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 99
+corner_radius_top_right = 99
+corner_radius_bottom_right = 99
+corner_radius_bottom_left = 99
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_btn_normal"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_btn_pressed"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_btn_hover"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_btn_disabled"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_btn_focus"]
+
+[node name="nav_row" type="PanelContainer" node_paths=PackedStringArray("icon", "lbl_name", "lbl_subtitle", "panel_badge", "lbl_badge", "button")]
+custom_minimum_size = Vector2(0, 73)
+theme_override_styles/panel = SubResource("StyleBoxFlat_row")
+script = ExtResource("1_script")
+icon = NodePath("HBoxContainer/icon")
+lbl_name = NodePath("HBoxContainer/VBoxContainer/lbl_name")
+lbl_subtitle = NodePath("HBoxContainer/VBoxContainer/lbl_subtitle")
+panel_badge = NodePath("HBoxContainer/panel_badge")
+lbl_badge = NodePath("HBoxContainer/panel_badge/lbl_badge")
+button = NodePath("button")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 15
+
+[node name="icon" type="ColorRect" parent="HBoxContainer"]
+material = SubResource("ShaderMaterial_icon")
+custom_minimum_size = Vector2(42, 42)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("2_colorrect")
+color_param = "box_color"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 1
+
+[node name="lbl_name" type="Label" parent="HBoxContainer/VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_fonts/font = ExtResource("4_bold")
+theme_override_font_sizes/font_size = 19
+text = "Destination"
+
+[node name="lbl_subtitle" type="Label" parent="HBoxContainer/VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_fonts/font = ExtResource("5_regular")
+theme_override_font_sizes/font_size = 14
+text = "subtitle"
+
+[node name="panel_badge" type="PanelContainer" parent="HBoxContainer"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_badge")
+
+[node name="lbl_badge" type="Label" parent="HBoxContainer/panel_badge"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_fonts/font = ExtResource("6_mono")
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="button" type="Button" parent="."]
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/normal = SubResource("StyleBoxEmpty_btn_normal")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_btn_disabled")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_btn_focus")

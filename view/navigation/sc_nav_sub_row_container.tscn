@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://cnavsubcont001"]
+
+[ext_resource type="Script" path="res://view/navigation/gd_nav_sub_row_container.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rail"]
+resource_local_to_scene = true
+bg_color = Color(1, 1, 1, 0.22)
+
+[node name="nav_sub_row_container" type="MarginContainer" node_paths=PackedStringArray("rail", "vbox")]
+mouse_filter = 2
+theme_override_constants/margin_left = 29
+theme_override_constants/margin_bottom = 6
+script = ExtResource("1_script")
+rail = NodePath("HBoxContainer/rail")
+vbox = NodePath("HBoxContainer/vbox")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 15
+
+[node name="rail" type="PanelContainer" parent="HBoxContainer"]
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_rail")
+
+[node name="vbox" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 7

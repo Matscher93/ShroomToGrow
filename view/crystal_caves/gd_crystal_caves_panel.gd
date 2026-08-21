@@ -4,6 +4,13 @@ extends PanelContainer
 ## crystal-bought automations, and the per-biome sequences the point-spending
 ## automation replays.
 ##
+## The tab bar is hidden - the nav menu lists these three as sub-rows under
+## Crystals, reachable in one tap from any screen, and a second row of tabs at
+## the bottom of the screen was competing with the menu disc for the same thumb.
+## The TabContainer still owns the pages, the hidden-tab rule and the per-tab
+## scroll offsets; only its bar is off. The chip above it is what now says which
+## tab is up.
+##
 ## The crystal balance is not repeated here. The screen definition lists crystals
 ## as its currency, so the top bar already shows it labelled above every tab; a
 ## second bare number under it was one readout too many.
@@ -32,6 +39,7 @@ extends PanelContainer
 @export var sequences_tab: ScrollContainer
 @export var vbox_automations: VBoxContainer
 @export var vbox_sequences: VBoxContainer
+@export var lbl_current_tab: Label
 @export var automation_card_scene: PackedScene
 @export var biome_sequence_scene: PackedScene
 
@@ -66,6 +74,8 @@ func _on_property_changed(property: StringName) -> void:
 			_refresh_boosts_tab()
 		CrystalCavesViewModel.PROP_SECTIONS_CHANGED:
 			_build_sequences()
+		CrystalCavesViewModel.PROP_TAB_REQUESTED:
+			_apply_requested_tab()
 
 ## Boosts leads the tabs, so it is also the one the screen opens on. Hiding the
 ## current tab leaves TabContainer pointing at a tab that is no longer there, so
@@ -73,6 +83,7 @@ func _on_property_changed(property: StringName) -> void:
 func _refresh_boosts_tab() -> void:
 	var index := boosts_tab.get_index()
 	tab_container.set_tab_hidden(index, not _vm.boosts_visible)
+	_refresh_tab_chip()
 	# One fewer tab to share the bar, so what is left has to be repadded.
 	tab_container.spread_tabs()
 	if _vm.boosts_visible or tab_container.current_tab != index:
@@ -81,6 +92,21 @@ func _refresh_boosts_tab() -> void:
 		if not tab_container.is_tab_hidden(i):
 			tab_container.current_tab = i
 			return
+
+## The nav menu asked for one of these tabs while the screen was already up.
+## Arriving from another screen respawns the screen instead, and _ready() reads
+## the same remembered tab on its own.
+##
+## A hidden tab is ignored rather than forced: the menu does not offer a row for
+## one, so a request for it is stale state, not a destination.
+func _apply_requested_tab() -> void:
+	if tab_container.is_tab_hidden(_vm.current_tab):
+		return
+	tab_container.current_tab = _vm.current_tab
+	_refresh_tab_chip()
+
+func _refresh_tab_chip() -> void:
+	lbl_current_tab.text = _vm.tab_label(tab_container.current_tab)
 
 # --- View state ---
 
@@ -96,6 +122,7 @@ func _restore_view_state() -> void:
 	if not tab_container.is_tab_hidden(_vm.current_tab):
 		tab_container.current_tab = _vm.current_tab
 	tab_container.tab_changed.connect(_on_tab_changed)
+	_refresh_tab_chip()
 	for tab in _scrolling_tabs():
 		tab.get_v_scroll_bar().value_changed.connect(_on_scrolled.bind(tab))
 	await get_tree().process_frame
@@ -110,6 +137,7 @@ func _scrolling_tabs() -> Array[ScrollContainer]:
 
 func _on_tab_changed(tab: int) -> void:
 	_vm.current_tab = tab
+	_refresh_tab_chip()
 
 func _on_scrolled(value: float, tab: ScrollContainer) -> void:
 	_vm.scroll_offsets[tab.get_index()] = int(value)

@@ -15,6 +15,7 @@ var mycelium_node_vms: Array[MyceliumNodeViewModel]
 var nodes := load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes
 var screens_data: ScreensData
 var screens_vm: ScreensViewModel
+var navigation_vm: NavigationViewModel
 var screens := load("res://data/screens/all_screens.tres") as Screens
 
 var offline_income_vm: OfflineIncomeViewModel
@@ -187,13 +188,17 @@ func _ready() -> void:
 		boost_vms[def.id] = BoostViewModel.new(def.id, def)
 	for def in projects.projects:
 		project_vms[def.id] = ProjectViewModel.new(def.id, def)
+	# Ahead of the screen VMs below: they subscribe to it in their constructors.
+	screens_data = ScreensData.new(screens.screens, screens.initial_screen)
 	# After boost_vms: the Caves screen's VM hands out those cards.
 	crystal_caves_vm = CrystalCavesViewModel.new()
 	# After project_vms, for the same reason.
 	well_vm = WellViewModel.new()
 
-	screens_data = ScreensData.new(screens.screens, screens.initial_screen)
 	screens_vm = ScreensViewModel.new(screens_data)
+	# After screens_data and crystal_caves_vm: the nav menu reads the screen
+	# registry for its rows and the Caves VM for that screen's sub-rows.
+	navigation_vm = NavigationViewModel.new()
 
 	offline_income_vm = OfflineIncomeViewModel.new()
 

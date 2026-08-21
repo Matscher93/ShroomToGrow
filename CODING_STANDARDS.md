@@ -77,7 +77,7 @@ Two lifecycles, pick based on shape:
 `view/base_views/` holds the shared shader-panel boilerplate:
 
 - `gd_base_color_rect.gd` / `gd_base_panel_container.gd` - the `_update_shader`/`_notification`/`set_shader_color` triplet, one per base node type.
-- `gd_base_shader_button.gd` - the above plus a wrapped `Button`: press tracking, the repaint on down/up, `set_button_text()` and a re-emitted `pressed`. A subclass overrides `_state_color()` to say what its current state paints, and nothing else (`gd_screen_button.gd`, `gd_buy_button_visuals.gd`, `gd_collect_offline_income_button.gd`).
+- `gd_base_shader_button.gd` - the above plus a wrapped `Button`: press tracking, the repaint on down/up, `set_button_text()` and a re-emitted `pressed`. A subclass overrides `_state_color()` to say what its current state paints, and nothing else (`gd_nav_disc.gd`, `gd_buy_button_visuals.gd`, `gd_collect_offline_income_button.gd`).
 
 If a new view needs any of that, `extends "res://view/base_views/gd_base_....gd"` - don't re-paste the implementation.
 

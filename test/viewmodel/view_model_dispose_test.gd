@@ -119,6 +119,10 @@ func test_crystal_caves_view_model_disposes_cleanly() -> void:
 	_assert_symmetric("CrystalCavesViewModel",
 		func() -> ViewModel: return CrystalCavesViewModel.new())
 
+func test_navigation_view_model_disposes_cleanly() -> void:
+	_assert_symmetric("NavigationViewModel",
+		func() -> ViewModel: return NavigationViewModel.new())
+
 # ─── Per-selection VMs (built fresh on select, disposed on reselect) ─────────
 #
 # These are the ones a leak actually bites: the biome-upgrade card builds a new

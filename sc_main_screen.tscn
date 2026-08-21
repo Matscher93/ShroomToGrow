@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://8hyeybwm5jh3" path="res://gd_main_screen.gd" id="9_mainscr"]
 [ext_resource type="Script" uid="uid://7lvxm4ge8ici" path="res://view/main/gd_popup_layer.gd" id="10_popup"]
 [ext_resource type="PackedScene" path="res://view/main/sc_top_bar.tscn" id="11_topbar"]
+[ext_resource type="PackedScene" uid="uid://cnavdisc000001" path="res://view/navigation/sc_nav_disc.tscn" id="12_navdisc"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vf2pt"]
 shader = ExtResource("1_453mu")
@@ -22,7 +23,7 @@ shader = ExtResource("2_a8wb5")
 shader_parameter/rect_size = Vector2(700, 1000)
 shader_parameter/box_color = Color(0, 1, 0.9490196, 1)
 
-[node name="Control" type="Control" unique_id=1135092363 node_paths=PackedStringArray("popup_layer", "overlay_layer", "top_bar")]
+[node name="Control" type="Control" unique_id=1135092363 node_paths=PackedStringArray("popup_layer", "overlay_layer", "top_bar", "nav_layer", "nav_disc")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -35,6 +36,8 @@ script = ExtResource("9_mainscr")
 popup_layer = NodePath("content_container/popup_layer")
 overlay_layer = NodePath("content_container/overlay_layer")
 top_bar = NodePath("content_container/content_layer/VBoxContainer/top_bar")
+nav_layer = NodePath("content_container/nav_layer")
+nav_disc = NodePath("content_container/nav_disc_layer/nav_disc")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1115489241]
 texture_filter = 1
@@ -88,6 +91,26 @@ layout_mode = 2
 [node name="game_screens" parent="content_container/content_layer/VBoxContainer" unique_id=535792977 instance=ExtResource("5_b26h7")]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="nav_disc_layer" type="Control" parent="content_container"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="nav_disc" parent="content_container/nav_disc_layer" instance=ExtResource("12_navdisc")]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 21.0
+offset_top = -100.0
+offset_right = 99.0
+offset_bottom = -22.0
+grow_vertical = 0
+
+[node name="nav_layer" type="MarginContainer" parent="content_container"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("10_popup")
 
 [node name="popup_layer" type="MarginContainer" parent="content_container" unique_id=1159527543]
 layout_mode = 2

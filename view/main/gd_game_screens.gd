@@ -1,11 +1,10 @@
 extends PanelContainer
+## VIEW: hosts whichever game screen is up. Switching is driven from the nav menu
+## (see view/navigation/), which writes through NavigationViewModel; this only
+## reacts to the screen having changed.
 
 var _vm: ScreensViewModel
 @export var screen_container: PanelContainer
-@export var button_container: HBoxContainer
-@export var button_scene: PackedScene
-
-var button_dictionary: Dictionary[ScreenTypes.Types, PanelContainer]
 
 ## Screens are rebuilt from scratch on every switch and freed on leaving. View
 ## state (the perk web's pan, zoom and selection, expanded biome cards, scroll
@@ -24,7 +23,7 @@ func bind(vm: ScreensViewModel) -> void:
 		_vm.property_changed.disconnect(_on_property_changed)
 	_vm = vm
 	_vm.property_changed.connect(_on_property_changed)
-	update_visuals()
+	_show_screen(_vm.current_screen)
 
 func _exit_tree() -> void:
 	if _vm:
@@ -32,17 +31,9 @@ func _exit_tree() -> void:
 		_vm = null
 
 func _on_property_changed(property: StringName) -> void:
-	match property:
-		ScreensViewModel.PROP_SCREEN_CHANGED_TEXT:
-			update_visuals()
-		# Unlocking a biome can reveal a new nav button. Rebuilds buttons only,
-		# the active screen's content and state stay untouched.
-		ScreensViewModel.PROP_NAV_CHANGED:
-			_rebuild_nav_buttons()
-
-func update_visuals() -> void:
+	if property != ScreensViewModel.PROP_SCREEN_CHANGED_TEXT:
+		return
 	_show_screen(_vm.current_screen)
-	_rebuild_nav_buttons()
 
 ## Frees whatever screen is up and builds the requested one fresh.
 func _show_screen(screen_type: ScreenTypes.Types) -> void:
@@ -60,24 +51,3 @@ func _show_screen(screen_type: ScreenTypes.Types) -> void:
 		return
 	_current_screen_instance = screen_data.screen_scene.instantiate() as Control
 	screen_container.add_child(_current_screen_instance)
-
-func _rebuild_nav_buttons() -> void:
-	for child in button_container.get_children():
-		button_container.remove_child(child)
-		child.queue_free()
-	button_dictionary.clear()
-
-	for screen_key in _vm.visible_screens:
-		var button_data := _vm.get_screen_data(screen_key)
-		var button := button_scene.instantiate()
-		button.set_button_text(button_data.screen_name)
-		button.pressed.connect(_on_screen_selected.bind(screen_key))
-		button.set_selected(_vm.current_screen == screen_key)
-
-		button_dictionary[screen_key] = button
-		button_container.add_child(button)
-
-func _on_screen_selected(selected_screen: ScreenTypes.Types) -> void:
-	_vm.set_current_screen(selected_screen)
-	for button_key in button_dictionary:
-		button_dictionary.get(button_key).set_selected(_vm.current_screen == button_key)

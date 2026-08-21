@@ -5,13 +5,21 @@ extends Control
 ## layer above the popup one: the offline popup lands at boot without asking, and
 ## sharing a layer would let an overlay opened on top of it free it out from
 ## under the collect flow.
+##
+## The nav menu gets a third layer of its own, below both of those. It is the one
+## overlay the player opens constantly, and anything that lands on top of it -
+## the offline popup at boot, an achievements claim - should stay on top rather
+## than be freed by the next tap on the menu disc.
 
 @export var popup_layer: PopupLayer
 @export var overlay_layer: PopupLayer
+@export var nav_layer: PopupLayer
 @export var top_bar: Control
+@export var nav_disc: Control
 
 const OFFLINE_INCOME_SCENE := preload("res://view/offline_income/sc_offline_income.tscn")
 const ACHIEVEMENTS_SCENE := preload("res://view/achievements/sc_achievements_panel.tscn")
+const NAV_MENU_SCENE := preload("res://view/navigation/sc_nav_menu.tscn")
 
 var _offline_popup_active := false
 
@@ -19,6 +27,7 @@ func _ready() -> void:
 	add_child(ShaderWarmup.new())
 	add_child(MenuWarmup.new())
 	top_bar.achievements_pressed.connect(_on_achievements_pressed)
+	nav_disc.pressed.connect(_on_nav_pressed)
 	if App.offline_income_vm:
 		App.offline_income_vm.property_changed.connect(_on_offline_income_changed)
 		# SaveManager only records pending offline progress during load_game(),
@@ -59,6 +68,16 @@ func _on_achievements_pressed() -> void:
 		return
 	var overlay := overlay_layer.show_popup(ACHIEVEMENTS_SCENE)
 	overlay.dismissed.connect(overlay_layer.clear, CONNECT_ONE_SHOT)
+
+## Tapping the disc toggles, the same as the achievements button. The open menu's
+## backdrop covers the disc, so a second tap lands on the backdrop and closes
+## there - this is for the case where something else cleared the layer first.
+func _on_nav_pressed() -> void:
+	if nav_layer.has_popup():
+		nav_layer.clear()
+		return
+	var menu := nav_layer.show_popup(NAV_MENU_SCENE)
+	menu.dismissed.connect(nav_layer.clear, CONNECT_ONE_SHOT)
 
 func _show_offline_income_popup() -> void:
 	if _offline_popup_active:

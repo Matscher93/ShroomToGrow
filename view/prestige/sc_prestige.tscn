@@ -114,10 +114,10 @@ theme_override_styles/panel = SubResource("StyleBoxEmpty_lxikg")
 script = ExtResource("1_panel_script")
 sporate_button = NodePath("TopBar/SporateButton")
 perk_web = NodePath("MarginContainer/VBox/WebClip")
-detail_name = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailName")
-detail_description = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailDescription")
-detail_level = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/DetailLevel")
-buy_button = NodePath("PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton")
+detail_name = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailName")
+detail_description = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailDescription")
+detail_level = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/DetailLevel")
+buy_button = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=503072458]
 layout_mode = 2
@@ -158,7 +158,13 @@ disabled_color = Color(0.13709998, 0.098000005, 0.2, 1)
 text_color = Color(1, 1, 1, 1)
 disabled_text_color = Color(0.24, 0.24, 0.24, 1)
 
-[node name="PanelContainer_Info2" type="PanelContainer" parent="." unique_id=187074852]
+[node name="InfoAnchor" type="MarginContainer" parent="." unique_id=187074851]
+layout_mode = 2
+size_flags_vertical = 8
+mouse_filter = 2
+theme_override_constants/margin_bottom = 118
+
+[node name="PanelContainer_Info2" type="PanelContainer" parent="InfoAnchor" unique_id=187074852]
 material = SubResource("ShaderMaterial_lj0vt")
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
@@ -166,7 +172,7 @@ size_flags_vertical = 8
 mouse_filter = 2
 script = ExtResource("8_6hxqy")
 
-[node name="PanelContainer_Info" type="PanelContainer" parent="PanelContainer_Info2" unique_id=1119387063]
+[node name="PanelContainer_Info" type="PanelContainer" parent="InfoAnchor/PanelContainer_Info2" unique_id=1119387063]
 material = SubResource("ShaderMaterial_x2ilw")
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
@@ -174,7 +180,7 @@ size_flags_vertical = 8
 mouse_filter = 2
 script = ExtResource("8_6hxqy")
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer_Info2/PanelContainer_Info" unique_id=1753439807]
+[node name="MarginContainer" type="MarginContainer" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info" unique_id=1753439807]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/margin_left = 16
@@ -182,38 +188,38 @@ theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
 
-[node name="DetailBox" type="VBoxContainer" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer" unique_id=1579384017]
+[node name="DetailBox" type="VBoxContainer" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer" unique_id=1579384017]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="HeaderRow" type="HBoxContainer" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox" unique_id=1713716694]
+[node name="HeaderRow" type="HBoxContainer" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox" unique_id=1713716694]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 12
 
-[node name="TextBox" type="VBoxContainer" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow" unique_id=1713716695]
+[node name="TextBox" type="VBoxContainer" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow" unique_id=1713716695]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="DetailName" type="Label" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox" unique_id=1907360131]
+[node name="DetailName" type="Label" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox" unique_id=1907360131]
 layout_mode = 2
 text = "Sporation"
 
-[node name="DetailDescription" type="Label" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox" unique_id=982891349]
+[node name="DetailDescription" type="Label" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox" unique_id=982891349]
 modulate = Color(1, 1, 1, 0.75)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 autowrap_mode = 3
 
-[node name="DetailLevel" type="Label" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow" unique_id=1713716696]
+[node name="DetailLevel" type="Label" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow" unique_id=1713716696]
 layout_mode = 2
 text = "0/5"
 horizontal_alignment = 2
 
-[node name="BuyButton" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox" unique_id=1355565357 instance=ExtResource("6_button_scene")]
+[node name="BuyButton" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox" unique_id=1355565357 instance=ExtResource("6_button_scene")]
 material = SubResource("ShaderMaterial_tc4bh")
 layout_mode = 2
 button_color = Color(0.61960787, 0.44313726, 0.9019608, 1)
@@ -221,7 +227,7 @@ disabled_color = Color(0.13709998, 0.098000005, 0.2, 1)
 text_color = Color(1, 1, 1, 1)
 disabled_text_color = Color(0.24, 0.24, 0.24, 1)
 
-[node name="button" parent="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton/MarginContainer" index="0"]
+[node name="button" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton/MarginContainer" index="0"]
 script = ExtResource("10_hold_repeat")
 
 [editable path="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton"]

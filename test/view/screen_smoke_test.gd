@@ -20,6 +20,8 @@ const SCREENS: Array[String] = [
 	"res://view/achievements/sc_achievements_panel.tscn",
 	"res://view/offline_income/sc_offline_income.tscn",
 	"res://view/main/sc_top_bar.tscn",
+	"res://view/navigation/sc_nav_disc.tscn",
+	"res://view/navigation/sc_nav_menu.tscn",
 	"res://view/resource_bar/sc_resource_bar.tscn",
 ]
 

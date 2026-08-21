@@ -13,6 +13,15 @@ extends ViewModel
 
 const PROP_BOOSTS_VISIBLE := &"boosts_visible"
 const PROP_SECTIONS_CHANGED := &"sections_changed"
+## The nav menu asked for one of this screen's tabs by name. Only needed when the
+## screen is already up: arriving from another screen respawns it, and _ready()
+## reads current_tab on its own.
+const PROP_TAB_REQUESTED := &"tab_requested"
+
+## Names of the tabs in child order, for the chip that says which one is up. The
+## tab bar itself is hidden - the nav menu switches these now - so this label is
+## the only thing on screen saying where the player is.
+const TAB_NAMES: Array[String] = ["Boosts", "Automations", "Sequences"]
 
 # --- View state ---
 ## Where the player left this screen. Parked here because App owns ViewModels for
@@ -62,6 +71,14 @@ var boost_vms_ordered: Array[BoostViewModel]:
 ##
 ## A section for a biome shut this run shows its auto-buy with the slot grid
 ## dead: there is nothing to plan against until the biome is open again.
+## The chip's caption. Takes the index rather than reading current_tab because
+## the two can disagree: a remembered tab that is now hidden leaves the screen
+## showing a different one, and the chip has to name what is actually up.
+func tab_label(index: int) -> String:
+	if index < 0 or index >= TAB_NAMES.size():
+		return ""
+	return TAB_NAMES[index]
+
 func sequence_vms() -> Array[BiomeSequenceViewModel]:
 	var sections: Array[BiomeSequenceViewModel] = []
 	for def in App.biomes.biomes:
@@ -79,10 +96,12 @@ func _init() -> void:
 	# nav switch, which hid the need for this; now that it keeps its state, a
 	# biome unlocked while the screen is up has to bring its own section in.
 	App.biomes_data.biome_unlocked.connect(_on_sections_changed.unbind(1))
+	App.screens_data.sub_screen_requested.connect(_on_sub_screen_requested)
 
 func dispose() -> void:
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_perks_changed)
 	App.biomes_data.biome_unlocked.disconnect(_on_sections_changed.unbind(1))
+	App.screens_data.sub_screen_requested.disconnect(_on_sub_screen_requested)
 
 # --- Model -> notification plumbing ---
 
@@ -91,3 +110,13 @@ func _on_perks_changed() -> void:
 
 func _on_sections_changed() -> void:
 	_notify(PROP_SECTIONS_CHANGED)
+
+## Every screen's sub-view requests come through the one signal, so this filters
+## for its own. Setting current_tab is enough for the cold path - the screen is
+## respawned and _restore_view_state() reads it - and the notify is what moves an
+## already-open screen.
+func _on_sub_screen_requested(screen_type: ScreenTypes.Types, sub_index: int) -> void:
+	if screen_type != ScreenTypes.Types.CRYSTAL_CAVES:
+		return
+	current_tab = sub_index
+	_notify(PROP_TAB_REQUESTED)

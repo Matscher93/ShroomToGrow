@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://cnavmenu000001"]
+
+[ext_resource type="Script" path="res://view/navigation/gd_nav_menu.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://ctwcgyetduvee" path="res://view/base_views/gd_touch_scroll_container.gd" id="2_touch_scroll"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scrim"]
+bg_color = Color(0.016, 0.035, 0.027, 0.62)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+content_margin_left = 14.0
+content_margin_top = 14.0
+content_margin_right = 14.0
+content_margin_bottom = 14.0
+bg_color = Color(0.055, 0.102, 0.078, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.1)
+corner_radius_top_left = 28
+corner_radius_top_right = 28
+corner_radius_bottom_right = 28
+corner_radius_bottom_left = 28
+shadow_color = Color(0, 0, 0, 0.6)
+shadow_size = 24
+shadow_offset = Vector2(0, 10)
+
+[node name="nav_menu" type="PanelContainer" node_paths=PackedStringArray("card", "scroll", "vbox_rows")]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_scrim")
+script = ExtResource("1_script")
+card = NodePath("anchor/card")
+scroll = NodePath("anchor/card/scroll")
+vbox_rows = NodePath("anchor/card/scroll/vbox_rows")
+
+[node name="anchor" type="MarginContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 109
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 115
+
+[node name="card" type="PanelContainer" parent="anchor"]
+custom_minimum_size = Vector2(347, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 8
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="scroll" type="ScrollContainer" parent="anchor/card"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+script = ExtResource("2_touch_scroll")
+
+[node name="vbox_rows" type="VBoxContainer" parent="anchor/card/scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
