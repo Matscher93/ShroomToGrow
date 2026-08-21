@@ -2,24 +2,25 @@ class_name ProductionSystem
 extends RefCounted
 ## MODEL: resolves a stat through every upgrade track at once.
 ##
-## The five UpgradeSystems (symbiosis, biome upgrades, perks, crystal boosts,
-## well projects) write into the same stat buckets, so any upgrade targeting a
-## stat contributes automatically. Adding one is a data edit, never a wiring
-## change.
+## The six UpgradeSystems (symbiosis, biome upgrades, perks, crystal boosts,
+## well projects, growth) write into the same stat buckets, so any upgrade
+## targeting a stat contributes automatically. Adding one is a data edit, never a
+## wiring change.
 ##
 ## Holds only its inputs, no App reference, so it can be built and exercised in
 ## isolation. Order is fixed: symbiosis, then biome, then prestige, then boosts,
-## then projects.
+## then projects, then growth.
 
 var _symbiosis: UpgradeSystem
 var _biome: UpgradeSystem
 var _prestige: UpgradeSystem
 var _boosts: UpgradeSystem
 var _projects: UpgradeSystem
+var _growth: UpgradeSystem
 var _ctx: ResolveContext
 
 ## Resolved results, dropped whole the moment any track changes. One stack() is
-## four UpgradeSystem.modify() calls and node_production_bonus() is three
+## six UpgradeSystem.modify() calls and node_production_bonus() is three
 ## stacks, so a tick that reads the same node's bonus for production, for a
 ## purchase decision and again for an automation paid nine resolves for one
 ## answer. Nothing in a ResolveContext moves without an invalidate() (it says so
@@ -32,19 +33,20 @@ var _memo: Dictionary = {}
 var _memo_external: Dictionary = {}
 var _memo_version := -1
 
-## `boosts` and `projects` default to empty tracks so the callers that predate
-## the boosts menu and the well - and the tests that only care about one of the
-## other three - keep building a ProductionSystem with four arguments. An empty
-## UpgradeSystem resolves to the identity, so the stack below needs no null check
-## on the hot path.
+## `boosts`, `projects` and `growth` default to empty tracks so the callers that
+## predate the boosts menu, the well and the growth sheet - and the tests that
+## only care about one of the other three - keep building a ProductionSystem with
+## four arguments. An empty UpgradeSystem resolves to the identity, so the stack
+## below needs no null check on the hot path.
 func _init(symbiosis: UpgradeSystem, biome: UpgradeSystem, prestige: UpgradeSystem,
 		ctx: ResolveContext, boosts: UpgradeSystem = null,
-		projects: UpgradeSystem = null) -> void:
+		projects: UpgradeSystem = null, growth: UpgradeSystem = null) -> void:
 	_symbiosis = symbiosis
 	_biome = biome
 	_prestige = prestige
 	_boosts = boosts if boosts != null else UpgradeSystem.new()
 	_projects = projects if projects != null else UpgradeSystem.new()
+	_growth = growth if growth != null else UpgradeSystem.new()
 	_ctx = ctx
 
 ## Runs base through every track. `target` scopes the lookup to one node id
@@ -58,10 +60,13 @@ func stack(stat: StringName, base: BigNumber, target: StringName = &"") -> BigNu
 	value = _prestige.modify(stat, value, _ctx, [], target)
 	value = _boosts.modify(stat, value, _ctx, [], target)
 	value = _projects.modify(stat, value, _ctx, [], target)
+	value = _growth.modify(stat, value, _ctx, [], target)
 	return _remember(_memo, stat, base, target, value)
 
 ## Everything boosting the stat *except* the player's own symbiosis levels. The
-## project track belongs here as much as the boosts do: both survive a sporation.
+## project and growth tracks belong here as much as the boosts do: all three
+## survive a sporation, and biomass and crystals are only ever resolved through
+## here - so leaving growth out would make two of its four producers inert.
 ## Scales a symbiosis upgrade's marginal per-level rate for display, so the
 ## shown rate includes the boosts applied on top of it.
 func stack_external(stat: StringName, base: BigNumber, target: StringName = &"") -> BigNumber:
@@ -72,6 +77,7 @@ func stack_external(stat: StringName, base: BigNumber, target: StringName = &"")
 	value = _prestige.modify(stat, value, _ctx, [], target)
 	value = _boosts.modify(stat, value, _ctx, [], target)
 	value = _projects.modify(stat, value, _ctx, [], target)
+	value = _growth.modify(stat, value, _ctx, [], target)
 	return _remember(_memo_external, stat, base, target, value)
 
 # ---------------------------------------------------------------- memo
@@ -106,11 +112,11 @@ func _remember(memo: Dictionary, stat: StringName, base: BigNumber, target: Stri
 	memo[stat][target] = [base.mantissa, base.exponent, value]
 	return value
 
-## Where all five tracks are, as one number. Any purchase, reset, save load or
+## Where all six tracks are, as one number. Any purchase, reset, save load or
 ## invalidate() moves it.
 func _version() -> int:
 	return _symbiosis.version + _biome.version + _prestige.version + _boosts.version \
-		+ _projects.version
+		+ _projects.version + _growth.version
 
 # ---------------------------------------------------------------- node output
 

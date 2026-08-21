@@ -400,6 +400,37 @@ func test_achievement_progress_tolerates_an_empty_save() -> void:
 	assert_int(restored.total_tiers()).is_zero()
 	assert_int(restored.total_unclaimed()).is_zero()
 
+# ─── DailyRewardData ─────────────────────────────────────────────────────────
+
+func test_daily_reward_data_round_trip() -> void:
+	var original := DailyRewardData.new()
+	original.last_claim_day = 20_113
+	original.streak = 12
+
+	var restored := DailyRewardData.from_save(original.to_save())
+
+	assert_int(restored.last_claim_day).is_equal(20_113)
+	assert_int(restored.streak).is_equal(12)
+
+func test_daily_reward_data_loads_in_place() -> void:
+	# GrowthViewModel binds to these signals, so a load must mutate rather than
+	# replace, the same reason PlayerData.load_from_save exists.
+	var live := DailyRewardData.new()
+	var announced: Array[int] = []
+	live.streak_changed.connect(func(value: int) -> void: announced.append(value))
+
+	live.load_from_save({"last_claim_day": 20_113, "streak": 4})
+
+	assert_int(live.last_claim_day).is_equal(20_113)
+	assert_array(announced).is_equal([4])
+
+func test_an_empty_daily_reward_save_reads_as_never_claimed() -> void:
+	# Day 0 is 1970, so every save written before this system existed arrives
+	# with a reward waiting rather than one already spent.
+	var restored := DailyRewardData.from_save({})
+	assert_int(restored.last_claim_day).is_zero()
+	assert_int(restored.streak).is_zero()
+
 # ─── AutomationData ──────────────────────────────────────────────────────────
 
 func test_automation_data_round_trip() -> void:

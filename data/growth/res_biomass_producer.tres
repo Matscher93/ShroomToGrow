@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GrowthProducerDef" format=3]
+
+[ext_resource type="Script" path="res://model/growth/res_growth_producer_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_biomass_def.tres" id="2_currency"]
+
+[resource]
+script = ExtResource("1_script")
+currency = ExtResource("2_currency")
+stat = &"biomass_gain"
+scope = 0
+target = &""
+lp_per_level = 0.05
+daily_per_level = 0.02

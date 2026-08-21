@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="GrowthProducerList" format=3]
+
+[ext_resource type="Script" path="res://model/growth/res_growth_producer_list.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/growth/res_growth_producer_def.gd" id="2_producer_script"]
+[ext_resource type="Resource" path="res://data/growth/res_nutrients_producer.tres" id="3_nutrients"]
+[ext_resource type="Resource" path="res://data/growth/res_water_producer.tres" id="4_water"]
+[ext_resource type="Resource" path="res://data/growth/res_biomass_producer.tres" id="5_biomass"]
+[ext_resource type="Resource" path="res://data/growth/res_crystals_producer.tres" id="6_crystals"]
+
+[resource]
+script = ExtResource("1_script")
+producers = Array[ExtResource("2_producer_script")]([ExtResource("3_nutrients"), ExtResource("4_water"), ExtResource("5_biomass"), ExtResource("6_crystals")])

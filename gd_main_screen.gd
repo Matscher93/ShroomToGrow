@@ -19,6 +19,7 @@ extends Control
 
 const OFFLINE_INCOME_SCENE := preload("res://view/offline_income/sc_offline_income.tscn")
 const ACHIEVEMENTS_SCENE := preload("res://view/achievements/sc_achievements_panel.tscn")
+const GROWTH_SCENE := preload("res://view/growth/sc_growth_panel.tscn")
 const NAV_MENU_SCENE := preload("res://view/navigation/sc_nav_menu.tscn")
 
 var _offline_popup_active := false
@@ -27,6 +28,7 @@ func _ready() -> void:
 	add_child(ShaderWarmup.new())
 	add_child(MenuWarmup.new())
 	top_bar.achievements_pressed.connect(_on_achievements_pressed)
+	top_bar.growth_pressed.connect(_on_growth_pressed)
 	nav_disc.pressed.connect(_on_nav_pressed)
 	if App.offline_income_vm:
 		App.offline_income_vm.property_changed.connect(_on_offline_income_changed)
@@ -67,6 +69,16 @@ func _on_achievements_pressed() -> void:
 		overlay_layer.clear()
 		return
 	var overlay := overlay_layer.show_popup(ACHIEVEMENTS_SCENE)
+	overlay.dismissed.connect(overlay_layer.clear, CONNECT_ONE_SHOT)
+
+## Same toggle as the achievements button, and deliberately the same layer: the
+## two overlays are alternative views of "what is waiting for me", so opening one
+## replaces the other rather than stacking on it.
+func _on_growth_pressed() -> void:
+	if overlay_layer.has_popup():
+		overlay_layer.clear()
+		return
+	var overlay := overlay_layer.show_popup(GROWTH_SCENE)
 	overlay.dismissed.connect(overlay_layer.clear, CONNECT_ONE_SHOT)
 
 ## Tapping the disc toggles, the same as the achievements button. The open menu's

@@ -13,6 +13,9 @@ extends GdUnitTestSuite
 const KNOWN_STATS: Array[StringName] = [
 	&"potency_production", &"synergy_production", &"node_production",
 	&"biomass_gain", &"tick_rate", &"biome_points",
+	# Read by PlayerLevelSystem rather than ProductionSystem, the same way
+	# biome_points is read by BiomeSystem.
+	&"level_points",
 	&"crystal_gain", &"automation_rate",
 	&"water_production", &"water_rate",
 	# Read by BoostSystem rather than ProductionSystem: the Well's projects reach
@@ -33,6 +36,7 @@ var _achievements: Array[AchievementDef]
 var _automations: Array[AutomationDef]
 var _boosts: Array[BoostDef]
 var _projects: Array[ProjectDef]
+var _producers: Array[GrowthProducerDef]
 
 func before_test() -> void:
 	_nodes = (load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes).mycelium_nodes
@@ -44,6 +48,7 @@ func before_test() -> void:
 	_automations = (load("res://data/automation/all_automations.tres") as AutomationList).automations
 	_boosts = (load("res://data/boosts/all_boosts.tres") as BoostList).boosts
 	_projects = (load("res://data/well/all_projects.tres") as ProjectList).projects
+	_producers = (load("res://data/growth/all_producers.tres") as GrowthProducerList).producers
 
 ## Node tiers, biomes and crystal boosts all address by StringName, and
 ## NODE-scoped effects use one field for all three, so a target is valid if it
@@ -78,6 +83,14 @@ func _all_upgrade_defs() -> Array[UpgradeDef]:
 	for perk in _perks:
 		defs.append(perk)
 	return defs
+
+## The growth track's defs are generated from the producer list rather than
+## authored, but they are built from authored stats and scopes, so a typo in one
+## is exactly as silent as a typo in an upgrade .tres.
+func _growth_defs() -> Array[UpgradeDef]:
+	var list := GrowthProducerList.new()
+	list.producers = _producers
+	return GrowthTree.build(list)
 
 func _sorted_nodes() -> Array[MyceliumNode]:
 	var sorted := _nodes.duplicate()
@@ -530,6 +543,82 @@ func test_every_capped_automation_has_a_perk_that_raises_the_cap() -> void:
 		assert_int(def.max_level_per_perk_level) \
 			.override_failure_message("Automation '%s' names a max-level perk that adds nothing." \
 				% def.id).is_greater(0)
+
+# ---------------------------------------------------------------- growth
+
+func test_every_producer_names_a_currency() -> void:
+	# GrowthTree keys its ids off currency_type and takes the label and colours
+	# from the same resource, so a producer without one is skipped entirely.
+	for def in _producers:
+		assert_object(def.currency) \
+			.override_failure_message("A growth producer has no CurrencyDef, so it is inert.").is_not_null()
+
+func test_producer_currencies_are_unique() -> void:
+	# Two producers on one currency would generate the same upgrade ids, and the
+	# second registration would silently take the first one's levels with it.
+	var seen := {}
+	for def in _producers:
+		var currency := def.currency.currency_type
+		assert_bool(seen.has(currency)) \
+			.override_failure_message("Currency '%s' has two growth producers." \
+				% def.currency.currency_name).is_false()
+		seen[currency] = true
+
+func test_every_producer_names_a_stat_something_reads() -> void:
+	for def in _producers:
+		assert_bool(KNOWN_STATS.has(def.stat)) \
+			.override_failure_message("Growth producer '%s' targets stat '%s', which no system reads." \
+				% [def.currency.currency_name, def.stat]).is_true()
+
+func test_every_producer_pays_something_for_both_stacks() -> void:
+	for def in _producers:
+		assert_float(def.lp_per_level) \
+			.override_failure_message("Growth producer '%s' pays nothing per Level Point." \
+				% def.currency.currency_name).is_greater(0.0)
+		assert_float(def.daily_per_level) \
+			.override_failure_message("Growth producer '%s' pays nothing per daily claim." \
+				% def.currency.currency_name).is_greater(0.0)
+
+## A global &"node_production" effect is applied once per node tier, so a x1.05
+## nutrient bonus would land as x1.05^10. BoostDef documents this at length and
+## res_nutrient_boost.tres is scoped the same way for the same reason.
+func test_a_node_production_producer_is_scoped_to_one_node() -> void:
+	for def in _producers:
+		if def.stat != &"node_production":
+			continue
+		assert_int(def.scope) \
+			.override_failure_message("Growth producer '%s' boosts node_production globally, which the node cascade compounds per tier." \
+				% def.currency.currency_name).is_equal(UpgradeEffectDef.Scope.NODE)
+		assert_str(String(def.target)) \
+			.override_failure_message("Growth producer '%s' is NODE-scoped with no target." \
+				% def.currency.currency_name).is_not_empty()
+
+func test_generated_growth_ids_are_unique() -> void:
+	var seen := {}
+	for def in _growth_defs():
+		assert_bool(seen.has(def.id)) \
+			.override_failure_message("Generated growth id '%s' collides with another." % def.id).is_false()
+		seen[def.id] = true
+
+func test_growth_stacks_multiply_rather_than_join_the_additive_pool() -> void:
+	# Op.INCREASED would pool these into the same bucket every symbiosis and
+	# biome upgrade writing the stat shares, where each level is worth less than
+	# the one before - which is not what "+5% per point" means.
+	for def in _growth_defs():
+		for e in def.effects:
+			assert_int(e.op) \
+				.override_failure_message("Growth def '%s' is not a MORE effect." % def.id) \
+				.is_equal(UpgradeEffectDef.Op.MORE)
+
+func test_the_global_doubling_covers_every_producer() -> void:
+	# One def with one effect per producer, so a single level keeps all four in
+	# step. A producer missing from it is one the doubling silently skips.
+	var double_def: UpgradeDef = null
+	for def in _growth_defs():
+		if def.id == GrowthTree.GLOBAL_DOUBLE_ID:
+			double_def = def
+	assert_object(double_def).is_not_null()
+	assert_int(double_def.effects.size()).is_equal(_producers.size())
 
 # ---------------------------------------------------------------- well projects
 

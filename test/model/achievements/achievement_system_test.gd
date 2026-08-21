@@ -150,7 +150,10 @@ func test_every_stat_is_handled() -> void:
 	# achievement just never moves.
 	_player.lifetime_manual_nodes = 1
 	_player.lifetime_ticks = 2
-	_player.lifetime_nutrients = BigNumber.from_value(3.0)
+	# Past PlayerLevelCalculator.BASE, not the token 3 the other counters use:
+	# PLAYER_LEVEL is derived from this one, and below the first requirement it
+	# reads zero however large the others are.
+	_player.lifetime_nutrients = BigNumber.from_value(3000.0)
 	_player.lifetime_crystals = BigNumber.from_value(4.0)
 	_player.prestige_count = 5
 	_player.lifetime_biome_size = 6
@@ -168,6 +171,30 @@ func test_every_stat_is_handled() -> void:
 			.override_failure_message("Stat %s reads as zero, so nothing can ever complete it." \
 				% [AchievementDef.Stat.keys()[stat]]) \
 			.is_greater(0.0)
+
+## The achievement counts levels reached, not the Level Point budget: a prestige
+## perk handing out points must not also hand out achievement tiers.
+func test_player_level_counts_levels_reached() -> void:
+	var def := _def(AchievementDef.Stat.PLAYER_LEVEL)
+	var system := _system([def])
+	_player.lifetime_nutrients = PlayerLevelCalculator.requirement(4)
+	assert_float(system.current_value(def).to_float()).is_equal_approx(4.0, EPS)
+
+func test_player_level_reads_zero_before_the_first_requirement() -> void:
+	var def := _def(AchievementDef.Stat.PLAYER_LEVEL)
+	var system := _system([def])
+	_player.lifetime_nutrients = BigNumber.from_value(PlayerLevelCalculator.BASE - 1.0)
+	assert_float(system.current_value(def).to_float()).is_zero()
+
+## Levels come off lifetime nutrients, which nothing resets, so the bar never
+## drops back on a sporation the way a run-scoped measure would.
+func test_player_level_survives_a_prestige() -> void:
+	var def := _def(AchievementDef.Stat.PLAYER_LEVEL)
+	var system := _system([def])
+	_player.lifetime_nutrients = PlayerLevelCalculator.requirement(6)
+	_player.nutrients = BigNumber.from_value(0.0)
+	_player.prestige_count += 1
+	assert_float(system.current_value(def).to_float()).is_equal_approx(6.0, EPS)
 
 func test_biome_size_counts_every_level_ever_bought() -> void:
 	# Reading the current run's sizes instead would reset the bar on every

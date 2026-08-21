@@ -10,7 +10,8 @@
 [ext_resource type="Resource" path="res://data/achievements/res_woven_symbiosis.tres" id="8_woven_symbiosis"]
 [ext_resource type="Resource" path="res://data/achievements/res_wide_horizons.tres" id="9_wide_horizons"]
 [ext_resource type="Resource" path="res://data/achievements/res_cartographer.tres" id="10_cartographer"]
+[ext_resource type="Resource" path="res://data/achievements/res_ascendant.tres" id="11_ascendant"]
 
 [resource]
 script = ExtResource("1_list_script")
-achievements = Array[ExtResource("2_def_script")]([ExtResource("3_deep_roots"), ExtResource("4_patient_grower"), ExtResource("5_rich_soil"), ExtResource("6_crystal_hoard"), ExtResource("7_eternal_return"), ExtResource("8_woven_symbiosis"), ExtResource("9_wide_horizons"), ExtResource("10_cartographer")])
+achievements = Array[ExtResource("2_def_script")]([ExtResource("3_deep_roots"), ExtResource("4_patient_grower"), ExtResource("5_rich_soil"), ExtResource("6_crystal_hoard"), ExtResource("7_eternal_return"), ExtResource("8_woven_symbiosis"), ExtResource("9_wide_horizons"), ExtResource("10_cartographer"), ExtResource("11_ascendant")])

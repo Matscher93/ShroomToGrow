@@ -1,72 +1,163 @@
 [gd_resource type="Resource" script_class="PerkBranchDef" format=3]
 
+; Every rung of the ladder carries an Attunement beside it, so the Level Points
+; keep arriving as the colony reaches further.
+;
+; The two children alternate sides down the chain - Attunement first on an
+; even depth, second on an odd one. That is a layout constraint, not a
+; preference: PerkTree spaces siblings by the branch's widest accumulated
+; offset, and hanging every Attunement on the same side turns the chain into a
+; staircase whose offset grows by half a step per rung. At seven rungs that
+; crushed Reach's sibling spread from 26 degrees to under 7 and put every
+; Attunement label on top of the Reach node beside it. Alternating keeps the
+; chain within one step of its centre line, and the spread at 20 degrees.
+
 [ext_resource type="Script" uid="uid://bidkvks0jdm2w" path="res://model/prestige/gd_perk_branch_def.gd" id="1_script"]
 [ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_uer3u"]
 [ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="2_node_script"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_reach_attunement_effect.tres" id="3_attunement_effect"]
+
+[sub_resource type="Resource" id="node_attunement_10"]
+script = ExtResource("2_node_script")
+id = &"reach_attunement_10"
+display_name = "Attunement X"
+description = "+1 Level Point per level, on top of what the player level grants."
+max_level = 5
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 1200
+cost_growth = 2.2
+effects = Array[ExtResource("1_uer3u")]([ExtResource("3_attunement_effect")])
 
 [sub_resource type="Resource" id="node_10"]
 script = ExtResource("2_node_script")
 id = &"reach_10"
+children = Array[ExtResource("2_node_script")]([SubResource("node_attunement_10")])
 display_name = "Reach X"
 description = "Opens Level 10 nodes (Panspore) for growing."
 max_level = 1
 _base_cost_mantissa = 1.0
 _base_cost_exponent = 1000
 
+[sub_resource type="Resource" id="node_attunement_9"]
+script = ExtResource("2_node_script")
+id = &"reach_attunement_9"
+display_name = "Attunement IX"
+description = "+1 Level Point per level, on top of what the player level grants."
+max_level = 5
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 700
+cost_growth = 2.2
+effects = Array[ExtResource("1_uer3u")]([ExtResource("3_attunement_effect")])
+
 [sub_resource type="Resource" id="node_9"]
 script = ExtResource("2_node_script")
 id = &"reach_9"
-children = Array[ExtResource("2_node_script")]([SubResource("node_10")])
+children = Array[ExtResource("2_node_script")]([SubResource("node_10"), SubResource("node_attunement_9")])
 display_name = "Reach IX"
 description = "Opens Level 9 nodes (Mycosphere) for growing."
 max_level = 1
 _base_cost_mantissa = 8.0
 _base_cost_exponent = 500
 
+[sub_resource type="Resource" id="node_attunement_8"]
+script = ExtResource("2_node_script")
+id = &"reach_attunement_8"
+display_name = "Attunement VIII"
+description = "+1 Level Point per level, on top of what the player level grants."
+max_level = 5
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 300
+cost_growth = 2.2
+effects = Array[ExtResource("1_uer3u")]([ExtResource("3_attunement_effect")])
+
 [sub_resource type="Resource" id="node_8"]
 script = ExtResource("2_node_script")
 id = &"reach_8"
-children = Array[ExtResource("2_node_script")]([SubResource("node_9")])
+children = Array[ExtResource("2_node_script")]([SubResource("node_attunement_8"), SubResource("node_9")])
 display_name = "Reach VIII"
 description = "Opens Level 8 nodes (Grove) for growing."
 max_level = 1
 _base_cost_mantissa = 3.0
 _base_cost_exponent = 100
 
+[sub_resource type="Resource" id="node_attunement_7"]
+script = ExtResource("2_node_script")
+id = &"reach_attunement_7"
+display_name = "Attunement VII"
+description = "+1 Level Point per level, on top of what the player level grants."
+max_level = 5
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 60
+cost_growth = 2.2
+effects = Array[ExtResource("1_uer3u")]([ExtResource("3_attunement_effect")])
+
 [sub_resource type="Resource" id="node_7"]
 script = ExtResource("2_node_script")
 id = &"reach_7"
-children = Array[ExtResource("2_node_script")]([SubResource("node_8")])
+children = Array[ExtResource("2_node_script")]([SubResource("node_8"), SubResource("node_attunement_7")])
 display_name = "Reach VII"
 description = "Opens Level 7 nodes (Fairy Ring) for growing."
 max_level = 1
 _base_cost_mantissa = 1.0
 _base_cost_exponent = 32
 
+[sub_resource type="Resource" id="node_attunement_6"]
+script = ExtResource("2_node_script")
+id = &"reach_attunement_6"
+display_name = "Attunement VI"
+description = "+1 Level Point per level, on top of what the player level grants."
+max_level = 5
+_base_cost_mantissa = 2.0
+_base_cost_exponent = 20
+cost_growth = 2.2
+effects = Array[ExtResource("1_uer3u")]([ExtResource("3_attunement_effect")])
+
 [sub_resource type="Resource" id="node_6"]
 script = ExtResource("2_node_script")
 id = &"reach_6"
-children = Array[ExtResource("2_node_script")]([SubResource("node_7")])
+children = Array[ExtResource("2_node_script")]([SubResource("node_attunement_6"), SubResource("node_7")])
 display_name = "Reach VI"
 description = "Opens Level 6 nodes (Mycorrhiza) for growing."
 max_level = 1
 _base_cost_mantissa = 4.0
 _base_cost_exponent = 10
 
+[sub_resource type="Resource" id="node_attunement_5"]
+script = ExtResource("2_node_script")
+id = &"reach_attunement_5"
+display_name = "Attunement V"
+description = "+1 Level Point per level, on top of what the player level grants."
+max_level = 5
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 6
+cost_growth = 2.2
+effects = Array[ExtResource("1_uer3u")]([ExtResource("3_attunement_effect")])
+
 [sub_resource type="Resource" id="node_5"]
 script = ExtResource("2_node_script")
 id = &"reach_5"
-children = Array[ExtResource("2_node_script")]([SubResource("node_6")])
+children = Array[ExtResource("2_node_script")]([SubResource("node_6"), SubResource("node_attunement_5")])
 display_name = "Reach V"
 description = "Opens Level 5 nodes (Colony) for growing."
 max_level = 1
 _base_cost_mantissa = 1.0
 _base_cost_exponent = 4
 
+[sub_resource type="Resource" id="node_attunement_4"]
+script = ExtResource("2_node_script")
+id = &"reach_attunement_4"
+display_name = "Attunement IV"
+description = "+1 Level Point per level, on top of what the player level grants."
+max_level = 5
+_base_cost_mantissa = 1.5
+_base_cost_exponent = 2
+cost_growth = 2.2
+effects = Array[ExtResource("1_uer3u")]([ExtResource("3_attunement_effect")])
+
 [sub_resource type="Resource" id="node_4"]
 script = ExtResource("2_node_script")
 id = &"reach_4"
-children = Array[ExtResource("2_node_script")]([SubResource("node_5")])
+children = Array[ExtResource("2_node_script")]([SubResource("node_attunement_4"), SubResource("node_5")])
 display_name = "Reach IV"
 description = "Opens Level 4 nodes (Sporocarp) for growing."
 max_level = 1

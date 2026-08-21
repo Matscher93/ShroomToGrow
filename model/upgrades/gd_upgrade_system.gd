@@ -3,9 +3,10 @@ extends RefCounted
 ## MODEL: one track of purchasable upgrade levels, and the resolved effect cache
 ## they add up to.
 ##
-## Backs all four tracks (symbiosis, biome upgrades, perks, crystal boosts), which
-## is what lets ProductionSystem stack them without any per-stat wiring: they all
-## write into the same stat buckets. A defect here is a defect everywhere at once.
+## Backs all six tracks (symbiosis, biome upgrades, perks, crystal boosts, well
+## projects, growth), which is what lets ProductionSystem stack them without any
+## per-stat wiring: they all write into the same stat buckets. A defect here is a
+## defect everywhere at once.
 ##
 ## Holds only its own state, no App reference, so it can be built and exercised
 ## in isolation.

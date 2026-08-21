@@ -218,6 +218,15 @@
 			"effect_at_max": ""
 		},
 		{
+			"id": "reach_attunement_4",
+			"branch": "rch",
+			"depth": 2,
+			"max_level": 5,
+			"cost_to_max": "6.32e3",
+			"path_cost": "6.32e3",
+			"effect_at_max": "5.00e0"
+		},
+		{
 			"id": "reach_5",
 			"branch": "rch",
 			"depth": 2,
@@ -234,6 +243,15 @@
 			"cost_to_max": "4.00e10",
 			"path_cost": "4.00e10",
 			"effect_at_max": ""
+		},
+		{
+			"id": "reach_attunement_6",
+			"branch": "rch",
+			"depth": 4,
+			"max_level": 5,
+			"cost_to_max": "8.42e21",
+			"path_cost": "8.42e21",
+			"effect_at_max": "5.00e0"
 		},
 		{
 			"id": "reach_7",
@@ -254,6 +272,15 @@
 			"effect_at_max": ""
 		},
 		{
+			"id": "reach_attunement_8",
+			"branch": "rch",
+			"depth": 6,
+			"max_level": 5,
+			"cost_to_max": "4.21e301",
+			"path_cost": "4.21e301",
+			"effect_at_max": "5.00e0"
+		},
+		{
 			"id": "reach_9",
 			"branch": "rch",
 			"depth": 6,
@@ -270,6 +297,42 @@
 			"cost_to_max": "1.00e1000",
 			"path_cost": "1.00e1000",
 			"effect_at_max": ""
+		},
+		{
+			"id": "reach_attunement_10",
+			"branch": "rch",
+			"depth": 8,
+			"max_level": 5,
+			"cost_to_max": "2.11e1202",
+			"path_cost": "2.11e1202",
+			"effect_at_max": "5.00e0"
+		},
+		{
+			"id": "reach_attunement_9",
+			"branch": "rch",
+			"depth": 7,
+			"max_level": 5,
+			"cost_to_max": "4.21e701",
+			"path_cost": "4.21e701",
+			"effect_at_max": "5.00e0"
+		},
+		{
+			"id": "reach_attunement_7",
+			"branch": "rch",
+			"depth": 5,
+			"max_level": 5,
+			"cost_to_max": "2.11e62",
+			"path_cost": "2.11e62",
+			"effect_at_max": "5.00e0"
+		},
+		{
+			"id": "reach_attunement_5",
+			"branch": "rch",
+			"depth": 3,
+			"max_level": 5,
+			"cost_to_max": "2.11e8",
+			"path_cost": "2.11e8",
+			"effect_at_max": "5.00e0"
 		},
 		{
 			"id": "instinct_reflex",
@@ -503,11 +566,13 @@
 		},
 		{
 			"branch": "rch",
-			"perks": 7,
-			"max_depth": 7,
-			"total_cost_to_max": "1.00e1000",
-			"deepest_path_cost": "1.00e1000",
-			"stats": {}
+			"perks": 14,
+			"max_depth": 8,
+			"total_cost_to_max": "2.11e1202",
+			"deepest_path_cost": "2.11e1202",
+			"stats": {
+				"level_points (ADD)": "3.50e1"
+			}
 		},
 		{
 			"branch": "ins",
@@ -1051,183 +1116,183 @@
 		{
 			"path": "res://data/well/res_project_abyssal_cistern.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.03,
 			"cost_to_max": "4.78e16"
 		},
 		{
 			"path": "res://data/well/res_project_black_spring.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.055,
 			"cost_to_max": "1.26e20"
 		},
 		{
 			"path": "res://data/well/res_project_blind_fish_run.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "node_production",
+			"per_level": 0.045,
 			"cost_to_max": "5.34e16"
 		},
 		{
 			"path": "res://data/well/res_project_chalk_filter.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.04,
 			"cost_to_max": "1.07e17"
 		},
 		{
 			"path": "res://data/well/res_project_cistern.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.035,
 			"cost_to_max": "3.66e10"
 		},
 		{
 			"path": "res://data/well/res_project_drowned_forest.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "node_production",
+			"per_level": 0.03,
 			"cost_to_max": "7.90e17"
 		},
 		{
 			"path": "res://data/well/res_project_glacier_melt.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.05,
 			"cost_to_max": "5.82e18"
 		},
 		{
 			"path": "res://data/well/res_project_hollow_depths.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "node_production",
+			"per_level": 0.03,
 			"cost_to_max": "1.84e21"
 		},
 		{
 			"path": "res://data/well/res_project_karst_vault.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.05,
 			"cost_to_max": "3.42e19"
 		},
 		{
 			"path": "res://data/well/res_project_lantern_shoal.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "node_production",
+			"per_level": 0.06,
 			"cost_to_max": "1.07e22"
 		},
 		{
 			"path": "res://data/well/res_project_leviathan_bore.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.06,
 			"cost_to_max": "7.83e22"
 		},
 		{
 			"path": "res://data/well/res_project_mirror_pool.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.045,
 			"cost_to_max": "2.33e18"
 		},
 		{
 			"path": "res://data/well/res_project_moon_pool.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.055,
 			"cost_to_max": "5.37e21"
 		},
 		{
 			"path": "res://data/well/res_project_pressure_shaft.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "boost_max_level",
+			"per_level": 2.0,
 			"cost_to_max": "1.63e12"
 		},
 		{
 			"path": "res://data/well/res_project_salt_pillar.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "crystal_gain",
+			"per_level": 0.05,
 			"cost_to_max": "7.35e20"
 		},
 		{
 			"path": "res://data/well/res_project_silt_terraces.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "node_production",
+			"per_level": 0.045,
 			"cost_to_max": "3.68e14"
 		},
 		{
 			"path": "res://data/well/res_project_siphon_bridge.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_rate",
+			"per_level": -0.1,
 			"cost_to_max": "3.95e17"
 		},
 		{
 			"path": "res://data/well/res_project_sluice_gate.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "node_production",
+			"per_level": 0.03,
 			"cost_to_max": "1.89e9"
 		},
 		{
 			"path": "res://data/well/res_project_stalactite_font.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.04,
 			"cost_to_max": "1.80e16"
 		},
 		{
 			"path": "res://data/well/res_project_sump_gallery.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "boost_max_level",
+			"per_level": 3.0,
 			"cost_to_max": "1.71e19"
 		},
 		{
 			"path": "res://data/well/res_project_sunken_shrine.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "biomass_gain",
+			"per_level": 0.035,
 			"cost_to_max": "1.07e12"
 		},
 		{
 			"path": "res://data/well/res_project_sunless_reef.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "node_production",
+			"per_level": 0.035,
 			"cost_to_max": "3.91e22"
 		},
 		{
 			"path": "res://data/well/res_project_tide_lock.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_rate",
+			"per_level": -0.14,
 			"cost_to_max": "2.51e20"
 		},
 		{
 			"path": "res://data/well/res_project_ur_ocean.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.05,
 			"cost_to_max": "4.78e26"
 		},
 		{
 			"path": "res://data/well/res_project_weeping_wall.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.035,
 			"cost_to_max": "7.22e15"
 		},
 		{
 			"path": "res://data/well/res_project_world_sink.tres",
 			"max_level": 60,
-			"stat": "",
-			"per_level": 0.0,
+			"stat": "water_production",
+			"per_level": 0.06,
 			"cost_to_max": "2.28e24"
 		}
 	],
@@ -1235,98 +1300,74 @@
 		"policy": "roi",
 		"tick_budget": 20000,
 		"prestiges": 3,
-		"seconds": 1114.6,
-		"played": "18m 35s",
+		"seconds": 1988.2,
+		"played": "33m 8s",
 		"milestones": [
 			{
-				"tick": 6,
-				"seconds": 49.5,
+				"tick": 29,
+				"seconds": 290.0,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
-				"tick": 14,
-				"seconds": 115.5,
+				"tick": 64,
+				"seconds": 640.0,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
-				"tick": 15,
-				"seconds": 123.75,
+				"tick": 69,
+				"seconds": 690.0,
 				"event": "biome",
 				"detail": "crystal_caves"
 			},
 			{
-				"tick": 19,
-				"seconds": 156.75,
-				"event": "biome",
-				"detail": "underground_lake"
-			},
-			{
-				"tick": 50,
-				"seconds": 412.5,
+				"tick": 70,
+				"seconds": 700.0,
 				"event": "prestige",
-				"detail": "#1, +6.34e2 biomass"
+				"detail": "#1, +2.10e0 biomass"
 			},
 			{
-				"tick": 52,
-				"seconds": 428.6,
+				"tick": 101,
+				"seconds": 1010.0,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
-				"tick": 54,
-				"seconds": 444.1,
+				"tick": 133,
+				"seconds": 1330.0,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
-				"tick": 54,
-				"seconds": 444.1,
+				"tick": 139,
+				"seconds": 1390.0,
 				"event": "biome",
 				"detail": "crystal_caves"
 			},
 			{
-				"tick": 55,
-				"seconds": 451.85,
-				"event": "biome",
-				"detail": "underground_lake"
-			},
-			{
-				"tick": 100,
-				"seconds": 800.6,
+				"tick": 140,
+				"seconds": 1400.0,
 				"event": "prestige",
-				"detail": "#2, +5.65e6 biomass"
+				"detail": "#2, +9.97e0 biomass"
 			},
 			{
-				"tick": 102,
-				"seconds": 815.9,
+				"tick": 159,
+				"seconds": 1586.4,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
-				"tick": 103,
-				"seconds": 823.15,
+				"tick": 197,
+				"seconds": 1958.8,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
-				"tick": 103,
-				"seconds": 823.15,
-				"event": "biome",
-				"detail": "crystal_caves"
-			},
-			{
-				"tick": 104,
-				"seconds": 829.4,
-				"event": "biome",
-				"detail": "underground_lake"
-			},
-			{
-				"tick": 150,
-				"seconds": 1114.6,
+				"tick": 200,
+				"seconds": 1988.2,
 				"event": "prestige",
-				"detail": "#3, +3.63e7 biomass"
+				"detail": "#3, +9.97e0 biomass"
 			}
 		]
 	},

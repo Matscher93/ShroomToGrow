@@ -34,12 +34,20 @@ var _app: Node
 var _kind: Kind
 ## Symbiosis ids, read once from the same loader App registers them with.
 var _symbiosis_ids: Array[StringName] = []
+## The producers Level Points and daily rewards are spread across, read once from
+## the same list App builds the growth track from.
+var _growth_currencies: Array[CurrencyTypes.Types] = []
 
 func _init(app: Node, kind: Kind) -> void:
 	_app = app
 	_kind = kind
 	for def in UpgradeDefLoader.load_all(UpgradeDefLoader.SYMBIOSIS_PATH):
 		_symbiosis_ids.append(def.id)
+	var producers: GrowthProducerList = app.growth_producers
+	if producers != null:
+		for producer: GrowthProducerDef in producers.producers:
+			if producer != null and producer.currency != null:
+				_growth_currencies.append(producer.currency.currency_type)
 
 
 static func kind_from_name(text: String) -> Kind:
@@ -104,7 +112,7 @@ func _end_batch() -> void:
 ## fifth one is batched the day it is added.
 func _tracks() -> Array:
 	return [_app.upgrade_system, _app.biome_upgrade_system, _app.prestige_upgrade_system,
-		_app.boost_upgrade_system, _app.project_upgrade_system]
+		_app.boost_upgrade_system, _app.project_upgrade_system, _app.growth_upgrade_system]
 
 
 ## Whether spend() would buy anything right now, without buying it. Read-only
@@ -186,6 +194,11 @@ func _progression() -> int:
 	if _app.has_achievement_claims():
 		_app.claim_all_achievements()
 		made += 1
+	# Free of every currency, so taken before anything that has to be afforded.
+	# Neither can outbid a purchase, and both raise what the rest of the tick
+	# produces.
+	made += _claim_daily()
+	made += _spend_level_points()
 	# Automations before boosts, and both out of the same crystals: an automation
 	# is what makes a tier produce at all, a boost only multiplies what is already
 	# produced, so a run that let a cheap boost tier outbid the next automation
@@ -229,6 +242,62 @@ func _spend_biome_points(key: StringName) -> int:
 		points -= 1
 		made += 1
 	return made
+
+
+## Spends every free Level Point, one at a time, always into whichever producer
+## has the fewest so far. Points buy nothing else, so an unspent one is wasted.
+##
+## Spread rather than piled into one producer. The global doubling counts points
+## wherever they went, so the two spend the same and reach the same doubling -
+## but spreading is what a player looking at four rows does, and it keeps all
+## four producers' own multipliers off 1.0, so a mistake in any one of them shows
+## up in the trace instead of hiding behind an untouched row.
+##
+## "Fewest so far" rather than a stored rotation index: the policy is rebuilt per
+## run, and this way a save loaded mid-way evens itself out instead of carrying
+## on from wherever an index happened to be.
+##
+## The budget is read once and counted down locally, the same split
+## _spend_biome_points documents above: lp_available() re-derives the level from
+## lifetime nutrients on every call.
+func _spend_level_points() -> int:
+	if _growth_currencies.is_empty():
+		return 0
+	var points: int = _app.lp_available()
+	if points < 1:
+		return 0
+	var made := 0
+	while points >= 1:
+		if not _app.invest_lp(_fewest_growth(_app.lp_invested)):
+			break
+		points -= 1
+		made += 1
+	return made
+
+
+## Today's daily reward, into whichever producer has the fewest stacks. Spread
+## for the same reason the Level Points above are.
+##
+## At most one claim per simulated day, which is also all a strided jump across
+## three days pays out: DailyRewardSystem banks nothing, so a run that skipped a
+## week collects once, exactly as a player returning after a week does.
+func _claim_daily() -> int:
+	if _growth_currencies.is_empty() or not _app.can_claim_daily():
+		return 0
+	return 1 if _app.claim_daily(_fewest_growth(_app.daily_stacks)) else 0
+
+
+## The producer with the fewest of whatever `counter` counts, ties going to
+## authored order. Shared by the two spreads above.
+func _fewest_growth(counter: Callable) -> CurrencyTypes.Types:
+	var best: CurrencyTypes.Types = _growth_currencies[0]
+	var best_count: int = counter.call(best)
+	for currency: CurrencyTypes.Types in _growth_currencies:
+		var count: int = counter.call(currency)
+		if count < best_count:
+			best = currency
+			best_count = count
+	return best
 
 
 ## One perk per call, cheapest first, so biomass goes into the shallow end of the

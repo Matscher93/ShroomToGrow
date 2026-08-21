@@ -144,6 +144,15 @@ func current_value(def: AchievementDef) -> BigNumber:
 			return BigNumber.from_value(float(_symbiosis.lifetime_levels))
 		AchievementDef.Stat.LIFETIME_BIOME_SIZE:
 			return BigNumber.from_value(float(_player_data.lifetime_biome_size))
+		AchievementDef.Stat.PLAYER_LEVEL:
+			# Derived rather than stored, so this needs no new dependency: the
+			# level is a pure function of lifetime nutrients, which PlayerData
+			# already holds and never resets.
+			#
+			# The level itself, not the Level Point budget: a perk handing out
+			# points must not also hand out achievement tiers.
+			return BigNumber.from_value(
+				float(PlayerLevelCalculator.level_of(_player_data.lifetime_nutrients)))
 		AchievementDef.Stat.BIOMES_EVER_UNLOCKED:
 			var count := 0
 			for key in _biomes_data.ever_unlocked:

@@ -28,6 +28,11 @@
     perks: { label: "Perk levels", log: false },
     boosts: { label: "Boost levels", log: false },
     well_projects: { label: "Well fundings", log: false },
+    // The account ladder. `player_level` is what lifetime nutrients have earned,
+    // `level_points` what the policy has spread across the four producers - they
+    // only part company when a run earns points faster than it spends them.
+    player_level: { label: "Player level", log: false },
+    level_points: { label: "Level Points spent", log: false },
     // What a tick is worth in real seconds. Every &"tick_rate" upgrade shortens
     // it, and the perks doing that outlive a prestige, so this is where a run
     // shows itself getting faster rather than just richer.

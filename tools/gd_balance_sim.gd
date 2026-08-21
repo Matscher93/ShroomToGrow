@@ -39,6 +39,12 @@ const DEFAULT_SAMPLES := 200
 ## sampling interval caps most strides well below this anyway.
 const DEFAULT_STRIDE := 100000
 
+## Where a simulated run's own wall clock starts, as a unix time. Any day well
+## past the epoch will do, and it has to be past it: DailyRewardData opens at
+## last_claim_day 0, which is 1970-01-01, so a run starting there would find its
+## first reward already spent instead of waiting.
+const SIM_EPOCH := 20_000.0 * 86400.0
+
 ## Report path used when --report is given without --out. A plain path, relative
 ## to wherever godot was started, rather than a res:// one: the report is a file
 ## in the repository, not a resource the game loads.
@@ -214,6 +220,10 @@ static func _reset(app: Node) -> void:
 	# Reset here even though a prestige never touches it: the well's projects are
 	# permanent *within* a run, and this is starting a new one.
 	app.project_upgrade_system.reset()
+	# Same again for the growth track. Its two halves are account progress the
+	# sporation has no claim on, but a simulated run starts from nothing - a
+	# baseline carrying invested Level Points would not be a first run.
+	app.growth_upgrade_system.reset()
 	app.biome_system.reset()
 	app.biome_system.unlock_free_biomes()
 
@@ -221,6 +231,10 @@ static func _reset(app: Node) -> void:
 	app.automation_data.load_from_save({})
 	app.achievement_progress.load_from_save({})
 	app.achievement_system.sync_tier_count()
+	app.daily_reward_data.load_from_save({})
+	# The doubling level is derived from the investments just cleared, so it has
+	# to follow them down.
+	app.player_level_system.sync_global_double()
 	# PlayerData.well_project_levels is a projection of the levels just cleared,
 	# and it is the Underground Lake's XP source, so it has to follow them down.
 	app.well_system.sync_project_levels()
@@ -296,6 +310,14 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 	# prestige, so a later run advances the same tick count in less real time.
 	# Accumulated per tick rather than derived from the trace, which is thinned.
 	var seconds := from_seconds
+	# The daily reward is gated on a wall clock, and a simulated run has its own.
+	# A one-element array rather than the float itself: a lambda captures a local
+	# by value, so a closure over `seconds` would read tick zero forever.
+	var clock: Array[float] = [SIM_EPOCH + from_seconds]
+	app.daily_reward_system.now_provider = func() -> float: return clock[0]
+	# UTC, so a day boundary lands on an exact multiple of a day and the stride's
+	# bound below needs no offset of its own.
+	app.daily_reward_system.tz_bias_provider = func() -> int: return 0
 
 	# Ticks where the last one bought nothing are candidates for a stride, which
 	# is why the loop counts rather than iterating a range: a stride moves the
@@ -314,10 +336,12 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 				# Exact: nothing inside the span is bought, so nothing shortens
 				# the tick either.
 				seconds += float(jump) * app.tick_duration()
+				clock[0] = SIM_EPOCH + seconds
 				app.tick_system.advance(jump)
 				tick += jump
 		tick += 1
 		seconds += app.tick_duration()
+		clock[0] = SIM_EPOCH + seconds
 		app.handle_tick()
 		# App drains this once per frame in _process, and the loop here never
 		# yields a frame. Without it no achievement ever completes and the run
@@ -482,6 +506,13 @@ static func _stride(app: Node, policy: BalancePolicy, limit: int, gap: int) -> i
 	var watch := _watch(app, policy)
 	if watch.is_empty():
 		return 0     # something already wants attention, so nothing can be skipped
+	# The day rolls over on its own, and the probe below cannot see it: the run's
+	# clock only advances once a jump is committed. So it is bounded rather than
+	# watched - the stride stops on the tick the next reward opens, and the walked
+	# tick after it claims.
+	limit = mini(limit, watch["daily_ticks"])
+	if limit < 1:
+		return 0
 	var snapshot := _snapshot(app)
 	var best := 0
 	var high := 1
@@ -525,20 +556,35 @@ static func _stride(app: Node, policy: BalancePolicy, limit: int, gap: int) -> i
 static func _watch(app: Node, policy: BalancePolicy) -> Dictionary:
 	if app.has_achievement_claims():
 		return {}
+	# Both halves of the growth sheet come due on their own, so a stretch cannot
+	# start with either already waiting.
+	if app.lp_available() >= 1 or app.can_claim_daily():
+		return {}
 	var growing: Array[AchievementDef] = []
 	for def: AchievementDef in app.achievements.achievements:
 		if app.achievement_system.is_maxed(def):
 			continue
 		if app.achievement_system.current_value(def).gte(app.achievement_system.current_goal(def)):
 			return {}
+		# PLAYER_LEVEL belongs here for the same reason LIFETIME_NUTRIENTS does,
+		# and literally because of it: the level is derived from that counter, so
+		# it climbs on its own across an idle stretch.
 		if def.stat == AchievementDef.Stat.LIFETIME_TICKS \
-				or def.stat == AchievementDef.Stat.LIFETIME_NUTRIENTS:
+				or def.stat == AchievementDef.Stat.LIFETIME_NUTRIENTS \
+				or def.stat == AchievementDef.Stat.PLAYER_LEVEL:
 			growing.append(def)
+	# Ticks to the next local midnight at the current tick length. Nothing inside
+	# a stride buys a level, so nothing shortens the tick either, which is what
+	# makes one division enough. Ceil: the reward opens on the tick that reaches
+	# midnight, not the one before it.
+	var daily_ticks := int(ceil(app.daily_reward_system.seconds_until_next_day()
+		/ app.tick_duration()))
 	return {
 		"price": policy.cheapest_price(),
 		"water": policy.cheapest_water_price(),
 		"perk": _cheapest_locked_perk_cost(app),
 		"growing": growing,
+		"daily_ticks": maxi(1, daily_ticks),
 		"kernel": app.tick_system.jump_kernel(),
 	}
 
@@ -565,6 +611,11 @@ static func _settled(app: Node, watch: Dictionary, gap: int) -> bool:
 	for def: AchievementDef in watch["growing"]:
 		if app.achievement_system.current_value(def).gte(app.achievement_system.current_goal(def)):
 			return false
+	# Lifetime nutrients grow every tick, so a Level Point falls due inside an
+	# idle stretch the way a well project does. _snapshot covers the counter this
+	# reads, so the probe leaves it where it found it.
+	if app.lp_available() >= 1:
+		return false
 	return not _should_prestige(app, gap, watch["perk"])
 
 
@@ -683,6 +734,11 @@ static func _sample(app: Node, tick: int, seconds: float) -> Dictionary:
 		# than off the project track's total_levels(), which counts the boons
 		# riding along with each funding as well.
 		"well_projects": app.well_total_levels(),
+		# The account level lifetime nutrients have reached, and the points it has
+		# handed out that are already spent. They part company only when a run
+		# earns points faster than the policy spreads them.
+		"player_level": app.player_level(),
+		"level_points": app.lp_invested_total(),
 		"tick_duration": app.tick_duration(),
 		"water_interval": app.water_pump_interval(),
 	}

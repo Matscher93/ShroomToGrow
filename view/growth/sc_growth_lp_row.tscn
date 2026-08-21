@@ -1,0 +1,75 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/growth/gd_growth_lp_row.gd" id="1_script"]
+[ext_resource type="FontFile" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="2_num_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_row"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(1, 1, 1, 0.03)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.06)
+corner_radius_top_left = 13
+corner_radius_top_right = 13
+corner_radius_bottom_right = 13
+corner_radius_bottom_left = 13
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dot"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="LabelSettings" id="LabelSettings_detail"]
+font = ExtResource("2_num_font")
+font_size = 11
+font_color = Color(0.5764706, 0.65882355, 0.6117647, 1)
+
+[node name="growth_lp_row" type="PanelContainer" node_paths=PackedStringArray("color_dot", "lbl_label", "lbl_detail", "btn_invest")]
+theme_override_styles/panel = SubResource("StyleBoxFlat_row")
+script = ExtResource("1_script")
+color_dot = NodePath("HBoxContainer/dot_wrap/color_dot")
+lbl_label = NodePath("HBoxContainer/VBoxContainer/lbl_label")
+lbl_detail = NodePath("HBoxContainer/VBoxContainer/lbl_detail")
+btn_invest = NodePath("HBoxContainer/btn_invest")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 11
+
+[node name="dot_wrap" type="PanelContainer" parent="HBoxContainer"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_dot")
+
+[node name="color_dot" type="ColorRect" parent="HBoxContainer/dot_wrap"]
+layout_mode = 2
+color = Color(0.9019608, 0.7254902, 0.33333334, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 1
+
+[node name="lbl_label" type="Label" parent="HBoxContainer/VBoxContainer"]
+layout_mode = 2
+text = "Nutrients"
+
+[node name="lbl_detail" type="Label" parent="HBoxContainer/VBoxContainer"]
+layout_mode = 2
+text = "x1.00 output - 0 LP"
+label_settings = SubResource("LabelSettings_detail")
+
+[node name="btn_invest" type="Button" parent="HBoxContainer"]
+custom_minimum_size = Vector2(80, 34)
+layout_mode = 2
+size_flags_vertical = 4
+text = "Invest"

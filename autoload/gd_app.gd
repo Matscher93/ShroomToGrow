@@ -34,6 +34,12 @@ var boost_upgrade_system: UpgradeSystem
 ## ProjectTree rather than authored, and it is permanent - the sporation wipes
 ## the water but never what the water was spent on.
 var project_upgrade_system: UpgradeSystem
+## Levels of the player-level investments and the daily-reward stacks, one
+## UpgradeDef per producer per kind plus the shared doubling. Its own track for
+## the same reasons the boosts and projects have one: the defs are generated from
+## GrowthTree rather than authored, and it is permanent - both halves of it are
+## account progress the sporation has no claim on.
+var growth_upgrade_system: UpgradeSystem
 var resolve_context := ResolveContext.new()
 
 ## Game rules, split out by domain. Each is constructed with the state it needs
@@ -47,6 +53,8 @@ var tick_system: TickSystem
 var prestige_system: PrestigeSystem
 var water_system: WaterSystem
 var well_system: WellSystem
+var player_level_system: PlayerLevelSystem
+var daily_reward_system: DailyRewardSystem
 
 var biomes := load("res://data/biomes/all_biomes.tres") as BiomeList
 var biomes_data: BiomesData
@@ -70,6 +78,10 @@ var boost_vms: Dictionary = {}  # StringName -> BoostViewModel
 var projects := load("res://data/well/all_projects.tres") as ProjectList
 var project_vms: Dictionary = {}  # StringName -> ProjectViewModel
 var well_vm: WellViewModel
+
+var growth_producers := load("res://data/growth/all_producers.tres") as GrowthProducerList
+var daily_reward_data: DailyRewardData
+var growth_vm: GrowthViewModel
 
 var automations := load("res://data/automation/all_automations.tres") as AutomationList
 var automation_data: AutomationData
@@ -116,9 +128,13 @@ func _ready() -> void:
 	for def in ProjectTree.build(projects):
 		project_upgrade_system.register(def)
 
+	growth_upgrade_system = UpgradeSystem.new()
+	for def in GrowthTree.build(growth_producers):
+		growth_upgrade_system.register(def)
+
 	production_system = ProductionSystem.new(upgrade_system, biome_upgrade_system,
 		prestige_upgrade_system, resolve_context, boost_upgrade_system,
-		project_upgrade_system)
+		project_upgrade_system, growth_upgrade_system)
 	# Built before the tick system, which drives the pump: the well's rate and
 	# yield are stats like any other, but whether it runs at all is a biome unlock.
 	biomes_data = BiomesData.new()
@@ -162,6 +178,12 @@ func _ready() -> void:
 	well_system = WellSystem.new(player_data, project_upgrade_system, projects,
 		prestige_upgrade_system)
 
+	daily_reward_data = DailyRewardData.new()
+	player_level_system = PlayerLevelSystem.new(player_data, growth_upgrade_system,
+		growth_producers, production_system)
+	daily_reward_system = DailyRewardSystem.new(daily_reward_data, growth_upgrade_system,
+		growth_producers)
+
 	# A boost's per-level rate is baked into its UpgradeDef, and the Well's
 	# projects move it. Funding one is the only thing that can, so the rebuild
 	# rides that signal rather than a tick. Run once up front too: a save loaded
@@ -194,6 +216,9 @@ func _ready() -> void:
 	crystal_caves_vm = CrystalCavesViewModel.new()
 	# After project_vms, for the same reason.
 	well_vm = WellViewModel.new()
+	# After player_level_system and daily_reward_system: it reads both back
+	# through App, which forwards to them.
+	growth_vm = GrowthViewModel.new()
 
 	screens_vm = ScreensViewModel.new(screens_data)
 	# After screens_data and crystal_caves_vm: the nav menu reads the screen
@@ -215,6 +240,9 @@ func _ready() -> void:
 	prestige_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	boost_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	project_upgrade_system.upgrades_changed.connect(_update_tick_duration)
+	# The growth track is deliberately absent here: GrowthTree only ever writes
+	# the four producer stats, never &"tick_rate", so nothing it holds can move
+	# the tick length.
 	_update_tick_duration()
 
 	_connect_achievement_sources()
@@ -241,6 +269,7 @@ func _connect_achievement_sources() -> void:
 	prestige_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	boost_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	project_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
+	growth_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	biomes_data.biome_unlocked.connect(mark_achievements_dirty.unbind(1))
 	player_data.prestige_count_changed.connect(mark_achievements_dirty.unbind(1))
 	biome_size_changed.connect(mark_achievements_dirty.unbind(1))
@@ -303,6 +332,8 @@ func to_save() -> Dictionary:
 		"automation": automation_data.to_save(),
 		"boost_upgrades": boost_upgrade_system.to_save(),
 		"project_upgrades": project_upgrade_system.to_save(),
+		"growth_upgrades": growth_upgrade_system.to_save(),
+		"daily_reward": daily_reward_data.to_save(),
 	}
 
 ## Loads a dictionary from to_save() into the live systems. Every holder is
@@ -326,6 +357,14 @@ func load_from_save(game: Dictionary) -> void:
 	# PlayerData.well_project_levels is a projection of the levels just loaded,
 	# not a saved field, so it has to be rebuilt here - same as achievement_tiers.
 	well_system.sync_project_levels()
+	growth_upgrade_system.from_save(game.get("growth_upgrades", {}))
+	# The doubling level does round-trip with the rest of the track, so this is a
+	# drift guard rather than the primary path. See sync_global_double().
+	player_level_system.sync_global_double()
+	daily_reward_data.load_from_save(game.get("daily_reward", {}))
+	# Only a device clock moved backwards can leave a last-claim day in the
+	# future, and only a load can be the first thing to notice.
+	daily_reward_system.sync_clock_rollback()
 
 func mycelium_nodes_to_save() -> Array[Dictionary]:
 	var all_node_data: Array[Dictionary] = []
@@ -503,6 +542,54 @@ func project_boon_amount(project_id: StringName, index: int) -> BigNumber:
 
 func project_boon_next_level_delta(project_id: StringName, index: int) -> BigNumber:
 	return well_system.boon_next_level_delta(project_id, index, resolve_context)
+
+# ---------------------------------------------------------------- growth
+
+func player_level() -> int:
+	return player_level_system.level()
+
+## {level, into, need, pct} - the bar and its caption in one read, so the two
+## cannot be taken from different lifetime totals.
+func player_level_progress() -> Dictionary:
+	return player_level_system.level_progress()
+
+func lp_invested(currency: CurrencyTypes.Types) -> int:
+	return player_level_system.invested(currency)
+
+func lp_invested_total() -> int:
+	return player_level_system.invested_total()
+
+func lp_available() -> int:
+	return player_level_system.available_points()
+
+func lp_global_double() -> BigNumber:
+	return player_level_system.global_double()
+
+func lp_points_to_next_double() -> int:
+	return player_level_system.points_to_next_double()
+
+func can_invest_lp(currency: CurrencyTypes.Types) -> bool:
+	return player_level_system.can_invest(currency)
+
+func invest_lp(currency: CurrencyTypes.Types) -> bool:
+	return player_level_system.invest(currency)
+
+# ---------------------------------------------------------------- daily reward
+
+func can_claim_daily() -> bool:
+	return daily_reward_system.can_claim()
+
+func can_claim_daily_into(currency: CurrencyTypes.Types) -> bool:
+	return daily_reward_system.can_claim_into(currency)
+
+func daily_streak() -> int:
+	return daily_reward_system.streak()
+
+func daily_stacks(currency: CurrencyTypes.Types) -> int:
+	return daily_reward_system.stacks(currency)
+
+func claim_daily(currency: CurrencyTypes.Types) -> bool:
+	return daily_reward_system.claim(currency)
 
 # ---------------------------------------------------------------- biomes
 

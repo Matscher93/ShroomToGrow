@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AchievementDef" format=3]
+
+[ext_resource type="Script" path="res://model/achievements/res_achievement_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"Ascendant"
+display_name = "Ascendant"
+description = "Climb the player level. Every level is one lifetime nutrients already paid for."
+sort_order = 8
+stat = 8
+_goal_base_mantissa = 3.0
+_goal_base_exponent = 0
+goal_growth = 1.6
+goal_growth_exponent = 1.0
+_reward_base_mantissa = 4.0
+_reward_base_exponent = 1
+reward_growth = 2.0
+reward_growth_exponent = 1.0
+max_tier = 0

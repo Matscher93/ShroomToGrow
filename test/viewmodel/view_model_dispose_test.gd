@@ -30,6 +30,9 @@ func _emitters() -> Array[Object]:
 		App.biome_upgrade_system,
 		App.prestige_upgrade_system,
 		App.boost_upgrade_system,
+		App.project_upgrade_system,
+		App.growth_upgrade_system,
+		App.daily_reward_data,
 		App.screens_data,
 	]
 	for node in App.nodes.mycelium_nodes:
@@ -122,6 +125,10 @@ func test_crystal_caves_view_model_disposes_cleanly() -> void:
 func test_navigation_view_model_disposes_cleanly() -> void:
 	_assert_symmetric("NavigationViewModel",
 		func() -> ViewModel: return NavigationViewModel.new())
+
+func test_growth_view_model_disposes_cleanly() -> void:
+	_assert_symmetric("GrowthViewModel",
+		func() -> ViewModel: return GrowthViewModel.new())
 
 # ─── Per-selection VMs (built fresh on select, disposed on reselect) ─────────
 #

@@ -24,6 +24,7 @@ enum Stat {
 	LIFETIME_SYMBIOSIS_LEVELS,  ## UpgradeSystem.lifetime_levels, symbiosis track
 	LIFETIME_BIOME_SIZE,        ## PlayerData.lifetime_biome_size
 	BIOMES_EVER_UNLOCKED,       ## BiomesData.ever_unlocked
+	PLAYER_LEVEL,               ## PlayerLevelCalculator, off lifetime nutrients
 }
 
 ## True for stats that only ever take whole values: there is no such thing as
