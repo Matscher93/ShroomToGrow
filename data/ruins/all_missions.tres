@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MissionList" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_list.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="2_mission_script"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_sift_rubble.tres" id="3_sift_rubble"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_stalk_the_galleries.tres" id="4_stalk_the_galleries"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_pry_the_flagstones.tres" id="5_pry_the_flagstones"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_trace_the_wardstone.tres" id="6_trace_the_wardstone"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_bleed_the_swarm.tres" id="7_bleed_the_swarm"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_breach_the_vault.tres" id="8_breach_the_vault"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_read_the_frieze.tres" id="9_read_the_frieze"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_hollow_the_brood.tres" id="10_hollow_the_brood"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_plumb_the_undercroft.tres" id="11_plumb_the_undercroft"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_wake_the_choir.tres" id="12_wake_the_choir"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_drain_the_warden.tres" id="13_drain_the_warden"]
+[ext_resource type="Resource" path="res://data/ruins/res_mission_unseal_the_sanctum.tres" id="14_unseal_the_sanctum"]
+
+[resource]
+script = ExtResource("1_script")
+missions = Array[ExtResource("2_mission_script")]([ExtResource("3_sift_rubble"), ExtResource("4_stalk_the_galleries"), ExtResource("5_pry_the_flagstones"), ExtResource("6_trace_the_wardstone"), ExtResource("7_bleed_the_swarm"), ExtResource("8_breach_the_vault"), ExtResource("9_read_the_frieze"), ExtResource("10_hollow_the_brood"), ExtResource("11_plumb_the_undercroft"), ExtResource("12_wake_the_choir"), ExtResource("13_drain_the_warden"), ExtResource("14_unseal_the_sanctum")])

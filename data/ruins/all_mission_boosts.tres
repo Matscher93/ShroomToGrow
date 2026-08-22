@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MissionBoostList" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_boost_list.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_boost_def.gd" id="2_boost_script"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_swift_errands.tres" id="3_ruin_swift_errands"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_richer_spoils.tres" id="4_ruin_richer_spoils"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_wider_board.tres" id="5_ruin_wider_board"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_relic_sense.tres" id="6_ruin_relic_sense"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_ichor_still.tres" id="7_ruin_ichor_still"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_glyph_lore.tres" id="8_ruin_glyph_lore"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_deeper_thralls.tres" id="9_ruin_deeper_thralls"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_hungry_roots.tres" id="10_ruin_hungry_roots"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_deep_time.tres" id="11_ruin_deep_time"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_wet_stone.tres" id="12_ruin_wet_stone"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_spore_bounty.tres" id="13_ruin_spore_bounty"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_crystal_tithe.tres" id="14_ruin_crystal_tithe"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_restless_hands.tres" id="15_ruin_restless_hands"]
+[ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_old_covenant.tres" id="16_ruin_old_covenant"]
+
+[resource]
+script = ExtResource("1_script")
+boosts = Array[ExtResource("2_boost_script")]([ExtResource("3_ruin_swift_errands"), ExtResource("4_ruin_richer_spoils"), ExtResource("5_ruin_wider_board"), ExtResource("6_ruin_relic_sense"), ExtResource("7_ruin_ichor_still"), ExtResource("8_ruin_glyph_lore"), ExtResource("9_ruin_deeper_thralls"), ExtResource("10_ruin_hungry_roots"), ExtResource("11_ruin_deep_time"), ExtResource("12_ruin_wet_stone"), ExtResource("13_ruin_spore_bounty"), ExtResource("14_ruin_crystal_tithe"), ExtResource("15_ruin_restless_hands"), ExtResource("16_ruin_old_covenant")])

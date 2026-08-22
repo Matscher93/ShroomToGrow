@@ -71,14 +71,37 @@ func test_the_current_row_is_the_screen_that_is_up() -> void:
 
 # ─── Sub rows ────────────────────────────────────────────────────────────────
 
-## Crystals is the only screen with sub-views today, and no other screen should
-## have grown rows it does not own.
-func test_only_the_crystals_screen_has_sub_rows() -> void:
+## A row only ever lists sub-views its own ScreenDefinition authors.
+##
+## Was "Crystals is the only screen with sub-views", which stopped being true the
+## moment the Ruins arrived with three tabs of its own. Checking against the
+## authored list instead says the same thing - no screen grew rows it does not
+## own - without having to be edited every time a screen gains tabs.
+func test_every_sub_row_is_one_its_screen_authors() -> void:
 	for row in _vm.destinations:
-		if row.screen_type == ScreenTypes.Types.CRYSTAL_CAVES:
-			continue
-		assert_array(row.subs).override_failure_message(
-			"screen %d grew sub rows" % row.screen_type).is_empty()
+		var definition: ScreenDefinition = App.screens_data.screen_data.get(row.screen_type)
+		assert_object(definition).is_not_null()
+		var authored: Array[String] = []
+		for sub in definition.sub_screens:
+			authored.append(sub.display_name)
+		for sub in row.subs:
+			assert_array(authored).override_failure_message(
+				"screen %d lists sub row '%s', which it does not author." \
+					% [row.screen_type, sub.label]).contains([sub.label])
+
+## The gate the Ruins screen puts on its Creatures tab, checked the same way the
+## Boosts one below is: before the first creature is within reach the tab is a
+## page of locked cards, so a row leading to it would lead somewhere not on
+## screen.
+func test_the_creatures_sub_row_follows_the_creatures_tab() -> void:
+	var row := _destination(ScreenTypes.Types.RUINS)
+	if row == null:
+		return
+	var listed := false
+	for sub in row.subs:
+		if sub.label == "Creatures":
+			listed = true
+	assert_bool(listed).is_equal(App.ruins_vm.creatures_visible)
 
 ## The same gate the screen puts on the tab itself. Before the first boost perk
 ## the Boosts tab is hidden, so a row leading to it would lead somewhere that is

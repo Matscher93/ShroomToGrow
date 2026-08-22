@@ -13,7 +13,15 @@ const ROOT_RADIUS := 150.0
 ## Node circles are 40px and the label block under one is about 60px tall, so a
 ## step much under this puts a node's labels on top of whatever the next ring
 ## over happens to sit beneath it. perk_node_test.gd is what pins that down.
-const DEPTH_RADIUS_STEP := 140.0
+##
+## Raised from 140 when Dominion made an eighth branch. A branch's sibling spread
+## is capped by its slice of the circle (see _spread_for), so each new branch
+## narrows every existing one; the arc between two siblings is that angle times
+## the radius, and the radius is the only half of that product a new branch does
+## not shrink. Widening BRANCH_SLICE_FILL instead would buy the same angle back
+## by eating the gutter, which pushes neighbouring *branches* into each other -
+## measurably worse than what it fixes.
+const DEPTH_RADIUS_STEP := 170.0
 const SIBLING_SPREAD_DEG := 26.0
 const BRANCH_START_DEG := -90.0  ## first branch points straight up from the core
 ## Fraction of its slice of the circle a branch may fill. The rest is the gutter

@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MissionBoostDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_boost_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="2_effect_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_relics_def.tres" id="3_currency"]
+
+[sub_resource type="Resource" id="effect_0"]
+script = ExtResource("2_effect_script")
+stat = &"tick_rate"
+op = 0
+scope = 0
+target = &""
+per_level = -0.15
+level_scaling = 0
+max_magnitude = 4.0
+
+[resource]
+script = ExtResource("1_script")
+id = &"ruin_deep_time"
+display_name = "Deep Time"
+description = "The ruins keep their own hours. Shortens every tick."
+currency = ExtResource("3_currency")
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 2
+cost_growth = 1.9
+max_level = 0
+min_missions_completed = 6
+effects = Array[ExtResource("2_effect_script")]([SubResource("effect_0")])

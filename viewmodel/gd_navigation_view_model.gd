@@ -78,6 +78,14 @@ func badge_count(source: SubScreenDefinition.BadgeSource) -> int:
 			return _affordable(App.boost_vms)
 		SubScreenDefinition.BadgeSource.AFFORDABLE_AUTOMATIONS:
 			return _affordable(App.automation_vms)
+		SubScreenDefinition.BadgeSource.COLLECTABLE_MISSIONS:
+			# Missions finish on the wall clock, so this number moves with no
+			# model signal behind it. The menu is short-lived enough that a badge
+			# a few seconds stale is not worth a repaint timer of its own - the
+			# count is right every time the menu is opened.
+			return App.collectable_mission_count()
+		SubScreenDefinition.BadgeSource.AFFORDABLE_MISSION_BOOSTS:
+			return _affordable(App.mission_boost_vms)
 	return 0
 
 # --- Lifecycle ---
@@ -93,6 +101,17 @@ func _init() -> void:
 	App.player_data.crystals_changed.connect(_on_badges_changed.unbind(1))
 	App.boost_upgrade_system.upgrades_changed.connect(_on_badges_changed)
 	App.automation_data.levels_changed.connect(_on_badges_changed)
+	# The three mission currencies, which is what makes a Ruins boost affordable.
+	App.player_data.relics_changed.connect(_on_badges_changed.unbind(1))
+	App.player_data.ichor_changed.connect(_on_badges_changed.unbind(1))
+	App.player_data.glyphs_changed.connect(_on_badges_changed.unbind(1))
+	App.mission_upgrade_system.upgrades_changed.connect(_on_badges_changed)
+	# Sending and collecting move the collectable count directly. A mission
+	# *finishing* fires nothing - see badge_count().
+	App.ruins_data.active_changed.connect(_on_badges_changed)
+	# Reaching the first creature brings the Creatures row in, which is a row
+	# change rather than a badge one.
+	App.ruins_data.missions_completed_changed.connect(_on_destinations_changed.unbind(1))
 
 func dispose() -> void:
 	App.screens_data.screen_changed.disconnect(_on_destinations_changed.unbind(1))
@@ -101,6 +120,12 @@ func dispose() -> void:
 	App.player_data.crystals_changed.disconnect(_on_badges_changed.unbind(1))
 	App.boost_upgrade_system.upgrades_changed.disconnect(_on_badges_changed)
 	App.automation_data.levels_changed.disconnect(_on_badges_changed)
+	App.player_data.relics_changed.disconnect(_on_badges_changed.unbind(1))
+	App.player_data.ichor_changed.disconnect(_on_badges_changed.unbind(1))
+	App.player_data.glyphs_changed.disconnect(_on_badges_changed.unbind(1))
+	App.mission_upgrade_system.upgrades_changed.disconnect(_on_badges_changed)
+	App.ruins_data.active_changed.disconnect(_on_badges_changed)
+	App.ruins_data.missions_completed_changed.disconnect(_on_destinations_changed.unbind(1))
 
 # --- Model -> notification plumbing ---
 
@@ -145,6 +170,8 @@ func _is_sub_visible(sub: SubScreenDefinition) -> bool:
 	match sub.visible_when:
 		SubScreenDefinition.VisibleWhen.BOOSTS_UNLOCKED:
 			return App.crystal_caves_vm.boosts_visible
+		SubScreenDefinition.VisibleWhen.CREATURES_UNLOCKED:
+			return App.ruins_vm.creatures_visible
 	return true
 
 ## Which sub-view the given screen is showing, or -1 for a screen that has none.
@@ -154,6 +181,8 @@ func _is_sub_visible(sub: SubScreenDefinition) -> bool:
 func _current_sub_index(type: ScreenTypes.Types) -> int:
 	if type == ScreenTypes.Types.CRYSTAL_CAVES:
 		return App.crystal_caves_vm.current_tab
+	if type == ScreenTypes.Types.RUINS:
+		return App.ruins_vm.current_tab
 	return -1
 
 ## Both card VMs already expose can_buy against live currency, so the count is a

@@ -1,0 +1,104 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/ruins/gd_mission_boost_card.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="2_hold_repeat"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ruins_boost_card"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.13333334, 0.10980392, 0.09019608, 0.55)
+border_width_left = 2
+border_color = Color(0.29803923, 0.7529412, 0.6156863, 0.5)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kind_chip"]
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+bg_color = Color(0.29803923, 0.7529412, 0.6156863, 0.16)
+corner_radius_top_left = 99
+corner_radius_top_right = 99
+corner_radius_bottom_right = 99
+corner_radius_bottom_left = 99
+
+[node name="mission_boost_card" type="PanelContainer" node_paths=PackedStringArray("lbl_name", "lbl_description", "lbl_bonus", "lbl_level", "lbl_kind", "lbl_next", "lbl_cost", "btn_buy")]
+theme_override_styles/panel = SubResource("StyleBoxFlat_ruins_boost_card")
+script = ExtResource("1_script")
+lbl_name = NodePath("VBoxContainer/header/lbl_name")
+lbl_description = NodePath("VBoxContainer/lbl_description")
+lbl_bonus = NodePath("VBoxContainer/header/lbl_bonus")
+lbl_level = NodePath("VBoxContainer/progress/lbl_level")
+lbl_kind = NodePath("VBoxContainer/progress/panel_kind/lbl_kind")
+lbl_next = NodePath("VBoxContainer/footer/lbl_next")
+lbl_cost = NodePath("VBoxContainer/footer/lbl_cost")
+btn_buy = NodePath("VBoxContainer/footer/btn_buy")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="header" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="lbl_name" type="Label" parent="VBoxContainer/header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Boost"
+
+[node name="lbl_bonus" type="Label" parent="VBoxContainer/header"]
+modulate = Color(0.7607843, 0.9411765, 0.87058824, 1)
+layout_mode = 2
+text = "-"
+
+[node name="lbl_description" type="Label" parent="VBoxContainer"]
+modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+text = "What this boost raises."
+autowrap_mode = 3
+
+[node name="progress" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="lbl_level" type="Label" parent="VBoxContainer/progress"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Lv 0"
+
+[node name="panel_kind" type="PanelContainer" parent="VBoxContainer/progress"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_kind_chip")
+
+[node name="lbl_kind" type="Label" parent="VBoxContainer/progress/panel_kind"]
+modulate = Color(0.7607843, 0.9411765, 0.87058824, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Control"
+
+[node name="footer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="lbl_next" type="Label" parent="VBoxContainer/footer"]
+modulate = Color(1, 1, 1, 0.65)
+layout_mode = 2
+size_flags_horizontal = 3
+text = ""
+
+[node name="lbl_cost" type="Label" parent="VBoxContainer/footer"]
+modulate = Color(0.7607843, 0.9411765, 0.87058824, 1)
+layout_mode = 2
+text = "0"
+
+[node name="btn_buy" type="Button" parent="VBoxContainer/footer"]
+layout_mode = 2
+text = "Buy"
+script = ExtResource("2_hold_repeat")

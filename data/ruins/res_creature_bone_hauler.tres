@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CreatureDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_creature_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_relics_def.tres" id="2_cur_relics"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"bone_hauler"
+display_name = "Bone Hauler"
+description = "No talent for anything in particular, and an endless appetite for all of it."
+affinity = Array[StringName]([])
+speed_per_rank = 0.22
+yield_per_rank = 0.28
+affinity_bonus = 0.0
+base_rank_cap = 8
+min_missions_completed = 20
+recruit_currency = ExtResource("2_cur_relics")
+_recruit_cost_mantissa = 8.0
+_recruit_cost_exponent = 2
+rank_currency = ExtResource("2_cur_relics")
+_rank_base_cost_mantissa = 1.2
+_rank_base_cost_exponent = 3
+rank_cost_growth = 1.8

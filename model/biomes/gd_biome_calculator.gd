@@ -27,6 +27,15 @@ static func xp_for(def: BiomeDef, mycelium_nodes: Array[MyceliumNode],
 			# UpgradeSystem, so this stays a pure function of the four arguments
 			# it already takes. WellSystem keeps the two in step.
 			return player_data.well_project_levels * 3
+		BiomeDef.XpSource.MISSIONS_COMPLETED:
+			# Same contract as WELL_PROJECTS above: read off PlayerData's cached
+			# projection, which MissionSystem keeps in step, so this stays a pure
+			# function of the four arguments it already takes.
+			#
+			# Weighted heavier than a well funding because a mission is bounded by
+			# wall-clock time rather than by what the player can afford, so the
+			# tally climbs far more slowly.
+			return player_data.missions_completed * 5
 		_:
 			return 0
 

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="3_cur_glyphs"]
+
+[sub_resource type="Resource" id="payout_glyphs"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("3_cur_glyphs")
+gain_stat = &"glyph_gain"
+_amount_mantissa = 3.0
+_amount_exponent = 0
+
+[resource]
+script = ExtResource("1_script")
+id = &"trace_the_wardstone"
+display_name = "Trace the Wardstone"
+description = "Copy the marks cut into the door-stone before the damp finishes taking them."
+base_duration_seconds = 150.0
+min_creature_rank = 1
+min_missions_completed = 5
+unlock_perk_id = &""
+payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_glyphs")])

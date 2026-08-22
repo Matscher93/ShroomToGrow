@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CreatureDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_creature_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="2_cur_ichor"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="3_cur_glyphs"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"chitin_scribe"
+display_name = "Chitin Scribe"
+description = "It has copied the wall-marks onto its own shell for so long that the two are hard to tell apart."
+affinity = Array[StringName]([&"trace_the_wardstone", &"read_the_frieze", &"wake_the_choir", &"unseal_the_sanctum"])
+speed_per_rank = 0.12
+yield_per_rank = 0.24
+affinity_bonus = 0.5
+base_rank_cap = 6
+min_missions_completed = 10
+recruit_currency = ExtResource("2_cur_ichor")
+_recruit_cost_mantissa = 6.0
+_recruit_cost_exponent = 1
+rank_currency = ExtResource("3_cur_glyphs")
+_rank_base_cost_mantissa = 1.5
+_rank_base_cost_exponent = 1
+rank_cost_growth = 1.75

@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="PerkBranchDef" format=3]
+
+; The Ruins arm. Grasp is the branch's whole point - it is the only thing in the
+; game that widens the mission board - so it is the root and it appears twice,
+; once at the mouth of the branch and once at the far end of it.
+;
+; The two children of a node alternate sides down the chain, for the layout
+; reason res_branch_reach.tres sets out at length: PerkTree spaces siblings by
+; the branch's widest accumulated offset, so hanging every second child on the
+; same side turns a chain into a staircase and crushes the sibling spread.
+
+[ext_resource type="Script" uid="uid://bidkvks0jdm2w" path="res://model/prestige/gd_perk_branch_def.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="2_effect_script"]
+[ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="3_node_script"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_dominion_slots_effect.tres" id="4_slots_effect"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_dominion_haste_effect.tres" id="5_haste_effect"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_dominion_spoils_effect.tres" id="6_spoils_effect"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_dominion_thrall_effect.tres" id="7_thrall_effect"]
+
+[sub_resource type="Resource" id="node_dominion_reach"]
+script = ExtResource("3_node_script")
+id = &"dominion_reach"
+display_name = "Long Reach"
+description = "+1 mission at a time, per level. The far end of the branch, and the last slots the Ruins will ever give up."
+max_level = 3
+_base_cost_mantissa = 2.0
+_base_cost_exponent = 4
+cost_growth = 3.0
+effects = Array[ExtResource("2_effect_script")]([ExtResource("4_slots_effect")])
+
+[sub_resource type="Resource" id="node_dominion_thrall"]
+script = ExtResource("3_node_script")
+id = &"dominion_thrall"
+display_name = "Deeper Thralls"
+description = "+1 rank ceiling on every creature, per level."
+max_level = 5
+_base_cost_mantissa = 1.0
+_base_cost_exponent = 4
+cost_growth = 2.4
+effects = Array[ExtResource("2_effect_script")]([ExtResource("7_thrall_effect")])
+
+[sub_resource type="Resource" id="node_dominion_spoils"]
+script = ExtResource("3_node_script")
+id = &"dominion_spoils"
+children = Array[ExtResource("3_node_script")]([SubResource("node_dominion_reach")])
+display_name = "Rich Spoils"
+description = "x1.12 on every mission payout, per level."
+max_level = 5
+_base_cost_mantissa = 3.0
+_base_cost_exponent = 3
+cost_growth = 2.2
+effects = Array[ExtResource("2_effect_script")]([ExtResource("6_spoils_effect")])
+
+[sub_resource type="Resource" id="node_dominion_haste"]
+script = ExtResource("3_node_script")
+id = &"dominion_haste"
+children = Array[ExtResource("3_node_script")]([SubResource("node_dominion_thrall")])
+display_name = "Driven Haste"
+description = "x1.10 mission speed, per level. Every errand comes home sooner."
+max_level = 5
+_base_cost_mantissa = 2.0
+_base_cost_exponent = 3
+cost_growth = 2.2
+effects = Array[ExtResource("2_effect_script")]([ExtResource("5_haste_effect")])
+
+[sub_resource type="Resource" id="node_dominion_grasp"]
+script = ExtResource("3_node_script")
+id = &"dominion_grasp"
+children = Array[ExtResource("3_node_script")]([SubResource("node_dominion_haste"), SubResource("node_dominion_spoils")])
+display_name = "Wider Grasp"
+description = "+1 mission at a time, per level. Nothing else in the game widens the board."
+max_level = 4
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 2
+cost_growth = 2.6
+effects = Array[ExtResource("2_effect_script")]([ExtResource("4_slots_effect")])
+
+[resource]
+script = ExtResource("1_script")
+key = &"dom"
+label = "Dominion"
+hue = 330.0
+roots = Array[ExtResource("3_node_script")]([SubResource("node_dominion_grasp")])

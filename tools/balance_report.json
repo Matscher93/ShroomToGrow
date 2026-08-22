@@ -513,6 +513,51 @@
 			"cost_to_max": "6.32e3",
 			"path_cost": "8.74e3",
 			"effect_at_max": ""
+		},
+		{
+			"id": "dominion_grasp",
+			"branch": "dom",
+			"depth": 1,
+			"max_level": 4,
+			"cost_to_max": "1.40e4",
+			"path_cost": "1.40e4",
+			"effect_at_max": "4.00e0"
+		},
+		{
+			"id": "dominion_haste",
+			"branch": "dom",
+			"depth": 2,
+			"max_level": 5,
+			"cost_to_max": "8.42e4",
+			"path_cost": "9.82e4",
+			"effect_at_max": "5.00e-1"
+		},
+		{
+			"id": "dominion_thrall",
+			"branch": "dom",
+			"depth": 3,
+			"max_level": 5,
+			"cost_to_max": "5.62e5",
+			"path_cost": "6.60e5",
+			"effect_at_max": "5.00e0"
+		},
+		{
+			"id": "dominion_spoils",
+			"branch": "dom",
+			"depth": 2,
+			"max_level": 5,
+			"cost_to_max": "1.26e5",
+			"path_cost": "1.40e5",
+			"effect_at_max": "6.00e-1"
+		},
+		{
+			"id": "dominion_reach",
+			"branch": "dom",
+			"depth": 3,
+			"max_level": 3,
+			"cost_to_max": "2.60e5",
+			"path_cost": "4.00e5",
+			"effect_at_max": "3.00e0"
 		}
 	],
 	"branches": [
@@ -592,6 +637,19 @@
 				"water_production (INCREASED)": "5.50e0",
 				"water_rate (ADD)": "-2.50e0"
 			}
+		},
+		{
+			"branch": "dom",
+			"perks": 5,
+			"max_depth": 3,
+			"total_cost_to_max": "1.05e6",
+			"deepest_path_cost": "6.60e5",
+			"stats": {
+				"mission_slots (ADD)": "7.00e0",
+				"mission_speed (MORE)": "5.00e-1",
+				"creature_rank_cap (ADD)": "5.00e0",
+				"mission_reward (MORE)": "6.00e-1"
+			}
 		}
 	],
 	"upgrades": [
@@ -622,6 +680,104 @@
 			"stat": "",
 			"per_level": 0.0,
 			"cost_to_max": "1.59e7"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_crystal_tithe.tres",
+			"max_level": 0,
+			"stat": "crystal_gain",
+			"per_level": 0.18,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_deep_time.tres",
+			"max_level": 0,
+			"stat": "tick_rate",
+			"per_level": -0.15,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_deeper_thralls.tres",
+			"max_level": 10,
+			"stat": "creature_rank_cap",
+			"per_level": 1.0,
+			"cost_to_max": "1.76e6"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_glyph_lore.tres",
+			"max_level": 0,
+			"stat": "glyph_gain",
+			"per_level": 0.2,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_hungry_roots.tres",
+			"max_level": 0,
+			"stat": "node_production",
+			"per_level": 0.25,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_ichor_still.tres",
+			"max_level": 0,
+			"stat": "ichor_gain",
+			"per_level": 0.2,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_old_covenant.tres",
+			"max_level": 0,
+			"stat": "node_production",
+			"per_level": 0.6,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_relic_sense.tres",
+			"max_level": 0,
+			"stat": "relic_gain",
+			"per_level": 0.2,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_restless_hands.tres",
+			"max_level": 0,
+			"stat": "automation_rate",
+			"per_level": 0.12,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_richer_spoils.tres",
+			"max_level": 0,
+			"stat": "mission_reward",
+			"per_level": 0.12,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_spore_bounty.tres",
+			"max_level": 0,
+			"stat": "biomass_gain",
+			"per_level": 0.15,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_swift_errands.tres",
+			"max_level": 0,
+			"stat": "mission_speed",
+			"per_level": 0.1,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_wet_stone.tres",
+			"max_level": 0,
+			"stat": "water_production",
+			"per_level": 0.2,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/ruins/res_boost_ruin_wider_board.tres",
+			"max_level": 4,
+			"stat": "mission_slots",
+			"per_level": 1.0,
+			"cost_to_max": "1.27e3"
 		},
 		{
 			"path": "res://data/upgrades/biomes/crystal_caves/cave_echo_def.tres",
@@ -831,6 +987,76 @@
 			"max_level": 10,
 			"stat": "synergy_production",
 			"per_level": 0.06,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/ruins/ash_harvest_def.tres",
+			"max_level": 10,
+			"stat": "biomass_gain",
+			"per_level": 0.18,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/ruins/carved_tongue_def.tres",
+			"max_level": 10,
+			"stat": "glyph_gain",
+			"per_level": 0.25,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/ruins/creeping_hold_def.tres",
+			"max_level": 10,
+			"stat": "mission_reward",
+			"per_level": 0.18,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/ruins/grave_goods_def.tres",
+			"max_level": 10,
+			"stat": "relic_gain",
+			"per_level": 0.25,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/ruins/open_veins_def.tres",
+			"max_level": 10,
+			"stat": "ichor_gain",
+			"per_level": 0.25,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/ruins/quick_thralls_def.tres",
+			"max_level": 10,
+			"stat": "mission_speed",
+			"per_level": 0.15,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/ruins/root_tribute_def.tres",
+			"max_level": 10,
+			"stat": "node_production",
+			"per_level": 0.3,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/ruins/stone_patience_def.tres",
+			"max_level": 10,
+			"stat": "tick_rate",
+			"per_level": -0.1,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/ruins/sunken_offering_def.tres",
+			"max_level": 10,
+			"stat": "water_production",
+			"per_level": 0.2,
+			"cost_to_max": "2.03e2"
+		},
+		{
+			"path": "res://data/upgrades/biomes/ruins/wardens_due_def.tres",
+			"max_level": 10,
+			"stat": "crystal_gain",
+			"per_level": 0.22,
 			"cost_to_max": "2.03e2"
 		},
 		{

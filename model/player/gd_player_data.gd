@@ -7,10 +7,14 @@ signal biomass_changed(value: BigNumber)
 signal water_changed(value: BigNumber)
 signal crystals_changed(value: BigNumber)
 signal fertilizer_changed(value: BigNumber)
+signal relics_changed(value: BigNumber)
+signal ichor_changed(value: BigNumber)
+signal glyphs_changed(value: BigNumber)
 signal tick_count_changed(value: int)
 signal prestige_count_changed(value: int)
 signal achievement_tiers_changed(value: int)
 signal well_project_levels_changed(value: int)
+signal missions_completed_changed(value: int)
 
 ## The BigNumber setters below guard with same_value(), not ==. BigNumber is a
 ## RefCounted, so == is an identity check, false for every freshly built
@@ -59,6 +63,32 @@ var fertilizer: BigNumber = BigNumber.from_value(0.0):
 		fertilizer = value
 		fertilizer_changed.emit(fertilizer)
 
+## The three Ruins currencies, paid out by missions. Permanent: prestige() never
+## touches them, the same way it leaves biomass, crystals and fertilizer alone.
+##
+## Three rather than one because a mission's payouts are authored per currency,
+## which is what lets a boost ladder branch on which kind of mission fed it.
+var relics: BigNumber = BigNumber.from_value(0.0):
+	set(value):
+		if value == null or relics.same_value(value):
+			return
+		relics = value
+		relics_changed.emit(relics)
+
+var ichor: BigNumber = BigNumber.from_value(0.0):
+	set(value):
+		if value == null or ichor.same_value(value):
+			return
+		ichor = value
+		ichor_changed.emit(ichor)
+
+var glyphs: BigNumber = BigNumber.from_value(0.0):
+	set(value):
+		if value == null or glyphs.same_value(value):
+			return
+		glyphs = value
+		glyphs_changed.emit(glyphs)
+
 var tick_count: int = 0:
 	set(value):
 		if tick_count == value:
@@ -102,6 +132,20 @@ var well_project_levels: int = 0:
 		well_project_levels = value
 		well_project_levels_changed.emit(well_project_levels)
 
+## Missions collected across the whole account. Doubles as the Ruins' XP source
+## (BiomeDef.XpSource.MISSIONS_COMPLETED), so it needs a change signal.
+##
+## Same contract as achievement_tiers and well_project_levels above: a cached
+## projection of RuinsData.missions_completed, rewritten by MissionSystem and
+## re-synced after the ruins bucket is loaded. Deliberately not in _PLAIN_FIELDS -
+## saving it too would let the two drift.
+var missions_completed: int = 0:
+	set(value):
+		if missions_completed == value:
+			return
+		missions_completed = value
+		missions_completed_changed.emit(missions_completed)
+
 ## Lifetime totals the achievement ladder measures against. Unlike tick_count and
 ## the currencies above, these are never reset, so an achievement goal stays
 ## meaningful across prestiges. Plain fields, no signal: AchievementSystem is
@@ -109,6 +153,9 @@ var well_project_levels: int = 0:
 var lifetime_nutrients: BigNumber = BigNumber.from_value(0.0)
 var lifetime_crystals: BigNumber = BigNumber.from_value(0.0)
 var lifetime_fertilizer: BigNumber = BigNumber.from_value(0.0)
+var lifetime_relics: BigNumber = BigNumber.from_value(0.0)
+var lifetime_ichor: BigNumber = BigNumber.from_value(0.0)
+var lifetime_glyphs: BigNumber = BigNumber.from_value(0.0)
 var lifetime_ticks: int = 0
 var lifetime_manual_nodes: int = 0
 var lifetime_biome_size: int = 0
@@ -120,7 +167,9 @@ var events_resolved: int = 0
 ## Single source of truth for which fields round-trip through a save file.
 ## Add a new field here, and nowhere else, to have it saved and loaded.
 const _BIG_NUMBER_FIELDS: Array[String] = ["nutrients", "biomass", "water", "crystals",
-	"fertilizer", "lifetime_nutrients", "lifetime_crystals", "lifetime_fertilizer"]
+	"fertilizer", "relics", "ichor", "glyphs",
+	"lifetime_nutrients", "lifetime_crystals", "lifetime_fertilizer",
+	"lifetime_relics", "lifetime_ichor", "lifetime_glyphs"]
 const _PLAIN_FIELDS: Array[String] = ["tick_count", "prestige_count",
 	"lifetime_ticks", "lifetime_manual_nodes", "lifetime_biome_size", "events_resolved"]
 

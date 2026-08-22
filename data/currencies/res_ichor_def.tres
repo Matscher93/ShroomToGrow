@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CurrencyDef" format=3]
+
+[ext_resource type="Script" uid="uid://d285gd4vuvyo4" path="res://model/currencies/gd_currency_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+currency_type = 5
+currency_name = "Ichor"
+main_color = Color(0.6117647, 0.34901962, 0.8235294, 1)
+label_color = Color(0.7607843, 0.6117647, 0.88235295, 1)
+currency_color = Color(0.8862745, 0.7882353, 0.9647059, 1)
+metadata/_custom_type_script = "uid://d285gd4vuvyo4"

@@ -9,6 +9,7 @@
 [ext_resource type="Resource" path="res://data/prestige/branches/res_branch_reach.tres" id="9_reach"]
 [ext_resource type="Resource" path="res://data/prestige/branches/res_branch_instinct.tres" id="10_instinct"]
 [ext_resource type="Resource" path="res://data/prestige/branches/res_branch_tide.tres" id="11_tide"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_branch_dominion.tres" id="12_dominion"]
 [ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="7_node_script"]
 [ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="8_effect_script"]
 
@@ -24,4 +25,4 @@ _base_cost_exponent = 0
 [resource]
 script = ExtResource("1_list_script")
 core = SubResource("core")
-branches = Array[ExtResource("2_def_script")]([ExtResource("3_substrate"), ExtResource("4_fruiting"), ExtResource("5_tempo"), ExtResource("6_bounty"), ExtResource("9_reach"), ExtResource("10_instinct"), ExtResource("11_tide")])
+branches = Array[ExtResource("2_def_script")]([ExtResource("3_substrate"), ExtResource("4_fruiting"), ExtResource("5_tempo"), ExtResource("6_bounty"), ExtResource("9_reach"), ExtResource("10_instinct"), ExtResource("11_tide"), ExtResource("12_dominion")])

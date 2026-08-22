@@ -21,6 +21,11 @@ const KNOWN_STATS: Array[StringName] = [
 	# Read by BoostSystem rather than ProductionSystem: the Well's projects reach
 	# a crystal boost's ceiling and its per-level rate through these.
 	&"boost_max_level", &"boost_power",
+	# The Ruins. mission_slots is read by MissionSystem and creature_rank_cap by
+	# CreatureSystem, the same way biome_points is read by BiomeSystem; the rest
+	# resolve through ProductionSystem like everything above.
+	&"mission_speed", &"mission_slots", &"mission_reward",
+	&"relic_gain", &"ichor_gain", &"glyph_gain", &"creature_rank_cap",
 ]
 
 ## The sentence every biome upgrade's description ends with, since all of them
@@ -37,6 +42,9 @@ var _automations: Array[AutomationDef]
 var _boosts: Array[BoostDef]
 var _projects: Array[ProjectDef]
 var _producers: Array[GrowthProducerDef]
+var _missions: Array[MissionDef]
+var _creatures: Array[CreatureDef]
+var _mission_boosts: Array[MissionBoostDef]
 
 func before_test() -> void:
 	_nodes = (load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes).mycelium_nodes
@@ -49,6 +57,9 @@ func before_test() -> void:
 	_boosts = (load("res://data/boosts/all_boosts.tres") as BoostList).boosts
 	_projects = (load("res://data/well/all_projects.tres") as ProjectList).projects
 	_producers = (load("res://data/growth/all_producers.tres") as GrowthProducerList).producers
+	_missions = (load("res://data/ruins/all_missions.tres") as MissionList).missions
+	_creatures = (load("res://data/ruins/all_creatures.tres") as CreatureList).creatures
+	_mission_boosts = (load("res://data/ruins/all_mission_boosts.tres") as MissionBoostList).boosts
 
 ## Node tiers, biomes and crystal boosts all address by StringName, and
 ## NODE-scoped effects use one field for all three, so a target is valid if it
@@ -82,7 +93,16 @@ func _all_upgrade_defs() -> Array[UpgradeDef]:
 	defs.append_array(_biome_defs)
 	for perk in _perks:
 		defs.append(perk)
+	defs.append_array(_mission_boost_defs())
 	return defs
+
+## The Ruins ladder's defs are generated from the boost list rather than authored
+## one by one, but the effects are authored verbatim, so a typo in one is exactly
+## as silent as a typo in an upgrade .tres.
+func _mission_boost_defs() -> Array[UpgradeDef]:
+	var list := MissionBoostList.new()
+	list.boosts = _mission_boosts
+	return MissionBoostTree.build(list)
 
 ## The growth track's defs are generated from the producer list rather than
 ## authored, but they are built from authored stats and scopes, so a typo in one
@@ -867,3 +887,224 @@ func test_the_generated_tier_defs_cover_the_whole_ladder() -> void:
 		# number baked in here could not follow.
 		assert_int(def.max_level).is_zero()
 		assert_int(def.effects.size()).is_equal(1)
+
+# ─── The Ruins ───────────────────────────────────────────────────────────────
+
+func test_every_mission_id_is_unique() -> void:
+	var seen := {}
+	for def in _missions:
+		assert_bool(seen.has(def.id)) \
+			.override_failure_message("Mission id '%s' is used twice." % def.id).is_false()
+		seen[def.id] = true
+
+func test_every_creature_id_is_unique() -> void:
+	var seen := {}
+	for def in _creatures:
+		assert_bool(seen.has(def.id)) \
+			.override_failure_message("Creature id '%s' is used twice." % def.id).is_false()
+		seen[def.id] = true
+
+func test_every_ruins_boost_id_is_unique() -> void:
+	var seen := {}
+	for def in _mission_boosts:
+		assert_bool(seen.has(def.id)) \
+			.override_failure_message("Ruins boost id '%s' is used twice." % def.id).is_false()
+		seen[def.id] = true
+
+## A payout with no currency pays nothing, and MissionSystem can only push an
+## error about it once the player has already run the mission.
+func test_every_mission_pays_something() -> void:
+	for def in _missions:
+		assert_bool(def.payouts.is_empty()) \
+			.override_failure_message("Mission '%s' pays nothing." % def.id).is_false()
+		for payout in def.payouts:
+			assert_object(payout.currency) \
+				.override_failure_message("Mission '%s' has a payout with no currency." % def.id) \
+				.is_not_null()
+			assert_bool(payout.amount.gt(BigNumber.new(0.0, 0))) \
+				.override_failure_message("Mission '%s' has a payout of zero." % def.id).is_true()
+
+## The per-currency gain stat has to match the currency it rides on, or a
+## &"glyph_gain" boost silently raises a relic payout.
+func test_every_payout_gain_stat_matches_its_currency() -> void:
+	var expected := {
+		CurrencyTypes.Types.RELICS: &"relic_gain",
+		CurrencyTypes.Types.ICHOR: &"ichor_gain",
+		CurrencyTypes.Types.GLYPHS: &"glyph_gain",
+	}
+	for def in _missions:
+		for payout in def.payouts:
+			if payout.gain_stat.is_empty() or payout.currency == null:
+				continue
+			assert_str(String(payout.gain_stat)) \
+				.override_failure_message("Mission '%s' pays %s but scales on '%s'." \
+					% [def.id, payout.currency.currency_name, payout.gain_stat]) \
+				.is_equal(String(expected.get(payout.currency.currency_type, &"")))
+
+func test_every_mission_takes_time() -> void:
+	for def in _missions:
+		assert_float(def.base_duration_seconds) \
+			.override_failure_message("Mission '%s' takes no time." % def.id).is_greater(0.0)
+
+## List order is the order the player meets them, so a later mission that opens
+## sooner would be a rung the ladder skips over.
+func test_missions_open_in_list_order() -> void:
+	for i in range(1, _missions.size()):
+		assert_int(_missions[i].min_missions_completed) \
+			.override_failure_message("Mission '%s' opens at %d, before '%s' at %d." \
+				% [_missions[i].id, _missions[i].min_missions_completed,
+					_missions[i - 1].id, _missions[i - 1].min_missions_completed]) \
+			.is_greater_equal(_missions[i - 1].min_missions_completed)
+
+## A longer errand that pays no better is one no player would ever choose.
+##
+## Compared within one currency at a time, never across them: the three are
+## deliberately not on the same scale - a ritual pays a handful of glyphs where a
+## dig pays dozens of relics - so a raw total is not a number two missions paying
+## different currencies can be ranked by.
+func test_a_longer_mission_pays_more_of_the_same_currency() -> void:
+	for type: CurrencyTypes.Types in _mission_currencies():
+		var ordered := _missions_paying(type)
+		ordered.sort_custom(func(a: MissionDef, b: MissionDef) -> bool:
+			return a.base_duration_seconds < b.base_duration_seconds)
+		for i in range(1, ordered.size()):
+			if is_equal_approx(ordered[i].base_duration_seconds,
+					ordered[i - 1].base_duration_seconds):
+				continue
+			assert_float(_payout_of(ordered[i], type)) \
+				.override_failure_message("Mission '%s' runs longer than '%s' but pays no more %s." \
+					% [ordered[i].id, ordered[i - 1].id, CurrencyTypes.field_for(type)]) \
+				.is_greater(_payout_of(ordered[i - 1], type))
+
+func _mission_currencies() -> Array:
+	var types := {}
+	for def in _missions:
+		for payout in def.payouts:
+			if payout.currency != null:
+				types[payout.currency.currency_type] = true
+	return types.keys()
+
+func _missions_paying(type: CurrencyTypes.Types) -> Array[MissionDef]:
+	var out: Array[MissionDef] = []
+	for def in _missions:
+		if _payout_of(def, type) > 0.0:
+			out.append(def)
+	return out
+
+func _payout_of(def: MissionDef, type: CurrencyTypes.Types) -> float:
+	var total := 0.0
+	for payout in def.payouts:
+		if payout.currency != null and payout.currency.currency_type == type:
+			total += payout.amount.to_float()
+	return total
+
+## Every affinity names a mission that exists. A typo here is silent: the
+## creature simply never gets its bonus.
+func test_every_creature_affinity_names_a_real_mission() -> void:
+	var ids := {}
+	for def in _missions:
+		ids[def.id] = true
+	for creature in _creatures:
+		for mission_id in creature.affinity:
+			assert_bool(ids.has(mission_id)) \
+				.override_failure_message("Creature '%s' has affinity for '%s', which is not a mission." \
+					% [creature.id, mission_id]).is_true()
+
+## Every mission has to be reachable by somebody: a rank bar above every
+## creature's ceiling is a card that can never be played.
+func test_every_mission_is_within_some_creatures_reach() -> void:
+	var best := 0
+	for creature in _creatures:
+		best = maxi(best, creature.base_rank_cap)
+	for def in _missions:
+		assert_int(def.min_creature_rank) \
+			.override_failure_message("Mission '%s' needs rank %d, above every creature's ceiling of %d." \
+				% [def.id, def.min_creature_rank, best]).is_less_equal(best)
+
+## The bootstrap. Every mission needs a creature to carry it, and the three Ruins
+## currencies have exactly one source - a collected mission. So if every creature
+## at the front of the roster is priced in one of them, the Ruins can never be
+## entered at all: the board sits there with an empty picker and a dead Send
+## button, and nothing the player can do anywhere in the game opens it.
+##
+## Shipped exactly that way once. The end-to-end check missed it by granting
+## itself relics before recruiting, which is precisely the step a real save has
+## no way to perform.
+func test_the_first_creature_is_affordable_before_any_mission_is_run() -> void:
+	var mission_only := {}
+	for def in _missions:
+		for payout in def.payouts:
+			if payout.currency != null:
+				mission_only[payout.currency.currency_type] = true
+
+	var reachable := false
+	for creature in _creatures:
+		if creature.min_missions_completed > 0 or creature.recruit_currency == null:
+			continue
+		if not mission_only.has(creature.recruit_currency.currency_type):
+			reachable = true
+	assert_bool(reachable).override_failure_message(
+		"No creature is both open at zero missions and priced outside the currencies "
+		+ "only missions pay - the Ruins cannot be entered.").is_true()
+
+func test_every_creature_is_priced_in_something() -> void:
+	for def in _creatures:
+		assert_object(def.recruit_currency) \
+			.override_failure_message("Creature '%s' has no recruit currency." % def.id).is_not_null()
+		assert_object(def.rank_currency) \
+			.override_failure_message("Creature '%s' has no rank currency." % def.id).is_not_null()
+		assert_float(def.rank_cost_growth) \
+			.override_failure_message("Creature '%s' has rank cost growth %f, so ranking it never gets dearer." \
+				% [def.id, def.rank_cost_growth]).is_greater(1.0)
+		assert_int(def.base_rank_cap) \
+			.override_failure_message("Creature '%s' can never be ranked." % def.id).is_greater(0)
+
+func test_creatures_open_in_list_order() -> void:
+	for i in range(1, _creatures.size()):
+		assert_int(_creatures[i].min_missions_completed) \
+			.override_failure_message("Creature '%s' opens at %d, before '%s' at %d." \
+				% [_creatures[i].id, _creatures[i].min_missions_completed,
+					_creatures[i - 1].id, _creatures[i - 1].min_missions_completed]) \
+			.is_greater_equal(_creatures[i - 1].min_missions_completed)
+
+func test_every_ruins_boost_is_priced_and_gets_dearer() -> void:
+	for def in _mission_boosts:
+		assert_object(def.currency) \
+			.override_failure_message("Ruins boost '%s' has no currency." % def.id).is_not_null()
+		assert_bool(def.base_cost.gt(BigNumber.new(0.0, 0))) \
+			.override_failure_message("Ruins boost '%s' is free." % def.id).is_true()
+		assert_float(def.cost_growth) \
+			.override_failure_message("Ruins boost '%s' has cost growth %f, so it never gets more expensive." \
+				% [def.id, def.cost_growth]).is_greater(1.0)
+
+## Every rung is priced in one of the three currencies missions actually pay.
+## A rung priced in nutrients would be buyable without ever visiting the Ruins.
+func test_every_ruins_boost_is_priced_in_a_mission_currency() -> void:
+	var paid := {}
+	for def in _missions:
+		for payout in def.payouts:
+			if payout.currency != null:
+				paid[payout.currency.currency_type] = true
+	for def in _mission_boosts:
+		if def.currency == null:
+			continue
+		assert_bool(paid.has(def.currency.currency_type)) \
+			.override_failure_message("Ruins boost '%s' is priced in %s, which no mission pays." \
+				% [def.id, def.currency.currency_name]).is_true()
+
+## The ladder has to have both halves. A Ruins with no general rungs is a system
+## that never touches the rest of the game.
+func test_the_ruins_ladder_has_both_a_control_and_a_colony_half() -> void:
+	var control := 0
+	var general := 0
+	for def in _mission_boosts:
+		var is_general := false
+		for effect in def.effects:
+			if not RuinsViewModel.CONTROL_STATS.has(effect.stat):
+				is_general = true
+		if is_general:
+			general += 1
+		else:
+			control += 1
+	assert_int(control).override_failure_message("No Ruins boost works the board itself.").is_greater(0)
+	assert_int(general).override_failure_message("No Ruins boost reaches outside the Ruins.").is_greater(0)

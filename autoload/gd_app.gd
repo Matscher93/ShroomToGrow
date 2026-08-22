@@ -49,6 +49,11 @@ var growth_upgrade_system: UpgradeSystem
 ## are generated from FertilizerTree rather than authored, and it is permanent -
 ## fertilizer is earned from events and the sporation has no claim on it.
 var fertilizer_upgrade_system: UpgradeSystem
+## Levels of the Ruins boost ladder, one UpgradeDef per authored rung. Its own
+## track for the same reasons the boosts, projects and growth have one: the defs
+## are generated from MissionBoostTree rather than authored, and it is permanent -
+## the mission currencies survive a sporation, and so does what they bought.
+var mission_upgrade_system: UpgradeSystem
 var resolve_context := ResolveContext.new()
 
 ## Game rules, split out by domain. Each is constructed with the state it needs
@@ -66,6 +71,9 @@ var player_level_system: PlayerLevelSystem
 var daily_reward_system: DailyRewardSystem
 var fertilizer_system: FertilizerSystem
 var event_system: EventSystem
+var creature_system: CreatureSystem
+var mission_system: MissionSystem
+var mission_boost_system: MissionBoostSystem
 
 var biomes := load("res://data/biomes/all_biomes.tres") as BiomeList
 var biomes_data: BiomesData
@@ -98,6 +106,15 @@ var fertilizer_upgrades := load("res://data/fertilizer/all_fertilizer_upgrades.t
 var random_events := load("res://data/events/all_random_events.tres") as RandomEventList
 var events_data: EventsData
 var events_vm: EventsViewModel
+
+var creature_defs := load("res://data/ruins/all_creatures.tres") as CreatureList
+var mission_defs := load("res://data/ruins/all_missions.tres") as MissionList
+var mission_boosts := load("res://data/ruins/all_mission_boosts.tres") as MissionBoostList
+var ruins_data: RuinsData
+var creature_vms: Dictionary = {}       # StringName -> CreatureViewModel
+var mission_vms: Dictionary = {}        # StringName -> MissionViewModel
+var mission_boost_vms: Dictionary = {}  # StringName -> MissionBoostViewModel
+var ruins_vm: RuinsViewModel
 
 var automations := load("res://data/automation/all_automations.tres") as AutomationList
 var automation_data: AutomationData
@@ -161,9 +178,14 @@ func _ready() -> void:
 	for def in FertilizerTree.build(fertilizer_upgrades, growth_producers):
 		fertilizer_upgrade_system.register(def)
 
+	mission_upgrade_system = UpgradeSystem.new()
+	for def in MissionBoostTree.build(mission_boosts):
+		mission_upgrade_system.register(def)
+
 	production_system = ProductionSystem.new(upgrade_system, biome_upgrade_system,
 		prestige_upgrade_system, resolve_context, boost_upgrade_system,
-		project_upgrade_system, growth_upgrade_system, fertilizer_upgrade_system)
+		project_upgrade_system, growth_upgrade_system, fertilizer_upgrade_system,
+		mission_upgrade_system)
 	# Built before the tick system, which drives the pump: the well's rate and
 	# yield are stats like any other, but whether it runs at all is a biome unlock.
 	biomes_data = BiomesData.new()
@@ -221,6 +243,18 @@ func _ready() -> void:
 	event_system = EventSystem.new(events_data, player_data, biomes_data,
 		fertilizer_system, random_events)
 
+	# The Ruins, in dependency order: the roster before the board that sends it
+	# out, and the board before nothing - the boost ladder only reads the tally.
+	# All three share one RuinsData, which is what lets CreatureSystem answer
+	# "is this creature out right now" without knowing about missions.
+	ruins_data = RuinsData.new()
+	creature_system = CreatureSystem.new(ruins_data, player_data, creature_defs,
+		production_system)
+	mission_system = MissionSystem.new(ruins_data, player_data, biomes_data,
+		production_system, creature_system, mission_defs, prestige_upgrade_system)
+	mission_boost_system = MissionBoostSystem.new(player_data, mission_upgrade_system,
+		ruins_data, mission_boosts)
+
 	# A boost's per-level rate is baked into its UpgradeDef, and the Well's
 	# projects move it. Funding one is the only thing that can, so the rebuild
 	# rides that signal rather than a tick. Run once up front too: a save loaded
@@ -247,6 +281,12 @@ func _ready() -> void:
 		boost_vms[def.id] = BoostViewModel.new(def.id, def)
 	for def in projects.projects:
 		project_vms[def.id] = ProjectViewModel.new(def.id, def)
+	for def in creature_defs.creatures:
+		creature_vms[def.id] = CreatureViewModel.new(def.id, def)
+	for def in mission_defs.missions:
+		mission_vms[def.id] = MissionViewModel.new(def.id, def)
+	for def in mission_boosts.boosts:
+		mission_boost_vms[def.id] = MissionBoostViewModel.new(def.id, def)
 	# Ahead of the screen VMs below: they subscribe to it in their constructors.
 	screens_data = ScreensData.new(screens.screens, screens.initial_screen)
 	# After boost_vms: the Caves screen's VM hands out those cards.
@@ -258,6 +298,9 @@ func _ready() -> void:
 	growth_vm = GrowthViewModel.new()
 	# After event_system, for the same reason.
 	events_vm = EventsViewModel.new()
+	# After the three Ruins VM dictionaries: the screen's VM hands out those cards.
+	# Ahead of navigation_vm below, which reads it for the Ruins sub-rows.
+	ruins_vm = RuinsViewModel.new()
 
 	screens_vm = ScreensViewModel.new(screens_data)
 	# After screens_data and crystal_caves_vm: the nav menu reads the screen
@@ -287,9 +330,10 @@ func _ready() -> void:
 	prestige_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	boost_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	project_upgrade_system.upgrades_changed.connect(_update_tick_duration)
-	# The growth and fertilizer tracks are deliberately absent here: both only
-	# ever write the four producer stats, never &"tick_rate", so nothing either
-	# holds can move the tick length.
+	# The mission track is here and the growth and fertilizer tracks are not:
+	# those two only ever write the four producer stats, but a Ruins boost can
+	# name &"tick_rate" like any biome upgrade, and Deep Time does.
+	mission_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	_update_tick_duration()
 
 	_connect_achievement_sources()
@@ -325,6 +369,7 @@ func _connect_achievement_sources() -> void:
 	boost_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	project_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	growth_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
+	mission_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	fertilizer_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	biomes_data.biome_unlocked.connect(mark_achievements_dirty.unbind(1))
 	player_data.prestige_count_changed.connect(mark_achievements_dirty.unbind(1))
@@ -390,6 +435,8 @@ func to_save() -> Dictionary:
 		"project_upgrades": project_upgrade_system.to_save(),
 		"growth_upgrades": growth_upgrade_system.to_save(),
 		"daily_reward": daily_reward_data.to_save(),
+		"ruins": ruins_data.to_save(),
+		"mission_upgrades": mission_upgrade_system.to_save(),
 		"fertilizer_upgrades": fertilizer_upgrade_system.to_save(),
 		"events": events_data.to_save(),
 	}
@@ -421,6 +468,14 @@ func load_from_save(game: Dictionary) -> void:
 	player_level_system.sync_global_double()
 	fertilizer_upgrade_system.from_save(game.get("fertilizer_upgrades", {}))
 	events_data.load_from_save(game.get("events", {}))
+	mission_upgrade_system.from_save(game.get("mission_upgrades", {}))
+	ruins_data.load_from_save(game.get("ruins", {}))
+	# PlayerData.missions_completed is a projection of the tally just loaded, not
+	# a saved field, so it has to be rebuilt here - same as well_project_levels.
+	mission_system.sync_missions_completed()
+	# Only a device clock moved backwards can leave a mission's start in the
+	# future, and only a load can be the first thing to notice.
+	mission_system.sync_clock_rollback()
 	daily_reward_data.load_from_save(game.get("daily_reward", {}))
 	# Only a device clock moved backwards can leave a last-claim day in the
 	# future, and only a load can be the first thing to notice.
@@ -875,3 +930,153 @@ func buy_automation(id: StringName) -> bool:
 
 func set_automation_enabled(id: StringName, value: bool) -> void:
 	automation_data.set_enabled(id, value)
+
+# ---------------------------------------------------------------- ruins
+
+func is_parasitic_control_active() -> bool:
+	return mission_system.is_controlling()
+
+func mission_slots() -> int:
+	return mission_system.slots()
+
+func mission_slots_used() -> int:
+	return mission_system.slots_used()
+
+func has_free_mission_slot() -> bool:
+	return mission_system.has_free_slot()
+
+func missions_completed() -> int:
+	return ruins_data.missions_completed
+
+func mission_def(mission_id: StringName) -> MissionDef:
+	return mission_system.mission_def(mission_id)
+
+func is_mission_unlocked(mission_id: StringName) -> bool:
+	return mission_system.is_unlocked(mission_id)
+
+func missions_until_mission_unlock(mission_id: StringName) -> int:
+	return mission_system.missions_until_unlock(mission_id)
+
+func mission_duration(mission_id: StringName, creature_id: StringName) -> float:
+	return mission_system.duration_for(mission_id, creature_id)
+
+func mission_payouts(mission_id: StringName, creature_id: StringName) -> Array[Dictionary]:
+	return mission_system.payouts_for(mission_id, creature_id)
+
+## The in-flight entry for this mission, or {} when none is out. One mission id
+## can only be out once at a time: a creature is busy while it carries one, and
+## the board sends one creature per errand.
+func active_mission(mission_id: StringName) -> Dictionary:
+	for entry in mission_system.active():
+		if entry["mission_id"] == mission_id:
+			return entry
+	return {}
+
+func mission_seconds_remaining(entry: Dictionary) -> float:
+	return mission_system.seconds_remaining(entry)
+
+func mission_progress_ratio(entry: Dictionary) -> float:
+	return mission_system.progress_ratio(entry)
+
+func is_mission_complete(entry: Dictionary) -> bool:
+	return mission_system.is_complete(entry)
+
+func collectable_mission_count() -> int:
+	return mission_system.completed_count()
+
+func can_send_mission(mission_id: StringName, creature_id: StringName) -> bool:
+	return mission_system.can_send(mission_id, creature_id)
+
+func send_mission(mission_id: StringName, creature_id: StringName) -> int:
+	return mission_system.send(mission_id, creature_id)
+
+func collect_mission(instance_id: int) -> bool:
+	return mission_system.collect(instance_id)
+
+func collect_all_missions() -> int:
+	return mission_system.collect_all()
+
+# ---------------------------------------------------------------- creatures
+
+func creature_def(creature_id: StringName) -> CreatureDef:
+	return creature_system.creature_def(creature_id)
+
+func creature_rank(creature_id: StringName) -> int:
+	return creature_system.rank(creature_id)
+
+func creature_rank_cap(creature_id: StringName) -> int:
+	return creature_system.rank_cap(creature_id)
+
+func is_creature_recruited(creature_id: StringName) -> bool:
+	return creature_system.is_recruited(creature_id)
+
+func is_creature_unlocked(creature_id: StringName) -> bool:
+	return creature_system.is_unlocked(creature_id)
+
+func missions_until_creature_unlock(creature_id: StringName) -> int:
+	return creature_system.missions_until_unlock(creature_id)
+
+func is_creature_busy(creature_id: StringName) -> bool:
+	return creature_system.is_busy(creature_id)
+
+func is_creature_maxed(creature_id: StringName) -> bool:
+	return creature_system.is_maxed(creature_id)
+
+func creature_recruit_cost(creature_id: StringName) -> BigNumber:
+	return creature_system.recruit_cost(creature_id)
+
+func creature_rank_cost(creature_id: StringName) -> BigNumber:
+	return creature_system.rank_cost(creature_id)
+
+func can_recruit_creature(creature_id: StringName) -> bool:
+	return creature_system.can_recruit(creature_id)
+
+func recruit_creature(creature_id: StringName) -> bool:
+	return creature_system.recruit(creature_id)
+
+func can_rank_up_creature(creature_id: StringName) -> bool:
+	return creature_system.can_rank_up(creature_id)
+
+func rank_up_creature(creature_id: StringName) -> bool:
+	return creature_system.rank_up(creature_id)
+
+func creatures_available_for(mission: MissionDef) -> Array[CreatureDef]:
+	return creature_system.available_for(mission)
+
+func creature_has_affinity(creature_id: StringName, mission_id: StringName) -> bool:
+	return creature_system.has_affinity(creature_id, mission_id)
+
+# ---------------------------------------------------------------- ruins boosts
+
+func mission_boost_level(boost_id: StringName) -> int:
+	return mission_boost_system.level(boost_id)
+
+func mission_boost_max_level(boost_id: StringName) -> int:
+	return mission_boost_system.max_level(boost_id)
+
+func mission_boost_cost(boost_id: StringName) -> BigNumber:
+	return mission_boost_system.cost(boost_id)
+
+func is_mission_boost_unlocked(boost_id: StringName) -> bool:
+	return mission_boost_system.is_unlocked(boost_id)
+
+func missions_until_boost_unlock(boost_id: StringName) -> int:
+	return mission_boost_system.missions_until_unlock(boost_id)
+
+func is_mission_boost_maxed(boost_id: StringName) -> bool:
+	return mission_boost_system.is_maxed(boost_id)
+
+func can_buy_mission_boost(boost_id: StringName) -> bool:
+	return mission_boost_system.can_buy(boost_id)
+
+func buy_mission_boost(boost_id: StringName) -> bool:
+	return mission_boost_system.buy(boost_id)
+
+func mission_boost_amount(boost_id: StringName) -> BigNumber:
+	return mission_boost_system.amount(boost_id, resolve_context)
+
+func mission_boost_next_level_delta(boost_id: StringName) -> BigNumber:
+	return mission_boost_system.next_level_delta(boost_id, resolve_context)
+
+func mission_boost_total_levels() -> int:
+	return mission_boost_system.total_levels()

@@ -7,6 +7,7 @@
 [ext_resource type="Resource" uid="uid://upklmpjvik75" path="res://data/screens/res_biomes_screen.tres" id="5_723er"]
 [ext_resource type="Resource" path="res://data/screens/res_crystal_caves_screen.tres" id="6_caves"]
 [ext_resource type="Resource" path="res://data/screens/res_well_screen.tres" id="7_well"]
+[ext_resource type="Resource" path="res://data/screens/res_ruins_screen.tres" id="8_ruins"]
 
 [resource]
 script = ExtResource("2_vej25")
@@ -15,6 +16,7 @@ screens = Dictionary[int, ExtResource("1_0nlu5")]({
 1: ExtResource("2_1v5js"),
 2: ExtResource("4_ds5ak"),
 3: ExtResource("6_caves"),
-4: ExtResource("7_well")
+4: ExtResource("7_well"),
+5: ExtResource("8_ruins")
 })
 metadata/_custom_type_script = "uid://tswg1df7l0x0"

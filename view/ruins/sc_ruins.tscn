@@ -1,0 +1,200 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/ruins/gd_ruins_panel.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://view/ruins/sc_mission_card.tscn" id="2_mission_card"]
+[ext_resource type="PackedScene" path="res://view/ruins/sc_creature_card.tscn" id="3_creature_card"]
+[ext_resource type="PackedScene" path="res://view/ruins/sc_mission_boost_card.tscn" id="4_boost_card"]
+[ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="6_touch_scroll"]
+[ext_resource type="Script" path="res://view/base_views/gd_full_width_tab_container.gd" id="8_full_width_tabs"]
+[ext_resource type="FontFile" uid="uid://bfcncplwx4kw5" path="res://fonts/Space_Grotesk/SpaceGrotesk-Bold.ttf" id="9_bold"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ruins"]
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_tab_panel"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tabbar"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.13333334, 0.10980392, 0.09019608, 0.75)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tab_chip"]
+content_margin_left = 14.0
+content_margin_top = 7.0
+content_margin_right = 14.0
+content_margin_bottom = 7.0
+bg_color = Color(0.7647059, 0.5137255, 0.30588236, 0.12)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7647059, 0.5137255, 0.30588236, 0.28)
+corner_radius_top_left = 99
+corner_radius_top_right = 99
+corner_radius_bottom_right = 99
+corner_radius_bottom_left = 99
+
+[node name="ruins" type="PanelContainer" node_paths=PackedStringArray("tab_container", "missions_tab", "creatures_tab", "boosts_tab", "vbox_missions", "vbox_creatures", "vbox_boosts", "lbl_current_tab", "lbl_board", "lbl_missions", "btn_collect_all")]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_ruins")
+script = ExtResource("1_script")
+tab_container = NodePath("VBoxContainer/TabContainer")
+missions_tab = NodePath("VBoxContainer/TabContainer/Missions")
+creatures_tab = NodePath("VBoxContainer/TabContainer/Creatures")
+boosts_tab = NodePath("VBoxContainer/TabContainer/Boosts")
+vbox_missions = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/vbox_missions")
+vbox_creatures = NodePath("VBoxContainer/TabContainer/Creatures/MarginContainer/VBoxContainer/vbox_creatures")
+vbox_boosts = NodePath("VBoxContainer/TabContainer/Boosts/MarginContainer/VBoxContainer/vbox_boosts")
+lbl_current_tab = NodePath("VBoxContainer/header/panel_current_tab/lbl_current_tab")
+lbl_board = NodePath("VBoxContainer/lbl_board")
+lbl_missions = NodePath("VBoxContainer/header/lbl_missions")
+btn_collect_all = NodePath("VBoxContainer/header/btn_collect_all")
+mission_card_scene = ExtResource("2_mission_card")
+creature_card_scene = ExtResource("3_creature_card")
+boost_card_scene = ExtResource("4_boost_card")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="header" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="panel_current_tab" type="PanelContainer" parent="VBoxContainer/header"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_tab_chip")
+
+[node name="lbl_current_tab" type="Label" parent="VBoxContainer/header/panel_current_tab"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7647059, 0.5137255, 0.30588236, 1)
+theme_override_fonts/font = ExtResource("9_bold")
+theme_override_font_sizes/font_size = 15
+text = "Missions"
+
+[node name="lbl_missions" type="Label" parent="VBoxContainer/header"]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+text = "0 missions completed"
+
+[node name="btn_collect_all" type="Button" parent="VBoxContainer/header"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+text = "Collect all"
+
+[node name="lbl_board" type="Label" parent="VBoxContainer"]
+modulate = Color(0.9647059, 0.8666667, 0.68235296, 1)
+layout_mode = 2
+text = "0 of 1 creatures out"
+autowrap_mode = 3
+
+[node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
+script = ExtResource("8_full_width_tabs")
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxEmpty_tab_panel")
+theme_override_styles/tabbar_background = SubResource("StyleBoxFlat_tabbar")
+tabs_visible = false
+tabs_position = 1
+tab_alignment = 1
+current_tab = 0
+
+[node name="Missions" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
+script = ExtResource("6_touch_scroll")
+layout_mode = 2
+vertical_scroll_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/TabContainer/Missions"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 118
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Missions/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="lbl_missions_hint" type="Label" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer"]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 2
+text = "Missions run on real time and finish while the game is closed. A creature marked * is suited to that mission and is both faster and worth more there."
+autowrap_mode = 3
+
+[node name="vbox_missions" type="VBoxContainer" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Creatures" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
+script = ExtResource("6_touch_scroll")
+visible = false
+layout_mode = 2
+vertical_scroll_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/TabContainer/Creatures"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 118
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Creatures/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="lbl_creatures_hint" type="Label" parent="VBoxContainer/TabContainer/Creatures/MarginContainer/VBoxContainer"]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 2
+text = "Taking a creature over is permanent - a sporation seals the ruins, but it does not free anything already held. A creature out on a mission cannot be ranked up."
+autowrap_mode = 3
+
+[node name="vbox_creatures" type="VBoxContainer" parent="VBoxContainer/TabContainer/Creatures/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Boosts" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
+script = ExtResource("6_touch_scroll")
+visible = false
+layout_mode = 2
+vertical_scroll_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/TabContainer/Boosts"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 118
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Boosts/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="lbl_boosts_hint" type="Label" parent="VBoxContainer/TabContainer/Boosts/MarginContainer/VBoxContainer"]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 2
+text = "Control boosts work the board itself. Colony boosts spend the same spoils on everything outside the ruins. Neither is reset by a sporation."
+autowrap_mode = 3
+
+[node name="vbox_boosts" type="VBoxContainer" parent="VBoxContainer/TabContainer/Boosts/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8

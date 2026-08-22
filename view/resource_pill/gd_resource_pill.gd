@@ -87,18 +87,16 @@ func _exit_tree() -> void:
 # --- VM -> View ---
 func _on_property_changed(property: StringName) -> void:
 	match property:
-		PlayerViewModel.PROP_NUTRIENT_TEXT:
-			if currency_def.currency_type == CurrencyTypes.Types.NUTRIENTS:
-				label_amount.text = _vm.nutrient_text
-		PlayerViewModel.PROP_BIOMASS_TEXT:
-			if currency_def.currency_type == CurrencyTypes.Types.BIOMASS:
-				label_amount.text = _vm.biomass_text
-		PlayerViewModel.PROP_WATER_TEXT:
-			if currency_def.currency_type == CurrencyTypes.Types.WATER:
-				label_amount.text = _vm.water_text
-		PlayerViewModel.PROP_CRYSTALS_TEXT:
-			if currency_def.currency_type == CurrencyTypes.Types.CRYSTALS:
-				label_amount.text = _vm.crystals_text
+		PlayerViewModel.PROP_NUTRIENT_TEXT, PlayerViewModel.PROP_BIOMASS_TEXT, \
+		PlayerViewModel.PROP_WATER_TEXT, PlayerViewModel.PROP_CRYSTALS_TEXT, \
+		PlayerViewModel.PROP_RELICS_TEXT, PlayerViewModel.PROP_ICHOR_TEXT, \
+		PlayerViewModel.PROP_GLYPHS_TEXT:
+			# One arm for every balance rather than one per currency: the pill only
+			# ever shows its own, and currency_text() already picks the right field.
+			# A notification for a currency this pill does not show costs one
+			# formatted string that nothing reads, which is cheaper than the seven
+			# match arms it replaces.
+			label_amount.text = _vm.currency_text(currency_def.currency_type)
 		MyceliumNodeViewModel.PROP_PRODUCTION_TEXT:
 			if currency_def.currency_type == CurrencyTypes.Types.NUTRIENTS:
 				label_change_per_tick.text = _vm_change.production_text_short
@@ -107,15 +105,12 @@ func _on_property_changed(property: StringName) -> void:
 				label_change_per_tick.text = _vm_prestige.pending_biomass_text
 
 func _refresh_all() -> void:
+	label_amount.text = _vm.currency_text(currency_def.currency_type)
+	# Only two currencies have a second line: nutrients show what a tick pays, and
+	# biomass shows what a sporation would. Every other pill leaves it blank.
 	if currency_def.currency_type == CurrencyTypes.Types.NUTRIENTS:
-		label_amount.text = _vm.nutrient_text
 		label_change_per_tick.text = _vm_change.production_text_short if _vm_change else ""
 	elif currency_def.currency_type == CurrencyTypes.Types.BIOMASS:
-		label_amount.text = _vm.biomass_text
 		label_change_per_tick.text = _vm_prestige.pending_biomass_text if _vm_prestige else ""
-	elif currency_def.currency_type == CurrencyTypes.Types.WATER:
-		label_amount.text = _vm.water_text
-		label_change_per_tick.text = ""
-	elif currency_def.currency_type == CurrencyTypes.Types.CRYSTALS:
-		label_amount.text = _vm.crystals_text
+	else:
 		label_change_per_tick.text = ""

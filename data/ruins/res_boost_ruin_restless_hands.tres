@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MissionBoostDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_boost_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="2_effect_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="3_currency"]
+
+[sub_resource type="Resource" id="effect_0"]
+script = ExtResource("2_effect_script")
+stat = &"automation_rate"
+op = 2
+scope = 0
+target = &""
+per_level = 0.12
+level_scaling = 0
+
+[resource]
+script = ExtResource("1_script")
+id = &"ruin_restless_hands"
+display_name = "Restless Hands"
+description = "Something down there keeps working the machinery. Automations fire more often."
+currency = ExtResource("3_currency")
+_base_cost_mantissa = 5.0
+_base_cost_exponent = 2
+cost_growth = 1.75
+max_level = 0
+min_missions_completed = 40
+effects = Array[ExtResource("2_effect_script")]([SubResource("effect_0")])

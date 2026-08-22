@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BiomeDef" format=3]
+
+[ext_resource type="Script" uid="uid://beyspvlhwfx6a" path="res://model/biomes/gd_biome_def.gd" id="1_script"]
+[ext_resource type="Shader" path="res://shaders/icons/biomes/sh_ruins.gdshader" id="1_shader"]
+
+[resource]
+script = ExtResource("1_script")
+key = &"ruins"
+display_name = "The Ruins"
+description = "Take the things that live here, and send them back down for what is left"
+screen_type = 5
+xp_source = 5
+xp_label = "missions completed"
+biome_color = Color(0.7647059, 0.5137255, 0.30588236, 1)
+biome_shader = ExtResource("1_shader")
+upgrade_ids = Array[StringName]([&"CreepingHold", &"QuickThralls", &"GraveGoods", &"OpenVeins", &"CarvedTongue", &"RootTribute", &"StonePatience", &"SunkenOffering", &"AshHarvest", &"WardensDue"])
+_unlock_cost_mantissa = 5.0
+_unlock_cost_exponent = 7
+_size_base_cost_mantissa = 2.5
+_size_base_cost_exponent = 6
+_auto_unlock_cost_mantissa = 2.5
+_auto_unlock_cost_exponent = 4
+metadata/_custom_type_script = "uid://beyspvlhwfx6a"

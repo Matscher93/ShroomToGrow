@@ -16,11 +16,17 @@ func test_player_data_round_trip() -> void:
 	original.water = BigNumber.from_value(7.0)
 	original.crystals = BigNumber.from_value(88.0)
 	original.fertilizer = BigNumber.from_value(11.0)
+	original.relics = BigNumber.from_value(310.0)
+	original.ichor = BigNumber.from_value(64.0)
+	original.glyphs = BigNumber.from_value(9.0)
 	original.tick_count = 9439
 	original.prestige_count = 3
 	original.lifetime_nutrients = BigNumber.from_value(1e9)
 	original.lifetime_crystals = BigNumber.from_value(150.0)
 	original.lifetime_fertilizer = BigNumber.from_value(37.0)
+	original.lifetime_relics = BigNumber.from_value(980.0)
+	original.lifetime_ichor = BigNumber.from_value(200.0)
+	original.lifetime_glyphs = BigNumber.from_value(45.0)
 	original.lifetime_ticks = 20000
 	original.lifetime_manual_nodes = 512
 	original.lifetime_biome_size = 64
@@ -33,11 +39,17 @@ func test_player_data_round_trip() -> void:
 	assert_float(restored.water.to_float()).is_equal_approx(7.0, EPS)
 	assert_float(restored.crystals.to_float()).is_equal_approx(88.0, EPS)
 	assert_float(restored.fertilizer.to_float()).is_equal_approx(11.0, EPS)
+	assert_float(restored.relics.to_float()).is_equal_approx(310.0, EPS)
+	assert_float(restored.ichor.to_float()).is_equal_approx(64.0, EPS)
+	assert_float(restored.glyphs.to_float()).is_equal_approx(9.0, EPS)
 	assert_int(restored.tick_count).is_equal(9439)
 	assert_int(restored.prestige_count).is_equal(3)
 	assert_float(restored.lifetime_nutrients.to_float()).is_equal_approx(1e9, EPS)
 	assert_float(restored.lifetime_crystals.to_float()).is_equal_approx(150.0, EPS)
 	assert_float(restored.lifetime_fertilizer.to_float()).is_equal_approx(37.0, EPS)
+	assert_float(restored.lifetime_relics.to_float()).is_equal_approx(980.0, EPS)
+	assert_float(restored.lifetime_ichor.to_float()).is_equal_approx(200.0, EPS)
+	assert_float(restored.lifetime_glyphs.to_float()).is_equal_approx(45.0, EPS)
 	assert_int(restored.lifetime_ticks).is_equal(20000)
 	assert_int(restored.lifetime_manual_nodes).is_equal(512)
 	assert_int(restored.lifetime_biome_size).is_equal(64)
@@ -57,6 +69,14 @@ func test_well_project_levels_is_not_saved_on_player_data() -> void:
 	var original := PlayerData.new()
 	original.well_project_levels = 9
 	assert_bool(original.to_save().has("well_project_levels")).is_false()
+
+func test_missions_completed_is_not_saved_on_player_data() -> void:
+	# Same contract as achievement_tiers and well_project_levels above: a
+	# projection of RuinsData, rebuilt by MissionSystem.sync_missions_completed()
+	# on load.
+	var original := PlayerData.new()
+	original.missions_completed = 12
+	assert_bool(original.to_save().has("missions_completed")).is_false()
 
 func test_player_data_loads_in_place_so_viewmodels_stay_bound() -> void:
 	# Replacing App.player_data would orphan every VM already holding it, so

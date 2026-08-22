@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MissionBoostDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_boost_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="2_effect_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="3_currency"]
+
+[sub_resource type="Resource" id="effect_0"]
+script = ExtResource("2_effect_script")
+stat = &"water_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.2
+level_scaling = 0
+
+[resource]
+script = ExtResource("1_script")
+id = &"ruin_wet_stone"
+display_name = "Wet Stone"
+description = "Runoff from the flooded undercroft reaches the well. Multiplies what a pump draws up."
+currency = ExtResource("3_currency")
+_base_cost_mantissa = 2.0
+_base_cost_exponent = 1
+cost_growth = 1.62
+max_level = 0
+min_missions_completed = 9
+effects = Array[ExtResource("2_effect_script")]([SubResource("effect_0")])

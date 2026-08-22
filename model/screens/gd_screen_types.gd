@@ -2,7 +2,7 @@ class_name ScreenTypes
 extends RefCounted
 
 ## Append only: the ordinal is the dictionary key in all_screens.tres.
-enum Types {BIOMES, NODES, PRESTIGE, CRYSTAL_CAVES, WELL}
+enum Types {BIOMES, NODES, PRESTIGE, CRYSTAL_CAVES, WELL, RUINS}
 
 ## The order NavigationViewModel lists destinations in. Kept apart from the enum
 ## because the ordinals are save/resource keys and cannot move.
@@ -12,5 +12,6 @@ const NAV_ORDER: Array[Types] = [
 	Types.NODES,
 	Types.CRYSTAL_CAVES,
 	Types.WELL,
+	Types.RUINS,
 	Types.PRESTIGE,
 ]

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="3_cur_ichor"]
+
+[sub_resource type="Resource" id="payout_ichor"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("3_cur_ichor")
+gain_stat = &"ichor_gain"
+_amount_mantissa = 4.0
+_amount_exponent = 0
+
+[resource]
+script = ExtResource("1_script")
+id = &"stalk_the_galleries"
+display_name = "Stalk the Galleries"
+description = "The side galleries are thick with things that were here first. Take one quietly and bring back what runs in it."
+base_duration_seconds = 90.0
+min_creature_rank = 1
+min_missions_completed = 1
+unlock_perk_id = &""
+payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_ichor")])

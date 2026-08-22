@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CreatureList" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_creature_list.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_creature_def.gd" id="2_creature_script"]
+[ext_resource type="Resource" path="res://data/ruins/res_creature_rot_grub.tres" id="3_rot_grub"]
+[ext_resource type="Resource" path="res://data/ruins/res_creature_pale_stalker.tres" id="4_pale_stalker"]
+[ext_resource type="Resource" path="res://data/ruins/res_creature_chitin_scribe.tres" id="5_chitin_scribe"]
+[ext_resource type="Resource" path="res://data/ruins/res_creature_bone_hauler.tres" id="6_bone_hauler"]
+[ext_resource type="Resource" path="res://data/ruins/res_creature_mire_wyrm.tres" id="7_mire_wyrm"]
+[ext_resource type="Resource" path="res://data/ruins/res_creature_sanctum_herald.tres" id="8_sanctum_herald"]
+
+[resource]
+script = ExtResource("1_script")
+creatures = Array[ExtResource("2_creature_script")]([ExtResource("3_rot_grub"), ExtResource("4_pale_stalker"), ExtResource("5_chitin_scribe"), ExtResource("6_bone_hauler"), ExtResource("7_mire_wyrm"), ExtResource("8_sanctum_herald")])

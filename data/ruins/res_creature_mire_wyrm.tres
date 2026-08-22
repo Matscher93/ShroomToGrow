@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CreatureDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_creature_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="2_cur_ichor"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"mire_wyrm"
+display_name = "Mire Wyrm"
+description = "It came up through the flooded undercroft and has not been persuaded to go back down."
+affinity = Array[StringName]([&"plumb_the_undercroft", &"breach_the_vault", &"hollow_the_brood", &"drain_the_warden"])
+speed_per_rank = 0.2
+yield_per_rank = 0.26
+affinity_bonus = 0.6
+base_rank_cap = 10
+min_missions_completed = 38
+recruit_currency = ExtResource("2_cur_ichor")
+_recruit_cost_mantissa = 9.0
+_recruit_cost_exponent = 2
+rank_currency = ExtResource("2_cur_ichor")
+_rank_base_cost_mantissa = 1.5
+_rank_base_cost_exponent = 3
+rank_cost_growth = 1.85

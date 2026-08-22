@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MissionBoostDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_boost_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="2_effect_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="3_currency"]
+
+[sub_resource type="Resource" id="effect_0"]
+script = ExtResource("2_effect_script")
+stat = &"glyph_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.2
+level_scaling = 0
+
+[resource]
+script = ExtResource("1_script")
+id = &"ruin_glyph_lore"
+display_name = "Glyph Lore"
+description = "Missions paying glyphs pay more of them."
+currency = ExtResource("3_currency")
+_base_cost_mantissa = 4.0
+_base_cost_exponent = 1
+cost_growth = 1.65
+max_level = 0
+min_missions_completed = 14
+effects = Array[ExtResource("2_effect_script")]([SubResource("effect_0")])
