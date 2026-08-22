@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RandomEventDef" format=3]
+
+[ext_resource type="Script" path="res://model/events/res_random_event_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"steady_cultivation"
+title = "Steady Cultivation"
+description = "Nurture the colony through four colony ticks."
+accent_color = Color(0.49019608, 0.9411765, 0.8235294, 1)
+kind = 2
+fertilizer_min = 3.0
+fertilizer_max = 3.0
+goal_ticks = 4

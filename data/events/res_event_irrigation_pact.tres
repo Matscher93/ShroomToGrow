@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RandomEventDef" format=3]
+
+[ext_resource type="Script" path="res://model/events/res_random_event_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_water_def.tres" id="2_currency"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"irrigation_pact"
+title = "Irrigation Pact"
+description = "Divert water to the spore beds and they will pay it back."
+accent_color = Color(0.37254903, 0.7764706, 0.9137255, 1)
+kind = 1
+currency = ExtResource("2_currency")
+pct_of_balance = 0.25
+flat_amount = 20.0
+min_amount = 30.0
+fertilizer_min = 3.0
+fertilizer_max = 3.0

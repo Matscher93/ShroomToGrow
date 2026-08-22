@@ -1,7 +1,8 @@
 class_name GrowthViewModel
 extends ViewModel
 ## VIEWMODEL: the growth sheet and the top bar's level chip - the account level,
-## the Level Points it has banked, and today's daily reward.
+## the Level Points it has banked, the fertilizer events have paid out, and
+## today's daily reward.
 ## Owns formatting, derived state and enabled/disabled logic.
 ## References the model, never a Node.
 ##
@@ -15,6 +16,7 @@ extends ViewModel
 const PROP_LEVEL_CHANGED := &"level_changed"
 const PROP_ROWS_CHANGED := &"rows_changed"
 const PROP_DAILY_CHANGED := &"daily_changed"
+const PROP_FERT_CHANGED := &"fert_changed"
 
 # --- View -> ViewModel ---
 
@@ -23,6 +25,9 @@ func invest(currency: CurrencyTypes.Types) -> void:
 
 func claim_daily(currency: CurrencyTypes.Types) -> void:
 	App.claim_daily(currency)
+
+func buy_fertilizer(id: StringName) -> void:
+	App.buy_fertilizer(id)
 
 # --- Read-only display properties bound by the View ---
 
@@ -99,6 +104,16 @@ var lp_rows: Array[GrowthRow]:
 			rows.append(_lp_row(producer))
 		return rows
 
+var fert_balance_text: String:
+	get: return "%s in stock" % App.player_data.fertilizer.to_display(0)
+
+var fert_rows: Array[FertilizerRow]:
+	get:
+		var rows: Array[FertilizerRow] = []
+		for upgrade in App.fertilizer_upgrade_defs():
+			rows.append(_fert_row(upgrade))
+		return rows
+
 var daily_rows: Array[GrowthRow]:
 	get:
 		var rows: Array[GrowthRow] = []
@@ -121,12 +136,16 @@ func _init() -> void:
 	App.growth_upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
 	App.daily_reward_data.last_claim_day_changed.connect(_on_daily_changed)
 	App.daily_reward_data.streak_changed.connect(_on_daily_changed)
+	App.fertilizer_upgrade_system.upgrades_changed.connect(_on_fert_changed)
+	App.player_data.fertilizer_changed.connect(_on_fert_changed.unbind(1))
 
 func dispose() -> void:
 	App.player_data.tick_count_changed.disconnect(_on_tick_count_changed)
 	App.growth_upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
 	App.daily_reward_data.last_claim_day_changed.disconnect(_on_daily_changed)
 	App.daily_reward_data.streak_changed.disconnect(_on_daily_changed)
+	App.fertilizer_upgrade_system.upgrades_changed.disconnect(_on_fert_changed)
+	App.player_data.fertilizer_changed.disconnect(_on_fert_changed.unbind(1))
 
 # --- Model -> notification plumbing ---
 
@@ -142,6 +161,11 @@ func _on_upgrades_changed() -> void:
 
 func _on_daily_changed(_value: int) -> void:
 	_notify(PROP_DAILY_CHANGED)
+
+## A purchase and a payout both move the rows and the balance caption together -
+## buying is what empties the stock the header shows.
+func _on_fert_changed() -> void:
+	_notify(PROP_FERT_CHANGED)
 
 # --- Row building ---
 
@@ -172,6 +196,16 @@ func _daily_row(producer: GrowthProducerDef) -> GrowthRow:
 	row.value_text = "+%d%%" % int(round(producer.daily_per_level * 100.0 * float(claimed)))
 	row.detail_text = ""
 	row.enabled = App.can_claim_daily_into(currency)
+	return row
+
+func _fert_row(upgrade: FertilizerUpgradeDef) -> FertilizerRow:
+	var row := FertilizerRow.new()
+	row.id = upgrade.id
+	row.label = upgrade.display_name
+	row.description = upgrade.description
+	row.level_text = "Lv %d" % App.fertilizer_level(upgrade.id)
+	row.cost_text = App.fertilizer_cost(upgrade.id).to_display(0)
+	row.enabled = App.can_buy_fertilizer(upgrade.id)
 	return row
 
 func _row(producer: GrowthProducerDef) -> GrowthRow:

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="FertilizerUpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://model/fertilizer/res_fertilizer_upgrade_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_nutrients_def.tres" id="2_nutrients"]
+[ext_resource type="Resource" path="res://data/currencies/res_water_def.tres" id="3_water"]
+[ext_resource type="Resource" path="res://data/currencies/res_biomass_def.tres" id="4_biomass"]
+[ext_resource type="Resource" path="res://data/currencies/res_crystals_def.tres" id="5_crystals"]
+[ext_resource type="Script" path="res://model/currencies/gd_currency_def.gd" id="6_currency_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"fert_rich_soil"
+display_name = "Rich Soil"
+description = "Worked-in fertilizer raises every producer at once."
+currencies = Array[ExtResource("6_currency_script")]([ExtResource("2_nutrients"), ExtResource("3_water"), ExtResource("4_biomass"), ExtResource("5_crystals")])
+per_level = 0.1
+base_cost = 3.0
+cost_growth = 2.0

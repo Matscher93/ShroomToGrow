@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="FertilizerUpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://model/fertilizer/res_fertilizer_upgrade_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_water_def.tres" id="2_water"]
+[ext_resource type="Resource" path="res://data/currencies/res_crystals_def.tres" id="3_crystals"]
+[ext_resource type="Script" path="res://model/currencies/gd_currency_def.gd" id="4_currency_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"fert_mineral_bloom"
+display_name = "Mineral Bloom"
+description = "Mineral-rich runoff feeds the water table and the crystal seams."
+currencies = Array[ExtResource("4_currency_script")]([ExtResource("2_water"), ExtResource("3_crystals")])
+per_level = 0.25
+base_cost = 5.0
+cost_growth = 2.0

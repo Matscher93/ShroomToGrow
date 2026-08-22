@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/growth/gd_growth_fert_row.gd" id="1_script"]
+[ext_resource type="FontFile" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="2_num_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_row"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.56078434, 0.8392157, 0.41568628, 0.05)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.56078434, 0.8392157, 0.41568628, 0.16)
+corner_radius_top_left = 13
+corner_radius_top_right = 13
+corner_radius_bottom_right = 13
+corner_radius_bottom_left = 13
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_level"]
+content_margin_left = 6.0
+content_margin_top = 1.0
+content_margin_right = 6.0
+content_margin_bottom = 1.0
+bg_color = Color(0.56078434, 0.8392157, 0.41568628, 0.12)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="LabelSettings" id="LabelSettings_level"]
+font = ExtResource("2_num_font")
+font_size = 10
+font_color = Color(0.56078434, 0.8392157, 0.41568628, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_description"]
+font_size = 11
+font_color = Color(0.5764706, 0.65882355, 0.6117647, 1)
+
+[node name="growth_fert_row" type="PanelContainer" node_paths=PackedStringArray("lbl_label", "lbl_level", "lbl_description", "btn_buy")]
+theme_override_styles/panel = SubResource("StyleBoxFlat_row")
+script = ExtResource("1_script")
+lbl_label = NodePath("HBoxContainer/VBoxContainer/HBoxContainer/lbl_label")
+lbl_level = NodePath("HBoxContainer/VBoxContainer/HBoxContainer/panel_level/lbl_level")
+lbl_description = NodePath("HBoxContainer/VBoxContainer/lbl_description")
+btn_buy = NodePath("HBoxContainer/btn_buy")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 11
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="lbl_label" type="Label" parent="HBoxContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Rich Soil"
+
+[node name="panel_level" type="PanelContainer" parent="HBoxContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_level")
+
+[node name="lbl_level" type="Label" parent="HBoxContainer/VBoxContainer/HBoxContainer/panel_level"]
+layout_mode = 2
+text = "Lv 0"
+label_settings = SubResource("LabelSettings_level")
+
+[node name="lbl_description" type="Label" parent="HBoxContainer/VBoxContainer"]
+layout_mode = 2
+text = "Worked-in fertilizer raises every producer at once."
+label_settings = SubResource("LabelSettings_description")
+autowrap_mode = 3
+
+[node name="btn_buy" type="Button" parent="HBoxContainer"]
+custom_minimum_size = Vector2(72, 34)
+layout_mode = 2
+size_flags_vertical = 4
+text = "3"

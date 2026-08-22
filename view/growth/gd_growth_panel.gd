@@ -1,7 +1,7 @@
 extends PanelContainer
-## VIEW: the growth sheet - the account level, the Level Points it has banked and
-## today's daily reward - shown as a full-screen overlay over whatever screen the
-## player is on.
+## VIEW: the growth sheet - the account level, the Level Points it has banked, the
+## fertilizer events have paid out and today's daily reward - shown as a
+## full-screen overlay over whatever screen the player is on.
 ##
 ## An overlay rather than a screen for the same reason the achievement archive is
 ## one: points and rewards pile up while the player is off doing something else,
@@ -26,10 +26,13 @@ signal dismissed
 @export var bar_double: ProgressBar
 @export var lbl_double_hint: Label
 @export var vbox_lp_rows: VBoxContainer
+@export var lbl_fert_balance: Label
+@export var vbox_fert_rows: VBoxContainer
 @export var lbl_daily_streak: Label
 @export var lbl_daily_hint: Label
 @export var grid_daily: GridContainer
 @export var lp_row_scene: PackedScene
+@export var fert_row_scene: PackedScene
 @export var daily_chip_scene: PackedScene
 
 var _vm: GrowthViewModel
@@ -52,11 +55,11 @@ func _exit_tree() -> void:
 		_vm = null
 
 ## Every notification refreshes the whole sheet rather than matching on which one
-## arrived. The three sources are not independent: claiming a daily buys a level
-## in the same track an investment does, so a claim moves the rows *and* the day
-## state, and a level-up moves the header *and* every row's enabled flag.
-## Splitting that up buys nothing - the refresh is eight label writes - and every
-## way of splitting it has a dependency to miss.
+## arrived. The sources are not independent: claiming a daily buys a level in the
+## same track an investment does, so a claim moves the rows *and* the day state,
+## and a level-up moves the header *and* every row's enabled flag. Splitting that
+## up buys nothing - the refresh is a handful of label writes - and every way of
+## splitting it has a dependency to miss.
 func _on_property_changed(_property: StringName) -> void:
 	_refresh()
 
@@ -69,6 +72,10 @@ func _build_rows() -> void:
 		var row := lp_row_scene.instantiate()
 		vbox_lp_rows.add_child(row)
 		row.invest_requested.connect(_on_invest_requested)
+	for fert_data in _vm.fert_rows:
+		var fert_row := fert_row_scene.instantiate()
+		vbox_fert_rows.add_child(fert_row)
+		fert_row.buy_requested.connect(_on_fert_buy_requested)
 	for chip_data in _vm.daily_rows:
 		var chip := daily_chip_scene.instantiate()
 		grid_daily.add_child(chip)
@@ -83,6 +90,7 @@ func _refresh() -> void:
 	lbl_double_now.text = "%s now" % _vm.global_double_text
 	bar_double.value = _vm.global_pct_fill * 100.0
 	lbl_double_hint.text = _vm.next_double_hint_text
+	lbl_fert_balance.text = _vm.fert_balance_text
 	lbl_daily_streak.text = _vm.daily_streak_text
 	lbl_daily_hint.text = _vm.daily_hint_text
 	_refresh_rows()
@@ -91,6 +99,9 @@ func _refresh_rows() -> void:
 	var lp_rows := _vm.lp_rows
 	for i in range(mini(lp_rows.size(), vbox_lp_rows.get_child_count())):
 		vbox_lp_rows.get_child(i).bind(lp_rows[i])
+	var fert_rows := _vm.fert_rows
+	for i in range(mini(fert_rows.size(), vbox_fert_rows.get_child_count())):
+		vbox_fert_rows.get_child(i).bind(fert_rows[i])
 	var daily_rows := _vm.daily_rows
 	for i in range(mini(daily_rows.size(), grid_daily.get_child_count())):
 		grid_daily.get_child(i).bind(daily_rows[i])
@@ -100,6 +111,9 @@ func _on_invest_requested(currency: CurrencyTypes.Types) -> void:
 
 func _on_claim_requested(currency: CurrencyTypes.Types) -> void:
 	_vm.claim_daily(currency)
+
+func _on_fert_buy_requested(id: StringName) -> void:
+	_vm.buy_fertilizer(id)
 
 ## Presses that reached the backdrop missed the sheet, so they are a tap outside
 ## the overlay.

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RandomEventDef" format=3]
+
+[ext_resource type="Script" path="res://model/events/res_random_event_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_nutrients_def.tres" id="2_currency"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"feed_the_mycelium"
+title = "Feed the Mycelium"
+description = "Sacrifice a share of the harvest to enrich the substrate."
+accent_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
+kind = 1
+currency = ExtResource("2_currency")
+pct_of_balance = 0.15
+flat_amount = 200.0
+min_amount = 200.0
+fertilizer_min = 2.0
+fertilizer_max = 2.0

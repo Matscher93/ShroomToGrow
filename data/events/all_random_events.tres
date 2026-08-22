@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RandomEventList" format=3]
+
+[ext_resource type="Script" path="res://model/events/res_random_event_list.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/events/res_random_event_def.gd" id="2_event_script"]
+[ext_resource type="Resource" path="res://data/events/res_event_spore_flush.tres" id="3_spore_flush"]
+[ext_resource type="Resource" path="res://data/events/res_event_morning_dew.tres" id="4_morning_dew"]
+[ext_resource type="Resource" path="res://data/events/res_event_rapid_fruiting.tres" id="5_rapid_fruiting"]
+[ext_resource type="Resource" path="res://data/events/res_event_geode_crack.tres" id="6_geode_crack"]
+[ext_resource type="Resource" path="res://data/events/res_event_windfall.tres" id="7_windfall"]
+[ext_resource type="Resource" path="res://data/events/res_event_irrigation_pact.tres" id="8_irrigation_pact"]
+[ext_resource type="Resource" path="res://data/events/res_event_compost_heap.tres" id="9_compost_heap"]
+[ext_resource type="Resource" path="res://data/events/res_event_feed_the_mycelium.tres" id="10_feed_the_mycelium"]
+[ext_resource type="Resource" path="res://data/events/res_event_steady_cultivation.tres" id="11_steady_cultivation"]
+
+[resource]
+script = ExtResource("1_script")
+events = Array[ExtResource("2_event_script")]([ExtResource("3_spore_flush"), ExtResource("4_morning_dew"), ExtResource("5_rapid_fruiting"), ExtResource("6_geode_crack"), ExtResource("7_windfall"), ExtResource("8_irrigation_pact"), ExtResource("9_compost_heap"), ExtResource("10_feed_the_mycelium"), ExtResource("11_steady_cultivation")])

@@ -244,6 +244,10 @@ static func _reset(app: Node) -> void:
 	# sporation has no claim on, but a simulated run starts from nothing - a
 	# baseline carrying invested Level Points would not be a first run.
 	app.growth_upgrade_system.reset()
+	# And again for the fertilizer track, for exactly the same reason: what events
+	# paid out in an earlier run is account progress, but a baseline starting with
+	# Rich Soil already bought is not a first run.
+	app.fertilizer_upgrade_system.reset()
 	app.biome_system.reset()
 	app.biome_system.unlock_free_biomes()
 
@@ -252,6 +256,10 @@ static func _reset(app: Node) -> void:
 	app.achievement_progress.load_from_save({})
 	app.achievement_system.sync_tier_count()
 	app.daily_reward_data.load_from_save({})
+	# The queue goes too. Nothing in the simulation answers an event - it never
+	# runs the spawn timer - so a carried-over offer would sit there unanswered
+	# and only the fertilizer it never pays would differ.
+	app.events_data.load_from_save({})
 	# The doubling level is derived from the investments just cleared, so it has
 	# to follow them down.
 	app.player_level_system.sync_global_double()

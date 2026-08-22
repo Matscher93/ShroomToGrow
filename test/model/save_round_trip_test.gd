@@ -15,13 +15,16 @@ func test_player_data_round_trip() -> void:
 	original.biomass = BigNumber.from_value(42.0)
 	original.water = BigNumber.from_value(7.0)
 	original.crystals = BigNumber.from_value(88.0)
+	original.fertilizer = BigNumber.from_value(11.0)
 	original.tick_count = 9439
 	original.prestige_count = 3
 	original.lifetime_nutrients = BigNumber.from_value(1e9)
 	original.lifetime_crystals = BigNumber.from_value(150.0)
+	original.lifetime_fertilizer = BigNumber.from_value(37.0)
 	original.lifetime_ticks = 20000
 	original.lifetime_manual_nodes = 512
 	original.lifetime_biome_size = 64
+	original.events_resolved = 26
 
 	var restored := PlayerData.from_save(original.to_save())
 
@@ -29,13 +32,16 @@ func test_player_data_round_trip() -> void:
 	assert_float(restored.biomass.to_float()).is_equal_approx(42.0, EPS)
 	assert_float(restored.water.to_float()).is_equal_approx(7.0, EPS)
 	assert_float(restored.crystals.to_float()).is_equal_approx(88.0, EPS)
+	assert_float(restored.fertilizer.to_float()).is_equal_approx(11.0, EPS)
 	assert_int(restored.tick_count).is_equal(9439)
 	assert_int(restored.prestige_count).is_equal(3)
 	assert_float(restored.lifetime_nutrients.to_float()).is_equal_approx(1e9, EPS)
 	assert_float(restored.lifetime_crystals.to_float()).is_equal_approx(150.0, EPS)
+	assert_float(restored.lifetime_fertilizer.to_float()).is_equal_approx(37.0, EPS)
 	assert_int(restored.lifetime_ticks).is_equal(20000)
 	assert_int(restored.lifetime_manual_nodes).is_equal(512)
 	assert_int(restored.lifetime_biome_size).is_equal(64)
+	assert_int(restored.events_resolved).is_equal(26)
 
 func test_achievement_tiers_is_not_saved_on_player_data() -> void:
 	# It is a projection of AchievementProgress, rebuilt by
@@ -469,3 +475,84 @@ func test_automation_data_tolerates_an_empty_save() -> void:
 	var restored := AutomationData.from_save({})
 	assert_int(restored.level(&"AutoBuyNodes")).is_zero()
 	assert_bool(restored.is_enabled(&"AutoBuyNodes")).is_true()
+
+# ─── EventsData ──────────────────────────────────────────────────────────────
+
+func test_events_data_round_trip() -> void:
+	var original := EventsData.new()
+	var first := original.add(&"spore_flush", 0)
+	original.add(&"steady_cultivation", 3)
+	original.advance_progress(func(def_id: StringName) -> int:
+		return 4 if def_id == &"steady_cultivation" else 0)
+
+	var restored := EventsData.from_save(original.to_save())
+
+	assert_int(restored.count()).is_equal(2)
+	assert_int(restored.events[0]["instance_id"]).is_equal(first)
+	assert_str(String(restored.events[1]["def_id"])).is_equal("steady_cultivation")
+	assert_int(restored.events[1]["progress"]).is_equal(1)
+	assert_int(restored.events[1]["roll"]).is_equal(3)
+
+## An id handed out twice could match a card already on its way off screen to the
+## event that took its slot, paying the wrong one out.
+func test_events_data_does_not_reissue_instance_ids_after_a_load() -> void:
+	var original := EventsData.new()
+	var only := original.add(&"windfall", 2)
+	original.remove(only)
+	var restored := EventsData.from_save(original.to_save())
+	assert_int(restored.add(&"windfall", 2)).is_greater(only)
+
+func test_events_data_loads_in_place() -> void:
+	# EventSystem holds the reference, so load_from_save must mutate rather than
+	# be replaced. Same contract as PlayerData.
+	var live := EventsData.new()
+	var emitted: Array[int] = [0]
+	live.events_changed.connect(func() -> void: emitted[0] += 1)
+	live.load_from_save({"events": [
+		{"def_id": "windfall", "progress": 0, "instance_id": 4, "roll": 1},
+	]})
+	assert_int(live.count()).is_equal(1)
+	assert_int(emitted[0]).is_greater(0)
+
+func test_events_data_tolerates_an_empty_save() -> void:
+	var restored := EventsData.from_save({})
+	assert_int(restored.count()).is_equal(0)
+	assert_bool(restored.is_empty()).is_true()
+
+func test_a_corrupt_event_entry_is_dropped_rather_than_fatal() -> void:
+	var restored := EventsData.from_save({"events": [
+		"not a dictionary",
+		{"def_id": "windfall", "progress": 0, "instance_id": 2, "roll": 1},
+		{"def_id": "windfall", "progress": 0, "instance_id": 0, "roll": 1},
+	]})
+	assert_int(restored.count()).is_equal(1)
+	assert_int(restored.events[0]["instance_id"]).is_equal(2)
+
+# ─── Fertilizer track ────────────────────────────────────────────────────────
+
+func test_fertilizer_upgrade_levels_round_trip() -> void:
+	var track := UpgradeSystem.new()
+	for def in FertilizerTree.build(App.fertilizer_upgrades, App.growth_producers):
+		track.register(def)
+	var id: StringName = App.fertilizer_upgrades.upgrades[0].id
+	var player := PlayerData.new()
+	player.fertilizer = BigNumber.from_value(1000.0)
+	track.buy(id, player, &"fertilizer")
+	track.buy(id, player, &"fertilizer")
+
+	var restored := UpgradeSystem.new()
+	for def in FertilizerTree.build(App.fertilizer_upgrades, App.growth_producers):
+		restored.register(def)
+	restored.from_save(track.to_save())
+
+	assert_int(restored.level(id)).is_equal(2)
+
+## Both new buckets are absent from every save written before this build. They
+## have to read as a fresh start rather than failing the load, which is the
+## contract App.load_from_save documents.
+func test_a_save_without_the_new_buckets_loads_as_a_fresh_start() -> void:
+	var game: Dictionary = {}
+	assert_bool(game.get("fertilizer_upgrades", {}).is_empty()).is_true()
+	assert_int(EventsData.from_save(game.get("events", {})).count()).is_equal(0)
+	assert_float(PlayerData.from_save(game.get("player_data", {})).fertilizer.to_float()) \
+		.is_equal_approx(0.0, EPS)

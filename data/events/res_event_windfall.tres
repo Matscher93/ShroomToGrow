@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RandomEventDef" format=3]
+
+[ext_resource type="Script" path="res://model/events/res_random_event_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"windfall"
+title = "Windfall"
+description = "Decaying matter breaks down into rich fertilizer."
+accent_color = Color(0.56078434, 0.8392157, 0.41568628, 1)
+kind = 0
+fertilizer_min = 1.0
+fertilizer_max = 2.0

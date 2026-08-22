@@ -1,0 +1,183 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/events/gd_event_card.gd" id="1_script"]
+[ext_resource type="FontFile" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="2_num_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+content_margin_left = 14.0
+content_margin_top = 13.0
+content_margin_right = 14.0
+content_margin_bottom = 13.0
+bg_color = Color(1, 1, 1, 0.03)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.09)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dot"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="LabelSettings" id="LabelSettings_eyebrow"]
+font_size = 9
+font_color = Color(0.49019608, 0.9411765, 0.8235294, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_title"]
+font_size = 15
+font_color = Color(0.9411765, 0.9647059, 0.9254902, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_description"]
+font_size = 11
+font_color = Color(0.56078434, 0.7019608, 0.6509804, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_spend"]
+font = ExtResource("2_num_font")
+font_size = 11
+font_color = Color(0.8745098, 0.93333334, 0.9019608, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_reward"]
+font = ExtResource("2_num_font")
+font_size = 10
+font_color = Color(0.56078434, 0.8392157, 0.41568628, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_progress"]
+font = ExtResource("2_num_font")
+font_size = 10
+font_color = Color(0.56078434, 0.7019608, 0.6509804, 1)
+
+[node name="event_card" type="PanelContainer" node_paths=PackedStringArray("color_rail", "color_dot", "lbl_eyebrow", "btn_skip", "lbl_title", "lbl_description", "btn_collect", "box_spend", "lbl_spend", "lbl_spend_reward", "btn_fulfil", "box_progress", "lbl_progress", "lbl_progress_reward", "bar_progress")]
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+script = ExtResource("1_script")
+color_rail = NodePath("HBoxContainer/color_rail")
+color_dot = NodePath("HBoxContainer/VBoxContainer/header/dot_wrap/color_dot")
+lbl_eyebrow = NodePath("HBoxContainer/VBoxContainer/header/lbl_eyebrow")
+btn_skip = NodePath("HBoxContainer/VBoxContainer/header/btn_skip")
+lbl_title = NodePath("HBoxContainer/VBoxContainer/lbl_title")
+lbl_description = NodePath("HBoxContainer/VBoxContainer/lbl_description")
+btn_collect = NodePath("HBoxContainer/VBoxContainer/btn_collect")
+box_spend = NodePath("HBoxContainer/VBoxContainer/box_spend")
+lbl_spend = NodePath("HBoxContainer/VBoxContainer/box_spend/VBoxContainer/lbl_spend")
+lbl_spend_reward = NodePath("HBoxContainer/VBoxContainer/box_spend/VBoxContainer/lbl_spend_reward")
+btn_fulfil = NodePath("HBoxContainer/VBoxContainer/box_spend/btn_fulfil")
+box_progress = NodePath("HBoxContainer/VBoxContainer/box_progress")
+lbl_progress = NodePath("HBoxContainer/VBoxContainer/box_progress/HBoxContainer/lbl_progress")
+lbl_progress_reward = NodePath("HBoxContainer/VBoxContainer/box_progress/HBoxContainer/lbl_progress_reward")
+bar_progress = NodePath("HBoxContainer/VBoxContainer/box_progress/bar_progress")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 11
+
+[node name="color_rail" type="ColorRect" parent="HBoxContainer"]
+custom_minimum_size = Vector2(3, 0)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.49019608, 0.9411765, 0.8235294, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="header" type="HBoxContainer" parent="HBoxContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="dot_wrap" type="PanelContainer" parent="HBoxContainer/VBoxContainer/header"]
+custom_minimum_size = Vector2(6, 6)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_dot")
+
+[node name="color_dot" type="ColorRect" parent="HBoxContainer/VBoxContainer/header/dot_wrap"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.49019608, 0.9411765, 0.8235294, 1)
+
+[node name="lbl_eyebrow" type="Label" parent="HBoxContainer/VBoxContainer/header"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+text = "EVENT"
+label_settings = SubResource("LabelSettings_eyebrow")
+
+[node name="btn_skip" type="Button" parent="HBoxContainer/VBoxContainer/header"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_vertical = 4
+text = "X"
+
+[node name="lbl_title" type="Label" parent="HBoxContainer/VBoxContainer"]
+layout_mode = 2
+text = "Spore Flush"
+label_settings = SubResource("LabelSettings_title")
+
+[node name="lbl_description" type="Label" parent="HBoxContainer/VBoxContainer"]
+layout_mode = 2
+text = "A drift of spores settles and enriches the soil."
+label_settings = SubResource("LabelSettings_description")
+autowrap_mode = 3
+
+[node name="btn_collect" type="Button" parent="HBoxContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Collect"
+
+[node name="box_spend" type="HBoxContainer" parent="HBoxContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/VBoxContainer/box_spend"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 1
+
+[node name="lbl_spend" type="Label" parent="HBoxContainer/VBoxContainer/box_spend/VBoxContainer"]
+layout_mode = 2
+text = "Spend 30 water"
+label_settings = SubResource("LabelSettings_spend")
+
+[node name="lbl_spend_reward" type="Label" parent="HBoxContainer/VBoxContainer/box_spend/VBoxContainer"]
+layout_mode = 2
+text = "-> +3 fertilizer"
+label_settings = SubResource("LabelSettings_reward")
+
+[node name="btn_fulfil" type="Button" parent="HBoxContainer/VBoxContainer/box_spend"]
+custom_minimum_size = Vector2(84, 36)
+layout_mode = 2
+size_flags_vertical = 4
+text = "Fulfil"
+
+[node name="box_progress" type="VBoxContainer" parent="HBoxContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/VBoxContainer/box_progress"]
+layout_mode = 2
+
+[node name="lbl_progress" type="Label" parent="HBoxContainer/VBoxContainer/box_progress/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "0 / 4 ticks"
+label_settings = SubResource("LabelSettings_progress")
+
+[node name="lbl_progress_reward" type="Label" parent="HBoxContainer/VBoxContainer/box_progress/HBoxContainer"]
+layout_mode = 2
+text = "+3 fertilizer"
+label_settings = SubResource("LabelSettings_reward")
+
+[node name="bar_progress" type="ProgressBar" parent="HBoxContainer/VBoxContainer/box_progress"]
+custom_minimum_size = Vector2(0, 7)
+layout_mode = 2
+show_percentage = false

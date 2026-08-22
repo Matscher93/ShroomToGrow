@@ -27,8 +27,9 @@ func after_test() -> void:
 func test_every_exported_node_resolves() -> void:
 	for property in ["btn_close", "lbl_level", "lbl_lp_free", "bar_level", "lbl_level_progress",
 			"lbl_double_now", "bar_double", "lbl_double_hint", "vbox_lp_rows",
+			"lbl_fert_balance", "vbox_fert_rows",
 			"lbl_daily_streak", "lbl_daily_hint", "grid_daily",
-			"lp_row_scene", "daily_chip_scene"]:
+			"lp_row_scene", "fert_row_scene", "daily_chip_scene"]:
 		assert_object(_panel.get(property)).override_failure_message(
 			"growth_panel.%s did not resolve." % property).is_not_null()
 
@@ -48,6 +49,32 @@ func test_rows_are_bound_rather_than_left_on_their_placeholders() -> void:
 		expected.append(producer.currency.currency_name)
 	assert_array(labels).is_equal(expected)
 
+func test_one_row_per_authored_fertilizer_upgrade() -> void:
+	assert_int(_panel.vbox_fert_rows.get_child_count()).override_failure_message(
+		"Expected one row per fertilizer upgrade.").is_equal(
+		App.fertilizer_upgrades.upgrades.size())
+
+func test_fertilizer_rows_are_bound_rather_than_left_on_their_placeholders() -> void:
+	var labels: Array[String] = []
+	for row in _panel.vbox_fert_rows.get_children():
+		labels.append(row.lbl_label.text)
+	var expected: Array[String] = []
+	for upgrade in App.fertilizer_upgrades.upgrades:
+		expected.append(upgrade.display_name)
+	assert_array(labels).is_equal(expected)
+
+## Every authored upgrade costs more than a fresh save holds, so the buttons are
+## disabled but still on screen - the sheet must not change height the moment the
+## stock crosses a price.
+func test_fertilizer_buttons_are_disabled_rather_than_hidden_when_unaffordable() -> void:
+	for row in _panel.vbox_fert_rows.get_children():
+		assert_bool(row.visible).is_true()
+		assert_bool(row.btn_buy.disabled).is_equal(not App.can_buy_fertilizer(row.get("_id")))
+
+func test_the_fertilizer_header_reads_the_live_balance() -> void:
+	assert_str(_panel.lbl_fert_balance.text).is_equal(
+		"%s in stock" % App.player_data.fertilizer.to_display(0))
+
 func test_the_header_reads_the_live_level() -> void:
 	assert_str(_panel.lbl_level.text).is_equal("Lv %d" % App.player_level())
 	assert_str(_panel.lbl_lp_free.text).is_equal("%d LP free" % App.lp_available())
@@ -56,6 +83,9 @@ func test_the_header_reads_the_live_level() -> void:
 ## grow the list. The level notification alone arrives once a tick.
 func test_a_refresh_rebinds_rather_than_rebuilds() -> void:
 	var before: int = _panel.vbox_lp_rows.get_child_count()
+	var fert_before: int = _panel.vbox_fert_rows.get_child_count()
 	App.growth_vm.property_changed.emit(GrowthViewModel.PROP_ROWS_CHANGED)
 	App.growth_vm.property_changed.emit(GrowthViewModel.PROP_LEVEL_CHANGED)
+	App.growth_vm.property_changed.emit(GrowthViewModel.PROP_FERT_CHANGED)
 	assert_int(_panel.vbox_lp_rows.get_child_count()).is_equal(before)
+	assert_int(_panel.vbox_fert_rows.get_child_count()).is_equal(fert_before)

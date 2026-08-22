@@ -32,7 +32,9 @@ func _emitters() -> Array[Object]:
 		App.boost_upgrade_system,
 		App.project_upgrade_system,
 		App.growth_upgrade_system,
+		App.fertilizer_upgrade_system,
 		App.daily_reward_data,
+		App.events_data,
 		App.screens_data,
 	]
 	for node in App.nodes.mycelium_nodes:
@@ -129,6 +131,13 @@ func test_navigation_view_model_disposes_cleanly() -> void:
 func test_growth_view_model_disposes_cleanly() -> void:
 	_assert_symmetric("GrowthViewModel",
 		func() -> ViewModel: return GrowthViewModel.new())
+
+## The four currency signals here are connected with .unbind(1), which is the
+## easiest disconnect in the layer to get wrong: dropping the .unbind(1) on the
+## disconnect side leaves the connection in place and throws no error.
+func test_events_view_model_disposes_cleanly() -> void:
+	_assert_symmetric("EventsViewModel",
+		func() -> ViewModel: return EventsViewModel.new())
 
 # ─── Per-selection VMs (built fresh on select, disposed on reselect) ─────────
 #

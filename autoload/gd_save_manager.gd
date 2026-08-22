@@ -363,6 +363,12 @@ func run_offline_progress_calculation() -> void:
 	# handle_tick(), so without this the loop below would let them spend a whole
 	# night's ticks in one burst.
 	App.automations_running = false
+	# Events are an active-play feature for the same reason. The spawn timer is
+	# stopped outright rather than only gated, so the queue does not fill from a
+	# timeout that lands mid-catch-up; the flag additionally holds back the
+	# progress quests riding on handle_tick() below.
+	App.events_running = false
+	App.event_timer.stop()
 	# Nothing here buys anything, so upgrade levels and manual node counts are
 	# fixed for the loop and the per-node bonus is invariant. Compute it once
 	# instead of ~9 modify() calls per node per tick.
@@ -377,6 +383,8 @@ func run_offline_progress_calculation() -> void:
 			batch_start = Time.get_ticks_msec()
 	App.tick_timer.start()
 	App.automations_running = true
+	App.events_running = true
+	App.event_timer.start(App.event_system.next_interval())
 
 	# final snapshot after tick accumulation
 	save_game_snapshots.append(_collect_data())

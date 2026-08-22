@@ -6,6 +6,7 @@ signal nutrients_changed(value: BigNumber)
 signal biomass_changed(value: BigNumber)
 signal water_changed(value: BigNumber)
 signal crystals_changed(value: BigNumber)
+signal fertilizer_changed(value: BigNumber)
 signal tick_count_changed(value: int)
 signal prestige_count_changed(value: int)
 signal achievement_tiers_changed(value: int)
@@ -44,6 +45,19 @@ var crystals: BigNumber = BigNumber.from_value(0.0):
 			return
 		crystals = value
 		crystals_changed.emit(crystals)
+
+## Random-event reward currency, spent on the fertilizer upgrade track. Permanent:
+## prestige() never touches it, the same way it leaves biomass and crystals alone.
+##
+## A BigNumber like every other currency even though events pay it out in single
+## digits - that is what lets UpgradeSystem.buy() spend it by field name, with no
+## second purchase path for a currency that behaves like the rest.
+var fertilizer: BigNumber = BigNumber.from_value(0.0):
+	set(value):
+		if value == null or fertilizer.same_value(value):
+			return
+		fertilizer = value
+		fertilizer_changed.emit(fertilizer)
 
 var tick_count: int = 0:
 	set(value):
@@ -94,16 +108,21 @@ var well_project_levels: int = 0:
 ## driven by App's dirty flag rather than by per-field notifications.
 var lifetime_nutrients: BigNumber = BigNumber.from_value(0.0)
 var lifetime_crystals: BigNumber = BigNumber.from_value(0.0)
+var lifetime_fertilizer: BigNumber = BigNumber.from_value(0.0)
 var lifetime_ticks: int = 0
 var lifetime_manual_nodes: int = 0
 var lifetime_biome_size: int = 0
 
+## Random events collected or fulfilled, ever. Skipped events do not count - the
+## ladder measures offers taken, not offers seen.
+var events_resolved: int = 0
+
 ## Single source of truth for which fields round-trip through a save file.
 ## Add a new field here, and nowhere else, to have it saved and loaded.
 const _BIG_NUMBER_FIELDS: Array[String] = ["nutrients", "biomass", "water", "crystals",
-	"lifetime_nutrients", "lifetime_crystals"]
+	"fertilizer", "lifetime_nutrients", "lifetime_crystals", "lifetime_fertilizer"]
 const _PLAIN_FIELDS: Array[String] = ["tick_count", "prestige_count",
-	"lifetime_ticks", "lifetime_manual_nodes", "lifetime_biome_size"]
+	"lifetime_ticks", "lifetime_manual_nodes", "lifetime_biome_size", "events_resolved"]
 
 func to_save() -> Dictionary:
 	var save_state := {}

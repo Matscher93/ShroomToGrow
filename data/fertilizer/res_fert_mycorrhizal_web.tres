@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="FertilizerUpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://model/fertilizer/res_fertilizer_upgrade_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_nutrients_def.tres" id="2_nutrients"]
+[ext_resource type="Resource" path="res://data/currencies/res_biomass_def.tres" id="3_biomass"]
+[ext_resource type="Script" path="res://model/currencies/gd_currency_def.gd" id="4_currency_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"fert_mycorrhizal_web"
+display_name = "Mycorrhizal Web"
+description = "Threaded roots carry nutrients and fruiting mass further."
+currencies = Array[ExtResource("4_currency_script")]([ExtResource("2_nutrients"), ExtResource("3_biomass")])
+per_level = 0.2
+base_cost = 4.0
+cost_growth = 2.0

@@ -123,7 +123,7 @@ func test_tracks_are_named_in_stacking_order() -> void:
 	for pair: Array in _production.tracks():
 		names.append(pair[0])
 	assert_array(names).is_equal(["symbiosis", "biome", "prestige", "boosts",
-		"projects", "growth"])
+		"projects", "growth", "fertilizer"])
 
 func test_tracks_hand_out_the_systems_they_were_built_with() -> void:
 	var by_name := {}
@@ -146,3 +146,44 @@ func test_breakdown_keys_every_track_by_name() -> void:
 	# A track with nothing bought is present and empty, not absent - the table
 	# reading this should say "nothing here yet", not skip the heading.
 	assert_int((rows["growth"] as Array).size()).is_zero()
+
+# ─── Fertilizer track ────────────────────────────────────────────────────────
+
+## Built locally rather than in before_test(), so the tests above keep exercising
+## the four-argument constructor the extraction is about.
+func _with_fertilizer() -> Array:
+	var fertilizer := UpgradeSystem.new()
+	var production := ProductionSystem.new(_symbiosis, _biome, _prestige, _ctx,
+		null, null, null, fertilizer)
+	return [production, fertilizer]
+
+func test_the_fertilizer_track_reaches_stack() -> void:
+	var pair := _with_fertilizer()
+	var production: ProductionSystem = pair[0]
+	_register(pair[1], &"FertSoil", [_effect(&"node_production", 1.0,
+		UpgradeEffectDef.Op.MORE, UpgradeEffectDef.Scope.NODE, &"0")])
+	assert_float(production.node_production_bonus(&"0").to_float()) \
+		.is_equal_approx(2.0, EPS)
+
+## biomass_gain and crystal_gain resolve *only* through stack_external, so a
+## track missing from it is half-disabled in a way stack() alone cannot show.
+func test_the_fertilizer_track_reaches_stack_external() -> void:
+	var pair := _with_fertilizer()
+	var production: ProductionSystem = pair[0]
+	_register(pair[1], &"FertBloom", [_effect(&"crystal_gain", 1.0,
+		UpgradeEffectDef.Op.MORE)])
+	assert_float(production.modify_crystal_gain(BigNumber.from_value(1.0)).to_float()) \
+		.is_equal_approx(2.0, EPS)
+
+func test_the_fertilizer_track_moves_the_memo_version() -> void:
+	# Without this the first resolved value would be handed back forever, and a
+	# bought upgrade would appear to do nothing until another track moved.
+	var pair := _with_fertilizer()
+	var production: ProductionSystem = pair[0]
+	var fertilizer: UpgradeSystem = pair[1]
+	assert_float(production.modify_water_gain(BigNumber.from_value(1.0)).to_float()) \
+		.is_equal_approx(1.0, EPS)
+	_register(fertilizer, &"FertBloom", [_effect(&"water_production", 1.0,
+		UpgradeEffectDef.Op.MORE)])
+	assert_float(production.modify_water_gain(BigNumber.from_value(1.0)).to_float()) \
+		.is_equal_approx(2.0, EPS)

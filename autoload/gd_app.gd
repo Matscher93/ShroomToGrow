@@ -20,6 +20,10 @@ var screens := load("res://data/screens/all_screens.tres") as Screens
 
 var offline_income_vm: OfflineIncomeViewModel
 var tick_timer: Timer
+## Drives event spawns. Wall clock rather than the tick, and one_shot rather than
+## repeating, because each interval is drawn fresh - see EventSystem for why the
+## cadence is the player's rather than the game's.
+var event_timer: Timer
 
 var upgrade_system: UpgradeSystem
 var prestige_upgrade_system: UpgradeSystem
@@ -40,6 +44,11 @@ var project_upgrade_system: UpgradeSystem
 ## GrowthTree rather than authored, and it is permanent - both halves of it are
 ## account progress the sporation has no claim on.
 var growth_upgrade_system: UpgradeSystem
+## Levels of the three fertilizer upgrades, one UpgradeDef per upgrade. Its own
+## track for the same reasons the boosts, projects and growth have one: the defs
+## are generated from FertilizerTree rather than authored, and it is permanent -
+## fertilizer is earned from events and the sporation has no claim on it.
+var fertilizer_upgrade_system: UpgradeSystem
 var resolve_context := ResolveContext.new()
 
 ## Game rules, split out by domain. Each is constructed with the state it needs
@@ -55,6 +64,8 @@ var water_system: WaterSystem
 var well_system: WellSystem
 var player_level_system: PlayerLevelSystem
 var daily_reward_system: DailyRewardSystem
+var fertilizer_system: FertilizerSystem
+var event_system: EventSystem
 
 var biomes := load("res://data/biomes/all_biomes.tres") as BiomeList
 var biomes_data: BiomesData
@@ -83,6 +94,11 @@ var growth_producers := load("res://data/growth/all_producers.tres") as GrowthPr
 var daily_reward_data: DailyRewardData
 var growth_vm: GrowthViewModel
 
+var fertilizer_upgrades := load("res://data/fertilizer/all_fertilizer_upgrades.tres") as FertilizerUpgradeList
+var random_events := load("res://data/events/all_random_events.tres") as RandomEventList
+var events_data: EventsData
+var events_vm: EventsViewModel
+
 var automations := load("res://data/automation/all_automations.tres") as AutomationList
 var automation_data: AutomationData
 var automation_system: AutomationSystem
@@ -94,6 +110,12 @@ var crystal_caves_vm: CrystalCavesViewModel
 ## are an active-play feature: the catch-up replays production only, and letting
 ## them buy through a night's worth of ticks in one burst is a different game.
 var automations_running := true
+
+## Cleared by SaveManager alongside automations_running, and for the same reason:
+## events are an active-play feature. A night away would otherwise arrive as a
+## full queue and several auto-completed progress quests, which pays the player
+## for being absent.
+var events_running := true
 
 ## Set by anything an achievement could measure, drained once per frame in
 ## _process. Evaluating per change would re-walk every achievement several times
@@ -132,9 +154,16 @@ func _ready() -> void:
 	for def in GrowthTree.build(growth_producers):
 		growth_upgrade_system.register(def)
 
+	# Built from the growth producers as well as its own list: a fertilizer
+	# upgrade names the currencies it raises and picks up each one's stat, scope
+	# and target from the producer that already describes it.
+	fertilizer_upgrade_system = UpgradeSystem.new()
+	for def in FertilizerTree.build(fertilizer_upgrades, growth_producers):
+		fertilizer_upgrade_system.register(def)
+
 	production_system = ProductionSystem.new(upgrade_system, biome_upgrade_system,
 		prestige_upgrade_system, resolve_context, boost_upgrade_system,
-		project_upgrade_system, growth_upgrade_system)
+		project_upgrade_system, growth_upgrade_system, fertilizer_upgrade_system)
 	# Built before the tick system, which drives the pump: the well's rate and
 	# yield are stats like any other, but whether it runs at all is a biome unlock.
 	biomes_data = BiomesData.new()
@@ -184,6 +213,14 @@ func _ready() -> void:
 	daily_reward_system = DailyRewardSystem.new(daily_reward_data, growth_upgrade_system,
 		growth_producers)
 
+	# Built after biomes_data, which gates the crystal event, and before the VMs
+	# that read them back through App.
+	fertilizer_system = FertilizerSystem.new(player_data, fertilizer_upgrade_system,
+		fertilizer_upgrades)
+	events_data = EventsData.new()
+	event_system = EventSystem.new(events_data, player_data, biomes_data,
+		fertilizer_system, random_events)
+
 	# A boost's per-level rate is baked into its UpgradeDef, and the Well's
 	# projects move it. Funding one is the only thing that can, so the rebuild
 	# rides that signal rather than a tick. Run once up front too: a save loaded
@@ -216,9 +253,11 @@ func _ready() -> void:
 	crystal_caves_vm = CrystalCavesViewModel.new()
 	# After project_vms, for the same reason.
 	well_vm = WellViewModel.new()
-	# After player_level_system and daily_reward_system: it reads both back
-	# through App, which forwards to them.
+	# After player_level_system, daily_reward_system and fertilizer_system: the
+	# sheet holds all three sections and reads them back through App.
 	growth_vm = GrowthViewModel.new()
+	# After event_system, for the same reason.
+	events_vm = EventsViewModel.new()
 
 	screens_vm = ScreensViewModel.new(screens_data)
 	# After screens_data and crystal_caves_vm: the nav menu reads the screen
@@ -235,17 +274,33 @@ func _ready() -> void:
 	)
 	add_child(tick_timer)
 
+	# Deliberately not persisted: "active play only" means the countdown to the
+	# next event starts fresh each session rather than banking up while away.
+	event_timer = Timer.new()
+	event_timer.one_shot = true
+	event_timer.timeout.connect(_on_event_timer_timeout)
+	add_child(event_timer)
+	event_timer.start(event_system.next_interval())
+
 	upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	biome_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	prestige_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	boost_upgrade_system.upgrades_changed.connect(_update_tick_duration)
 	project_upgrade_system.upgrades_changed.connect(_update_tick_duration)
-	# The growth track is deliberately absent here: GrowthTree only ever writes
-	# the four producer stats, never &"tick_rate", so nothing it holds can move
-	# the tick length.
+	# The growth and fertilizer tracks are deliberately absent here: both only
+	# ever write the four producer stats, never &"tick_rate", so nothing either
+	# holds can move the tick length.
 	_update_tick_duration()
 
 	_connect_achievement_sources()
+
+## Puts one event on the board and arms the next interval. The timer is restarted
+## either way: a spawn skipped because the queue is full or because a catch-up is
+## running must not stop the clock, or events would never resume.
+func _on_event_timer_timeout() -> void:
+	if events_running:
+		event_system.try_spawn()
+	event_timer.start(event_system.next_interval())
 
 ## One evaluate per frame at most, and only when something actually moved. See
 ## _achievements_dirty.
@@ -270,6 +325,7 @@ func _connect_achievement_sources() -> void:
 	boost_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	project_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	growth_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
+	fertilizer_upgrade_system.upgrades_changed.connect(mark_achievements_dirty)
 	biomes_data.biome_unlocked.connect(mark_achievements_dirty.unbind(1))
 	player_data.prestige_count_changed.connect(mark_achievements_dirty.unbind(1))
 	biome_size_changed.connect(mark_achievements_dirty.unbind(1))
@@ -334,6 +390,8 @@ func to_save() -> Dictionary:
 		"project_upgrades": project_upgrade_system.to_save(),
 		"growth_upgrades": growth_upgrade_system.to_save(),
 		"daily_reward": daily_reward_data.to_save(),
+		"fertilizer_upgrades": fertilizer_upgrade_system.to_save(),
+		"events": events_data.to_save(),
 	}
 
 ## Loads a dictionary from to_save() into the live systems. Every holder is
@@ -361,6 +419,8 @@ func load_from_save(game: Dictionary) -> void:
 	# The doubling level does round-trip with the rest of the track, so this is a
 	# drift guard rather than the primary path. See sync_global_double().
 	player_level_system.sync_global_double()
+	fertilizer_upgrade_system.from_save(game.get("fertilizer_upgrades", {}))
+	events_data.load_from_save(game.get("events", {}))
 	daily_reward_data.load_from_save(game.get("daily_reward", {}))
 	# Only a device clock moved backwards can leave a last-claim day in the
 	# future, and only a load can be the first thing to notice.
@@ -405,6 +465,11 @@ func node_production_bonuses() -> Array[BigNumber]:
 func handle_tick(bonuses: Array[BigNumber] = []) -> void:
 	tick_system.handle_tick(bonuses)
 	_achievements_dirty = true
+	# Live ticks only. A progress quest measures time the player was here for, so
+	# the offline catch-up must not walk one to its goal - same reason the spawn
+	# timer checks this flag.
+	if events_running:
+		event_system.handle_tick()
 	# After production, so an automation spends the nutrients this tick just
 	# paid out rather than always working a tick behind.
 	if automations_running:
@@ -590,6 +655,52 @@ func daily_stacks(currency: CurrencyTypes.Types) -> int:
 
 func claim_daily(currency: CurrencyTypes.Types) -> bool:
 	return daily_reward_system.claim(currency)
+
+# ---------------------------------------------------------------- fertilizer
+
+func fertilizer_upgrade_defs() -> Array[FertilizerUpgradeDef]:
+	return fertilizer_system.upgrades()
+
+func fertilizer_level(id: StringName) -> int:
+	return fertilizer_system.level(id)
+
+func fertilizer_cost(id: StringName) -> BigNumber:
+	return fertilizer_system.cost(id)
+
+func fertilizer_multiplier(id: StringName) -> BigNumber:
+	return fertilizer_system.multiplier(id)
+
+func can_buy_fertilizer(id: StringName) -> bool:
+	return fertilizer_system.can_buy(id)
+
+func buy_fertilizer(id: StringName) -> bool:
+	return fertilizer_system.buy(id)
+
+# ---------------------------------------------------------------- events
+
+func events() -> Array[Dictionary]:
+	return event_system.events()
+
+func event_def(def_id: StringName) -> RandomEventDef:
+	return event_system.def_for(def_id)
+
+func event_amount(def: RandomEventDef) -> BigNumber:
+	return event_system.amount_for(def)
+
+func event_reward(event: Dictionary) -> BigNumber:
+	return event_system.reward_for(event)
+
+func can_fulfil_event(event: Dictionary) -> bool:
+	return event_system.can_fulfil(event)
+
+func collect_event(instance_id: int) -> bool:
+	return event_system.collect(instance_id)
+
+func fulfil_event(instance_id: int) -> bool:
+	return event_system.fulfil(instance_id)
+
+func skip_event(instance_id: int) -> bool:
+	return event_system.skip(instance_id)
 
 # ---------------------------------------------------------------- biomes
 

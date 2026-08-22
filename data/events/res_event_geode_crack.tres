@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RandomEventDef" format=3]
+
+[ext_resource type="Script" path="res://model/events/res_random_event_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_crystals_def.tres" id="2_currency"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"geode_crack"
+title = "Geode Crack"
+description = "A hollow splits open, spilling crystals across the floor."
+accent_color = Color(0.9411765, 0.54901963, 0.8392157, 1)
+kind = 0
+currency = ExtResource("2_currency")
+pct_of_balance = 0.1
+flat_amount = 5.0
+min_amount = 5.0
+requires_biome = &"crystal_caves"

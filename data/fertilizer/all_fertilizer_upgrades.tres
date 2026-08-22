@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="FertilizerUpgradeList" format=3]
+
+[ext_resource type="Script" path="res://model/fertilizer/res_fertilizer_upgrade_list.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/fertilizer/res_fertilizer_upgrade_def.gd" id="2_upgrade_script"]
+[ext_resource type="Resource" path="res://data/fertilizer/res_fert_rich_soil.tres" id="3_rich_soil"]
+[ext_resource type="Resource" path="res://data/fertilizer/res_fert_mycorrhizal_web.tres" id="4_mycorrhizal_web"]
+[ext_resource type="Resource" path="res://data/fertilizer/res_fert_mineral_bloom.tres" id="5_mineral_bloom"]
+
+[resource]
+script = ExtResource("1_script")
+upgrades = Array[ExtResource("2_upgrade_script")]([ExtResource("3_rich_soil"), ExtResource("4_mycorrhizal_web"), ExtResource("5_mineral_bloom")])

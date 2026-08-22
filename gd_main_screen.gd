@@ -1,8 +1,8 @@
 extends Control
 ## VIEW: top-level screen orchestration. Spawns the offline income popup into
 ## popup_layer whenever there's something to show, and clears it again once the
-## player dismisses it. Also owns the top bar's overlays, which get their own
-## layer above the popup one: the offline popup lands at boot without asking, and
+## player dismisses it. Also owns the top bar's three overlays, which get their
+## own layer above the popup one: the offline popup lands at boot without asking, and
 ## sharing a layer would let an overlay opened on top of it free it out from
 ## under the collect flow.
 ##
@@ -20,6 +20,7 @@ extends Control
 const OFFLINE_INCOME_SCENE := preload("res://view/offline_income/sc_offline_income.tscn")
 const ACHIEVEMENTS_SCENE := preload("res://view/achievements/sc_achievements_panel.tscn")
 const GROWTH_SCENE := preload("res://view/growth/sc_growth_panel.tscn")
+const EVENTS_SCENE := preload("res://view/events/sc_events_panel.tscn")
 const NAV_MENU_SCENE := preload("res://view/navigation/sc_nav_menu.tscn")
 
 var _offline_popup_active := false
@@ -29,6 +30,7 @@ func _ready() -> void:
 	add_child(MenuWarmup.new())
 	top_bar.achievements_pressed.connect(_on_achievements_pressed)
 	top_bar.growth_pressed.connect(_on_growth_pressed)
+	top_bar.events_pressed.connect(_on_events_pressed)
 	nav_disc.pressed.connect(_on_nav_pressed)
 	if App.offline_income_vm:
 		App.offline_income_vm.property_changed.connect(_on_offline_income_changed)
@@ -79,6 +81,16 @@ func _on_growth_pressed() -> void:
 		overlay_layer.clear()
 		return
 	var overlay := overlay_layer.show_popup(GROWTH_SCENE)
+	overlay.dismissed.connect(overlay_layer.clear, CONNECT_ONE_SHOT)
+
+## Same toggle and the same layer again, for the same reason: the events sheet is
+## a third answer to "what is waiting for me", so opening it replaces whichever of
+## the other two was up.
+func _on_events_pressed() -> void:
+	if overlay_layer.has_popup():
+		overlay_layer.clear()
+		return
+	var overlay := overlay_layer.show_popup(EVENTS_SCENE)
 	overlay.dismissed.connect(overlay_layer.clear, CONNECT_ONE_SHOT)
 
 ## Tapping the disc toggles, the same as the achievements button. The open menu's

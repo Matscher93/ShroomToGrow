@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RandomEventDef" format=3]
+
+[ext_resource type="Script" path="res://model/events/res_random_event_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_biomass_def.tres" id="2_currency"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"rapid_fruiting"
+title = "Rapid Fruiting"
+description = "A sudden bloom swells the colony."
+accent_color = Color(0.7019608, 0.53333336, 0.9607843, 1)
+kind = 0
+currency = ExtResource("2_currency")
+pct_of_balance = 0.08
+flat_amount = 8.0
+min_amount = 10.0
