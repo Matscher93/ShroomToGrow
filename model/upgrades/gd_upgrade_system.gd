@@ -214,6 +214,55 @@ func buy_with_points(id: StringName, has_point_available: bool) -> bool:
 	_emit_changed()
 	return true
 
+## Read-only view of what every levelled upgrade in this track contributes, one
+## row per effect: {id, name, level, stat, key, op, mag}.
+##
+## Read straight out of _contrib, which is the same cache _bucket() sums, so a
+## breakdown cannot disagree with what modify() actually applies - the magnitudes
+## already have their ScalingSourceDef and their cap in them. Level-zero upgrades
+## are absent for free: _remember() files nothing for them.
+##
+## For the balance tools. Nothing in the game reads it, and nothing should - it
+## walks the whole track, which is exactly what the caching here exists to avoid.
+func breakdown(ctx: ResolveContext) -> Array[Dictionary]:
+	if not _stale.is_empty():
+		_resolve_stale(ctx)
+	var rows: Array[Dictionary] = []
+	for id: StringName in _contrib:
+		var upgrade_def: UpgradeDef = _defs.get(id)
+		for c: Dictionary in _contrib[id]:
+			rows.append({
+				"id": String(id),
+				"name": upgrade_def.display_name if upgrade_def != null else "",
+				"level": _levels.get(id, 0),
+				"stat": String(c["stat"]),
+				"key": c["key"],
+				"op": c["op"],
+				"mag": c["mag"],
+			})
+	return rows
+
+## Sets a level directly, for a caller measuring rather than playing: the balance
+## simulator zeroes one upgrade at a time to see what the run is worth without it,
+## then puts the level back.
+##
+## Not a purchase. Nothing is paid and lifetime_levels does not move, so this must
+## never be reached from gameplay - buy() and buy_with_points() are the only ways
+## a level is earned.
+##
+## Marks the cache stale without emitting upgrades_changed, which is all a probe
+## needs: _touch() moves `version`, and that is what drops ProductionSystem's memo.
+## The signal is deliberately withheld so a measurement cannot reach the live
+## listeners - in particular BoostSystem.refresh_power(), which rewrites a built
+## UpgradeDef's per_level in place. The cost is that the four &"boost_power" perks
+## under-report their impact: a probe does not re-derive the boost per_level their
+## effect feeds.
+func set_level_for_analysis(id: StringName, lvl: int) -> void:
+	if not _defs.has(id):
+		return
+	_levels[id] = maxi(0, lvl)
+	_touch([id])
+
 ## Sum of every registered upgrade's level, used as a biome XP source.
 func total_levels() -> int:
 	var total := 0

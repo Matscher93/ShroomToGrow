@@ -113,3 +113,36 @@ func test_biomass_gain_ignores_symbiosis() -> void:
 	_register(_biome, &"BioBio", [_effect(&"biomass_gain", 1.0, UpgradeEffectDef.Op.INCREASED)])
 	assert_float(_production.modify_biomass_gain(BigNumber.from_value(1.0)).to_float()) \
 		.is_equal_approx(2.0, EPS)
+
+# ─── Introspection, for the balance tools ────────────────────────────────────
+
+func test_tracks_are_named_in_stacking_order() -> void:
+	# The order is part of how a stat resolves, so the tools have to show it in
+	# the order stack() applies it.
+	var names: Array = []
+	for pair: Array in _production.tracks():
+		names.append(pair[0])
+	assert_array(names).is_equal(["symbiosis", "biome", "prestige", "boosts",
+		"projects", "growth"])
+
+func test_tracks_hand_out_the_systems_they_were_built_with() -> void:
+	var by_name := {}
+	for pair: Array in _production.tracks():
+		by_name[pair[0]] = pair[1]
+	assert_object(by_name["symbiosis"]).is_same(_symbiosis)
+	assert_object(by_name["biome"]).is_same(_biome)
+	assert_object(by_name["prestige"]).is_same(_prestige)
+
+func test_breakdown_keys_every_track_by_name() -> void:
+	_register(_symbiosis, &"SymPot", [_effect(&"potency_production", 1.0,
+		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.NODE, &"3")])
+
+	var rows: Dictionary = _production.breakdown()
+
+	# Every track, not just the ones with something in them.
+	assert_int(rows.size()).is_equal(_production.tracks().size())
+	assert_int((rows["symbiosis"] as Array).size()).is_equal(1)
+	assert_str((rows["symbiosis"] as Array)[0]["id"]).is_equal("SymPot")
+	# A track with nothing bought is present and empty, not absent - the table
+	# reading this should say "nothing here yet", not skip the heading.
+	assert_int((rows["growth"] as Array).size()).is_zero()

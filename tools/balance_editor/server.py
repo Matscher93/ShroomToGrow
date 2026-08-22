@@ -40,6 +40,10 @@ SIM_SCENE = "tools/sc_balance_sim.tscn"
 SIM_TIMEOUT = 900
 SIM_MAX_TICKS = 10_000_000
 
+# When the simulator measures what each upgrade is contributing. Validated here
+# rather than passed through, so nothing a page sends can reach the command line.
+SIM_BREAKDOWNS = ("milestones", "end", "off")
+
 # How often an /api/events connection looks for a new version, and how long it
 # stays silent before sending a keep-alive comment.
 EVENT_POLL_SECONDS = 0.5
@@ -152,12 +156,20 @@ def simulate(request: dict) -> dict:
     `from_tick` and `from_seconds` say where that state already stood, so a
     continued run's chart carries on from the run it came out of instead of
     restarting at zero.
+
+    `breakdowns` says how often the run measures what each upgrade contributes.
+    Every milestone by default; it is the expensive part of a run, so a long one
+    can ask for "end" or "off" instead.
     """
+    breakdowns = str(request.get("breakdowns", "milestones"))
+    if breakdowns not in SIM_BREAKDOWNS:
+        raise ValueError(f"breakdowns must be one of {', '.join(SIM_BREAKDOWNS)}")
     args = [
         f"--ticks={min(int(request.get('ticks', 20000)), SIM_MAX_TICKS)}",
         f"--prestiges={int(request.get('prestiges', 3))}",
         f"--samples={int(request.get('samples', 200))}",
         f"--policy={str(request.get('policy', 'roi'))}",
+        f"--breakdowns={breakdowns}",
     ]
     with tempfile.TemporaryDirectory() as tmp:
         start = request.get("save")

@@ -80,6 +80,36 @@ func stack_external(stat: StringName, base: BigNumber, target: StringName = &"")
 	value = _growth.modify(stat, value, _ctx, [], target)
 	return _remember(_memo_external, stat, base, target, value)
 
+# ------------------------------------------------------------ introspection
+
+## The six tracks in stacking order, each with the name the balance tools show it
+## under: [["symbiosis", UpgradeSystem], ["biome", ...], ...].
+##
+## Ordered because the order is part of how a stat resolves, and handed out as
+## pairs rather than through six accessors because the one caller - the balance
+## simulator, which zeroes a level and re-measures - wants to treat them alike.
+##
+## Kept in step with stack() by hand. stack() does not read this: it runs on the
+## hot path, hundreds of times a tick, and would be building this array every
+## time. A seventh track has to be added in both places.
+func tracks() -> Array:
+	return [
+		["symbiosis", _symbiosis],
+		["biome", _biome],
+		["prestige", _prestige],
+		["boosts", _boosts],
+		["projects", _projects],
+		["growth", _growth],
+	]
+
+## Every track's breakdown, keyed by track name. See UpgradeSystem.breakdown().
+func breakdown() -> Dictionary:
+	var out := {}
+	for pair: Array in tracks():
+		var system: UpgradeSystem = pair[1]
+		out[pair[0]] = system.breakdown(_ctx)
+	return out
+
 # ---------------------------------------------------------------- memo
 
 ## The memoised result for this exact call, or null when there is none. Clears

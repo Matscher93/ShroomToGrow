@@ -5,7 +5,8 @@ extends Node
 ##   godot --headless tools/sc_balance_sim.tscn -- \
 ##       [--ticks=20000] [--policy=roi|cheapest|nodes_only] [--prestiges=3] \
 ##       [--samples=200] [--stride=100000] [--progress=FILE] \
-##       [--load=SAVE] [--from-tick=0] [--from-seconds=0] [--save=FILE] --out=FILE
+##       [--load=SAVE] [--from-tick=0] [--from-seconds=0] [--save=FILE] \
+##       [--breakdowns=milestones|end|off] --out=FILE
 ##   godot --headless tools/sc_balance_sim.tscn -- --report --out=FILE
 ##
 ## Run as a scene rather than with --script, because the ViewModels App builds
@@ -80,6 +81,18 @@ const PROGRESS_EVERY_MS := 250
 ## nothing it can measure.
 const ACHIEVEMENTS_EVERY := 5
 
+## When a bonus breakdown is taken - see _breakdown().
+##
+## Every milestone by default, which is what makes the mix visible as it shifts
+## over a run. It is not free: one probe is a full re-resolve, and a long run puts
+## a few hundred levelled upgrades through one at every milestone. "end" takes the
+## single snapshot the run finished on, "off" restores the cost of a run that
+## never asks.
+const BREAKDOWN_OFF := "off"
+const BREAKDOWN_END := "end"
+const BREAKDOWN_MILESTONES := "milestones"
+const BREAKDOWN_MODES := [BREAKDOWN_OFF, BREAKDOWN_END, BREAKDOWN_MILESTONES]
+
 
 func _ready() -> void:
 	# The root is still busy adding this scene, and _prepare() has to take two
@@ -101,6 +114,7 @@ func _ready() -> void:
 	var from_tick := 0
 	var from_seconds := 0.0
 	var policy_name := "roi"
+	var breakdowns := BREAKDOWN_MILESTONES
 
 	for arg: String in args:
 		if arg == "--report":
@@ -127,7 +141,13 @@ func _ready() -> void:
 			from_seconds = maxf(0.0, float(arg.trim_prefix("--from-seconds=")))
 		elif arg.begins_with("--policy="):
 			policy_name = arg.trim_prefix("--policy=")
+		elif arg.begins_with("--breakdowns="):
+			breakdowns = arg.trim_prefix("--breakdowns=")
 
+	if not BREAKDOWN_MODES.has(breakdowns):
+		printerr("--breakdowns must be one of %s" % ", ".join(BREAKDOWN_MODES))
+		_finish(2)
+		return
 	if report:
 		_finish(_write(out_path if not out_path.is_empty() else DEFAULT_REPORT_PATH,
 			_build_report(app, ticks, prestiges)))
@@ -144,7 +164,7 @@ func _ready() -> void:
 			return
 		app.load_from_save(loaded)
 	var result := run(app, BalancePolicyScript.kind_from_name(policy_name),
-		ticks, prestiges, samples, stride, progress_path, from_tick, from_seconds)
+		ticks, prestiges, samples, stride, progress_path, from_tick, from_seconds, breakdowns)
 	if not save_path.is_empty() and _write(save_path, result["save"]) != 0:
 		_finish(2)
 		return
@@ -267,14 +287,21 @@ static func _reset(app: Node) -> void:
 ## what the trace and the milestones are labelled with, so a continued run's
 ## chart lines up with the run it came out of. They deliberately do not shift the
 ## tick budget: `ticks` is always how many ticks *this* run may play.
+##
+## `breakdowns` says when the bonus breakdown is taken - see BREAKDOWN_MODES.
 static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges: int,
 		samples: int, stride: int = DEFAULT_STRIDE, progress_path: String = "",
-		from_tick: int = 0, from_seconds: float = 0.0) -> Dictionary:
+		from_tick: int = 0, from_seconds: float = 0.0,
+		breakdowns: String = BREAKDOWN_MILESTONES) -> Dictionary:
 	var policy := BalancePolicyScript.new(app, kind)
 	var milestones: Array = []
 	# One save per milestone, so a run can be picked up again from any of the
 	# points worth naming rather than only from where it stopped.
 	var savepoints: Array = []
+	# One bonus breakdown per milestone, or null when this run was not asked for
+	# them - which is what _mark() below tests, so the mode is decided once here
+	# rather than at all three call sites.
+	var bonus_trail: Variant = [] if breakdowns == BREAKDOWN_MILESTONES else null
 	var series: Array = []
 	# Which biomes are already open, so only the ones this run actually opens are
 	# reported. Seeded rather than started empty: the free biomes are open before
@@ -354,14 +381,14 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 			if unlocked.has(def.key) or not app.biomes_data.is_unlocked(def.key):
 				continue
 			unlocked[def.key] = tick
-			_mark(milestones, savepoints, app, from_tick + tick, seconds, "biome",
+			_mark(milestones, savepoints, bonus_trail, app, from_tick + tick, seconds, "biome",
 				String(def.key))
 
 		for def: ProjectDef in app.projects.projects:
 			if funded.has(def.id) or app.project_level(def.id) <= 0:
 				continue
 			funded[def.id] = tick
-			_mark(milestones, savepoints, app, from_tick + tick, seconds, "project",
+			_mark(milestones, savepoints, bonus_trail, app, from_tick + tick, seconds, "project",
 				String(def.id))
 
 		if tick % PRESTIGE_CHECK_EVERY == 0 and _should_prestige(app, tick - last_prestige_tick):
@@ -372,7 +399,7 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 			# A prestige relocks them, so the next run re-earns them - all but the
 			# free ones, which reset() hands straight back.
 			unlocked = _unlocked_now(app)
-			_mark(milestones, savepoints, app, from_tick + tick, seconds, "prestige",
+			_mark(milestones, savepoints, bonus_trail, app, from_tick + tick, seconds, "prestige",
 				"#%d, +%s biomass" % [prestige_count, gain.to_scientific()])
 			if prestige_count >= prestiges:
 				series.append(_sample(app, from_tick + tick, seconds))
@@ -403,6 +430,13 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 		"prestige_target": prestiges,
 		"prestiges": prestige_count,
 		"milestones": milestones,
+		# What every levelled upgrade was contributing at the end, and - unless
+		# this run was asked for less - at each milestone on the way. Null rather
+		# than empty for a run that asked for none, so a page can tell "nothing was
+		# measured" from "nothing was contributing".
+		"breakdown": null if breakdowns == BREAKDOWN_OFF \
+			else _breakdown(app, from_tick + tick, seconds),
+		"breakdowns": bonus_trail if bonus_trail != null else [],
 		"series": series,
 		"errors": [],
 	}
@@ -429,20 +463,25 @@ static func _funded_now(app: Node) -> Dictionary:
 	return done
 
 
-## Records one tick worth naming, twice: once lean for the table that lists them,
-## and once with the run's whole state attached so it can be started again from
-## exactly here.
+## Records one tick worth naming: once lean for the table that lists them, once
+## with the run's whole state attached so it can be started again from exactly
+## here, and - when this run was asked for them - once as a bonus breakdown.
+##
+## The three arrays stay index-parallel, so the page showing one row can reach the
+## save and the breakdown that go with it.
 ##
 ## The state is taken *after* the event has been applied - after the prestige,
 ## after the biome opened - because that is the state the run went on with, and
 ## therefore the one a continuation has to pick up.
-static func _mark(milestones: Array, savepoints: Array, app: Node, tick: int, seconds: float,
-		event: String, detail: String) -> void:
+static func _mark(milestones: Array, savepoints: Array, breakdowns: Variant, app: Node,
+		tick: int, seconds: float, event: String, detail: String) -> void:
 	var row := {"tick": tick, "seconds": seconds, "event": event, "detail": detail}
 	milestones.append(row)
 	var point := row.duplicate()
 	point["save"] = _save_file(app)
 	savepoints.append(point)
+	if breakdowns != null:
+		breakdowns.append(_breakdown(app, tick, seconds))
 
 
 ## Writes how far the run has got, for whoever is waiting on it.
@@ -704,12 +743,7 @@ static func _cheapest_locked_perk_cost(app: Node) -> BigNumber:
 ## One point on the trace. Everything unbounded is stored as log10, which is what
 ## a chart plots anyway and what keeps a late run inside a JSON number.
 static func _sample(app: Node, tick: int, seconds: float) -> Dictionary:
-	var production := BigNumber.new(0.0, 0)
-	var bonuses: Array[BigNumber] = app.node_production_bonuses()
-	for i in app.nodes.mycelium_nodes.size():
-		var node: MyceliumNode = app.nodes.mycelium_nodes[i]
-		var count := node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
-		production = production.add(count.mul(bonuses[i]))
+	var production := _total_production(app)
 
 	var manual := 0
 	for node: MyceliumNode in app.nodes.mycelium_nodes:
@@ -744,6 +778,150 @@ static func _sample(app: Node, tick: int, seconds: float) -> Dictionary:
 	}
 
 
+## What every node produces in one tick, summed. The same figure the chart's
+## `production` track plots, so a counterfactual below measures exactly what the
+## chart shows rather than something adjacent to it.
+static func _total_production(app: Node) -> BigNumber:
+	var production := BigNumber.new(0.0, 0)
+	var bonuses: Array[BigNumber] = app.node_production_bonuses()
+	for i in app.nodes.mycelium_nodes.size():
+		var node: MyceliumNode = app.nodes.mycelium_nodes[i]
+		var count := node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
+		production = production.add(count.mul(bonuses[i]))
+	return production
+
+
+# ----------------------------------------------------------------- breakdown
+
+## What the six upgrade tracks are contributing right now, upgrade by upgrade.
+##
+## Two numbers per upgrade, because neither answers on its own. The magnitude is
+## what it writes into its stat bucket - exact, and free, since UpgradeSystem has
+## it cached - but a +0.15 INCREASED and a +0.15 MORE are not comparable, and
+## across two different stats nothing is. So the impact is measured instead: the
+## level is taken away, everything re-resolves, and what the run falls to without
+## it is a number that compares across ops, scopes and tracks alike.
+##
+## Tick duration and pump interval are measured in the same probe as production,
+## because a &"tick_rate" or &"water_rate" upgrade moves no production at all and
+## would otherwise read as contributing nothing.
+##
+## Every probe puts back the level it took away before the next one starts, so a
+## breakdown leaves the run exactly where it found it.
+static func _breakdown(app: Node, tick: int, seconds: float) -> Dictionary:
+	var rows_by_track: Dictionary = app.production_system.breakdown()
+	var base := _measure(app)
+	var groups: Array = []
+	for pair: Array in app.production_system.tracks():
+		var track: String = pair[0]
+		var system: UpgradeSystem = pair[1]
+		var upgrades := _breakdown_upgrades(app, base, system, rows_by_track.get(track, []))
+		if upgrades.is_empty():
+			continue
+		var ids: Array = []
+		for row: Dictionary in upgrades:
+			ids.append(StringName(row["id"]))
+		groups.append({
+			"track": track,
+			# What the track as a whole is worth. Measured rather than summed from
+			# the rows: MORE effects compound, so taking two upgrades away costs
+			# more than taking each of them away did.
+			"impact": _impact_without(app, base, system, ids),
+			"upgrades": upgrades,
+		})
+	return {
+		"tick": tick,
+		"seconds": seconds,
+		"production": _log10(base["production"]),
+		"tick_duration": base["tick_duration"],
+		"water_interval": base["water_interval"],
+		"tracks": groups,
+	}
+
+
+## One track's upgrades, each with its effects and what removing it would cost.
+##
+## The rows arrive one per effect, so they are grouped by upgrade first: a
+## multi-effect upgrade has several magnitudes but only one counterfactual, and
+## probing it once per effect would report the same drop several times over.
+##
+## Sorted by impact, descending, because the question this whole thing exists to
+## answer is which upgrade is carrying the run.
+static func _breakdown_upgrades(app: Node, base: Dictionary, system: UpgradeSystem,
+		rows: Array) -> Array:
+	var by_id := {}
+	var order: Array = []
+	for row: Dictionary in rows:
+		var id: String = row["id"]
+		if not by_id.has(id):
+			by_id[id] = {"id": id, "name": row["name"], "level": row["level"], "effects": []}
+			order.append(id)
+		var mag: BigNumber = row["mag"]
+		by_id[id]["effects"].append({
+			"stat": row["stat"],
+			"op": _op_name(row["op"]),
+			"key": row["key"],
+			# Scientific rather than a float: a COMPOUND effect at a few hundred
+			# levels is well past what a JSON number carries.
+			"mag": mag.to_scientific(),
+			"mag_log": _log10(mag),
+		})
+
+	var out: Array = []
+	for id: String in order:
+		var upgrade: Dictionary = by_id[id]
+		upgrade["impact"] = _impact_without(app, base, system, [StringName(id)])
+		out.append(upgrade)
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return a["impact"]["production_drop"] > b["impact"]["production_drop"])
+	return out
+
+
+## Where the run stands: the three things a probe below can move.
+static func _measure(app: Node) -> Dictionary:
+	return {
+		"production": _total_production(app),
+		"tick_duration": app.tick_duration(),
+		"water_interval": app.water_pump_interval(),
+	}
+
+
+## What the run looks like with `ids` taken away, as a delta from `base`. Puts
+## every level back before returning, on every path.
+static func _impact_without(app: Node, base: Dictionary, system: UpgradeSystem,
+		ids: Array) -> Dictionary:
+	var was := {}
+	for id: StringName in ids:
+		was[id] = system.level(id)
+		system.set_level_for_analysis(id, 0)
+	var without := _measure(app)
+	for id: StringName in was:
+		system.set_level_for_analysis(id, was[id])
+
+	var held: BigNumber = base["production"]
+	var lost: BigNumber = without["production"]
+	# A run that produces nothing yet has no fraction to lose, and dividing by it
+	# would be a division by zero. Zero is the honest answer: nothing is riding on
+	# this upgrade because nothing is riding on anything.
+	var drop := 0.0 if held.mantissa <= 0.0 else 1.0 - lost.div(held).to_float()
+	return {
+		"production_drop": drop,
+		# Positive means the upgrade shortens it - taking it away puts the seconds
+		# (or the ticks) back. Both stats are authored as negative ADDs, so this is
+		# the direction that reads as "what the upgrade is doing for you".
+		"tick_delta": without["tick_duration"] - base["tick_duration"],
+		"water_delta": without["water_interval"] - base["water_interval"],
+	}
+
+
+static func _op_name(op: int) -> String:
+	match op:
+		UpgradeEffectDef.Op.ADD: return "ADD"
+		UpgradeEffectDef.Op.INCREASED: return "INCREASED"
+		UpgradeEffectDef.Op.MORE: return "MORE"
+		_: return "?"
+
+
 ## Seconds as a span someone can judge: "2h 14m" rather than 8040. Two units is
 ## enough - the minutes matter next to the hours, the seconds do not.
 static func format_duration(seconds: float) -> String:
@@ -769,7 +947,10 @@ static func _log10(value: BigNumber) -> Variant:
 ## paces. Regenerated on demand, so a data edit shows its real effect in a diff.
 static func _build_report(app: Node, ticks: int, prestiges: int) -> Dictionary:
 	var perks := BalanceDataScript.perks()
-	var pacing := run(app, BalancePolicyScript.Kind.ROI, ticks, prestiges, 0)
+	# BREAKDOWN_OFF spelled out: the report is a checked-in file that diffs line by
+	# line, and a breakdown is hundreds of measured rows that move on every edit.
+	var pacing := run(app, BalancePolicyScript.Kind.ROI, ticks, prestiges, 0,
+		DEFAULT_STRIDE, "", 0, 0.0, BREAKDOWN_OFF)
 	return {
 		"note": "Generated by tools/gd_balance_sim.gd --report. Costs come from the "
 			+ "authored .tres files, pacing from a simulated run under the roi policy.",

@@ -432,3 +432,78 @@ func test_load_drops_unknown_ids_instead_of_crashing() -> void:
 	# The rebuild that would error on an unknown id.
 	var out := system.modify(&"stat", BigNumber.from_value(1.0), ResolveContext.new())
 	assert_float(out.to_float()).is_equal_approx(2.0, EPS)
+
+# ─── Breakdown, for the balance tools ────────────────────────────────────────
+
+func test_breakdown_skips_upgrades_nobody_bought() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Bought", [_effect(&"stat", 0.5, UpgradeEffectDef.Op.INCREASED)]))
+	system.register(_upgrade(&"Untouched", [_effect(&"stat", 0.5, UpgradeEffectDef.Op.INCREASED)]))
+	system.from_save({"Bought": 2})
+
+	var rows := system.breakdown(ResolveContext.new())
+
+	assert_int(rows.size()).is_equal(1)
+	assert_str(rows[0]["id"]).is_equal("Bought")
+	assert_int(rows[0]["level"]).is_equal(2)
+
+func test_breakdown_reports_one_row_per_effect() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Both", [
+		_effect(&"first", 0.5, UpgradeEffectDef.Op.INCREASED),
+		_effect(&"second", 2.0, UpgradeEffectDef.Op.ADD),
+	]))
+	system.from_save({"Both": 1})
+
+	var stats: Array = []
+	for row: Dictionary in system.breakdown(ResolveContext.new()):
+		stats.append(row["stat"])
+	stats.sort()
+
+	assert_array(stats).is_equal(["first", "second"])
+
+func test_breakdown_magnitude_is_what_modify_applies() -> void:
+	# The two must come out of the same cache, otherwise a breakdown can report a
+	# bonus the game never gives.
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Thing", [_effect(&"stat", 0.25, UpgradeEffectDef.Op.INCREASED)]))
+	system.from_save({"Thing": 3})
+	var ctx := ResolveContext.new()
+
+	var rows := system.breakdown(ctx)
+	var mag: BigNumber = rows[0]["mag"]
+
+	assert_float(mag.to_float()).is_equal_approx(0.75, EPS)
+	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx).to_float()) \
+		.is_equal_approx(1.75, EPS)
+
+func test_analysis_level_round_trips_and_moves_the_version() -> void:
+	# What a counterfactual needs: the resolved value has to follow the level down
+	# and back, and `version` has to move so a memoising caller drops its cache.
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Thing", [_effect(&"stat", 1.0, UpgradeEffectDef.Op.INCREASED)]))
+	system.from_save({"Thing": 1})
+	var ctx := ResolveContext.new()
+	var before := system.version
+
+	system.set_level_for_analysis(&"Thing", 0)
+	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx).to_float()) \
+		.is_equal_approx(1.0, EPS)
+	assert_int(system.version).is_greater(before)
+
+	system.set_level_for_analysis(&"Thing", 1)
+	assert_int(system.level(&"Thing")).is_equal(1)
+	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx).to_float()) \
+		.is_equal_approx(2.0, EPS)
+
+func test_analysis_level_is_not_a_purchase() -> void:
+	# It is a measurement. Counting it would inflate the symbiosis achievement by
+	# however many probes the balance simulator happened to take.
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Thing", []))
+	system.buy_with_points(&"Thing", true)
+
+	system.set_level_for_analysis(&"Thing", 0)
+	system.set_level_for_analysis(&"Thing", 1)
+
+	assert_int(system.lifetime_levels).is_equal(1)

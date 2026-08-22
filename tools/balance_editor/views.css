@@ -228,6 +228,31 @@
 .sim-legend { display: flex; flex-wrap: wrap; gap: 8px; font: 11px ui-monospace, monospace; }
 .sim-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
 
+/* The bonus breakdown. Collapsed by default - it runs to a few hundred rows,
+ * and the chart above it is what the view is normally open for. */
+.sim-breakdown { display: flex; flex-direction: column; gap: 6px; }
+.sim-breakdown summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.sim-breakdown-at { width: 100%; }
+/* A track's heading, carrying the name and what the whole track is worth. */
+.sim-track-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 11px;
+}
+.sim-track-head .num {
+  color: var(--muted);
+  font: 10px ui-monospace, monospace;
+  white-space: nowrap;      /* the track name shrinks first, not the total */
+}
+/* An upgrade writing more than one stat gets a line per effect, so the cell
+ * wraps where every other cell in a web-table deliberately does not. */
+.sim-breakdown-table td { white-space: normal; vertical-align: top; }
+.sim-effects { font: 10px ui-monospace, monospace; color: var(--muted); }
+
 /* ------------------------------------------------------------------- unused */
 
 #unused-view { padding: 12px 14px; overflow: auto; }

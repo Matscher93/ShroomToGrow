@@ -5,6 +5,10 @@
  * trace of the run, and the ticks worth naming (a biome unlocked, a prestige
  * taken). Everything unbounded arrives as log10, which is what a chart wants.
  *
+ * It also reports, unless asked not to, a bonus breakdown: what every levelled
+ * upgrade is contributing and what the run would lose without it, grouped by the
+ * track it lives in. See breakdownSection().
+ *
  * A run takes seconds to minutes, so nothing here happens until the button is
  * pressed. Saved edits are picked up automatically - the simulator reads the
  * .tres files, not this page's state - but unsaved ones are not, and the panel
@@ -54,7 +58,8 @@
   const view = {
     label: "Sim",
     title: "Run the game headlessly and see how long things take",
-    settings: { ticks: 20000, policy: "roi", prestiges: 3, samples: 200 },
+    settings: { ticks: 20000, policy: "roi", prestiges: 3, samples: 200,
+      breakdowns: "milestones" },
     result: null,
     running: false,
     /** Latest /api/sim/progress reading, or null when nothing is running. */
@@ -63,6 +68,11 @@
      * `{save, tick, seconds, label}` from an imported file or a savepoint. */
     start: null,
     shown: new Set(["production", "nodes", "perks"]),
+    /** Which bonus breakdown the table shows: -1 for the run's end, otherwise an
+     * index into result.breakdowns. Kept on the view so a progress redraw or a
+     * track toggle does not throw the choice away. */
+    breakdownAt: -1,
+    breakdownOpen: false,
   };
 
   const hueOf = (index) => (index * 53) % 360;
@@ -291,10 +301,22 @@
     policy.value = view.settings.policy;
     policy.onchange = () => { view.settings.policy = policy.value; };
 
+    // How often the run measures what each upgrade is contributing. It is the
+    // expensive part of a run - one probe per levelled upgrade, per snapshot - so
+    // a long run has somewhere to turn it down to.
+    const breakdowns = document.createElement("select");
+    for (const option of ["milestones", "end", "off"]) {
+      breakdowns.append(new Option(option, option));
+    }
+    breakdowns.value = view.settings.breakdowns;
+    breakdowns.title = "when to measure each upgrade's contribution";
+    breakdowns.onchange = () => { view.settings.breakdowns = breakdowns.value; };
+
     field("ticks", ticks);
     field("prestiges", prestiges);
     field("samples", samples);
     field("policy", policy);
+    field("bonuses", breakdowns);
     panel.append(form);
 
     const actions = document.createElement("div");
@@ -320,6 +342,195 @@
     if (view.result) panel.append(summary());
     panel.append(trackToggles());
     if (view.result) panel.append(milestoneTable());
+    if (view.result) panel.append(breakdownSection());
+  }
+
+  /* --------------------------------------------------------------- breakdown */
+
+  /** Which upgrade is carrying the run, grouped by the track it lives in.
+   *
+   * Each row carries two numbers because neither answers on its own. The
+   * magnitude is what the upgrade writes into its stat bucket - exact, but a
+   * +0.15 INCREASED and a +0.15 MORE are not comparable and across two stats
+   * nothing is. The impact is measured: the simulator zeroes the level, lets
+   * everything re-resolve, and reports what production falls to without it.
+   *
+   * Collapsed by default. It is a few hundred rows, and the chart above it is
+   * what the view is normally for. */
+  function breakdownSection() {
+    const wrap = document.createElement("details");
+    wrap.className = "sim-breakdown";
+    wrap.open = view.breakdownOpen;
+    wrap.ontoggle = () => { view.breakdownOpen = wrap.open; };
+    const head = document.createElement("summary");
+    head.textContent = "Bonus breakdown";
+    wrap.append(head);
+
+    const snapshot = breakdownAt();
+    if (!snapshot) {
+      const none = document.createElement("div");
+      none.className = "hint";
+      none.textContent = view.result.breakdown === null
+        ? "this run was asked for no breakdowns - set bonuses to milestones or end"
+        : "nothing was contributing yet";
+      wrap.append(none);
+      return wrap;
+    }
+
+    wrap.append(snapshotPicker(), snapshotSummary(snapshot));
+    for (const group of snapshot.tracks) wrap.append(trackTable(group));
+    return wrap;
+  }
+
+  /** Every breakdown this result carries, newest thinking first: the run's end,
+   * then each milestone that was measured, labelled by the milestone it sits on. */
+  function breakdownChoices() {
+    const rows = [];
+    if (view.result.breakdown) rows.push({ at: -1, label: "run end", snapshot: view.result.breakdown });
+    (view.result.breakdowns || []).forEach((snapshot, index) => {
+      // Matched by tick rather than by index: a stitched result can carry
+      // milestones from a leg that was run without breakdowns, and then the two
+      // arrays are no longer parallel.
+      const milestone = view.result.milestones.find((row) => row.tick === snapshot.tick);
+      rows.push({ at: index, snapshot,
+        label: milestone ? `${milestone.event} · tick ${snapshot.tick}` : `tick ${snapshot.tick}` });
+    });
+    return rows;
+  }
+
+  /** The chosen snapshot, falling back to whatever is available when the choice
+   * is gone - a fresh run replaces the whole result under it. */
+  function breakdownAt() {
+    const choices = breakdownChoices();
+    if (!choices.length) return null;
+    const found = choices.find((row) => row.at === view.breakdownAt);
+    if (!found) view.breakdownAt = choices[0].at;
+    return (found || choices[0]).snapshot;
+  }
+
+  function snapshotPicker() {
+    const choices = breakdownChoices();
+    const picker = document.createElement("select");
+    picker.className = "sim-breakdown-at";
+    for (const choice of choices) picker.append(new Option(choice.label, String(choice.at)));
+    picker.value = String(view.breakdownAt);
+    picker.onchange = () => {
+      view.breakdownAt = Number(picker.value);
+      renderPanel(view.element.querySelector(".sim-panel"));
+    };
+    return picker;
+  }
+
+  /** What the run stood at when this snapshot was taken, so the percentages
+   * below have something to be percentages of. */
+  function snapshotSummary(snapshot) {
+    const line = document.createElement("div");
+    line.className = "hint";
+    line.textContent = `${format(snapshot.production, true)} production/tick`
+      + ` · tick ${snapshot.tick_duration.toFixed(2)}s`
+      + ` · pump every ${snapshot.water_interval.toFixed(1)} ticks`
+      + ` · ${duration(snapshot.seconds)} played`;
+    return line;
+  }
+
+  /** One track: what the whole track is worth, then its upgrades by impact.
+   *
+   * The track total is measured, not summed from the rows - MORE effects
+   * compound, so taking two upgrades away costs more than taking each away did,
+   * and a column of percentages that added up to more than the total would read
+   * as a bug rather than as the arithmetic it is. */
+  function trackTable(group) {
+    // The heading sits above the table rather than in it. As a spanning cell it
+    // has to be a flex row to keep the total off three lines in a panel this
+    // narrow, and a cell that is display:flex stops taking part in the column
+    // widths - which leaves the columns below it sized off nothing.
+    const wrap = document.createElement("div");
+    const heading = document.createElement("div");
+    heading.className = "sim-track-head";
+    const name = document.createElement("span");
+    name.textContent = group.track;
+    const total = document.createElement("span");
+    total.className = "num";
+    total.textContent = `all ${group.upgrades.length}: ${impactText(group.impact)}`;
+    heading.append(name, total);
+
+    const table = document.createElement("table");
+    table.className = "web-table sim-breakdown-table";
+    const columns = table.insertRow();
+    for (const column of ["upgrade", "level", "effects", "without"]) {
+      const th = document.createElement("th");
+      th.textContent = column;
+      columns.append(th);
+    }
+
+    let quiet = 0;
+    for (const upgrade of group.upgrades) {
+      if (!moves(upgrade.impact)) { quiet += 1; continue; }
+      const row = table.insertRow();
+      const label = row.insertCell();
+      label.textContent = upgrade.name || upgrade.id;
+      label.title = upgrade.id;
+      const level = row.insertCell();
+      level.className = "num";
+      level.textContent = String(upgrade.level);
+      row.insertCell().append(effectList(upgrade.effects));
+      const impact = row.insertCell();
+      impact.className = "num";
+      impact.textContent = impactText(upgrade.impact);
+    }
+    if (quiet) {
+      const row = table.insertRow();
+      const cell = row.insertCell();
+      cell.colSpan = 4;
+      cell.className = "web-stats";
+      cell.textContent = `${quiet} more with nothing measurable riding on them`;
+    }
+    wrap.append(heading, table);
+    return wrap;
+  }
+
+  /** True when removing this upgrade would move something a run can see. A
+   * &"biome_points" or &"boost_max_level" upgrade moves none of the three and
+   * still legitimately has levels, so it is counted rather than listed. */
+  function moves(impact) {
+    return Math.abs(impact.production_drop) > 1e-6
+      || Math.abs(impact.tick_delta) > 1e-9
+      || Math.abs(impact.water_delta) > 1e-9;
+  }
+
+  /** What the run loses without it: the production drop, plus the two stats a
+   * production drop cannot show - a tick_rate upgrade moves no production at all
+   * and would otherwise read as contributing nothing. */
+  function impactText(impact) {
+    const bits = [];
+    // Bare, with no "prod" after it: the column it sits under is the production
+    // drop, and in a panel this narrow the extra word wraps every row in two.
+    if (Math.abs(impact.production_drop) > 1e-6) {
+      bits.push(`${(-impact.production_drop * 100).toFixed(1)}%`);
+    }
+    // Reported the way the upgrade acts rather than the way the probe measured:
+    // removing it lengthens the tick, so the upgrade shortens it.
+    if (Math.abs(impact.tick_delta) > 1e-9) bits.push(`${signed(-impact.tick_delta)}s tick`);
+    if (Math.abs(impact.water_delta) > 1e-9) bits.push(`${signed(-impact.water_delta)} pump`);
+    return bits.length ? bits.join(" · ") : "-";
+  }
+
+  function signed(value) {
+    return `${value > 0 ? "+" : ""}${Number(value.toPrecision(3))}`;
+  }
+
+  /** One line per effect: the bucket it writes into, how, and how much. */
+  function effectList(effects) {
+    const list = document.createElement("div");
+    list.className = "sim-effects";
+    for (const effect of effects) {
+      const line = document.createElement("div");
+      line.textContent = `${effect.stat} ${effect.op} ${effect.mag}`;
+      // "g" is global and says nothing; a tag or node key is worth spelling out.
+      if (effect.key && effect.key !== "g") line.textContent += ` @${effect.key}`;
+      list.append(line);
+    }
+    return list;
   }
 
   /* ------------------------------------------------------------------- saves */
@@ -654,6 +865,7 @@
         body: JSON.stringify(request),
       });
       view.result = stitch(before, segment, branch);
+      view.breakdownAt = -1;      // the old choice indexed a result that is gone
       log(`simulated ${segment.ticks} ticks in ${((Date.now() - started) / 1000).toFixed(1)}s`);
     } catch (error) {
       log(String(error), true);
@@ -684,6 +896,9 @@
       series: [...upTo(before.series), ...segment.series],
       milestones: [...upTo(before.milestones), ...segment.milestones],
       savepoints: [...upTo(before.savepoints), ...(segment.savepoints || [])],
+      // Tagged with their own tick, so the same filter works on them - which is
+      // why they are not simply indexed off the milestones they sit on.
+      breakdowns: [...upTo(before.breakdowns), ...(segment.breakdowns || [])],
     };
   }
 
