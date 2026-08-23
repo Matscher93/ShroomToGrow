@@ -34,7 +34,7 @@ func _register(system: UpgradeSystem, id: StringName, effects: Array[UpgradeEffe
 	d.id = id
 	d.effects = effects
 	system.register(d)
-	system.from_save({String(id): 1})
+	system.set_level_for_analysis(id, 1)
 
 func test_each_track_is_resolved_separately() -> void:
 	_register(_symbiosis, &"SymPot", [_effect(&"potency_production", 1.0,

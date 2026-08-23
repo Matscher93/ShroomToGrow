@@ -74,7 +74,7 @@ func _own_perk(id: StringName, level: int = 1) -> void:
 	def.id = id
 	def.max_level = level
 	_prestige.register(def)
-	_prestige.from_save({String(id): level})
+	_prestige.set_level_for_analysis(id, level)
 
 # ─── Buying ──────────────────────────────────────────────────────────────────
 

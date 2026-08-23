@@ -412,6 +412,30 @@ func test_lifetime_levels_round_trips_without_becoming_an_upgrade() -> void:
 	# The reserved key must not be read back as an upgrade id.
 	assert_int(restored.level(StringName(UpgradeSystem.LIFETIME_KEY))).is_zero()
 
+func test_load_replaces_the_levels_already_held_rather_than_merging() -> void:
+	# to_save() omits every level at 0, so an id the incoming save is silent about
+	# means "unbought". Merging instead kept the previous save's number there -
+	# the balance sim loads into a live track, and save slots would too.
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Kept", []))
+	system.register(_upgrade(&"Dropped", []))
+	system.from_save({"Kept": 3, "Dropped": 7})
+
+	system.from_save({"Kept": 1})
+
+	assert_int(system.level(&"Kept")).is_equal(1)
+	assert_int(system.level(&"Dropped")).is_zero()
+
+func test_load_replaces_lifetime_levels_rather_than_keeping_the_old_count() -> void:
+	# Same reason: to_save() omits lifetime_levels at 0 too.
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Thing", []))
+	system.from_save({"Thing": 2, UpgradeSystem.LIFETIME_KEY: 9})
+
+	system.from_save({"Thing": 2})
+
+	assert_int(system.lifetime_levels).is_zero()
+
 func test_loading_a_save_does_not_count_as_buying() -> void:
 	# from_save() writes levels directly, and counting those would inflate the
 	# achievement by the whole save on every launch.

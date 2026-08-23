@@ -1,5 +1,4 @@
 @tool
-class_name MyceliumNodePanel
 extends PanelContainer
 
 @export var color_param: String
@@ -171,6 +170,7 @@ func _is_in_synergy(global_pos: Vector2) -> bool:
 	return vbox_synergy.visible and vbox_synergy.get_global_rect().has_point(global_pos)
 
 func _toggle_synergy() -> void:
+	if _vm == null: return
 	vbox_buy.visible = not vbox_buy.visible
 	expansion_arrow.offset_transform_rotation = PI if vbox_buy.visible else 0.0
 	if _vm.synergy_track_unlocked:

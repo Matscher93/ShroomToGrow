@@ -16,20 +16,18 @@ extends PanelContainer
 @export var vbox_boosts: VBoxContainer
 @export var boost_card_scene: PackedScene
 
-var _vm: CrystalCavesViewModel
-
 func _ready() -> void:
-	bind(App.crystal_caves_vm)
+	build(App.crystal_caves_vm)
 
-func bind(vm: CrystalCavesViewModel) -> void:
-	_vm = vm
-	_build_boosts()
-
-func _build_boosts() -> void:
+## Takes the list and keeps nothing. The ordered card list is fixed for the app's
+## lifetime and each card binds its own per-boost VM, so there is no live state
+## here to subscribe to - and holding a reference to an App-owned VM that this
+## never listens to or releases only looks like a binding.
+func build(vm: CrystalCavesViewModel) -> void:
 	for child in vbox_boosts.get_children():
 		vbox_boosts.remove_child(child)
 		child.queue_free()
-	for vm in _vm.boost_vms_ordered:
+	for boost_vm in vm.boost_vms_ordered:
 		var card := boost_card_scene.instantiate()
 		vbox_boosts.add_child(card)
-		card.bind(vm)
+		card.bind(boost_vm)

@@ -5,7 +5,7 @@ extends Node
 const SAVE_PATH   := "user://save.json"
 const BACKUP_PATH := "user://save.bak.json"
 const TMP_PATH    := "user://save.tmp.json"
-const SAVE_VERSION := 7
+const SAVE_VERSION := 8
 
 ## The three UpgradeSystem buckets in a save, for migrations that touch all of
 ## them. Order is irrelevant, each is keyed independently.
@@ -41,6 +41,13 @@ var last_savegame: Dictionary
 var _pending_offline_saved_at := 0.0
 var _offline_calc_running := false
 
+## True once a save was found on disk that this build refused to apply. Every
+## write path is closed while it is set - see _block_saving(). Public so a UI can
+## tell the player their progress is not being recorded, which is the only thing
+## left to do about it.
+var load_blocked := false
+var load_blocked_reason := ""
+
 ## Wall clock, injectable so the offline gap logic can be exercised without
 ## sleeping through a real one.
 var now_provider: Callable = func() -> float: return Time.get_unix_time_from_system()
@@ -52,13 +59,19 @@ func _ready() -> void:
 	# Run our own logic before the window closes.
 	get_tree().set_auto_accept_quit(false)
 
+	# Loaded before the autosave is armed, not after. A timer started first would
+	# be counting down over a game that has not read its save yet, and every
+	# reason load_game() can decline to apply one ends with the game running as a
+	# fresh start - which is exactly the state that must not reach the disk.
+	# save_game() refuses while load_blocked as well, closing the same window from
+	# the other side.
+	load_game()
+
 	var t := Timer.new()
 	t.wait_time = AUTOSAVE_INTERVAL
 	t.timeout.connect(save_game)
 	add_child(t)
 	t.start()
-
-	load_game()
 
 func _notification(what: int) -> void:
 	match what:
@@ -76,7 +89,12 @@ func _notification(what: int) -> void:
 			_arm_offline_progress(float(last_savegame.get("saved_at", 0.0)), true)
 # ---------------------------------------------------------------- save
 
+## Writes the whole run to disk, unless the load declined to read what was
+## already there - see _block_saving(). Every other write path (the autosave
+## timer, quit, Android pause) funnels through here, so the one guard covers them
+## all.
 func save_game() -> void:
+	if load_blocked: return
 	var data := {
 		"version": SAVE_VERSION,
 		"saved_at": _now(),  # for offline progress
@@ -116,13 +134,20 @@ func save_game() -> void:
 # ---------------------------------------------------------------- load
 
 func load_game() -> void:
+	# Taken before the reads, because _read() returns {} both for a file that is
+	# not there and for one that is there but unusable. Only the second is a save
+	# with something to lose, and only it may stop the autosave.
+	var had_file := FileAccess.file_exists(SAVE_PATH) or FileAccess.file_exists(BACKUP_PATH)
 	var data := _read(SAVE_PATH)
 	if data.is_empty():
 		data = _read(BACKUP_PATH)  # primary is missing or corrupt
 	if data.is_empty():
+		if had_file:
+			_block_saving("A save file is present but neither it nor the backup could be read.")
 		return  # fresh start
 
 	if not _migrate(data):
+		_block_saving("This save was written by a newer build of the game.")
 		return
 
 	_apply_data(data.get("game", {}))
@@ -130,6 +155,24 @@ func load_game() -> void:
 	# block startup if run here. main_screen kicks it off once the offline income
 	# screen checks for it, timesliced (see run_offline_progress_calculation()).
 	_arm_offline_progress(float(data.get("saved_at", 0.0)), false)
+
+## Closes every write path for the rest of the session.
+##
+## Called when a save is on disk that this build would not apply. The game then
+## runs as a fresh start, and letting the autosave commit that fresh start
+## fifteen seconds later destroys the very file the load refused to touch - the
+## primary on the first write, and the backup on the one after it, since
+## save_game() rotates the primary into the backup before replacing it. Declining
+## to read a save and then overwriting it is worse than either alone.
+##
+## Deliberately one-way, with nothing to clear it: no later event in the session
+## makes the file on disk safe to write over. The player's recourse is to move
+## the file aside or install the build that wrote it, and load_blocked_reason is
+## what a UI shows to say so.
+func _block_saving(reason: String) -> void:
+	load_blocked = true
+	load_blocked_reason = reason
+	push_error("Saving is disabled for this session: %s The save already on disk has been left untouched." % reason)
 
 ## Brings an older save up to SAVE_VERSION in place and refuses one written by a
 ## newer build. Returns false if the save must not be applied. Add a migration
@@ -154,6 +197,8 @@ func _migrate(data: Dictionary) -> bool:
 		_migrate_point_plan_to_sequences_v6(data)
 	if version < 7:
 		_migrate_geodes_to_boosts_v7(data)
+	if version < 8:
+		_migrate_mycelium_nodes_to_v8(data)
 	data["version"] = SAVE_VERSION
 	return true
 
@@ -282,6 +327,32 @@ func _migrate_geodes_to_boosts_v7(data: Dictionary) -> void:
 		migrated[id] = levels[key]
 	game["boost_upgrades"] = migrated
 	game.erase("geode_upgrades")
+
+## v7 -> v8: the mycelium node counts went from an array read back by position
+## to a dictionary keyed by node_id.
+##
+## Position and id agree for every save written before this, because the array
+## was always built by walking the authored list in order - which is exactly why
+## the conversion is only sound here, once, and why the array had to go: the
+## first reordered or inserted tier would have moved every player's counts onto
+## the wrong ones with nothing left to reconstruct them from.
+##
+## Entries that are not Dictionaries are dropped rather than carried, matching
+## what App.mycelium_nodes_from_save() would have done with them.
+func _migrate_mycelium_nodes_to_v8(data: Dictionary) -> void:
+	if not data.has("game"):
+		return
+	var game: Dictionary = data["game"]
+	var saved: Variant = game.get("mycelium_nodes", [])
+	if not saved is Array:
+		return   # already a dictionary, or nothing usable to convert
+	var migrated := {}
+	var nodes: Array = saved
+	for i in nodes.size():
+		if not nodes[i] is Dictionary:
+			continue
+		migrated[str(i)] = nodes[i]
+	game["mycelium_nodes"] = migrated
 
 func _read(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):

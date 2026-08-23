@@ -38,8 +38,12 @@ func _exit_tree() -> void:
 		_detail_vm.property_changed.disconnect(_on_detail_property_changed)
 		_detail_vm = null
 
-func _on_property_changed(_property: StringName) -> void:
-	_refresh_sporate()
+## PrestigeViewModel notifies both of its properties per model change, so
+## ignoring which one arrived ran this twice for every change. The button is the
+## pending half; the perk web repaints off its own per-perk VMs.
+func _on_property_changed(property: StringName) -> void:
+	if property == PrestigeViewModel.PROP_PENDING_CHANGED:
+		_refresh_sporate()
 
 func _on_detail_property_changed(_property: StringName) -> void:
 	_refresh_detail()

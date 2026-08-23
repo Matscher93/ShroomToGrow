@@ -333,7 +333,7 @@ func test_upgrade_room_refuses_a_gated_or_maxed_upgrade() -> void:
 	var maxed := _system.upgrade_ids(&"meadow")[0]
 	var def := _biome_upgrades.def(maxed)
 	assert_int(def.max_level).is_greater(0)
-	_biome_upgrades.from_save({String(maxed): def.max_level})
+	_biome_upgrades.set_level_for_analysis(maxed, def.max_level)
 	assert_bool(_system.has_upgrade_room(maxed, &"meadow")).is_false()
 
 # ─── Biome size ──────────────────────────────────────────────────────────────

@@ -446,7 +446,7 @@ func to_save() -> Dictionary:
 ## leaves that track at its fresh-start values rather than failing the load.
 func load_from_save(game: Dictionary) -> void:
 	player_data.load_from_save(game.get("player_data", {}))
-	mycelium_nodes_from_save(game.get("mycelium_nodes", []))
+	mycelium_nodes_from_save(game.get("mycelium_nodes", {}))
 	upgrade_system.from_save(game.get("upgrades", {}))
 	prestige_upgrade_system.from_save(game.get("prestige_upgrades", {}))
 	biomes_data.load_from_save(game.get("biomes", {}))
@@ -481,27 +481,35 @@ func load_from_save(game: Dictionary) -> void:
 	# future, and only a load can be the first thing to notice.
 	daily_reward_system.sync_clock_rollback()
 
-func mycelium_nodes_to_save() -> Array[Dictionary]:
-	var all_node_data: Array[Dictionary] = []
+## Keyed by node_id, like every other track in the file.
+##
+## It used to be a plain array read back by position, which meant inserting or
+## reordering a tier in the authored list shifted every existing player's counts
+## onto the wrong tiers - silently, with nothing to migrate against. The v8
+## migration turns the old array into this shape by index, which is the only
+## point at which position and id are still known to agree.
+func mycelium_nodes_to_save() -> Dictionary:
+	var all_node_data := {}
 	for node_data in mycelium_node_data:
-		all_node_data.append({
+		all_node_data[str(node_data.node.node_id)] = {
 			"manual_nodes": node_data.node.manual_nodes,
 			"auto_nodes": node_data.node.auto_nodes.to_save(),
-		})
+		}
 	return all_node_data
 
 ## Entries that are not Dictionaries are skipped rather than assigned: the typed
 ## local below would take the whole load down on a corrupt save, which is the one
-## path that has to degrade instead. A skipped tier keeps its fresh-start values.
-func mycelium_nodes_from_save(nodes: Array) -> void:
-	for i in range(mycelium_node_data.size()):
-		if i >= nodes.size():
+## path that has to degrade instead. A skipped tier keeps its fresh-start values,
+## and so does a tier the save has no entry for at all.
+func mycelium_nodes_from_save(saved_nodes: Dictionary) -> void:
+	for node_data in mycelium_node_data:
+		var key := str(node_data.node.node_id)
+		if not saved_nodes.has(key):
 			continue
-		if not nodes[i] is Dictionary:
-			push_warning("Save entry for mycelium node %d is not a Dictionary, skipping it." % i)
+		if not saved_nodes[key] is Dictionary:
+			push_warning("Save entry for mycelium node %s is not a Dictionary, skipping it." % key)
 			continue
-		var node_data := mycelium_node_data[i]
-		var loaded_data: Dictionary = nodes[i]
+		var loaded_data: Dictionary = saved_nodes[key]
 		node_data.node.manual_nodes = loaded_data.get("manual_nodes", 0)
 		node_data.node.auto_nodes = BigNumber.from_save(loaded_data.get("auto_nodes", {}))
 
@@ -563,6 +571,16 @@ func node_production_bonus(node_id: StringName) -> BigNumber:
 
 func tick_duration() -> float:
 	return production_system.tick_duration(BASE_TICK_DURATION, MIN_TICK_DURATION)
+
+## Seconds left on the tick in flight. Reads off the live Timer, which is a Node,
+## which is exactly why it is answered here: the resource bar used to hold
+## App.tick_timer itself and a ViewModel cannot take that over without touching a
+## node. Returns the full duration while the timer is stopped, which is what the
+## offline catch-up leaves it in.
+func tick_time_left() -> float:
+	if tick_timer == null or tick_timer.is_stopped():
+		return tick_duration()
+	return tick_timer.time_left
 
 # ---------------------------------------------------------------- prestige
 
@@ -633,9 +651,6 @@ func project_cost(project_id: StringName) -> BigNumber:
 func is_project_unlocked(project_id: StringName) -> bool:
 	return well_system.is_unlocked(project_id)
 
-func project_levels_until_unlock(project_id: StringName) -> int:
-	return well_system.levels_until_unlock(project_id)
-
 func project_min_levels(project_id: StringName) -> int:
 	return well_system.min_project_levels(project_id)
 
@@ -653,9 +668,6 @@ func invest_project(project_id: StringName) -> bool:
 
 func is_project_boon_unlocked(project_id: StringName, index: int) -> bool:
 	return well_system.is_boon_unlocked(project_id, index)
-
-func project_boon_level(project_id: StringName, index: int) -> int:
-	return well_system.boon_level(project_id, index)
 
 func project_boon_amount(project_id: StringName, index: int) -> BigNumber:
 	return well_system.boon_amount(project_id, index, resolve_context)
@@ -722,9 +734,6 @@ func fertilizer_level(id: StringName) -> int:
 func fertilizer_cost(id: StringName) -> BigNumber:
 	return fertilizer_system.cost(id)
 
-func fertilizer_multiplier(id: StringName) -> BigNumber:
-	return fertilizer_system.multiplier(id)
-
 func can_buy_fertilizer(id: StringName) -> bool:
 	return fertilizer_system.can_buy(id)
 
@@ -764,12 +773,6 @@ func is_screen_unlocked(screen_type: int) -> bool:
 
 func biome_def(key: StringName) -> BiomeDef:
 	return biome_system.biome_def(key)
-
-func biome_def_for_screen(screen_type: int) -> BiomeDef:
-	return biome_system.biome_def_for_screen(screen_type)
-
-func biome_xp(key: StringName) -> int:
-	return biome_system.biome_xp(key)
 
 func biome_level(key: StringName) -> Dictionary:
 	return biome_system.biome_level(key)
@@ -895,14 +898,8 @@ func automation_level(id: StringName) -> int:
 func automation_cost(id: StringName) -> BigNumber:
 	return automation_system.cost(id)
 
-func automation_runs_per_tick(id: StringName) -> float:
-	return automation_system.runs_per_tick(id)
-
 func automation_runs_per_tick_at(id: StringName, lvl: int) -> float:
 	return automation_system.runs_per_tick_at(id, lvl)
-
-func automation_ticks_per_run(id: StringName) -> int:
-	return automation_system.ticks_per_run(id)
 
 func automation_ticks_per_run_at(id: StringName, lvl: int) -> int:
 	return automation_system.ticks_per_run_at(id, lvl)
@@ -941,9 +938,6 @@ func mission_slots() -> int:
 
 func mission_slots_used() -> int:
 	return mission_system.slots_used()
-
-func has_free_mission_slot() -> bool:
-	return mission_system.has_free_slot()
 
 func missions_completed() -> int:
 	return ruins_data.missions_completed
@@ -1078,5 +1072,3 @@ func mission_boost_amount(boost_id: StringName) -> BigNumber:
 func mission_boost_next_level_delta(boost_id: StringName) -> BigNumber:
 	return mission_boost_system.next_level_delta(boost_id, resolve_context)
 
-func mission_boost_total_levels() -> int:
-	return mission_boost_system.total_levels()

@@ -63,10 +63,19 @@ func _exit_tree() -> void:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
 
+## The rebuild is deferred, and has to be.
+##
+## Tapping a row calls go_to(), which reaches ScreensData.select(), which emits
+## screen_changed synchronously - and that lands back here as
+## PROP_DESTINATIONS_CHANGED while the row's own `selected` emission is still on
+## the stack. Rebuilding in place would free that row out from under the handler
+## that is still running in it. Dismissing first is not enough on its own:
+## PopupLayer.clear() queue_free()s the menu, which is deferred, so this stays
+## connected for the rest of the frame.
 func _on_property_changed(property: StringName) -> void:
 	match property:
 		NavigationViewModel.PROP_DESTINATIONS_CHANGED:
-			_build_rows()
+			_build_rows.call_deferred()
 		NavigationViewModel.PROP_BADGES_CHANGED:
 			_refresh_badges()
 
@@ -195,10 +204,14 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 		dismissed.emit()
 
+## Dismissed before navigating, so the menu is already on its way out by the time
+## screen_changed comes back around. The re-entrancy this used to cause is handled
+## in _on_property_changed(), which is where the actual fix lives - queue_free()
+## is deferred, so this ordering alone would not be enough.
 func _on_destination_selected(screen_type: ScreenTypes.Types) -> void:
-	_vm.go_to(screen_type)
 	dismissed.emit()
+	_vm.go_to(screen_type)
 
 func _on_sub_selected(screen_type: ScreenTypes.Types, tab_index: int) -> void:
-	_vm.go_to(screen_type, tab_index)
 	dismissed.emit()
+	_vm.go_to(screen_type, tab_index)

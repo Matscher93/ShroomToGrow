@@ -128,6 +128,8 @@ func _init(key: StringName, def: BiomeDef) -> void:
 	# parameterless.
 	App.player_data.prestige_count_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.PRESTIGE_COUNT
 	App.player_data.achievement_tiers_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.ACHIEVEMENT_TIERS
+	App.player_data.well_project_levels_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.WELL_PROJECTS
+	App.player_data.missions_completed_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.MISSIONS_COMPLETED
 	# Every currency a biome can be priced in, so an unlock button never sits
 	# stale on a balance it should be reacting to. CurrencyTypes decides what
 	# unlock_currency may name, so a new one belongs here too.
@@ -146,6 +148,8 @@ func dispose() -> void:
 	App.upgrade_system.upgrades_changed.disconnect(_on_xp_source_changed)
 	App.player_data.prestige_count_changed.disconnect(_on_xp_source_changed.unbind(1))
 	App.player_data.achievement_tiers_changed.disconnect(_on_xp_source_changed.unbind(1))
+	App.player_data.well_project_levels_changed.disconnect(_on_xp_source_changed.unbind(1))
+	App.player_data.missions_completed_changed.disconnect(_on_xp_source_changed.unbind(1))
 	App.player_data.nutrients_changed.disconnect(_on_currency_changed)
 	App.player_data.water_changed.disconnect(_on_currency_changed)
 	App.player_data.biomass_changed.disconnect(_on_currency_changed)
@@ -162,6 +166,12 @@ func unlock() -> void:
 
 func buy_size() -> bool:
 	return App.buy_biome_size(_key)
+
+## The upgrade slots this biome's card spawns, in authored order. Static for the
+## def's lifetime; it is here so the panel has no reason to reach past the VM for
+## it, mirroring BiomeSequenceViewModel.upgrade_ids().
+func upgrade_ids() -> Array[StringName]:
+	return _def.upgrade_ids
 
 # --- Model -> notification plumbing ---
 

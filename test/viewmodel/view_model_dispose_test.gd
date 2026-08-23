@@ -14,6 +14,11 @@ extends GdUnitTestSuite
 ##
 ## Driven through the live App autoload, because that is what the VMs read.
 ## Nothing here mutates game state: each VM is built, counted and disposed.
+##
+## Every ViewModel is covered except OfflineIncomeViewModel, which subscribes to
+## nothing at all - _assert_symmetric() would fail it for connecting to zero
+## emitters, and there is no symmetry to check. Give it a test the moment it
+## grows an _init() that connects.
 
 ## Every model object a ViewModel is allowed to subscribe to. A VM connecting to
 ## something outside this list would pass the census unnoticed, so it is
@@ -33,8 +38,10 @@ func _emitters() -> Array[Object]:
 		App.project_upgrade_system,
 		App.growth_upgrade_system,
 		App.fertilizer_upgrade_system,
+		App.mission_upgrade_system,
 		App.daily_reward_data,
 		App.events_data,
+		App.ruins_data,
 		App.screens_data,
 	]
 	for node in App.nodes.mycelium_nodes:
@@ -102,6 +109,28 @@ func test_mycelium_node_view_model_disposes_cleanly() -> void:
 		_assert_symmetric("MyceliumNodeViewModel(%d)" % node_data.node.node_id,
 			func() -> ViewModel: return MyceliumNodeViewModel.new(App.player_data, node_data))
 
+func test_project_view_model_disposes_cleanly() -> void:
+	for def in App.projects.projects:
+		_assert_symmetric("ProjectViewModel(%s)" % def.id,
+			func() -> ViewModel: return ProjectViewModel.new(def.id, def))
+
+func test_creature_view_model_disposes_cleanly() -> void:
+	for def in App.creature_defs.creatures:
+		_assert_symmetric("CreatureViewModel(%s)" % def.id,
+			func() -> ViewModel: return CreatureViewModel.new(def.id, def))
+
+func test_mission_view_model_disposes_cleanly() -> void:
+	for def in App.mission_defs.missions:
+		_assert_symmetric("MissionViewModel(%s)" % def.id,
+			func() -> ViewModel: return MissionViewModel.new(def.id, def))
+
+## Three of this one's five connections are currency signals taken with
+## .unbind(1), the same shape EventsViewModel is called out for below.
+func test_mission_boost_view_model_disposes_cleanly() -> void:
+	for def in App.mission_boosts.boosts:
+		_assert_symmetric("MissionBoostViewModel(%s)" % def.id,
+			func() -> ViewModel: return MissionBoostViewModel.new(def.id, def))
+
 # ─── Singleton VMs ───────────────────────────────────────────────────────────
 
 func test_player_view_model_disposes_cleanly() -> void:
@@ -138,6 +167,14 @@ func test_growth_view_model_disposes_cleanly() -> void:
 func test_events_view_model_disposes_cleanly() -> void:
 	_assert_symmetric("EventsViewModel",
 		func() -> ViewModel: return EventsViewModel.new())
+
+func test_well_view_model_disposes_cleanly() -> void:
+	_assert_symmetric("WellViewModel",
+		func() -> ViewModel: return WellViewModel.new())
+
+func test_ruins_view_model_disposes_cleanly() -> void:
+	_assert_symmetric("RuinsViewModel",
+		func() -> ViewModel: return RuinsViewModel.new())
 
 # ─── Per-selection VMs (built fresh on select, disposed on reselect) ─────────
 #

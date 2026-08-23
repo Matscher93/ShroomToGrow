@@ -47,7 +47,7 @@ func _well_upgrade(id: StringName, stat: StringName, boost_id: StringName,
 	# folds, so these ride in on the prestige track - the stat is what matters,
 	# and every track writes into the same buckets.
 	_prestige.register(def)
-	_prestige.from_save({String(id): level})
+	_prestige.set_level_for_analysis(id, level)
 	_system.refresh_power()
 
 func _boost_list() -> BoostList:
@@ -104,7 +104,7 @@ func _own_perk(id: StringName, level: int = 1) -> void:
 	def.id = id
 	def.max_level = level
 	_prestige.register(def)
-	_prestige.from_save({String(id): level})
+	_prestige.set_level_for_analysis(id, level)
 
 ## Puts the gate fields on a test boost after the fact, so the shared list stays
 ## ungated for every other test in the suite.
@@ -444,3 +444,31 @@ func test_boost_levels_round_trip_through_the_upgrade_track() -> void:
 	assert_int(restored_system.boost_level(&"test_nutrients")).is_equal(
 		BoostTiers.LEVELS_PER_TIER + 5)
 	assert_int(restored_system.boost_tier(&"test_nutrients")).is_equal(2)
+
+# ---------------------------------------------------------------- notification
+
+func test_refresh_power_announces_itself_on_the_boost_track() -> void:
+	# It rewrites every tier's per_level in place. register() is silent by design,
+	# so without the explicit notify the boost cards - which listen to this track,
+	# not to the project track that triggers the refresh - kept painting the old
+	# multiplier until an unrelated purchase happened along.
+	var fired := [0]
+	var counter := fired
+	_upgrades.upgrades_changed.connect(func() -> void: counter[0] += 1)
+
+	_system.refresh_power()
+
+	assert_int(fired[0]).override_failure_message(
+		"refresh_power() emitted nothing, so no boost card repaints."
+		).is_greater(0)
+
+func test_refresh_power_collapses_to_a_single_notification() -> void:
+	# One per rewritten tier would be dozens of full refreshes for one change,
+	# which is what the batch around it is for.
+	var fired := [0]
+	var counter := fired
+	_upgrades.upgrades_changed.connect(func() -> void: counter[0] += 1)
+
+	_system.refresh_power()
+
+	assert_int(fired[0]).is_equal(1)

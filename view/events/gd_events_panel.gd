@@ -45,14 +45,33 @@ func _exit_tree() -> void:
 func _on_property_changed(_property: StringName) -> void:
 	_refresh()
 
-## Unlike the growth sheet's fixed producer list, the queue changes length as
-## events spawn and are answered, so the cards are rebuilt rather than re-bound.
-## Collecting one is what most often triggers this, and that card is on its way
-## out anyway - there is no press to tear out from under a finger.
+## Which instances are on screen, in order. Compared against the incoming rows to
+## decide between re-binding and rebuilding.
+var _shown_ids: Array[int] = []
+
+## Rebuilds only when the board itself changed; otherwise re-binds the cards that
+## are already up.
+##
+## A card is bound from an EventRow snapshot and holds no state, so re-binding is
+## a handful of property writes - and it is what keeps a press from being torn out
+## from under a finger. That used to happen on a fixed cadence: production writes
+## nutrients every tick, the VM notified on that, and the sheet freed and
+## respawned every card in response. The VM now separates the two notifications,
+## and this separates what they cost.
 func _refresh() -> void:
 	var rows := _vm.rows
 	lbl_count.text = "%d / %d" % [rows.size(), EventSystem.MAX_QUEUE]
 	panel_empty.visible = rows.is_empty()
+
+	var ids: Array[int] = []
+	for row in rows:
+		ids.append(row.instance_id)
+	if ids == _shown_ids:
+		for i in rows.size():
+			vbox_events.get_child(i).bind(rows[i])
+		return
+
+	_shown_ids = ids
 	for child in vbox_events.get_children():
 		vbox_events.remove_child(child)
 		child.queue_free()

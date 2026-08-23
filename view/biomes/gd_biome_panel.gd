@@ -1,5 +1,4 @@
 @tool
-class_name BiomePanel
 extends PanelContainer
 ## VIEW: one biome's card. Name and description, level badge, XP progress,
 ## unlock action, Biome Size and its 10 point-bought upgrades. Spawned once per
@@ -7,7 +6,7 @@ extends PanelContainer
 ## instantiating. Binds itself to App.biome_vms[biome_key] in _ready.
 ##
 ## The upgrades show as a 5x2 grid of selectable slot buttons, spawned at runtime
-## one per App.biome_upgrade_ids() (same pattern as gd_nodes_panel.gd). Picking
+## one per BiomeViewModel.upgrade_ids() (same pattern as the sequence grid). Picking
 ## one rebinds the statically embedded upgrade_detail card
 ## (sc_biome_upgrade_card.tscn) to show its info and sell levels.
 
@@ -81,7 +80,7 @@ func _spawn_grid_slots() -> void:
 	for child in grid_upgrade_slots.get_children():
 		grid_upgrade_slots.remove_child(child)
 		child.queue_free()
-	_slot_ids = App.biome_upgrade_ids(biome_key)
+	_slot_ids = _vm.upgrade_ids()
 	for i in range(_slot_ids.size()):
 		var id: StringName = _slot_ids[i]
 		var btn := UpgradeSlotGrid.create_slot(i)
@@ -94,7 +93,10 @@ func _spawn_grid_slots() -> void:
 				_on_slot_selected(id))
 		grid_upgrade_slots.add_child(btn)
 	if not _slot_ids.is_empty():
-		(grid_upgrade_slots.get_child(0) as Button).button_pressed = true
+		# set_pressed_no_signal, then select explicitly: assigning button_pressed
+		# fires toggled, which selects too, so doing both built a
+		# BiomeUpgradeViewModel, disposed it and built a second one on every card.
+		(grid_upgrade_slots.get_child(0) as Button).set_pressed_no_signal(true)
 		_on_slot_selected(_slot_ids[0])
 	_refresh_grid_slots()
 

@@ -68,15 +68,15 @@ func _on_property_changed(_property: StringName) -> void:
 ## from under a finger mid-press - the level notification alone arrives once a
 ## tick.
 func _build_rows() -> void:
-	for row_data in _vm.lp_rows:
+	for _i in _vm.lp_rows.size():
 		var row := lp_row_scene.instantiate()
 		vbox_lp_rows.add_child(row)
 		row.invest_requested.connect(_on_invest_requested)
-	for fert_data in _vm.fert_rows:
+	for _i in _vm.fert_rows.size():
 		var fert_row := fert_row_scene.instantiate()
 		vbox_fert_rows.add_child(fert_row)
 		fert_row.buy_requested.connect(_on_fert_buy_requested)
-	for chip_data in _vm.daily_rows:
+	for _i in _vm.daily_rows.size():
 		var chip := daily_chip_scene.instantiate()
 		grid_daily.add_child(chip)
 		chip.claim_requested.connect(_on_claim_requested)

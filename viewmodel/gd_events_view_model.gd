@@ -12,7 +12,17 @@ extends ViewModel
 ## Built once and owned by App: the chip is on screen at all times, so this always
 ## needs live state.
 
-const PROP_EVENTS_CHANGED := &"events_changed"
+## Split so the sheet can tell "the board changed" from "a balance moved".
+##
+## Production writes nutrients every tick, so one notification for both meant the
+## sheet rebuilt every card on a fixed cadence and tore whichever one a finger was
+## on out from under it. The queue only moves when an event spawns, is answered,
+## or a progress event ticks.
+const PROP_QUEUE_CHANGED := &"queue_changed"
+
+## A currency moved, so a Fulfil button may have become affordable or stopped
+## being so. Nothing about the board itself changed.
+const PROP_AFFORDABILITY_CHANGED := &"affordability_changed"
 
 # --- View -> ViewModel ---
 
@@ -52,23 +62,26 @@ var rows: Array[EventRow]:
 ## button's affordability flips with the balance, not only with what is on the
 ## board, and production moves the balance every tick.
 func _init() -> void:
-	App.events_data.events_changed.connect(_on_events_changed)
-	App.player_data.nutrients_changed.connect(_on_events_changed.unbind(1))
-	App.player_data.water_changed.connect(_on_events_changed.unbind(1))
-	App.player_data.biomass_changed.connect(_on_events_changed.unbind(1))
-	App.player_data.crystals_changed.connect(_on_events_changed.unbind(1))
+	App.events_data.events_changed.connect(_on_queue_changed)
+	App.player_data.nutrients_changed.connect(_on_balance_changed.unbind(1))
+	App.player_data.water_changed.connect(_on_balance_changed.unbind(1))
+	App.player_data.biomass_changed.connect(_on_balance_changed.unbind(1))
+	App.player_data.crystals_changed.connect(_on_balance_changed.unbind(1))
 
 func dispose() -> void:
-	App.events_data.events_changed.disconnect(_on_events_changed)
-	App.player_data.nutrients_changed.disconnect(_on_events_changed.unbind(1))
-	App.player_data.water_changed.disconnect(_on_events_changed.unbind(1))
-	App.player_data.biomass_changed.disconnect(_on_events_changed.unbind(1))
-	App.player_data.crystals_changed.disconnect(_on_events_changed.unbind(1))
+	App.events_data.events_changed.disconnect(_on_queue_changed)
+	App.player_data.nutrients_changed.disconnect(_on_balance_changed.unbind(1))
+	App.player_data.water_changed.disconnect(_on_balance_changed.unbind(1))
+	App.player_data.biomass_changed.disconnect(_on_balance_changed.unbind(1))
+	App.player_data.crystals_changed.disconnect(_on_balance_changed.unbind(1))
 
 # --- Model -> notification plumbing ---
 
-func _on_events_changed() -> void:
-	_notify(PROP_EVENTS_CHANGED)
+func _on_queue_changed() -> void:
+	_notify(PROP_QUEUE_CHANGED)
+
+func _on_balance_changed() -> void:
+	_notify(PROP_AFFORDABILITY_CHANGED)
 
 # --- Row building ---
 

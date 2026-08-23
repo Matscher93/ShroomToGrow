@@ -83,7 +83,7 @@ func available_points(key: StringName) -> int:
 	var lvl: int = biome_level(key).level
 	var base_points := lvl - 1
 	var bonus := _production.stack(&"biome_points", BigNumber.new(0.0, 0), key)
-	return max(0, base_points + int(bonus.to_float()) - _biomes_data.points_spent(key))
+	return maxi(0, base_points + int(bonus.to_float()) - _biomes_data.points_spent(key))
 
 # ---------------------------------------------------------------- unlocking
 

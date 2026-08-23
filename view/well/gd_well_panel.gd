@@ -27,7 +27,7 @@ func bind(vm: WellViewModel) -> void:
 	# out yet, so the container's scroll range is still zero and any offset set
 	# now is clamped straight back to it.
 	scroll.scroll_vertical = 0
-	call_deferred("_restore_scroll")
+	_restore_scroll.call_deferred()
 
 func _exit_tree() -> void:
 	if _vm:

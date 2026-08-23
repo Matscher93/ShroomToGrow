@@ -8,13 +8,9 @@ extends PanelContainer
 @export var label_node_change: Label
 @export var level_icon: ColorRect
 @export var node_level: int = 0
-var _vm: MyceliumNodeViewModel
 
 func _ready() -> void:
 	_update_shader()
-
-func _on_upgrade_pressed() -> void:
-	_vm.buy_upgrade()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
@@ -25,19 +21,20 @@ func _update_shader() -> void:
 		material.set_shader_parameter("rect_size", size * get_global_transform().get_scale())
 
 func set_data(node: MyceliumNode, i: int, node_change: BigNumber) -> void:
+	if material:
 		material.set_shader_parameter(color_param, node.color)
-		level_icon.set_shader_color(node.color)
-		var color_level_text := node.level_font_color
-		var color_main_text := Color.from_hsv(color_level_text.h, 0.7, 0.8)
+	level_icon.set_shader_color(node.color)
+	var color_level_text := node.level_font_color
+	var color_main_text := Color.from_hsv(color_level_text.h, 0.7, 0.8)
 
-		level_value.label_settings = level_value.label_settings.duplicate()
-		label_node_name.label_settings = label_node_name.label_settings.duplicate()
-		label_node_change.label_settings = label_node_change.label_settings.duplicate()
+	level_value.label_settings = level_value.label_settings.duplicate()
+	label_node_name.label_settings = label_node_name.label_settings.duplicate()
+	label_node_change.label_settings = label_node_change.label_settings.duplicate()
 
-		level_value.label_settings.font_color = color_level_text
-		label_node_name.label_settings.font_color = color_main_text
-		label_node_change.label_settings.font_color = color_main_text
+	level_value.label_settings.font_color = color_level_text
+	label_node_name.label_settings.font_color = color_main_text
+	label_node_change.label_settings.font_color = color_main_text
 
-		label_node_name.text = node.name
-		level_value.text = "%d" % [i+1]
-		label_node_change.text = node_change.to_display()
+	label_node_name.text = node.name
+	level_value.text = "%d" % [i+1]
+	label_node_change.text = node_change.to_display()

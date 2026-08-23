@@ -116,6 +116,13 @@ func can_fulfil(event: Dictionary) -> bool:
 	var def := def_for(event.get("def_id", &""))
 	if def == null or def.kind != RandomEventDef.Kind.SPEND:
 		return false
+	# RandomEventDef documents currency as nullable, and nothing pins it down for
+	# a SPEND. One mis-authored .tres would otherwise crash on the card's first
+	# tap rather than leaving the button dead. fulfil() runs this before it reads
+	# the currency itself, so this is the only place the check is needed.
+	if def.currency == null:
+		push_error("SPEND event '%s' names no currency, so it cannot be fulfilled." % def.id)
+		return false
 	var field := CurrencyTypes.field_for(def.currency.currency_type)
 	var balance: BigNumber = _player_data.get(field)
 	return balance.gte(amount_for(def))
@@ -132,8 +139,12 @@ func collect(instance_id: int) -> bool:
 		return false
 	if def.pays_fertilizer():
 		_fertilizer.grant(reward_for(event))
-	else:
+	elif def.currency != null:
 		_pay(def.currency, amount_for(def))
+	else:
+		# A BOON that pays neither fertilizer nor a currency pays nothing. Clear
+		# the card anyway rather than leaving one that can never be answered.
+		push_error("BOON event '%s' pays neither fertilizer nor a currency." % def.id)
 	_data.remove(instance_id)
 	_player_data.events_resolved += 1
 	return true
@@ -184,14 +195,17 @@ func _goal_for(def_id: StringName) -> int:
 		return 0
 	return def.goal_ticks
 
-## Pays one of the four currencies, moving its lifetime total where it has one.
-## Nutrients and crystals are the two the achievement ladder measures.
+## Pays one currency out, moving its lifetime total with it.
+##
+## Which currencies have a lifetime counter is CurrencyTypes' answer, not a match
+## written out here: this used to name nutrients and crystals only, so a BOON
+## authored on relics, ichor or glyphs would have moved the balance and left the
+## stat the achievement ladder reads standing still. Mirrors MissionSystem._grant().
 func _pay(currency: CurrencyDef, amount: BigNumber) -> void:
 	var field := CurrencyTypes.field_for(currency.currency_type)
 	var balance: BigNumber = _player_data.get(field)
 	_player_data.set(field, balance.add(amount))
-	match currency.currency_type:
-		CurrencyTypes.Types.NUTRIENTS:
-			_player_data.lifetime_nutrients = _player_data.lifetime_nutrients.add(amount)
-		CurrencyTypes.Types.CRYSTALS:
-			_player_data.lifetime_crystals = _player_data.lifetime_crystals.add(amount)
+	var lifetime := CurrencyTypes.lifetime_field_for(currency.currency_type)
+	if lifetime == &"": return
+	var total: BigNumber = _player_data.get(lifetime)
+	_player_data.set(lifetime, total.add(amount))

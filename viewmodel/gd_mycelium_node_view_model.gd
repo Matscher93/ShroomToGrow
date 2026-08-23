@@ -9,7 +9,6 @@ const PROP_MANUAL_NODE_TEXT := &"manual_node_text"
 const PROP_OWNED_NODE_TEXT := &"owned_node_text"
 const PROP_CAN_BUY := &"can_buy_upgrade"
 const PROP_PRODUCTION_TEXT := &"production_text"
-const PROP_PRODUCTION_PER_NODE_TEXT := &"production_per_node_text"
 const PROP_SYMBIOSIS_YIELD_TEXT := &"symbiosis_yield_text"
 const PROP_TOTAL_YIELD_TEXT := &"total_yield_text"
 const PROP_POTENCY_LEVEL_TEXT := &"potency_level_text"
@@ -23,6 +22,11 @@ const PROP_SYNERGY_ACCUMULATED_TEXT := &"synergy_accumulated_text"
 const PROP_SYNERGY_COST_TEXT := &"synergy_cost_text"
 const PROP_SYNERGY_CAN_BUY := &"synergy_can_buy"
 
+## Whether this tier has been reached at all. The nodes panel shows a tier once
+## it or the tier below it has any nodes, and that read used to happen in the view
+## against MyceliumNode directly.
+const PROP_HAS_NODES := &"has_nodes"
+
 var _player_data: PlayerData
 var _mycelium_data: MyceliumNodeData
 var _potency_id: StringName
@@ -34,6 +38,11 @@ var buy_button_text: String:
 		if not _mycelium_data.is_unlocked():
 			return "Needs %s" % [_unlock_perk_name()]
 		return "%s" % [_format_number(_mycelium_data.upgrade_cost())]
+
+## True once this tier holds anything, bought or grown. Drives whether the nodes
+## panel shows the row at all.
+var has_nodes: bool:
+	get: return _mycelium_data.node.has_nodes()
 
 var manual_node_text: String:
 	get:
@@ -193,6 +202,7 @@ func _on_nutrients_changed(_value: BigNumber) -> void:
 func _on_auto_nodes_changed(_auto_nodes: BigNumber) -> void:
 	_notify(PROP_OWNED_NODE_TEXT)
 	_notify(PROP_PRODUCTION_TEXT)
+	_notify(PROP_HAS_NODES)
 
 func _on_manual_nodes_changed(_manual_nodes: int) -> void:
 	_notify(PROP_MANUAL_NODE_TEXT)
@@ -200,6 +210,7 @@ func _on_manual_nodes_changed(_manual_nodes: int) -> void:
 	_notify(PROP_PRODUCTION_TEXT)
 	_notify(PROP_BUY_TEXT)
 	_notify(PROP_CAN_BUY)
+	_notify(PROP_HAS_NODES)
 
 func _on_upgrades_changed() -> void:
 	# Buying the unlock perk lands here too, so the buy panel re-reads both its

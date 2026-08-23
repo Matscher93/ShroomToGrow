@@ -131,7 +131,14 @@ func load_from_save(d: Dictionary) -> void:
 		for id in sequences_in[key]:
 			steps.append(StringName(id))
 		upgrade_sequences[StringName(key)] = steps
+	# All three dictionaries were replaced, so all three have to announce it. Only
+	# levels_changed fired here, which left a toggle or a recorded sequence bound
+	# to whatever the view had before the load.
 	levels_changed.emit()
+	for id: StringName in enabled:
+		enabled_changed.emit(id)
+	for biome_key: StringName in upgrade_sequences:
+		sequence_changed.emit(biome_key)
 
 static func from_save(d: Dictionary) -> AutomationData:
 	var data := AutomationData.new()

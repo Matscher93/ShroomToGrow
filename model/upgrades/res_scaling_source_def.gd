@@ -26,6 +26,6 @@ func evaluate(ctx: ResolveContext) -> float:
 			push_error("ScalingSourceDef '%s' has unsupported kind %d, treating as 1.0." % [key, kind])
 			return 1.0
 	match transform:
-		Transform.SQRT:  return sqrt(max(0.0, v))
-		Transform.LOG10: return log(max(1.0, v)) / log(10.0)
+		Transform.SQRT:  return sqrt(maxf(0.0, v))
+		Transform.LOG10: return log(maxf(1.0, v)) / log(10.0)
 		_:               return v

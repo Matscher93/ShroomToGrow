@@ -132,6 +132,16 @@ func end_batch() -> void:
 	_batch_pending = false
 	upgrades_changed.emit()
 
+## Announces a change this system cannot notice for itself: a def rewritten in
+## place, rather than a level bought through it.
+##
+## register() deliberately stays silent - it runs a few hundred times while App
+## builds the tracks, before any listener exists - so a caller that re-registers
+## defs after boot has to say so here. Honours an open batch, so one call inside
+## begin_batch()/end_batch() still collapses to a single emit.
+func notify_changed() -> void:
+	_emit_changed()
+
 func _emit_changed() -> void:
 	if _batch_depth > 0:
 		_batch_pending = true
@@ -293,7 +303,17 @@ func to_save() -> Dictionary:
 ## Levels for unknown ids are dropped, not stored. A renamed or deleted
 ## UpgradeDef, or a data directory that failed to load, would otherwise leave an
 ## id in _levels that no def backs.
+##
+## Replaces rather than merges, which is why the reset comes first: to_save()
+## omits every level at 0, so an id the incoming save is silent about means "this
+## is unbought", not "leave whatever is there". Loading a second save into a
+## track that already holds levels would otherwise keep the first save's numbers
+## wherever the second had none. Same for lifetime_levels, which to_save() also
+## omits at 0.
 func from_save(data: Dictionary) -> void:
+	for id in _defs:
+		_levels[id] = 0
+	lifetime_levels = 0
 	for key in data:
 		if key == LIFETIME_KEY:
 			lifetime_levels = int(data[key])

@@ -24,8 +24,19 @@ func _validate_property(property: Dictionary) -> void:
 func _ready() -> void:
 	_update_visuals()
 
+## The setter above subscribes to the def; nothing undid it. CurrencyDef is a
+## static registry entry that never emits at runtime, so this is a tidiness fix
+## rather than a live leak - but the panel is respawned per popup and the
+## subscription outlives it either way.
+func _exit_tree() -> void:
+	if currency_def and currency_def.changed.is_connected(_update_visuals):
+		currency_def.changed.disconnect(_update_visuals)
+
 func _update_visuals() -> void:
 	_update_shader()
+	# Assigned at runtime by whoever spawns the panel, and left null while the
+	# scene is open on its own in the editor.
+	if currency_def == null: return
 	if material:
 		material.set_shader_parameter(color_param, currency_def.main_color)
 

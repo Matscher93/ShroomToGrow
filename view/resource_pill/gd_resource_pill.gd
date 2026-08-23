@@ -41,10 +41,15 @@ func _ready() -> void:
 
 func _update_visuals() -> void:
 	_update_colors()
+	if currency_def == null: return
 	if is_instance_valid(image_header):
 		image_header.material.set_shader_parameter("icon_id", currency_def.currency_type)
 
+## currency_def is assigned at runtime by ResourceBar and is never set in
+## sc_resource_pill.tscn, so opening this scene on its own in the editor reaches
+## here with nothing - _ready() calls it before the is_editor_hint() bail.
 func _update_colors() -> void:
+	if currency_def == null: return
 	var child := get_node_or_null("ColorRect")
 	if is_instance_valid(child):
 		image_background.set_shader_color(currency_def.main_color)

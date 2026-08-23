@@ -239,17 +239,6 @@ func collect_all() -> int:
 			collected += 1
 	return collected
 
-## The currencies whose lifetime total moves when a mission pays them out. Water
-## and biomass are deliberately absent: neither has a lifetime counter, because
-## nothing measures them across runs.
-const _LIFETIME_FIELDS := {
-	CurrencyTypes.Types.NUTRIENTS: &"lifetime_nutrients",
-	CurrencyTypes.Types.CRYSTALS: &"lifetime_crystals",
-	CurrencyTypes.Types.RELICS: &"lifetime_relics",
-	CurrencyTypes.Types.ICHOR: &"lifetime_ichor",
-	CurrencyTypes.Types.GLYPHS: &"lifetime_glyphs",
-}
-
 ## Pays one currency out, moving its lifetime total with it. The one entry point:
 ## nothing writes a balance directly, so no payout can reach the player without
 ## also reaching the stat that measures it. Mirrors FertilizerSystem.grant().
@@ -260,9 +249,8 @@ func _grant(currency: int, amount: BigNumber) -> void:
 	var field := CurrencyTypes.field_for(type)
 	var balance: BigNumber = _player_data.get(field)
 	_player_data.set(field, balance.add(amount))
-	if not _LIFETIME_FIELDS.has(type):
-		return
-	var lifetime: StringName = _LIFETIME_FIELDS[type]
+	var lifetime := CurrencyTypes.lifetime_field_for(type)
+	if lifetime == &"": return
 	var total: BigNumber = _player_data.get(lifetime)
 	_player_data.set(lifetime, total.add(amount))
 
@@ -286,9 +274,16 @@ func sync_missions_completed() -> void:
 ## early, exactly as the offline catch-up is already exposed to one.
 func sync_clock_rollback() -> void:
 	var now := _now()
+	var clamped := false
 	for entry in _data.active:
 		if float(entry["started_at"]) <= now:
 			continue
 		push_warning("Mission %d started at %f, ahead of now (%f). Clamping to now."
 			% [int(entry["instance_id"]), float(entry["started_at"]), now])
 		entry["started_at"] = now
+		clamped = true
+	# The entries are mutated in place, which RuinsData cannot see. App calls this
+	# after ruins_data.load_from_save() has already announced itself, so without
+	# this every card would sit on the start time the clamp just replaced.
+	if clamped:
+		_data.active_changed.emit()

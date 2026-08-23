@@ -28,6 +28,15 @@ func _ready() -> void:
 	if App.offline_income_vm:
 		bind(App.offline_income_vm)
 
+## App owns this ViewModel for the app's lifetime while the popup is freed on
+## every dismiss, so the binding has to be undone here. This was the one
+## VM-binding view in the codebase relying on Godot's implicit free-time
+## disconnect instead of the contract every sibling follows.
+func _exit_tree() -> void:
+	if _vm:
+		_vm.property_changed.disconnect(_on_property_changed)
+		_vm = null
+
 func bind(vm: OfflineIncomeViewModel) -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
@@ -55,34 +64,16 @@ func _refresh() -> void:
 	offline_income_button.set_disabled(_vm.is_calculating)
 	label_away_for.visible = not _vm.is_calculating
 	if _vm.is_calculating:
-		if not _initial_state_captured:
-			_capture_initial_state()
+		_vm.capture_live_baseline()
 		var progress := float(_vm.calc_ticks_done) / float(max(1, _vm.calc_ticks_total))
 		_set_tick_progress(progress)
 		label_ticks.text = "%d / %d" % [_vm.calc_ticks_done, _vm.calc_ticks_total]
 		label_time.text = "Calculating… %d%%" % [roundi(progress * 100.0)]
-		_render_deltas(_initial_nutrients, App.player_data.nutrients,
-			_initial_water, App.player_data.water, _initial_node_counts,
-			func(i: int) -> BigNumber: return App.mycelium_node_data[i].node.auto_nodes)
+		_render_deltas(_vm.live_nutrient_delta, _vm.live_water_delta, _vm.live_node_deltas)
 		return
-	_initial_state_captured = false
+	_vm.release_live_baseline()
 	_set_tick_progress(1.0)
 	_update_visuals()
-
-## Snapshot of live state when calculation starts, so growth so far can be
-## diffed against it every time progress is reported.
-var _initial_state_captured := false
-var _initial_nutrients: BigNumber
-var _initial_water: BigNumber
-var _initial_node_counts: Array[BigNumber]
-
-func _capture_initial_state() -> void:
-	_initial_state_captured = true
-	_initial_nutrients = App.player_data.nutrients
-	_initial_water = App.player_data.water
-	_initial_node_counts.clear()
-	for node_data in App.mycelium_node_data:
-		_initial_node_counts.append(node_data.node.auto_nodes)
 
 func _set_tick_progress(progress: float) -> void:
 	if offline_time_container and offline_time_container.material:
@@ -92,26 +83,27 @@ func _set_tick_progress(progress: float) -> void:
 ## place. This runs on every progress batch (~every 20ms) for the whole catch-up
 ## loop, so rebuilding the list each time would be allocation churn inside the
 ## loop SaveManager's frame budget is protecting.
-func _render_deltas(initial_nutrient: BigNumber, final_nutrient: BigNumber,
-		initial_water: BigNumber, final_water: BigNumber,
-		initial_node_counts: Array[BigNumber], final_node_count_fn: Callable) -> void:
-	nutrient_panel.set_currency_change(final_nutrient.sub(initial_nutrient))
+## Takes the differences already worked out rather than the pairs to subtract:
+## the live path gets them from the ViewModel and the finished one from the
+## snapshots, and the rendering is the same either way.
+func _render_deltas(nutrient_change: BigNumber, water_change: BigNumber,
+		node_changes: Array[BigNumber]) -> void:
+	nutrient_panel.set_currency_change(nutrient_change)
 
 	# The well pumps through the same handle_tick() the catch-up loop drives, so
 	# a gap spent with the lake open has already produced this by the time the
 	# popup renders. Shown only when there is some: see water_panel.
-	var water_change := final_water.sub(initial_water)
 	water_panel.visible = water_change.gt(BigNumber.from_value(0.0))
 	if water_panel.visible:
 		water_panel.set_currency_change(water_change)
 
-	var nodes := App.nodes.mycelium_nodes
+	var nodes := _vm.node_defs
 	_ensure_node_change_rows(nodes.size())
 
 	var zero := BigNumber.from_value(0.0)
 	for i in range(nodes.size()):
 		var row := _node_change_rows[i]
-		var node_change: BigNumber = final_node_count_fn.call(i).sub(initial_node_counts[i])
+		var node_change: BigNumber = node_changes[i]
 		if node_change.equals(zero):
 			row.visible = false
 			continue
@@ -140,14 +132,15 @@ func _update_visuals() -> void:
 	label_ticks.text = "%d" % [_total_offline_ticks]
 	label_time.text = format_duration(_total_offline_time)
 	if _snapshots.size() > 0:
-		var initial_nutrient := _get_nutrient_count(_snapshots[0])
-		var initial_node_counts: Array[BigNumber] = []
-		for i in range(App.nodes.mycelium_nodes.size()):
-			initial_node_counts.append(_get_node_count(_snapshots[0], i))
-		var last_snapshot := _snapshots[_snapshots.size()-1]
-		_render_deltas(initial_nutrient, _get_nutrient_count(last_snapshot),
-			_get_water_count(_snapshots[0]), _get_water_count(last_snapshot), initial_node_counts,
-			func(i: int) -> BigNumber: return _get_node_count(last_snapshot, i))
+		var first := _snapshots[0]
+		var last := _snapshots[_snapshots.size() - 1]
+		var node_changes: Array[BigNumber] = []
+		for i in range(_vm.node_defs.size()):
+			node_changes.append(_get_node_count(last, i).sub(_get_node_count(first, i)))
+		_render_deltas(
+			_get_nutrient_count(last).sub(_get_nutrient_count(first)),
+			_get_water_count(last).sub(_get_water_count(first)),
+			node_changes)
 
 static func format_duration(total_seconds: float, max_units := 2) -> String:
 	var s := int(total_seconds)

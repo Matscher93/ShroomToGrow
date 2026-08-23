@@ -13,6 +13,17 @@ var _is_calculating: bool
 var _calc_ticks_done: int
 var _calc_ticks_total: int
 
+## The live state the catch-up is growing, captured when it starts so the popup
+## can show what has accrued so far.
+##
+## Here rather than in the popup because it is model state: the view was reading
+## App.player_data.nutrients / .water and App.mycelium_node_data[i].node.auto_nodes
+## directly, every progress batch, for the whole catch-up.
+var _capture_taken := false
+var _start_nutrients: BigNumber
+var _start_water: BigNumber
+var _start_node_counts: Array[BigNumber] = []
+
 func set_save_data(in_save_data_snapshots: Array[Dictionary], in_total_offline_ticks: int, in_offline_time: float) -> void:
 	_save_data_snapshots = in_save_data_snapshots
 	_total_offline_ticks = in_total_offline_ticks
@@ -42,6 +53,50 @@ func clear() -> void:
 	_total_offline_ticks = 0
 	_offline_time = 0.0
 	_notify(PROP_SNAPSHOTS_CHANGED)
+
+## Takes the baseline the live deltas below are measured against. Idempotent: the
+## popup asks on every progress batch and only the first one may land.
+func capture_live_baseline() -> void:
+	if _capture_taken:
+		return
+	_capture_taken = true
+	_start_nutrients = App.player_data.nutrients
+	_start_water = App.player_data.water
+	_start_node_counts.clear()
+	for node_data in App.mycelium_node_data:
+		_start_node_counts.append(node_data.node.auto_nodes)
+
+## Drops the baseline so the next catch-up takes a fresh one.
+func release_live_baseline() -> void:
+	_capture_taken = false
+
+## What the catch-up has produced since the baseline was taken. Zero before
+## capture_live_baseline() has run.
+var live_nutrient_delta: BigNumber:
+	get:
+		if not _capture_taken: return BigNumber.new(0.0, 0)
+		return App.player_data.nutrients.sub(_start_nutrients)
+
+var live_water_delta: BigNumber:
+	get:
+		if not _capture_taken: return BigNumber.new(0.0, 0)
+		return App.player_data.water.sub(_start_water)
+
+## One entry per node tier, in the order App holds them.
+var live_node_deltas: Array[BigNumber]:
+	get:
+		var out: Array[BigNumber] = []
+		for i in App.mycelium_node_data.size():
+			if not _capture_taken or i >= _start_node_counts.size():
+				out.append(BigNumber.new(0.0, 0))
+				continue
+			out.append(App.mycelium_node_data[i].node.auto_nodes.sub(_start_node_counts[i]))
+		return out
+
+## The node tiers themselves, for the rows' names and colours. A static registry
+## read: nothing here changes at runtime.
+var node_defs: Array[MyceliumNode]:
+	get: return App.nodes.mycelium_nodes
 
 var save_data_snapshots: Array[Dictionary]:
 	get: return _save_data_snapshots

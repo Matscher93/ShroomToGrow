@@ -230,8 +230,14 @@ func _prepare() -> Node:
 
 
 ## Back to a first run. Each track is cleared through the reset the game itself
-## uses, and each save-backed holder through its own loader with nothing in it,
-## so a field added later is covered without touching this.
+## uses, and each save-backed holder through its own loader with nothing in it.
+##
+## Hand-maintained against App._ready(), and it has drifted before: the whole
+## Ruins was missing here for as long as the Ruins existed, so a --load= from a
+## real save carried that player's creature ranks and mission tally into the
+## baseline, and balance_report.json measured pacing for a game with no missions
+## in it. test/data/balance_pacing_test.gd pins that report, so the drift was
+## invisible. Anything App builds and saves belongs here too.
 static func _reset(app: Node) -> void:
 	app.upgrade_system.reset()
 	app.biome_upgrade_system.reset()
@@ -248,6 +254,9 @@ static func _reset(app: Node) -> void:
 	# paid out in an earlier run is account progress, but a baseline starting with
 	# Rich Soil already bought is not a first run.
 	app.fertilizer_upgrade_system.reset()
+	# The Ruins boost ladder, on the same footing as the well and growth tracks:
+	# a mission boost bought in an earlier run is not part of a first one.
+	app.mission_upgrade_system.reset()
 	app.biome_system.reset()
 	app.biome_system.unlock_free_biomes()
 
@@ -260,12 +269,19 @@ static func _reset(app: Node) -> void:
 	# runs the spawn timer - so a carried-over offer would sit there unanswered
 	# and only the fertilizer it never pays would differ.
 	app.events_data.load_from_save({})
+	# Creature ranks, the mission board and the completed tally. Without this a
+	# --load= from a real save carried a player's whole Ruins into what the report
+	# calls a first run.
+	app.ruins_data.load_from_save({})
 	# The doubling level is derived from the investments just cleared, so it has
 	# to follow them down.
 	app.player_level_system.sync_global_double()
 	# PlayerData.well_project_levels is a projection of the levels just cleared,
 	# and it is the Underground Lake's XP source, so it has to follow them down.
 	app.well_system.sync_project_levels()
+	# PlayerData.missions_completed is the same shape, and it is the Ruins biome's
+	# XP source.
+	app.mission_system.sync_missions_completed()
 
 	# Tier 0 keeps one node for the same reason PrestigeSystem leaves it one:
 	# with nothing producing, a run can never earn the first purchase back.

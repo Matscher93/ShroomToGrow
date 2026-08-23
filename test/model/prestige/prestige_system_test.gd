@@ -52,7 +52,7 @@ func _register(system: UpgradeSystem, id: StringName, level: int,
 	d.id = id
 	d.effects = effects
 	system.register(d)
-	system.from_save({String(id): level})
+	system.set_level_for_analysis(id, level)
 
 func _biomass_effect(per_level: float) -> Array[UpgradeEffectDef]:
 	var e := UpgradeEffectDef.new()

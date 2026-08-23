@@ -77,10 +77,10 @@ func _update_edge_fade() -> void:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		return
 	var rect := get_global_rect()
-	var material: ShaderMaterial = world.material
-	material.set_shader_parameter("rect_min", rect.position / viewport_size)
-	material.set_shader_parameter("rect_max", rect.end / viewport_size)
-	material.set_shader_parameter("fade_size", Vector2(edge_fade_pixels, edge_fade_pixels) / viewport_size)
+	var world_material: ShaderMaterial = world.material
+	world_material.set_shader_parameter("rect_min", rect.position / viewport_size)
+	world_material.set_shader_parameter("rect_max", rect.end / viewport_size)
+	world_material.set_shader_parameter("fade_size", Vector2(edge_fade_pixels, edge_fade_pixels) / viewport_size)
 
 ## Android/iOS synthesize InputEventMouseMotion from touch by default, which
 ## would double-drive world.position alongside the ScreenDrag handling below and

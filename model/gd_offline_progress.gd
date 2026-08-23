@@ -21,9 +21,11 @@ static func capped(elapsed: float) -> float:
 	return minf(elapsed, MAX_SECONDS)
 
 ## Ticks a gap is worth at the current tick duration. One full interval has to
-## elapse before the first offline tick lands, so a gap shorter than two
-## intervals pays nothing. This is the count the catch-up loop runs *and* the
-## total the progress bar counts towards, so the two cannot drift apart.
+## elapse before the first offline tick lands - matching the live timer, where
+## reopening the app exactly one interval later is worth zero - so the count is
+## one short of the intervals the gap spans. This is the count the catch-up loop
+## runs *and* the total the progress bar counts towards, so the two cannot drift
+## apart.
 static func simulated_ticks(elapsed: float, tick_duration: float) -> int:
 	if tick_duration <= 0.0:
 		return 0

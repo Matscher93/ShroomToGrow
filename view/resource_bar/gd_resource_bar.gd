@@ -12,10 +12,8 @@ const PILL_SCENE := preload("res://view/resource_pill/sc_resource_pill.tscn")
 @export var lbl_tick_duration: Label
 
 var _vm: ScreensViewModel
-var _tick_timer: Timer
 
 func _ready() -> void:
-	_tick_timer = App.tick_timer
 	if App.screens_vm:
 		bind(App.screens_vm)
 
@@ -31,12 +29,16 @@ func _exit_tree() -> void:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
 
+## Polled rather than bound: a countdown moves continuously, so there is nothing
+## for the ViewModel to notify on that would not be sixty notifications a second.
+## The numbers themselves come from the VM, which is what took this off
+## App.tick_timer - a view holding an autoload's Timer node and reading time_left
+## straight off it.
 func _process(_delta: float) -> void:
-	var time_left := _tick_timer.time_left
-	var tick_duration := _tick_timer.wait_time
-	progress_rect.material.set_shader_parameter("tick_progress", 1.0 - time_left / tick_duration)
-	lbl_time_left.text = "%.1fs" % [time_left]
-	lbl_tick_duration.text = "/ %.1fs" % [tick_duration]
+	if _vm == null: return
+	progress_rect.material.set_shader_parameter("tick_progress", _vm.tick_progress)
+	lbl_time_left.text = _vm.tick_time_left_text
+	lbl_tick_duration.text = _vm.tick_duration_text
 
 # --- VM -> View ---
 func _on_property_changed(property: StringName) -> void:

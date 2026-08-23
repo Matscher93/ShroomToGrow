@@ -51,7 +51,7 @@ func _register(system: UpgradeSystem, id: StringName, stat: StringName,
 	d.id = id
 	d.effects = [e]
 	system.register(d)
-	system.from_save({String(id): 1})
+	system.set_level_for_analysis(id, 1)
 
 # ─── Tick bookkeeping ────────────────────────────────────────────────────────
 

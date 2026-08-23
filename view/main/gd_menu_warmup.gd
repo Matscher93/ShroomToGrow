@@ -14,7 +14,7 @@ extends CanvasLayer
 
 func _ready() -> void:
 	for screen_type: ScreenTypes.Types in App.screens.screens:
-		if screen_type == App.screens_data.current_screen:
+		if screen_type == App.screens_vm.current_screen:
 			continue
 		var screen_data: ScreenDefinition = App.screens.screens[screen_type]
 		var instance := screen_data.screen_scene.instantiate() as Control

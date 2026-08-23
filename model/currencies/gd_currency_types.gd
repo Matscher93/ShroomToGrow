@@ -22,3 +22,21 @@ static func field_for(currency: Types) -> StringName:
 			return &"glyphs"
 		_:
 			return &"nutrients"
+
+## The PlayerData lifetime counter a currency feeds, or &"" where it has none.
+##
+## Water and biomass are deliberately absent: nothing measures either across
+## runs, so there is no counter to move. Every payout path reads this rather than
+## matching on the type itself - a two-arm match is how EventSystem._pay() came
+## to move a relic balance without moving lifetime_relics, which is the stat the
+## achievement ladder actually reads.
+const LIFETIME_FIELDS := {
+	Types.NUTRIENTS: &"lifetime_nutrients",
+	Types.CRYSTALS: &"lifetime_crystals",
+	Types.RELICS: &"lifetime_relics",
+	Types.ICHOR: &"lifetime_ichor",
+	Types.GLYPHS: &"lifetime_glyphs",
+}
+
+static func lifetime_field_for(currency: Types) -> StringName:
+	return LIFETIME_FIELDS.get(currency, &"")

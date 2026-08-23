@@ -61,5 +61,6 @@ func set_selected(in_enabled: bool) -> void:
 	_update_shader()
 
 func set_disabled(value: bool) -> void:
-	_button.disabled = value
+	if _button != null:
+		_button.disabled = value
 	_update_shader()

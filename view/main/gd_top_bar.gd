@@ -79,7 +79,7 @@ func _on_growth_property_changed(_property: StringName) -> void:
 	_refresh_growth()
 
 func _on_events_property_changed(property: StringName) -> void:
-	if property == EventsViewModel.PROP_EVENTS_CHANGED:
+	if property == EventsViewModel.PROP_QUEUE_CHANGED:
 		_refresh_events()
 
 func _refresh() -> void:

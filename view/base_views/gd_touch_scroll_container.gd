@@ -1,4 +1,3 @@
-class_name TouchScrollContainer
 extends ScrollContainer
 ## VIEW: a ScrollContainer whose touch drag no child can swallow.
 ##

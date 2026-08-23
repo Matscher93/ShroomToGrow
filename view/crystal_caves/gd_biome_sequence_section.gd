@@ -58,6 +58,7 @@ var _press_start := Vector2.ZERO
 ## rather than the VM: it is about this button, and it must not survive the
 ## screen being rebuilt.
 var _clear_armed := false
+var _clear_timer: SceneTreeTimer = null
 
 func _ready() -> void:
 	grid_upgrade_slots.columns = UpgradeSlotGrid.COLUMNS
@@ -87,8 +88,30 @@ func _exit_tree() -> void:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
 
-func _on_property_changed(_property: StringName) -> void:
-	refresh()
+## Matched on the property rather than refreshing everything.
+##
+## refresh() ends in _rebuild_steps(), which frees and re-instantiates up to ten
+## row scenes, and summary_text and page_rows() each walk the whole sequence
+## again. One upgrades_changed - every automated point spend, every manual
+## purchase - lands here three times, because _on_replay_state_changed() notifies
+## three properties in a row. Doing the whole refresh for each was rebuilding the
+## step list three times over for one change.
+func _on_property_changed(property: StringName) -> void:
+	match property:
+		BiomeSequenceViewModel.PROP_SEQUENCE_CHANGED:
+			_refresh_grid_slots()
+			_rebuild_steps()
+		BiomeSequenceViewModel.PROP_SUMMARY_TEXT:
+			lbl_summary.text = _vm.summary_text
+			lbl_status.text = _vm.status_text
+			lbl_status.visible = not lbl_status.text.is_empty()
+		BiomeSequenceViewModel.PROP_STEP_AMOUNT:
+			btn_step_amount.text = _vm.step_amount_text
+		BiomeSequenceViewModel.PROP_AUTO_UNLOCK:
+			_refresh_auto_unlock()
+		BiomeSequenceViewModel.PROP_SLOT_STATUS:
+			lbl_slot_status.text = _vm.slot_status_text
+			lbl_slot_status.visible = not lbl_slot_status.text.is_empty()
 
 func refresh() -> void:
 	lbl_summary.text = _vm.summary_text
@@ -260,9 +283,19 @@ func _on_clear_pressed() -> void:
 		return
 	_clear_armed = true
 	btn_clear.text = "Sure?"
-	var timer := get_tree().create_timer(CLEAR_CONFIRM_SECONDS)
-	timer.timeout.connect(_disarm_clear)
+	# Tracked so a re-arm inside the window can drop the timer already running.
+	# Each press used to leave its own connected, and the older one would then
+	# disarm the button partway through the new window.
+	_clear_timer = get_tree().create_timer(CLEAR_CONFIRM_SECONDS)
+	_clear_timer.timeout.connect(_on_clear_timeout.bind(_clear_timer))
+
+## Ignored unless this is still the timer the button is waiting on.
+func _on_clear_timeout(timer: SceneTreeTimer) -> void:
+	if timer != _clear_timer:
+		return
+	_disarm_clear()
 
 func _disarm_clear() -> void:
 	_clear_armed = false
+	_clear_timer = null
 	btn_clear.text = "Clear"

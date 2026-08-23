@@ -117,8 +117,12 @@ func per_level(boost_id: StringName, tier: int) -> float:
 ## The rate only moves when a project is funded, so refreshing on that signal
 ## costs one rebuild per purchase rather than one per tick.
 ##
-## Batched: one call re-registers every tier of every boost, and each register()
-## would otherwise announce itself.
+## Batched, and it has to announce itself: register() is silent by design, so
+## rewriting every tier's per_level moves the numbers on every boost card without
+## upgrades_changed ever firing. The cards listen to the boost and prestige
+## tracks, not to the project track that triggers this, so nothing else would
+## repaint them - they sat on the old multiplier until an unrelated purchase
+## happened along. notify_changed() inside the batch collapses to one emit.
 func refresh_power() -> void:
 	if _production == null:
 		return
@@ -130,6 +134,7 @@ func refresh_power() -> void:
 				continue
 			def.effects[0].per_level = per_level(boost.id, tier)
 			_upgrades.register(def)
+	_upgrades.notify_changed()
 	_upgrades.end_batch()
 
 func is_maxed(boost_id: StringName) -> bool:

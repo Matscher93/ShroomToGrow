@@ -250,9 +250,43 @@ def apply_patch(patch: dict, dry_run: bool) -> dict:
     return run_with_payload("apply", "--patch", patch, dry_run)
 
 
+# Origins a mutating request may carry. Anything else is another site talking to
+# this port through the developer's browser.
+ALLOWED_ORIGINS = frozenset(
+    f"http://{host}:{PORT}" for host in ("127.0.0.1", "localhost", "[::1]")
+)
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args) -> None:
         sys.stderr.write("%s %s\n" % (self.address_string(), fmt % args))
+
+    def _same_origin(self) -> bool:
+        """Whether a write may proceed.
+
+        Binding to loopback keeps other machines out, but not other *pages*: a
+        form or fetch POST with a simple content type is not preflighted, so any
+        site open in the developer's browser can reach /api/delete while the
+        editor runs. CORS hides the response from it, which does nothing for a
+        request whose whole effect is the write.
+
+        Origin is absent on same-origin GETs in some browsers but always present
+        on cross-origin writes, so a missing one is only trusted when
+        Sec-Fetch-Site agrees it is not cross-site.
+        """
+        origin = self.headers.get("Origin")
+        if origin is not None:
+            return origin in ALLOWED_ORIGINS
+        return self.headers.get("Sec-Fetch-Site", "same-origin") in (
+            "same-origin", "none",
+        )
+
+    def _reject_cross_origin(self) -> bool:
+        """Answers the request and returns True when it must not be served."""
+        if self._same_origin():
+            return False
+        self._send_json({"error": "cross-origin request refused"}, 403)
+        return True
 
     def _send(self, status: int, body: bytes, content_type: str) -> None:
         self.send_response(status)
@@ -340,6 +374,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"error": str(error)}, 400)
 
     def do_PUT(self) -> None:
+        if self._reject_cross_origin():
+            return
         try:
             if not self.path.startswith("/api/file/"):
                 self._send_json({"error": "not found"}, 404)
@@ -359,6 +395,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"error": str(error)}, 400)
 
     def do_POST(self) -> None:
+        if self._reject_cross_origin():
+            return
         try:
             if self.path == "/api/create":
                 payload = self._body()

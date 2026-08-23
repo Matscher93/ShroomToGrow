@@ -107,8 +107,11 @@ func goal_for(def: AchievementDef, achievement_tier: int) -> BigNumber:
 ## player still has to clear rather than one they already passed.
 func _whole_goal(raw: BigNumber, def: AchievementDef, achievement_tier: int) -> BigNumber:
 	var rounded := _ceil_big(raw)
-	var minimum := BigNumber.from_value(
-		ceil(def.goal_base.to_float()) + float(achievement_tier))
+	# Built in BigNumber space rather than through goal_base.to_float(), which is
+	# the precision loss _ceil_big() exists to avoid: past float range that round
+	# trip gives inf, the addition gives nan, and _normalize() collapses the whole
+	# goal to zero after a push_error - once per evaluate().
+	var minimum := _ceil_big(def.goal_base).add(BigNumber.from_value(float(achievement_tier)))
 	return minimum if minimum.gt(rounded) else rounded
 
 ## Past float's exact-integer range there is no fractional part left to round
@@ -258,20 +261,25 @@ func claim(id: StringName) -> bool:
 ## paid, for the "claimed +N" feedback the screen shows.
 func claim_all() -> BigNumber:
 	var total := BigNumber.new(0.0, 0)
-	var claimed_any := false
+	# Gathered rather than announced as they land: claim() pays first and emits
+	# after, and a listener reading crystals off this signal would have seen a
+	# pre-payment balance here and a post-payment one there. The payout below is
+	# a single sum, so every announcement has to wait for it.
+	var claims: Array[Array] = []
 	for def in _achievements.achievements:
 		while _progress.unclaimed_count(def.id) > 0:
 			var reward := claim_reward(def)
 			if not _progress.claim(def.id):
 				break
 			total = total.add(reward)
-			claimed_any = true
-			achievement_claimed.emit(def.id, _progress.tier(def.id), reward)
-	if not claimed_any:
+			claims.append([def.id, _progress.tier(def.id), reward])
+	if claims.is_empty():
 		return total
 	_player_data.crystals = _player_data.crystals.add(total)
 	_player_data.lifetime_crystals = _player_data.lifetime_crystals.add(total)
 	_player_data.achievement_tiers = _progress.total_tiers()
+	for claim_row in claims:
+		achievement_claimed.emit(claim_row[0], claim_row[1], claim_row[2])
 	progress_changed.emit()
 	return total
 
