@@ -45,7 +45,14 @@ extends PanelContainer
 
 var _vm: CrystalCavesViewModel
 
+## Holds structural refreshes back while the player has the pointer down, so a
+## tick landing mid-press cannot free or reflow the button under their finger.
+var _guard := PressGuard.new()
+
 func _ready() -> void:
+	# Parented before the editor-hint bail below: an unparented guard is an orphan
+	# Node this panel would leak on every rebuild.
+	add_child(_guard)
 	# Autoloads aren't instantiated for @tool scripts in the editor, so the
 	# ViewModels only exist at runtime.
 	if Engine.is_editor_hint():
@@ -71,9 +78,9 @@ func _exit_tree() -> void:
 func _on_property_changed(property: StringName) -> void:
 	match property:
 		CrystalCavesViewModel.PROP_BOOSTS_VISIBLE:
-			_refresh_boosts_tab()
+			_guard.run_when_free(&"boosts_tab", _refresh_boosts_tab)
 		CrystalCavesViewModel.PROP_SECTIONS_CHANGED:
-			_build_sequences()
+			_guard.run_when_free(&"sequences", _build_sequences)
 		CrystalCavesViewModel.PROP_TAB_REQUESTED:
 			_apply_requested_tab()
 

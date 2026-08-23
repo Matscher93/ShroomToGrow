@@ -135,8 +135,8 @@ func _update_visuals() -> void:
 		var first := _snapshots[0]
 		var last := _snapshots[_snapshots.size() - 1]
 		var node_changes: Array[BigNumber] = []
-		for i in range(_vm.node_defs.size()):
-			node_changes.append(_get_node_count(last, i).sub(_get_node_count(first, i)))
+		for def in _vm.node_defs:
+			node_changes.append(node_count(last, def.node_id).sub(node_count(first, def.node_id)))
 		_render_deltas(
 			_get_nutrient_count(last).sub(_get_nutrient_count(first)),
 			_get_water_count(last).sub(_get_water_count(first)),
@@ -169,13 +169,20 @@ static func format_duration(total_seconds: float, max_units := 2) -> String:
 func _on_dismiss_pressed() -> void:
 	dismissed.emit()
 
-## A snapshot taken before a node tier existed carries fewer entries than the
-## live node list, so an out-of-range tier had nothing then: zero.
-func _get_node_count(save_data: Dictionary, index: int) -> BigNumber:
-	var mycelium_nodes: Array = save_data.get("mycelium_nodes", [])
-	if index < 0 or index >= mycelium_nodes.size():
+## The auto count a snapshot holds for one node tier, keyed by node_id the way
+## App.mycelium_nodes_to_save() writes it. A snapshot taken before a tier existed
+## has no entry for it, so that tier had nothing then: zero.
+##
+## The Dictionary-typed local is safe here where reading a save off disk could
+## not assume the shape (see App.mycelium_nodes_from_save): these snapshots are
+## always built in-process by App.to_save(), so they cannot carry a legacy shape.
+static func node_count(save_data: Dictionary, node_id: int) -> BigNumber:
+	var saved_nodes: Dictionary = save_data.get("mycelium_nodes", {})
+	var key := str(node_id)
+	if not saved_nodes.get(key) is Dictionary:
 		return BigNumber.new(0.0, 0)
-	return BigNumber.from_save(mycelium_nodes[index].get("auto_nodes", {}))
+	var entry: Dictionary = saved_nodes[key]
+	return BigNumber.from_save(entry.get("auto_nodes", {}))
 
 func _get_nutrient_count(save_data: Dictionary) -> BigNumber:
 	var player_data := PlayerData.from_save(save_data.get("player_data", {}))

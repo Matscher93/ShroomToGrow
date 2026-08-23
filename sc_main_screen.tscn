@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://7lvxm4ge8ici" path="res://view/main/gd_popup_layer.gd" id="10_popup"]
 [ext_resource type="PackedScene" path="res://view/main/sc_top_bar.tscn" id="11_topbar"]
 [ext_resource type="PackedScene" uid="uid://cnavdisc000001" path="res://view/navigation/sc_nav_disc.tscn" id="12_navdisc"]
+[ext_resource type="PackedScene" uid="uid://cnavsubbar0001" path="res://view/navigation/sc_nav_sub_bar.tscn" id="13_navsubbar"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vf2pt"]
 shader = ExtResource("1_453mu")
@@ -105,6 +106,19 @@ offset_left = 21.0
 offset_top = -100.0
 offset_right = 99.0
 offset_bottom = -22.0
+grow_vertical = 0
+
+[node name="nav_sub_bar" parent="content_container/nav_disc_layer" instance=ExtResource("13_navsubbar")]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 109.0
+offset_top = -83.0
+offset_right = -21.0
+offset_bottom = -39.0
+grow_horizontal = 2
 grow_vertical = 0
 
 [node name="nav_layer" type="MarginContainer" parent="content_container"]

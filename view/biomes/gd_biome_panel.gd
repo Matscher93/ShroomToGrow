@@ -54,7 +54,14 @@ const TAP_CANCEL_DISTANCE := 10.0  # px, beyond this a press is a scroll drag, n
 var _press_active := false
 var _press_start := Vector2.ZERO
 
+## Holds structural refreshes back while the player has the pointer down, so a
+## tick landing mid-press cannot free or reflow the button under their finger.
+var _guard := PressGuard.new()
+
 func _ready() -> void:
+	# Parented before the editor-hint bail below: an unparented guard is an orphan
+	# Node this panel would leak on every rebuild.
+	add_child(_guard)
 	_update_shader()
 	expansion_arrow.offset_transform_rotation = 0.0
 
@@ -165,7 +172,7 @@ func _update_shader() -> void:
 func _on_property_changed(property: StringName) -> void:
 	match property:
 		BiomeViewModel.PROP_UNLOCKED:
-			_refresh_unlock_section()
+			_guard.run_when_free(&"unlock", _refresh_unlock_section)
 		BiomeViewModel.PROP_CAN_UNLOCK:
 			panel_unlock_biome.set_enabled(_vm.can_unlock)
 		BiomeViewModel.PROP_LEVEL_TEXT:

@@ -8,9 +8,13 @@ extends PanelContainer
 @export var vbox_nodes: VBoxContainer
 @export var node_scene: PackedScene
 
+## Holds structural refreshes back while the player has the pointer down, so a
+## tick landing mid-press cannot free or reflow the button under their finger.
+var _guard := PressGuard.new()
 var _vms: Array[MyceliumNodeViewModel] = []
 
 func _ready() -> void:
+	add_child(_guard)
 	for child in vbox_nodes.get_children():
 		vbox_nodes.remove_child(child)
 		child.queue_free()
@@ -33,7 +37,7 @@ func _exit_tree() -> void:
 
 func _on_property_changed(property: StringName) -> void:
 	if property != MyceliumNodeViewModel.PROP_HAS_NODES: return
-	_update_visibility()
+	_guard.run_when_free(&"visibility", _update_visibility)
 
 func _update_visibility() -> void:
 	for index in _vms.size():

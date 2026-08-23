@@ -70,6 +70,21 @@ var destinations: Array[NavDestination]:
 			rows.append(row)
 		return rows
 
+## The sub-views of the screen that is up, for the chip bar beside the disc.
+##
+## The same rows the menu builds under the current destination, handed out on
+## their own so they can be reached without opening the menu at all: switching
+## tab is the one nav move a player makes constantly, and it is a full open,
+## scroll and tap away otherwise. Empty for a screen with no sub-views, which is
+## what hides the bar.
+var current_subs: Array[NavSubDestination]:
+	get:
+		var type := App.screens_data.current_screen
+		var definition := _definition(type)
+		if definition == null:
+			return []
+		return _sub_rows(type, definition, true)
+
 ## The live count a sub-row's badge shows. Public so the menu can refresh badges
 ## on an already-built row without rebuilding the list.
 func badge_count(source: SubScreenDefinition.BadgeSource) -> int:
@@ -92,6 +107,10 @@ func badge_count(source: SubScreenDefinition.BadgeSource) -> int:
 
 func _init() -> void:
 	App.screens_data.screen_changed.connect(_on_destinations_changed.unbind(1))
+	# A tab tap on the screen already up moves no screen, so screen_changed stays
+	# silent - and the chip bar's highlight would sit on the tab the player just
+	# left. This is the only signal that fires for that move.
+	App.screens_data.sub_screen_requested.connect(_on_destinations_changed.unbind(2))
 	# Reaching a biome reveals its screen, which is the only thing that changes
 	# the row list after startup.
 	App.biomes_data.biome_unlocked.connect(_on_destinations_changed.unbind(1))
@@ -115,6 +134,7 @@ func _init() -> void:
 
 func dispose() -> void:
 	App.screens_data.screen_changed.disconnect(_on_destinations_changed.unbind(1))
+	App.screens_data.sub_screen_requested.disconnect(_on_destinations_changed.unbind(2))
 	App.biomes_data.biome_unlocked.disconnect(_on_destinations_changed.unbind(1))
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_destinations_changed)
 	App.player_data.crystals_changed.disconnect(_on_badges_changed.unbind(1))

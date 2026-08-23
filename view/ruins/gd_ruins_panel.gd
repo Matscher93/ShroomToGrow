@@ -39,7 +39,14 @@ extends PanelContainer
 var _vm: RuinsViewModel
 var _countdown_timer: Timer
 
+## Holds structural refreshes back while the player has the pointer down, so a
+## tick landing mid-press cannot free or reflow the button under their finger.
+var _guard := PressGuard.new()
+
 func _ready() -> void:
+	# Parented before the editor-hint bail below: an unparented guard is an orphan
+	# Node this panel would leak on every rebuild.
+	add_child(_guard)
 	# Autoloads aren't instantiated for @tool scripts in the editor, so the
 	# ViewModels only exist at runtime.
 	if Engine.is_editor_hint():
@@ -71,7 +78,7 @@ func _on_property_changed(property: StringName) -> void:
 		RuinsViewModel.PROP_BOARD_CHANGED:
 			_refresh_header()
 		RuinsViewModel.PROP_CREATURES_VISIBLE:
-			_refresh_creatures_tab()
+			_guard.run_when_free(&"creatures_tab", _refresh_creatures_tab)
 		RuinsViewModel.PROP_CLOCK_MOVED:
 			# The header carries the "ready to collect" count, which moves with the
 			# wall clock and with nothing else.

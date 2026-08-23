@@ -39,7 +39,12 @@ var _vm: NavigationViewModel
 ## numbers without rebuilding the list under the player's finger. Top-level rows
 ## carry no badge, so none of them are in here.
 var _badge_rows: Array[Dictionary] = []
+## Top-level rows in list order, for the re-bind path in _refresh_rows().
+var _top_rows: Array[Control] = []
 var _active_row: Control = null
+## What the rows on screen were built from - see _refresh_rows().
+var _shown: PackedStringArray = PackedStringArray()
+var _guard := PressGuard.new()
 
 func _ready() -> void:
 	# Both of these keep the menu correct without ever holding it hidden: the
@@ -48,6 +53,7 @@ func _ready() -> void:
 	# layout instead of waiting frames for it.
 	card.get_parent().resized.connect(_resize_card)
 	card.resized.connect(_update_pivot)
+	add_child(_guard)
 	bind(App.navigation_vm)
 	_animate_open()
 
@@ -56,14 +62,14 @@ func bind(vm: NavigationViewModel) -> void:
 		_vm.property_changed.disconnect(_on_property_changed)
 	_vm = vm
 	_vm.property_changed.connect(_on_property_changed)
-	_build_rows()
+	_refresh_rows()
 
 func _exit_tree() -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
 		_vm = null
 
-## The rebuild is deferred, and has to be.
+## Both refreshes go through the guard, and neither can run inline.
 ##
 ## Tapping a row calls go_to(), which reaches ScreensData.select(), which emits
 ## screen_changed synchronously - and that lands back here as
@@ -72,27 +78,70 @@ func _exit_tree() -> void:
 ## that is still running in it. Dismissing first is not enough on its own:
 ## PopupLayer.clear() queue_free()s the menu, which is deferred, so this stays
 ## connected for the rest of the frame.
+##
+## The guard adds the other half: a refresh that lands between a press and its
+## release swallows the tap outright, because the row it started on is either
+## freed or resized out from under the pointer. See PressGuard.
 func _on_property_changed(property: StringName) -> void:
 	match property:
 		NavigationViewModel.PROP_DESTINATIONS_CHANGED:
-			_build_rows.call_deferred()
+			_guard.run_when_free(&"rows", _refresh_rows, true)
 		NavigationViewModel.PROP_BADGES_CHANGED:
-			_refresh_badges()
+			_guard.run_when_free(&"badges", _refresh_badges)
 
 # --- Building ---
 
-func _build_rows() -> void:
+## Respawns only when the row set itself moved; otherwise re-binds the rows that
+## are already up.
+##
+## Most of what reaches here changed nothing about these rows: the prestige track
+## invalidates its cache on every Biome Size bought, which is once a tick while an
+## automation is running, and that arrives as an upgrades_changed the nav cannot
+## tell from a perk purchase. Same pattern as the events sheet.
+func _refresh_rows() -> void:
+	var destinations := _vm.destinations
+	var signature := _signature(destinations)
+	if signature == _shown:
+		_rebind_rows(destinations)
+		return
+	_shown = signature
+	_build_rows(destinations)
+
+## Everything a row paints itself from except the badge counts, which are pushed
+## into the built rows instead - see _refresh_badges().
+func _signature(destinations: Array[NavDestination]) -> PackedStringArray:
+	var out := PackedStringArray()
+	for destination in destinations:
+		out.append("%d|%s|%s|%s" % [destination.screen_type, destination.label,
+			destination.subtitle, destination.is_current])
+		for sub in destination.subs:
+			out.append("  %d|%s|%s" % [sub.tab_index, sub.label, sub.is_current])
+	return out
+
+## The rows are unchanged, so they only need the fresh snapshot: same nodes, same
+## order, nothing freed under a finger.
+func _rebind_rows(destinations: Array[NavDestination]) -> void:
+	var sub_index := 0
+	for i in destinations.size():
+		_top_rows[i].bind(destinations[i])
+		for sub in destinations[i].subs:
+			_badge_rows[sub_index]["node"].bind(sub)
+			sub_index += 1
+
+func _build_rows(destinations: Array[NavDestination]) -> void:
 	for child in vbox_rows.get_children():
 		vbox_rows.remove_child(child)
 		child.queue_free()
 	_badge_rows.clear()
+	_top_rows.clear()
 	_active_row = null
 
-	for destination in _vm.destinations:
+	for destination in destinations:
 		var row := ROW_SCENE.instantiate()
 		vbox_rows.add_child(row)
 		row.bind(destination)
 		row.selected.connect(_on_destination_selected)
+		_top_rows.append(row)
 		if destination.is_current:
 			_active_row = row
 		if not destination.subs.is_empty():

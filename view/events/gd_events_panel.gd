@@ -24,9 +24,13 @@ signal dismissed
 @export var panel_empty: PanelContainer
 @export var event_card_scene: PackedScene
 
+## Holds structural refreshes back while the player has the pointer down, so a
+## tick landing mid-press cannot free or reflow the button under their finger.
+var _guard := PressGuard.new()
 var _vm: EventsViewModel
 
 func _ready() -> void:
+	add_child(_guard)
 	btn_close.pressed.connect(_on_dismiss_pressed)
 	bind(App.events_vm)
 
@@ -71,6 +75,16 @@ func _refresh() -> void:
 			vbox_events.get_child(i).bind(rows[i])
 		return
 
+	# The board itself moved, so cards are freed and respawned - which is the one
+	# path here that can tear a press out from under a finger. See PressGuard.
+	#
+	# _shown_ids is written by the rebuild rather than here: while the guard holds
+	# the work back the cards on screen are still the old ones, and claiming the
+	# new ids early would send the next refresh down the re-bind path and into a
+	# card list that does not match.
+	_guard.run_when_free(&"cards", _rebuild_cards.bind(rows, ids))
+
+func _rebuild_cards(rows: Array[EventRow], ids: Array[int]) -> void:
 	_shown_ids = ids
 	for child in vbox_events.get_children():
 		vbox_events.remove_child(child)

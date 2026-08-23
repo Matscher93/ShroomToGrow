@@ -49,6 +49,9 @@ const TAP_CANCEL_DISTANCE := 10.0
 ## cleared by a stray press minutes later.
 const CLEAR_CONFIRM_SECONDS := 2.0
 
+## Holds structural refreshes back while the player has the pointer down, so a
+## tick landing mid-press cannot free or reflow the button under their finger.
+var _guard := PressGuard.new()
 var _vm: BiomeSequenceViewModel
 var _slot_ids: Array[StringName] = []
 var _press_active := false
@@ -61,6 +64,7 @@ var _clear_armed := false
 var _clear_timer: SceneTreeTimer = null
 
 func _ready() -> void:
+	add_child(_guard)
 	grid_upgrade_slots.columns = UpgradeSlotGrid.COLUMNS
 	btn_clear.pressed.connect(_on_clear_pressed)
 	btn_remove_last.pressed.connect(_on_remove_last_pressed)
@@ -99,8 +103,12 @@ func _exit_tree() -> void:
 func _on_property_changed(property: StringName) -> void:
 	match property:
 		BiomeSequenceViewModel.PROP_SEQUENCE_CHANGED:
+			# The slots only recolour in place, and they are the feedback for the
+			# press that got here - a held slot appends a step per repeat, so
+			# holding them back until release would freeze the grid mid-hold. The
+			# step list respawns rows, so that half waits for the finger.
 			_refresh_grid_slots()
-			_rebuild_steps()
+			_guard.run_when_free(&"steps", _rebuild_steps)
 		BiomeSequenceViewModel.PROP_SUMMARY_TEXT:
 			lbl_summary.text = _vm.summary_text
 			lbl_status.text = _vm.status_text

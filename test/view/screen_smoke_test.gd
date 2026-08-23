@@ -24,6 +24,7 @@ const SCREENS: Array[String] = [
 	"res://view/main/sc_top_bar.tscn",
 	"res://view/navigation/sc_nav_disc.tscn",
 	"res://view/navigation/sc_nav_menu.tscn",
+	"res://view/navigation/sc_nav_sub_bar.tscn",
 	"res://view/resource_bar/sc_resource_bar.tscn",
 ]
 

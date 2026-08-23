@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://cnavsubbar0001"]
+
+[ext_resource type="Script" path="res://view/navigation/gd_nav_sub_bar.gd" id="1_script"]
+
+[node name="nav_sub_bar" type="HBoxContainer"]
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 0
+script = ExtResource("1_script")
