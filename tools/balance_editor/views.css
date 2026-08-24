@@ -173,10 +173,31 @@
   color: var(--text);
   width: 100%;
 }
-#sim-chart { width: 100%; height: auto; }
+/* Wheel zooms and drag pans it, so the browser must not take the gesture for a
+ * scroll first, and the cursor has to say the chart can be dragged. */
+#sim-chart { width: 100%; height: auto; touch-action: none; cursor: grab; }
+#sim-chart:active { cursor: grabbing; }
 #sim-chart .grid { stroke: var(--line); stroke-width: 1; }
 #sim-chart .track { fill: none; stroke-width: 2; }
 #sim-chart .milestone { stroke: var(--dirty); stroke-width: 1; stroke-dasharray: 4 3; }
+/* Hovering a milestone, in the chart or in the list, lights it in both. */
+#sim-chart .milestone.hot { stroke: var(--accent); stroke-width: 2; stroke-dasharray: none; }
+/* What the pointer actually catches: wide, invisible, and only where the stroke
+ * is - a fill of none with pointer-events:stroke leaves the rest of the panel to
+ * the pan drag underneath. */
+#sim-chart .milestone-hit {
+  stroke: transparent;
+  stroke-width: 9;
+  fill: none;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+/* The list half of the same highlight. The tint is declared twice so a browser
+ * without color-mix still shades the row; the bar goes on the first cell alone,
+ * because an inset shadow on every cell draws one down every column. */
+.web-table tr.hot td { background: var(--panel); }
+.web-table tr.hot td { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.web-table tr.hot td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
 #sim-chart .axis { fill: var(--muted); font: 10px ui-monospace, monospace; }
 #sim-chart .axis-title { fill: var(--muted); font: 11px ui-sans-serif, system-ui, sans-serif; }
 #sim-chart .empty { fill: var(--muted); font: 12px ui-sans-serif, system-ui, sans-serif; }
@@ -231,9 +252,25 @@
 /* The bonus breakdown. Collapsed by default - it runs to a few hundred rows,
  * and the chart above it is what the view is normally open for. */
 .sim-breakdown { display: flex; flex-direction: column; gap: 6px; }
-.sim-breakdown summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.sim-breakdown > summary { cursor: pointer; font-size: 12px; font-weight: 600; }
 .sim-breakdown-at { width: 100%; }
-/* A track's heading, carrying the name and what the whole track is worth. */
+/* One resource, folded shut until it is asked for. The summary is the flex row
+ * itself, which costs it the native marker - a block heading inside a list-item
+ * summary puts that marker on a line of its own - so the caret is drawn here. */
+.sim-resource > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  cursor: pointer;
+  list-style: none;
+}
+.sim-resource > summary::-webkit-details-marker { display: none; }
+.sim-resource > summary::before { content: "\25B8"; color: var(--muted); font-size: 9px; }
+.sim-resource[open] > summary::before { content: "\25BE"; }
+.sim-resource > summary .sim-track-head { flex: 1; margin-top: 0; }
+.sim-resource[open] > summary .sim-track-head { margin-bottom: 2px; }
+/* A resource's heading, carrying the name and what everything under it adds
+ * up to. Also the shape .sim-source-head copies. */
 .sim-track-head {
   display: flex;
   justify-content: space-between;
@@ -248,6 +285,19 @@
   font: 10px ui-monospace, monospace;
   white-space: nowrap;      /* the track name shrinks first, not the total */
 }
+/* A source inside a resource: the same heading a step quieter and a step in, so
+ * the two levels read as nesting without a border drawing the box. */
+.sim-source-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 0 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.sim-source-head .num { font: 10px ui-monospace, monospace; white-space: nowrap; }
+.sim-source-head + .sim-breakdown-table { margin-left: 8px; width: calc(100% - 8px); }
 /* An upgrade writing more than one stat gets a line per effect, so the cell
  * wraps where every other cell in a web-table deliberately does not. */
 .sim-breakdown-table td { white-space: normal; vertical-align: top; }

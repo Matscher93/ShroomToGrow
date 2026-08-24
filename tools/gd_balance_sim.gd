@@ -817,6 +817,50 @@ static func _total_production(app: Node) -> BigNumber:
 
 # ----------------------------------------------------------------- breakdown
 
+## Which stat buckets feed which resource, in the order a reader wants them.
+##
+## A stat bucket is not what anyone asks about - "what is pushing nutrients" is,
+## and three buckets answer it. This is where that question is answered, rather
+## than in the page that draws the table, because the totals below are measured
+## per resource: the probe has to know which upgrades belong together before it
+## can take them all away at once.
+##
+## `metric` says which of a probe's numbers ranks that resource. Three of them are
+## measured against what the run itself does - nutrients per tick, the seconds a
+## tick takes, the ticks between pumps. The rest get `stat`: the share of their own
+## bucket, because production per tick does not read a &"biomass_gain" upgrade at
+## all and ranking those by the production drop would rank them by zeroes.
+##
+## A stat missing here gets a resource of its own, named after the stat and ranked
+## by its bucket - a new stat in data/ turning up unranked beats it vanishing.
+const RESOURCES := [
+	{"resource": "nutrients", "metric": "production",
+		"stats": ["node_production", "potency_production", "synergy_production"]},
+	{"resource": "tick speed", "metric": "tick", "stats": ["tick_rate"]},
+	{"resource": "water", "metric": "stat", "stats": ["water_production"]},
+	{"resource": "water pump", "metric": "water", "stats": ["water_rate"]},
+	{"resource": "biomass", "metric": "stat", "stats": ["biomass_gain"]},
+	{"resource": "crystals", "metric": "stat", "stats": ["crystal_gain"]},
+	{"resource": "relics", "metric": "stat", "stats": ["relic_gain"]},
+	{"resource": "ichor", "metric": "stat", "stats": ["ichor_gain"]},
+	{"resource": "glyphs", "metric": "stat", "stats": ["glyph_gain"]},
+	{"resource": "automation", "metric": "stat", "stats": ["automation_rate"]},
+	{"resource": "missions", "metric": "stat",
+		"stats": ["mission_speed", "mission_reward", "mission_slots"]},
+	{"resource": "boosts", "metric": "stat",
+		"stats": ["boost_power", "boost_max_level", "creature_rank_cap"]},
+	{"resource": "biome points", "metric": "stat",
+		"stats": ["biome_points", "level_points"]},
+]
+
+
+## The resource a stat feeds, or one invented for a stat RESOURCES does not name.
+static func _resource_of(stat: String) -> Dictionary:
+	for group: Dictionary in RESOURCES:
+		if group["stats"].has(stat):
+			return group
+	return {"resource": stat, "metric": "stat", "stats": [stat]}
+
 ## What the six upgrade tracks are contributing right now, upgrade by upgrade.
 ##
 ## Two numbers per upgrade, because neither answers on its own. The magnitude is
@@ -829,6 +873,13 @@ static func _total_production(app: Node) -> BigNumber:
 ## Tick duration and pump interval are measured in the same probe as production,
 ## because a &"tick_rate" or &"water_rate" upgrade moves no production at all and
 ## would otherwise read as contributing nothing.
+##
+## Those three are all a run-level probe can see, and they leave most of the game
+## unmeasured: production is nutrients per tick, so a &"biomass_gain" or
+## &"crystal_gain" upgrade moves none of the three and reads as worth nothing at
+## all. So the same probe also measures the stat buckets the upgrade itself writes
+## - see _measure_buckets() - and reports what each one loses without it. That is
+## the number that ranks the upgrades a run-level probe is blind to.
 ##
 ## Every probe puts back the level it took away before the next one starts, so a
 ## breakdown leaves the run exactly where it found it.
@@ -860,7 +911,112 @@ static func _breakdown(app: Node, tick: int, seconds: float) -> Dictionary:
 		"tick_duration": base["tick_duration"],
 		"water_interval": base["water_interval"],
 		"tracks": groups,
+		"resources": _breakdown_resources(app, base, groups),
 	}
+
+
+## The same upgrades again, gathered by the resource they feed rather than by the
+## track they live in, with a measured total for each gathering.
+##
+## Measured, not summed from the rows: MORE effects compound, so a column of
+## per-upgrade drops adds up past 100% long before it says anything - fifteen
+## upgrades each worth "the run falls 99% without it" sum to 1485%, which ranks
+## the tracks by how many upgrades they happen to hold. Taking the whole set away
+## at once is one probe and one honest number, and it is what the page ranks by.
+##
+## Costs one probe per resource plus one per resource and track that meet: 42 on
+## top of the 211 a full run already takes, so a sixth again of the same measured
+## quantity. Nothing here is summed anywhere.
+static func _breakdown_resources(app: Node, base: Dictionary, groups: Array) -> Array:
+	var systems := {}
+	for pair: Array in app.production_system.tracks():
+		systems[pair[0]] = pair[1]
+
+	# resource -> {"metric", "tracks": {track -> {"ids", "buckets"}}}
+	var wanted := {}
+	for group: Dictionary in groups:
+		for upgrade: Dictionary in group["upgrades"]:
+			for effect: Dictionary in upgrade["effects"]:
+				var res: String = effect["resource"]
+				if not wanted.has(res):
+					var def := _resource_of(effect["stat"])
+					wanted[res] = {"metric": def["metric"], "tracks": {}}
+				var tracks: Dictionary = wanted[res]["tracks"]
+				if not tracks.has(group["track"]):
+					tracks[group["track"]] = {"ids": [], "buckets": []}
+				var subset: Dictionary = tracks[group["track"]]
+				var id := StringName(upgrade["id"])
+				if not subset["ids"].has(id):
+					subset["ids"].append(id)
+				# Only a stat-ranked resource needs its buckets measured. Nutrients
+				# writes some thirty of them and is ranked on the run-level probe
+				# regardless, so measuring them would be paid for nothing.
+				if wanted[res]["metric"] != "stat":
+					continue
+				var bucket: Array = [effect["stat"], effect["key"]]
+				if not subset["buckets"].has(bucket):
+					subset["buckets"].append(bucket)
+
+	var out: Array = []
+	for res: String in _resource_order(wanted.keys()):
+		var metric: String = wanted[res]["metric"]
+		var tracks: Dictionary = wanted[res]["tracks"]
+		var sources: Array = []
+		var every: Array = []
+		var every_bucket: Array = []
+		for track: String in tracks:
+			var subset: Dictionary = tracks[track]
+			sources.append({
+				"track": track,
+				"impact": _impact_without(app, base, systems[track],
+					subset["ids"], subset["buckets"]),
+			})
+			every.append([systems[track], subset["ids"]])
+			for bucket: Array in subset["buckets"]:
+				if not every_bucket.has(bucket):
+					every_bucket.append(bucket)
+		sources.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			return _influence(metric, a["impact"]) > _influence(metric, b["impact"]))
+		out.append({
+			"resource": res,
+			"metric": metric,
+			"impact": _impact_without_many(app, base, every, every_bucket),
+			"sources": sources,
+		})
+	return out
+
+
+## The resources present, in the order RESOURCES declares them, with the ones it
+## does not name after all of them, alphabetically.
+static func _resource_order(present: Array) -> Array:
+	var out: Array = []
+	for group: Dictionary in RESOURCES:
+		if present.has(group["resource"]):
+			out.append(group["resource"])
+	var extra: Array = []
+	for res: String in present:
+		if not out.has(res):
+			extra.append(res)
+	extra.sort()
+	return out + extra
+
+
+## What one probe is worth under `metric`: the run-level number the resource is
+## measured against, or - for a resource the run-level probe cannot see - what its
+## own stat buckets lose. Positive is the upgrade helping, in all four.
+static func _influence(metric: String, impact: Dictionary) -> float:
+	match metric:
+		"tick": return impact["tick_delta"]
+		"water": return impact["water_delta"]
+		"stat":
+			# The biggest bucket, not the sum of them: a share of mission speed and
+			# a share of mission payout are shares of two different things, and
+			# adding them would rank a resource by how many buckets feed it.
+			var top := 0.0
+			for key: String in impact["stat_orders"]:
+				top = maxf(top, impact["stat_orders"][key])
+			return top
+		_: return impact["production_orders"]
 
 
 ## One track's upgrades, each with its effects and what removing it would cost.
@@ -878,11 +1034,21 @@ static func _breakdown_upgrades(app: Node, base: Dictionary, system: UpgradeSyst
 	for row: Dictionary in rows:
 		var id: String = row["id"]
 		if not by_id.has(id):
-			by_id[id] = {"id": id, "name": row["name"], "level": row["level"], "effects": []}
+			# `buckets` is scaffolding for the probe below, not output: the stats
+			# this upgrade writes, deduplicated, so a two-effect upgrade in one
+			# bucket is measured once. Erased before the row is returned.
+			by_id[id] = {"id": id, "name": row["name"], "level": row["level"],
+				"effects": [], "buckets": []}
 			order.append(id)
+		var bucket: Array = [row["stat"], row["key"]]
+		if not by_id[id]["buckets"].has(bucket):
+			by_id[id]["buckets"].append(bucket)
 		var mag: BigNumber = row["mag"]
 		by_id[id]["effects"].append({
 			"stat": row["stat"],
+			# Which resource this bucket feeds, so the page groups the rows the
+			# same way the probes above measured them.
+			"resource": _resource_of(row["stat"])["resource"],
 			"op": _op_name(row["op"]),
 			"key": row["key"],
 			# Scientific rather than a float: a COMPOUND effect at a few hundred
@@ -894,10 +1060,14 @@ static func _breakdown_upgrades(app: Node, base: Dictionary, system: UpgradeSyst
 	var out: Array = []
 	for id: String in order:
 		var upgrade: Dictionary = by_id[id]
-		upgrade["impact"] = _impact_without(app, base, system, [StringName(id)])
+		var buckets: Array = upgrade["buckets"]
+		upgrade.erase("buckets")
+		upgrade["impact"] = _impact_without(app, base, system, [StringName(id)], buckets)
 		out.append(upgrade)
+	# By distance rather than by fraction, for the reason production_orders exists:
+	# at 1e1400 every upgrade worth having drops the fraction to exactly 1.
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return a["impact"]["production_drop"] > b["impact"]["production_drop"])
+		return a["impact"]["production_orders"] > b["impact"]["production_orders"])
 	return out
 
 
@@ -912,15 +1082,32 @@ static func _measure(app: Node) -> Dictionary:
 
 ## What the run looks like with `ids` taken away, as a delta from `base`. Puts
 ## every level back before returning, on every path.
+##
+## `buckets` are the [stat, key] pairs to measure alongside the run-level three -
+## the ones the upgrade being probed writes. Left empty for the whole-track probe,
+## where a share of a bucket would mean nothing: the track writes a dozen of them.
 static func _impact_without(app: Node, base: Dictionary, system: UpgradeSystem,
-		ids: Array) -> Dictionary:
-	var was := {}
-	for id: StringName in ids:
-		was[id] = system.level(id)
-		system.set_level_for_analysis(id, 0)
+		ids: Array, buckets: Array = []) -> Dictionary:
+	return _impact_without_many(app, base, [[system, ids]], buckets)
+
+
+## The same, for ids spread across several tracks: `sets` is [[system, ids], ...].
+## A resource is fed from six tracks at once, and what it is worth is what taking
+## every one of them away does - one probe, not six added together.
+static func _impact_without_many(app: Node, base: Dictionary, sets: Array,
+		buckets: Array = []) -> Dictionary:
+	var held_buckets := _measure_buckets(app, buckets)
+	var was: Array = []
+	for pair: Array in sets:
+		var system: UpgradeSystem = pair[0]
+		for id: StringName in pair[1]:
+			was.append([system, id, system.level(id)])
+			system.set_level_for_analysis(id, 0)
 	var without := _measure(app)
-	for id: StringName in was:
-		system.set_level_for_analysis(id, was[id])
+	var lost_buckets := _measure_buckets(app, buckets)
+	for entry: Array in was:
+		var system: UpgradeSystem = entry[0]
+		system.set_level_for_analysis(entry[1], entry[2])
 
 	var held: BigNumber = base["production"]
 	var lost: BigNumber = without["production"]
@@ -928,14 +1115,76 @@ static func _impact_without(app: Node, base: Dictionary, system: UpgradeSystem,
 	# would be a division by zero. Zero is the honest answer: nothing is riding on
 	# this upgrade because nothing is riding on anything.
 	var drop := 0.0 if held.mantissa <= 0.0 else 1.0 - lost.div(held).to_float()
+	var stat_drop := {}
+	var stat_orders := {}
+	for key: String in held_buckets:
+		var held_bucket: BigNumber = held_buckets[key]
+		var lost_bucket: BigNumber = lost_buckets[key]
+		stat_drop[key] = 0.0 if held_bucket.mantissa <= 0.0 \
+			else 1.0 - lost_bucket.div(held_bucket).to_float()
+		stat_orders[key] = _orders_between(held_bucket, lost_bucket)
+
 	return {
 		"production_drop": drop,
+		# The same drop as a distance rather than a fraction, because a fraction
+		# stops saying anything up here: production runs to 1e1400 and a whole
+		# track taken away lands the ratio under what a float can hold, so every
+		# one of them reads as exactly -100%. Orders of magnitude keep separating
+		# them long after that, and are what the page ranks by. See
+		# _orders_between().
+		"production_orders": _orders_between(held, lost),
 		# Positive means the upgrade shortens it - taking it away puts the seconds
 		# (or the ticks) back. Both stats are authored as negative ADDs, so this is
 		# the direction that reads as "what the upgrade is doing for you".
 		"tick_delta": without["tick_duration"] - base["tick_duration"],
 		"water_delta": without["water_interval"] - base["water_interval"],
+		# Per bucket, keyed "stat@scope_key" - the same two fields the effect rows
+		# carry, so the page can match a row to its share. Both ways round again:
+		# a bucket saturates exactly as hard as production does.
+		"stat_drop": stat_drop,
+		"stat_orders": stat_orders,
 	}
+
+
+## How many orders of magnitude `held` falls by when it drops to `lost`.
+##
+## Zero when nothing was there to lose. A `lost` of nothing is the whole distance
+## rather than an infinity: it means the bucket resolved to zero without the
+## upgrade, and log10(held) is how far that is from where it stood.
+static func _orders_between(held: BigNumber, lost: BigNumber) -> float:
+	if held.mantissa <= 0.0:
+		return 0.0
+	if lost.mantissa <= 0.0:
+		return held.log10()
+	return held.log10() - lost.log10()
+
+
+## What one unit resolves to through each of `buckets`, so the probe around this
+## can report what a bucket loses without the upgrade writing into it.
+##
+## A base of 1.0 for every stat, rather than the base the game happens to resolve
+## that stat against: this is a ratio in the end, and the buckets run from a
+## multiplier on a BigNumber to an ADD onto a slot count - there is no one honest
+## base. What it costs is that an ADD-only bucket reads as a share of 1 + add
+## rather than of the add alone. What it buys is one number per bucket, comparable
+## against the other upgrades writing that same bucket, which is what it is for.
+##
+## TAG-scoped effects are skipped: ProductionSystem.stack() takes a node target
+## but no tags, and no authored effect is TAG-scoped - data/ holds 180 GLOBAL and
+## 53 NODE. One turning up would go unranked, not misranked.
+static func _measure_buckets(app: Node, buckets: Array) -> Dictionary:
+	var out := {}
+	for bucket: Array in buckets:
+		var stat: String = bucket[0]
+		var key: String = bucket[1]
+		var target := &""
+		if key.begins_with("t:"):
+			continue
+		if key.begins_with("n:"):
+			target = StringName(key.substr(2))
+		out["%s@%s" % [stat, key]] = app.production_system.stack(
+			StringName(stat), BigNumber.from_value(1.0), target)
+	return out
 
 
 static func _op_name(op: int) -> String:

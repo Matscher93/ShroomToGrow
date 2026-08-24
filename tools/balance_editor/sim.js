@@ -6,8 +6,9 @@
  * taken). Everything unbounded arrives as log10, which is what a chart wants.
  *
  * It also reports, unless asked not to, a bonus breakdown: what every levelled
- * upgrade is contributing and what the run would lose without it, grouped by the
- * track it lives in. See breakdownSection().
+ * upgrade is contributing and what the run would lose without it. The page
+ * regroups that resource first - every bonus feeding nutrients together, every
+ * one shortening the tick together. See breakdownSection().
  *
  * A run takes seconds to minutes, so nothing here happens until the button is
  * pressed. Saved edits are picked up automatically - the simulator reads the
@@ -73,6 +74,16 @@
      * track toggle does not throw the choice away. */
     breakdownAt: -1,
     breakdownOpen: false,
+    /** Which resource groups in the breakdown are open. Kept by name rather than
+     * by index: a redraw rebuilds every one of them, and a new run can leave a
+     * resource out entirely. */
+    breakdownOpenGroups: new Set(),
+    /** The stretch of ticks the chart is showing, or null for the whole run.
+     * Wheel, drag and double-click move it; nothing else reads it. */
+    zoom: null,
+    /** Index into result.milestones of the one under the pointer, in either the
+     * chart or the list - hovering one lights up the other. Null for none. */
+    hoverMilestone: null,
   };
 
   const hueOf = (index) => (index * 53) % 360;
@@ -113,68 +124,219 @@
     // tick axis squeezes everything interesting - the first biome, the first
     // prestige - into the leftmost pixels. Past a thousandfold spread the axis
     // goes log and those early ticks get room again.
+    //
+    // Decided by the whole run rather than by whatever is zoomed into, so that
+    // zooming moves the window and never the kind of axis under it - a chart that
+    // changed shape as it was scrolled would be unreadable.
     const logX = lastTick / firstTick > Math.pow(10, LOG_X_DECADES);
-    const span = Math.log10(lastTick) - Math.log10(firstTick);
+    const bounds = { from: logX ? firstTick : 0, to: lastTick };
+    const shown = view.zoom || bounds;
+    const span = Math.log10(shown.to) - Math.log10(Math.max(shown.from, 1));
     const x = logX
       ? (tick) => CHART.left
-        + ((Math.log10(Math.max(tick, firstTick)) - Math.log10(firstTick)) / span) * plotWidth
-      : (tick) => CHART.left + (tick / lastTick) * plotWidth;
+        + ((Math.log10(Math.max(tick, shown.from)) - Math.log10(shown.from)) / span) * plotWidth
+      : (tick) => CHART.left + ((tick - shown.from) / (shown.to - shown.from)) * plotWidth;
+    // The inverse, for a wheel that has to know which tick it is pointing at.
+    const tickAt = logX
+      ? (px) => Math.pow(10, Math.log10(shown.from) + ((px - CHART.left) / plotWidth) * span)
+      : (px) => shown.from + ((px - CHART.left) / plotWidth) * (shown.to - shown.from);
 
     tracks.forEach((key, index) => {
       const top = index * (CHART.rowHeight + CHART.gap);
-      svg.append(drawTrack(key, index, series, x, top, plotWidth, lastTick));
+      svg.append(drawTrack(key, index, series, x, top, plotWidth, shown));
     });
 
     const axisY = tracks.length * (CHART.rowHeight + CHART.gap) + 12;
-    for (const tick of tickMarks(firstTick, lastTick, logX)) {
+    // Deduplicated after rounding: zoomed in far enough, two marks a fraction of
+    // a tick apart round to the same number and print on top of each other.
+    let printed = null;
+    for (const tick of tickMarks(shown.from, shown.to, logX)) {
+      const text = String(Math.round(tick));
+      if (text === printed) continue;
+      printed = text;
       const label = svgEl("text", { class: "axis", x: x(tick), y: axisY });
       label.setAttribute("text-anchor", "middle");
-      label.textContent = String(tick);
+      label.textContent = text;
       svg.append(label);
     }
     const title = svgEl("text", { class: "axis-title", x: CHART.left + plotWidth / 2, y: axisY + 12 });
     title.setAttribute("text-anchor", "middle");
-    title.textContent = `tick${logX ? " · log scale" : ""} · dashed lines are milestones`;
+    title.textContent = `tick${logX ? " · log scale" : ""} · dashed lines are milestones`
+      + (view.zoom
+        ? ` · showing ${Math.round(shown.from)}-${Math.round(shown.to)}, double-click to reset`
+        : " · wheel to zoom, drag to pan, shift-wheel to scroll");
     svg.append(title);
+    zoomable(svg, tickAt, plotWidth, bounds, logX);
     return svg;
+  }
+
+  /** Wheel to zoom about the cursor, drag to pan, double-click to reset.
+   *
+   * Every one of them moves view.zoom and redraws the chart alone: the panel
+   * beside it holds the form and a few hundred breakdown rows, and rebuilding
+   * that on a wheel notch would drop frames for no reason.
+   *
+   * The y axes come along by themselves - drawTrack() scales each panel to the
+   * points still in the window - which is the point of zooming into a chart whose
+   * tracks span twenty decades. */
+  function zoomable(svg, tickAt, plotWidth, bounds, logX) {
+    svg.addEventListener("wheel", (event) => {
+      // Shift is the way out: thirteen tracks make a chart taller than the canvas
+      // it sits in, and a wheel that only ever zoomed would leave no way to reach
+      // the bottom of it.
+      if (event.shiftKey) return;
+      // Not passive: a wheel over the chart is a zoom, not a page scroll.
+      event.preventDefault();
+      const at = tickAt(svgX(svg, event.clientX));
+      view.zoom = zoomedTo(view.zoom || bounds, at, event.deltaY < 0 ? 1 / ZOOM_STEP : ZOOM_STEP,
+        bounds, logX);
+      redrawChart();
+    }, { passive: false });
+
+    svg.addEventListener("pointerdown", (event) => {
+      const box = svg.getBoundingClientRect();
+      panning = { at: svgX(svg, event.clientX), from: view.zoom || bounds,
+        left: box.left, width: box.width, plotWidth, bounds, logX };
+      // No pointer capture: the first pan redraws the chart, and this element is
+      // out of the document before the next move arrives - a capture on it would
+      // be released the moment it went. The listeners below are on the document
+      // for the same reason, which is also what keeps a drag that wanders off the
+      // chart working.
+      event.preventDefault();
+    });
+    svg.addEventListener("dblclick", () => { view.zoom = null; redrawChart(); });
+  }
+
+  /** The pan in progress, if any. Outside drawRun() because the chart it started
+   * on is replaced by its own first move. */
+  let panning = null;
+
+  document.addEventListener("pointermove", (event) => {
+    if (!panning) return;
+    const px = panning.width
+      ? (event.clientX - panning.left) * (CHART.width / panning.width) : panning.at;
+    const moved = (px - panning.at) / panning.plotWidth;
+    if (!moved) return;
+    view.zoom = pannedBy(panning.from, -moved, panning.bounds, panning.logX);
+    redrawChart();
+  });
+  document.addEventListener("pointerup", () => { panning = null; });
+  document.addEventListener("pointercancel", () => { panning = null; });
+
+  /** Redraws the chart and nothing else. The panel beside it holds the form and a
+   * few hundred breakdown rows, and rebuilding that on a wheel notch would drop
+   * frames for no reason. */
+  function redrawChart() {
+    const canvas = view.element && view.element.querySelector(".sim-canvas");
+    if (canvas) canvas.replaceChildren(drawRun());
+  }
+
+  /** How far one wheel notch moves the window. */
+  const ZOOM_STEP = 1.3;
+
+  /** The smallest window a zoom will leave: a thousandth of the run on a linear
+   * axis, a fiftieth of a decade on a log one. Past that there is nothing left to
+   * see - the run was only sampled a few hundred times. Never fewer than a couple
+   * of ticks either, which is what a thousandth of a seventy-tick run would be. */
+  const MIN_LINEAR_SPAN = 1 / 1000;
+  const MIN_LINEAR_TICKS = 2;
+  const MIN_LOG_SPAN = 0.02;
+
+  /** A mouse position in the chart's own coordinates. The SVG scales to whatever
+   * width the canvas gives it, so a client x has to be scaled back into the 900
+   * units the viewBox is drawn in. */
+  function svgX(svg, clientX) {
+    const box = svg.getBoundingClientRect();
+    return box.width ? (clientX - box.left) * (CHART.width / box.width) : 0;
+  }
+
+  /** `window` scaled by `factor` about the tick under the cursor, so the point
+   * being pointed at stays under the pointer. Null once it covers the whole run
+   * again, which is what "not zoomed" is stored as. */
+  function zoomedTo(window, at, factor, bounds, logX) {
+    const [from, to, low, high] = logSpace([window.from, window.to, bounds.from, bounds.to], logX);
+    const whole = high - low;
+    const floor = logX ? MIN_LOG_SPAN : Math.max(whole * MIN_LINEAR_SPAN, MIN_LINEAR_TICKS);
+    const span = Math.min(Math.max((to - from) * factor, floor), whole);
+    if (span >= whole) return null;
+    const centre = logX ? Math.log10(Math.max(at, 1)) : at;
+    const start = centre - (centre - from) * (span / (to - from));
+    return clamped(start, start + span, low, high, logX);
+  }
+
+  /** `window` slid along by `moved` of its own width. */
+  function pannedBy(window, moved, bounds, logX) {
+    const [from, to, low, high] = logSpace([window.from, window.to, bounds.from, bounds.to], logX);
+    const step = (to - from) * moved;
+    return clamped(from + step, to + step, low, high, logX);
+  }
+
+  /** Both ends in the space the axis is drawn in, so one piece of arithmetic
+   * serves a log axis and a linear one. */
+  function logSpace(values, logX) {
+    return logX ? values.map((value) => Math.log10(Math.max(value, 1))) : values;
+  }
+
+  /** A window pushed back inside the run it belongs to, keeping its width, and
+   * handed back in tick space. */
+  function clamped(from, to, low, high, logX) {
+    let start = from;
+    if (start < low) start = low;
+    if (start + (to - from) > high) start = high - (to - from);
+    const end = start + (to - from);
+    return logX
+      ? { from: Math.pow(10, start), to: Math.pow(10, end) }
+      : { from: start, to: end };
   }
 
   /** How many times over the run has to grow before the tick axis goes log. */
   const LOG_X_DECADES = 3;
 
-  /** Where the tick axis is labelled: whole decades on a log axis, evenly spaced
-   * on a linear one, with the last tick always called out - it is the number the
-   * run ended on. */
+  /** Where the tick axis is labelled: whole decades on a log axis, eight even
+   * steps on a linear one, across whatever stretch is being shown. A log axis
+   * always calls out its right-hand end too - zoomed out that is the tick the run
+   * finished on, and a decade label alone would never land there. */
   function tickMarks(first, last, logX) {
     const marks = [];
     if (logX) {
       for (let decade = Math.ceil(Math.log10(first)); decade <= Math.log10(last); decade++) {
         marks.push(Math.pow(10, decade));
       }
-      if (!marks.length || marks.at(-1) !== last) marks.push(last);
+      // Zoomed inside a decade or two there are no whole decades to label, or one
+      // stranded in the middle. Six evenly spaced marks instead - evenly along the
+      // axis, which is a constant ratio apart on this one.
+      if (marks.length < 3) {
+        const steps = 5;
+        const ratio = Math.pow(last / first, 1 / steps);
+        return Array.from({ length: steps + 1 }, (_, step) => first * Math.pow(ratio, step));
+      }
+      if (marks.at(-1) !== last) marks.push(last);
       return marks;
     }
-    const step = Math.max(1, Math.round(last / 8));
-    for (let tick = 0; tick <= last; tick += step) marks.push(tick);
+    const step = (last - first) / 8;
+    if (step <= 0) return [last];
+    for (let tick = first; tick <= last + step / 2; tick += step) marks.push(tick);
     return marks;
   }
 
   /** One track's panel: its own y axis, its own three labelled gridlines, and
    * the milestone lines running through it. */
-  function drawTrack(key, index, series, x, top, plotWidth, lastTick) {
+  function drawTrack(key, index, series, x, top, plotWidth, shown) {
     const track = TRACKS[key];
     const group = svgEl("g");
     const plotTop = top + 16;
     const plotHeight = CHART.rowHeight - 22;
-    const points = series
+    const points = inWindow(series
       .map((sample) => ({ tick: sample.tick, value: sample[key] }))
-      .filter((point) => typeof point.value === "number");
+      .filter((point) => typeof point.value === "number"), shown);
 
     if (points.length < 2) {
       const name = svgEl("text", { class: "axis-title", x: CHART.left, y: top + 10 });
       name.textContent = track.label;
       const none = svgEl("text", { class: "axis", x: CHART.left + 8, y: plotTop + plotHeight / 2 });
-      none.textContent = "never left zero";
+      // Two different nothings: a track that never moved, and a zoom window that
+      // happens to hold no sample of it.
+      none.textContent = view.zoom ? "nothing sampled in this stretch" : "never left zero";
       group.append(name, none);
       return group;
     }
@@ -212,25 +374,85 @@
       group.append(label);
     }
 
-    for (const milestone of view.result.milestones) {
-      if (milestone.tick > lastTick) continue;
-      group.append(svgEl("line", { class: "milestone", x1: x(milestone.tick),
-        x2: x(milestone.tick), y1: plotTop, y2: plotTop + plotHeight }));
-    }
+    view.result.milestones.forEach((milestone, index) => {
+      if (milestone.tick < shown.from || milestone.tick > shown.to) return;
+      const at = x(milestone.tick);
+      const line = svgEl("line", { class: milestoneClass(index), "data-milestone": index,
+        x1: at, x2: at, y1: plotTop, y2: plotTop + plotHeight });
+      // A dashed hairline is a hard thing to point at, so the pointer gets a wide
+      // invisible one over it. It carries the same index, so it lights up with
+      // the line it stands in for.
+      const hit = svgEl("line", { class: "milestone-hit", "data-milestone": index,
+        x1: at, x2: at, y1: plotTop, y2: plotTop + plotHeight });
+      const label = svgEl("title");
+      label.textContent = `${milestone.event} · tick ${milestone.tick}`
+        + (milestone.detail ? ` · ${milestone.detail}` : "");
+      hit.append(label);
+      hit.addEventListener("mouseenter", () => hoverMilestone(index));
+      hit.addEventListener("mouseleave", () => hoverMilestone(null));
+      group.append(line, hit);
+    });
+
+    // Clipped to its own panel: the two points that hold the line up at the edges
+    // of the window sit outside it, and an unclipped line would run out over the
+    // axis labels and the next panel down.
+    const clip = svgEl("clipPath", { id: `sim-clip-${index}` });
+    clip.append(svgEl("rect", { x: CHART.left, y: plotTop, width: plotWidth, height: plotHeight }));
+    group.append(clip);
 
     const color = `hsl(${hueOf(index)} 65% 50%)`;
     const path = scaled.map((point, i) =>
       `${i ? "L" : "M"}${x(point.tick).toFixed(1)} ${y(point.value).toFixed(1)}`).join(" ");
-    group.append(svgEl("path", { class: "track", d: path, stroke: color }));
+    group.append(svgEl("path", { class: "track", d: path, stroke: color,
+      "clip-path": `url(#sim-clip-${index})` }));
 
-    // The number the run ended on, spelled out where the line stops, so the
-    // panel answers "how much" without anyone reading the axis.
+    // The number the line stops on, spelled out where it stops, so the panel
+    // answers "how much" without anyone reading the axis. Zoomed in that is the
+    // right-hand edge of the window rather than the end of the run, which is the
+    // number being looked at either way.
     const last = scaled.at(-1);
     const final = svgEl("text", { class: "axis", x: CHART.left + plotWidth + 6, y: y(last.value) + 3,
       fill: color });
     final.textContent = format(last.value, logged);
     group.append(final);
     return group;
+  }
+
+  /** The samples inside the zoom window, plus the one either side of it.
+   *
+   * The neighbours are what keep the line touching both edges: without them a
+   * window landing between two samples draws nothing, and one landing just past a
+   * sample starts the line a third of the way in. They are clipped away where
+   * they leave the panel, so all they contribute is the slope at the edge. */
+  function inWindow(points, shown) {
+    return points.filter((point, index) => {
+      if (point.tick >= shown.from && point.tick <= shown.to) return true;
+      const before = points[index - 1];
+      const after = points[index + 1];
+      return (after && point.tick < shown.from && after.tick >= shown.from)
+        || (before && point.tick > shown.to && before.tick <= shown.to);
+    });
+  }
+
+  /** Lights up one milestone wherever it is drawn - a line in every open track
+   * panel, and a row in the list beside them - and puts out whatever was lit.
+   *
+   * Done by toggling a class rather than by redrawing: a redraw would replace the
+   * very line the pointer is over, which the browser reads as leaving it, and the
+   * highlight would flicker itself off. Everything that draws a milestone asks
+   * milestoneClass()/milestoneRowClass() for the class instead, so a zoom in the
+   * middle of a hover comes back lit. */
+  function hoverMilestone(index) {
+    view.hoverMilestone = index;
+    if (!view.element) return;
+    for (const node of view.element.querySelectorAll("[data-milestone]")) {
+      node.classList.toggle("hot", Number(node.dataset.milestone) === index);
+    }
+  }
+
+  /** The class a milestone line is drawn with, lit or not. */
+  function milestoneClass(index) {
+    return view.hoverMilestone === index ? "milestone hot" : "milestone";
   }
 
   /** More than this many decades between the smallest and largest value and the
@@ -347,13 +569,16 @@
 
   /* --------------------------------------------------------------- breakdown */
 
-  /** Which upgrade is carrying the run, grouped by the track it lives in.
+  /** Which upgrade is carrying the run, grouped by the resource it moves and,
+   * inside that, by the track the bonus comes from. Both groupings, and the
+   * totals on their headings, are the simulator's - see BalanceSim.RESOURCES.
    *
    * Each row carries two numbers because neither answers on its own. The
    * magnitude is what the upgrade writes into its stat bucket - exact, but a
    * +0.15 INCREASED and a +0.15 MORE are not comparable and across two stats
    * nothing is. The impact is measured: the simulator zeroes the level, lets
-   * everything re-resolve, and reports what production falls to without it.
+   * everything re-resolve, and reports what the run and that stat's own bucket
+   * fall to without it.
    *
    * Collapsed by default. It is a few hundred rows, and the chart above it is
    * what the view is normally for. */
@@ -377,8 +602,8 @@
       return wrap;
     }
 
-    wrap.append(snapshotPicker(), snapshotSummary(snapshot));
-    for (const group of snapshot.tracks) wrap.append(trackTable(group));
+    wrap.append(snapshotPicker(), snapshotSummary(snapshot), trackTotals(snapshot));
+    for (const group of resourceGroups(snapshot)) wrap.append(resourceSection(group));
     return wrap;
   }
 
@@ -433,69 +658,306 @@
     return line;
   }
 
-  /** One track: what the whole track is worth, then its upgrades by impact.
+  /** What each whole track is worth, measured with its every level zeroed at
+   * once. The one cut the resource grouping cannot make: a track split across
+   * five resources is five headings below, and this is the line that says what it
+   * comes to as a track - which is how the tracks are bought and balanced. */
+  function trackTotals(snapshot) {
+    const line = document.createElement("div");
+    line.className = "hint";
+    // Pipes between the tracks, because impactText() already spends the middle
+    // dot on the two or three numbers inside one track's total.
+    line.textContent = "measured per track: " + snapshot.tracks
+      .map((group) => `${group.track} ${impactText(group.impact)}`).join(" | ");
+    return line;
+  }
+
+  /** The snapshot's tracks turned inside out: resource first, then the track the
+   * bonus comes from, then the upgrades.
    *
-   * The track total is measured, not summed from the rows - MORE effects
-   * compound, so taking two upgrades away costs more than taking each away did,
-   * and a column of percentages that added up to more than the total would read
-   * as a bug rather than as the arithmetic it is. */
-  function trackTable(group) {
-    // The heading sits above the table rather than in it. As a spanning cell it
-    // has to be a flex row to keep the total off three lines in a panel this
-    // narrow, and a cell that is display:flex stops taking part in the column
-    // widths - which leaves the columns below it sized off nothing.
-    const wrap = document.createElement("div");
+   * Which stat feeds which resource, what order the resources read in, and both
+   * levels of total all come from the simulator - see BalanceSim.RESOURCES. They
+   * have to: a group's total is a probe of that whole group taken away at once,
+   * and only the run can take it away. Summing the rows instead would put fifteen
+   * upgrades each worth "the run falls 99% without it" at 1485%, which ranks the
+   * tracks by how many upgrades they happen to hold.
+   *
+   * So this walks those groups again to hang the upgrade rows off them, and sorts
+   * only the rows.
+   *
+   * An upgrade writing two resources - a perk that adds nutrients and shortens
+   * the tick - is listed under both, carrying only that resource's effect lines
+   * in each. Its own impact is not split between them: one probe takes the whole
+   * level away, so the same number is what the run loses in either group. */
+  function resourceGroups(snapshot) {
+    const metrics = new Map((snapshot.resources || []).map((g) => [g.resource, g.metric]));
+    const rows = new Map();      // resource -> track -> rows
+    for (const track of snapshot.tracks) {
+      for (const upgrade of track.upgrades) {
+        for (const [resource, effects, counted] of splitByResource(upgrade.effects)) {
+          const metric = metrics.get(resource) || "stat";
+          ensure(ensure(rows, resource, () => new Map()), track.track, () => []).push({
+            id: upgrade.id, name: upgrade.name, level: upgrade.level,
+            impact: upgrade.impact, effects,
+            influence: influenceOf(metric, upgrade.impact, counted),
+            // The biggest bucket this row writes into this resource, as the
+            // fraction it loses and as the distance that fraction saturates at.
+            // They rank the tail the metric cannot separate, and in a run
+            // -measured group that tail is real: a &"node_production" upgrade
+            // scoped to node 7 moves the run's total production by nothing
+            // measurable, because node 0 dwarfs it - but it is not nothing inside
+            // node 7's own bucket, and that is what says which of them is bigger.
+            share: topOf(upgrade.impact.stat_drop, counted),
+            shareOrders: topOf(upgrade.impact.stat_orders, counted),
+            weight: weightOf(effects),
+          });
+        }
+      }
+    }
+
+    return (snapshot.resources || []).map((group) => {
+      const byTrack = rows.get(group.resource) || new Map();
+      const sources = group.sources.map((source) => ({
+        source: source.track,
+        impact: source.impact,
+        rows: (byTrack.get(source.track) || []).sort((a, b) =>
+          descending(a.influence, b.influence)
+          || descending(a.shareOrders, b.shareOrders)
+          || descending(a.share, b.share) || descending(a.weight, b.weight)),
+      }));
+      return {
+        resource: group.resource, metric: group.metric, impact: group.impact,
+        count: sources.reduce((total, source) => total + source.rows.length, 0),
+        sources,
+      };
+    });
+  }
+
+  /** One entry per resource an upgrade's effects touch, carrying just the effects
+   * that touch it: [[resource, effects], ...].
+   *
+   * Two effects writing the same bucket - the same stat at the same scope - are
+   * both listed, but only the first counts towards the resource's influence: they
+   * share one bucket, and its share is measured once. */
+  function splitByResource(effects) {
+    const split = new Map();
+    for (const effect of effects) {
+      // Named by the simulator, which grouped the probes the same way. A snapshot
+      // from before it did falls back to the stat, which is a group of one.
+      const resource = effect.resource || effect.stat;
+      const entry = ensure(split, resource,
+        () => ({ resource, effects: [], counted: [], buckets: new Set() }));
+      entry.effects.push(effect);
+      const bucket = `${effect.stat}@${effect.key}`;
+      if (!entry.buckets.has(bucket)) {
+        entry.buckets.add(bucket);
+        entry.counted.push(effect);
+      }
+    }
+    return [...split.values()].map((entry) => [entry.resource, entry.effects, entry.counted]);
+  }
+
+  /** What a row is ranked by: the measurement this resource's upgrades actually
+   * move. Positive is the upgrade helping in all four - both deltas are what
+   * taking it away puts back, and both distances are what it takes with it.
+   *
+   * The two production-shaped metrics rank on orders of magnitude rather than on
+   * the fraction, because a fraction stops separating anything up here: at 1e1400
+   * every real upgrade reads as -100%. See BalanceSim._orders_between().
+   *
+   * A `stat` group ranks on the biggest bucket this upgrade writes into *this*
+   * resource, so a perk adding nutrients and biomass is ranked in the biomass
+   * group by its biomass bucket alone. */
+  function influenceOf(metric, impact, effects) {
+    if (metric === "tick") return impact.tick_delta;
+    if (metric === "water") return impact.water_delta;
+    if (metric !== "stat") return impact.production_orders || impact.production_drop;
+    return topOf(impact.stat_orders, effects) || topOf(impact.stat_drop, effects);
+  }
+
+  /** The biggest reading `measured` holds for the buckets `effects` write into.
+   *
+   * Biggest, not summed: a share of mission speed and a share of mission payout
+   * are shares of two different things, and adding them would rank a row by how
+   * many buckets it happens to touch. Keyed the way BalanceSim writes it,
+   * "stat@scope_key" - the two fields the effect row already carries - and 0 when
+   * the run predates the measurement. */
+  function topOf(measured, effects) {
+    let top = 0;
+    for (const effect of effects) {
+      const value = (measured || {})[`${effect.stat}@${effect.key}`];
+      if (typeof value === "number") top = Math.max(top, value);
+    }
+    return top;
+  }
+
+  /** The loudest magnitude in a row's effects, as log10, and only ever a
+   * tiebreaker: in a group nothing can measure - &"biomass_gain" moves no
+   * production, no tick and no pump - every influence is zero and the magnitude
+   * is the only thing left to rank by. A null is a magnitude of zero, which
+   * BalanceSim._log10() refuses to take a log of; it ranks below any real one. */
+  function weightOf(effects) {
+    let top = -Infinity;
+    for (const effect of effects) {
+      if (typeof effect.mag_log === "number") top = Math.max(top, effect.mag_log);
+    }
+    return top;
+  }
+
+  /** Biggest first, and safe on the infinities weightOf() hands out - subtracting
+   * one from itself is NaN, which a comparator must never see. */
+  function descending(a, b) {
+    return a > b ? -1 : a < b ? 1 : 0;
+  }
+
+  /** Get-or-create, so a grouping loop reads as one line per level. */
+  function ensure(map, key, make) {
+    if (!map.has(key)) map.set(key, make());
+    return map.get(key);
+  }
+
+  /** One resource: the tracks feeding it, biggest first, each with its upgrades.
+   *
+   * Folded shut until it is asked for. Thirteen resources of a few hundred rows
+   * between them is a scroll, not a table - closed, the headings alone are the
+   * answer to "what is pushing what", and opening one is the follow-up question.
+   *
+   * Which ones are open lives on the view, not in the DOM: the panel is rebuilt
+   * whole on every redraw, and a snapshot picked from the dropdown would
+   * otherwise slam every group shut. */
+  function resourceSection(group) {
+    const wrap = document.createElement("details");
+    wrap.className = "sim-resource";
+    wrap.open = view.breakdownOpenGroups.has(group.resource);
+    wrap.ontoggle = () => {
+      if (wrap.open) view.breakdownOpenGroups.add(group.resource);
+      else view.breakdownOpenGroups.delete(group.resource);
+    };
+    const head = document.createElement("summary");
+    head.append(groupHead("sim-track-head", group.resource, group.count,
+      group.impact, group.metric));
+    wrap.append(head);
+    for (const source of group.sources) {
+      wrap.append(groupHead("sim-source-head", source.source, source.rows.length,
+        source.impact, group.metric), sourceTable(source, group.metric));
+    }
+    return wrap;
+  }
+
+  /** A heading with what is under it on the right, measured rather than added up:
+   * every upgrade below it zeroed at once, everything re-resolved, and what the
+   * resource falls to reported.
+   *
+   * It sits above the table rather than in it. As a spanning cell it has to be a
+   * flex row to keep the total off three lines in a panel this narrow, and a cell
+   * that is display:flex stops taking part in the column widths - which leaves
+   * the columns below it sized off nothing. */
+  function groupHead(className, name, count, impact, metric) {
     const heading = document.createElement("div");
-    heading.className = "sim-track-head";
-    const name = document.createElement("span");
-    name.textContent = group.track;
+    heading.className = className;
+    const label = document.createElement("span");
+    label.textContent = name;
     const total = document.createElement("span");
     total.className = "num";
-    total.textContent = `all ${group.upgrades.length}: ${impactText(group.impact)}`;
-    heading.append(name, total);
+    total.textContent = `${count} · ${groupText(metric, impact)}`;
+    total.title = "measured with every upgrade under this heading taken away at once,"
+      + " which is less than they add up to separately - MORE effects compound";
+    heading.append(label, total);
+    return heading;
+  }
 
+  /** A measured group total, in the unit its resource is measured in. The probe
+   * behind it covers exactly this group, so its stat_drop holds this resource's
+   * buckets and nothing else - the biggest of them is what the heading shows, for
+   * the same reason topOf() takes the biggest of a row's. */
+  function groupText(metric, impact) {
+    if (metric === "tick") {
+      return Math.abs(impact.tick_delta) > 1e-9 ? `${signed(-impact.tick_delta)}s tick` : "-";
+    }
+    if (metric === "water") {
+      return Math.abs(impact.water_delta) > 1e-9 ? `${signed(-impact.water_delta)} pump` : "-";
+    }
+    if (metric !== "stat") {
+      return dropText(impact.production_drop, impact.production_orders) || "-";
+    }
+    return shareText(biggest(impact.stat_drop), biggest(impact.stat_orders));
+  }
+
+  /** The largest value in a measured-by-bucket dictionary, or 0 when it is empty
+   * or missing - which is what a snapshot from before the sim measured buckets
+   * carries. */
+  function biggest(measured) {
+    return Object.values(measured || {}).reduce((top, value) => Math.max(top, value), 0);
+  }
+
+  /** What this resource loses without one row, as the row's hover title.
+   *
+   * Not a column any more: a counterfactual per row asks the reader to hold "what
+   * the run would be without this one thing" in their head for every line, and
+   * the heading above already says what the whole group is worth. It still ranks
+   * the rows, and it is still one hover away.
+   *
+   * A run-measured group reports the run-level probe whole - all three numbers,
+   * because a perk that adds nutrients and shortens the tick is worth seeing in
+   * both groups. A `stat` group reports its own bucket share instead, which is
+   * the one thing the run-level probe was blind to. A snapshot from before
+   * stat_drop existed has no share to report and falls back to the run-level
+   * numbers, which for these groups is the "-" it always was. */
+  function withoutText(metric, row) {
+    if (metric === "stat") return shareText(row.share, row.shareOrders);
+    const run = impactText(row.impact);
+    // "-" means the run-level probe saw nothing, which for a node-scoped upgrade
+    // is true of the run and false of the node. The share says which.
+    return run === "-" ? shareText(row.share, row.shareOrders) : run;
+  }
+
+  /** A bucket share, told apart from a run-level number by the word after it -
+   * the two are fractions of different things, and a column that mixed them
+   * silently would read as one. */
+  function shareText(share, orders) {
+    return dropText(share, orders) ? `${dropText(share, orders)} share` : "-";
+  }
+
+  /** A drop as a fraction, or as the distance it really is once the fraction has
+   * stopped separating anything.
+   *
+   * Production runs past 1e1400 here, so every track worth having reads as
+   * -100.0% and so does the next one - the ratio behind it has fallen under what
+   * a float carries. Past 99.95% the orders of magnitude are shown instead, which
+   * go on separating long after the percentage cannot. */
+  function dropText(drop, orders) {
+    if (Math.abs(drop) <= 1e-6) return "";
+    if (drop > 0.9995 && typeof orders === "number" && orders >= 1) {
+      return `-${Number(orders.toPrecision(3))} decades`;
+    }
+    return `${(-drop * 100).toFixed(1)}%`;
+  }
+
+  /** One track's upgrades inside one resource, already sorted. Every row is
+   * listed, including the ones the run-level probe cannot see: those are what a
+   * `stat` group is made of, so collapsing them into a count would empty it. */
+  function sourceTable(source, metric) {
     const table = document.createElement("table");
     table.className = "web-table sim-breakdown-table";
     const columns = table.insertRow();
-    for (const column of ["upgrade", "level", "effects", "without"]) {
+    for (const column of ["upgrade", "level", "effects"]) {
       const th = document.createElement("th");
       th.textContent = column;
       columns.append(th);
     }
 
-    let quiet = 0;
-    for (const upgrade of group.upgrades) {
-      if (!moves(upgrade.impact)) { quiet += 1; continue; }
+    for (const upgrade of source.rows) {
       const row = table.insertRow();
-      const label = row.insertCell();
-      label.textContent = upgrade.name || upgrade.id;
-      label.title = upgrade.id;
+      // The order is the measurement: biggest first. What each row measured is on
+      // the row itself rather than in a column of its own - see withoutText().
+      row.title = `${upgrade.id} · without it: ${withoutText(metric, upgrade)}`;
+      row.insertCell().textContent = upgrade.name || upgrade.id;
       const level = row.insertCell();
       level.className = "num";
       level.textContent = String(upgrade.level);
       row.insertCell().append(effectList(upgrade.effects));
-      const impact = row.insertCell();
-      impact.className = "num";
-      impact.textContent = impactText(upgrade.impact);
     }
-    if (quiet) {
-      const row = table.insertRow();
-      const cell = row.insertCell();
-      cell.colSpan = 4;
-      cell.className = "web-stats";
-      cell.textContent = `${quiet} more with nothing measurable riding on them`;
-    }
-    wrap.append(heading, table);
-    return wrap;
-  }
-
-  /** True when removing this upgrade would move something a run can see. A
-   * &"biome_points" or &"boost_max_level" upgrade moves none of the three and
-   * still legitimately has levels, so it is counted rather than listed. */
-  function moves(impact) {
-    return Math.abs(impact.production_drop) > 1e-6
-      || Math.abs(impact.tick_delta) > 1e-9
-      || Math.abs(impact.water_delta) > 1e-9;
+    return table;
   }
 
   /** What the run loses without it: the production drop, plus the two stats a
@@ -505,9 +967,8 @@
     const bits = [];
     // Bare, with no "prod" after it: the column it sits under is the production
     // drop, and in a panel this narrow the extra word wraps every row in two.
-    if (Math.abs(impact.production_drop) > 1e-6) {
-      bits.push(`${(-impact.production_drop * 100).toFixed(1)}%`);
-    }
+    const production = dropText(impact.production_drop, impact.production_orders);
+    if (production) bits.push(production);
     // Reported the way the upgrade acts rather than the way the probe measured:
     // removing it lengthens the tick, so the upgrade shortens it.
     if (Math.abs(impact.tick_delta) > 1e-9) bits.push(`${signed(-impact.tick_delta)}s tick`);
@@ -793,6 +1254,14 @@
     const savepoints = view.result.savepoints || [];
     view.result.milestones.forEach((milestone, index) => {
       const row = table.insertRow();
+      // The other half of the highlight: this row and the lines the chart draws
+      // for the same milestone carry the same index, and hovering either lights
+      // both. A row whose tick is outside the zoom window lights alone - there is
+      // no line on the chart to light with it.
+      row.dataset.milestone = index;
+      if (view.hoverMilestone === index) row.classList.add("hot");
+      row.onmouseenter = () => hoverMilestone(index);
+      row.onmouseleave = () => hoverMilestone(null);
       const tick = row.insertCell();
       tick.className = "num";
       tick.textContent = String(milestone.tick);
@@ -866,6 +1335,8 @@
       });
       view.result = stitch(before, segment, branch);
       view.breakdownAt = -1;      // the old choice indexed a result that is gone
+      view.zoom = null;           // and the old window was ticks this run may not reach
+      view.hoverMilestone = null; // and the pointer is nowhere near the new list
       log(`simulated ${segment.ticks} ticks in ${((Date.now() - started) / 1000).toFixed(1)}s`);
     } catch (error) {
       log(String(error), true);
