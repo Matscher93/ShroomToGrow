@@ -4,3 +4,7 @@
 
 # gdUnit4 test reports
 reports/
+
+# Python bytecode from tools/balance_editor
+__pycache__/
+*.pyc
