@@ -1,0 +1,159 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/statistics/gd_statistics_panel.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://view/statistics/sc_stat_row.tscn" id="2_stat_row"]
+[ext_resource type="PackedScene" path="res://view/statistics/sc_stat_card.tscn" id="3_stat_card"]
+[ext_resource type="FontFile" uid="uid://bfcncplwx4kw5" path="res://fonts/Space_Grotesk/SpaceGrotesk-Bold.ttf" id="4_title_font"]
+[ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="5_touch_scroll"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_backdrop"]
+bg_color = Color(0.015686275, 0.03137255, 0.023529412, 0.62)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sheet"]
+bg_color = Color(0.047058824, 0.08627451, 0.06666667, 1)
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.09)
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+
+[sub_resource type="LabelSettings" id="LabelSettings_title"]
+font = ExtResource("4_title_font")
+font_size = 18
+font_color = Color(0.9411765, 0.9647059, 0.9254902, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tab_on"]
+content_margin_left = 12.0
+content_margin_top = 7.0
+content_margin_right = 12.0
+content_margin_bottom = 7.0
+bg_color = Color(0.36078432, 0.78431374, 0.9019608, 0.22)
+border_width_bottom = 2
+border_color = Color(0.36078432, 0.78431374, 0.9019608, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tab_off"]
+content_margin_left = 12.0
+content_margin_top = 7.0
+content_margin_right = 12.0
+content_margin_bottom = 7.0
+bg_color = Color(0.055, 0.102, 0.078, 0.92)
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 0.08)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="statistics_panel" type="PanelContainer" node_paths=PackedStringArray("btn_close", "btn_records", "btn_timeline", "btn_runs", "btn_bonuses", "lbl_empty", "scroll", "vbox_content")]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_backdrop")
+script = ExtResource("1_script")
+btn_close = NodePath("VBoxContainer/sheet/MarginContainer/VBoxContainer/header/btn_close")
+btn_records = NodePath("VBoxContainer/sheet/MarginContainer/VBoxContainer/tabs/btn_records")
+btn_timeline = NodePath("VBoxContainer/sheet/MarginContainer/VBoxContainer/tabs/btn_timeline")
+btn_runs = NodePath("VBoxContainer/sheet/MarginContainer/VBoxContainer/tabs/btn_runs")
+btn_bonuses = NodePath("VBoxContainer/sheet/MarginContainer/VBoxContainer/tabs/btn_bonuses")
+lbl_empty = NodePath("VBoxContainer/sheet/MarginContainer/VBoxContainer/lbl_empty")
+scroll = NodePath("VBoxContainer/sheet/MarginContainer/VBoxContainer/ScrollContainer")
+vbox_content = NodePath("VBoxContainer/sheet/MarginContainer/VBoxContainer/ScrollContainer/content_margin/vbox_content")
+stat_row_scene = ExtResource("2_stat_row")
+stat_card_scene = ExtResource("3_stat_card")
+style_tab_on = SubResource("StyleBoxFlat_tab_on")
+style_tab_off = SubResource("StyleBoxFlat_tab_off")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="sheet" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_sheet")
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/sheet"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 18
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/sheet/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="header" type="HBoxContainer" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="lbl_title" type="Label" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer/header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Statistics"
+label_settings = SubResource("LabelSettings_title")
+
+[node name="btn_close" type="Button" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer/header"]
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+size_flags_vertical = 4
+text = "X"
+
+[node name="tabs" type="HBoxContainer" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="btn_records" type="Button" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer/tabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Records"
+
+[node name="btn_timeline" type="Button" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer/tabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Timeline"
+
+[node name="btn_runs" type="Button" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer/tabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Runs"
+
+[node name="btn_bonuses" type="Button" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer/tabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Bonuses"
+
+[node name="lbl_empty" type="Label" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer"]
+modulate = Color(1, 1, 1, 0.65)
+visible = false
+layout_mode = 2
+text = "No records yet."
+autowrap_mode = 3
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer"]
+script = ExtResource("5_touch_scroll")
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="content_margin" type="MarginContainer" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_right = 10
+
+[node name="vbox_content" type="VBoxContainer" parent="VBoxContainer/sheet/MarginContainer/VBoxContainer/ScrollContainer/content_margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="backdrop_spacer" type="Control" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.2
+mouse_filter = 2

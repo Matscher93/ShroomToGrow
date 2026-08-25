@@ -47,7 +47,7 @@
     water_interval: { label: "Pump interval", log: false, unit: " (ticks)" },
   };
 
-  /** Seconds as a span someone can judge. Mirrors BalanceSim.format_duration. */
+  /** Seconds as a span someone can judge. Mirrors TimeFormat.duration. */
   function duration(seconds) {
     const total = Math.round(seconds || 0);
     if (total < 60) return `${total}s`;
@@ -571,7 +571,7 @@
 
   /** Which upgrade is carrying the run, grouped by the resource it moves and,
    * inside that, by the track the bonus comes from. Both groupings, and the
-   * totals on their headings, are the simulator's - see BalanceSim.RESOURCES.
+   * totals on their headings, are the simulator's - see StatResources.RESOURCES.
    *
    * Each row carries two numbers because neither answers on its own. The
    * magnitude is what the upgrade writes into its stat bucket - exact, but a
@@ -676,7 +676,7 @@
    * bonus comes from, then the upgrades.
    *
    * Which stat feeds which resource, what order the resources read in, and both
-   * levels of total all come from the simulator - see BalanceSim.RESOURCES. They
+   * levels of total all come from the simulator - see StatResources.RESOURCES. They
    * have to: a group's total is a probe of that whole group taken away at once,
    * and only the run can take it away. Summing the rows instead would put fifteen
    * upgrades each worth "the run falls 99% without it" at 1485%, which ranks the

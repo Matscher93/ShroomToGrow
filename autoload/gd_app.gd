@@ -84,6 +84,10 @@ var perk_defs: Dictionary = {}  # StringName -> PerkDef
 var perk_vms: Dictionary = {}  # StringName -> PerkViewModel
 var prestige_vm: PrestigeViewModel
 
+var stats_data: StatsData
+var stats_system: StatsSystem
+var statistics_vm: StatisticsViewModel
+
 var achievements := load("res://data/achievements/all_achievements.tres") as AchievementList
 var achievement_progress: AchievementProgress
 var achievement_system: AchievementSystem
@@ -235,6 +239,15 @@ func _ready() -> void:
 	daily_reward_system = DailyRewardSystem.new(daily_reward_data, growth_upgrade_system,
 		growth_producers)
 
+	# Last of the systems, because it watches all of them: it needs the level
+	# ladder and the daily streak for its counts, and the tick system for the
+	# payout a peak is measured from.
+	stats_data = StatsData.new()
+	stats_system = StatsSystem.new(stats_data, player_data, biomes, biomes_data,
+		nodes.mycelium_nodes, tick_system, upgrade_system, prestige_upgrade_system,
+		player_level_system, daily_reward_data)
+	_connect_stats_sources()
+
 	# Built after biomes_data, which gates the crystal event, and before the VMs
 	# that read them back through App.
 	fertilizer_system = FertilizerSystem.new(player_data, fertilizer_upgrade_system,
@@ -273,6 +286,7 @@ func _ready() -> void:
 	for def in achievements.achievements:
 		achievement_vms[def.id] = AchievementViewModel.new(def)
 	achievements_vm = AchievementsViewModel.new()
+	statistics_vm = StatisticsViewModel.new()
 	for def in automations.automations:
 		automation_vms[def.id] = AutomationViewModel.new(def)
 	for def in biomes.biomes:
@@ -346,16 +360,38 @@ func _on_event_timer_timeout() -> void:
 		event_system.try_spawn()
 	event_timer.start(event_system.next_interval())
 
-## One evaluate per frame at most, and only when something actually moved. See
+## One pass per frame at most, and only when something actually moved. See
 ## _achievements_dirty.
+##
+## Both consumers ride the one flag rather than each keeping its own: the
+## achievement ladder and the statistics overlay's structural peaks read the same
+## handful of sources - node counts, upgrade levels, biome unlocks, prestiges - so
+## a second flag would be the first one under another name.
 func _process(_delta: float) -> void:
 	if not _achievements_dirty:
 		return
 	_achievements_dirty = false
 	achievement_system.evaluate()
+	stats_system.sample_counts()
 
 func mark_achievements_dirty() -> void:
 	_achievements_dirty = true
+
+## The moments StatsSystem cannot reconstruct afterwards. Each of these is gone
+## by the time anything could go looking for it: a currency spike is spent, a
+## biome unlock is undone by the next prestige, and the run a sporation ends is
+## wiped by the sporation itself.
+##
+## The peaks that a purchase moves are not here - they ride the once-a-frame
+## dirty flag in _process() instead, since a count nothing bought cannot have
+## changed.
+func _connect_stats_sources() -> void:
+	for field in StatsSystem.CURRENCY_FIELDS:
+		player_data.connect("%s_changed" % field, stats_system.note_currency.bind(StringName(field)))
+	biomes_data.biome_unlocked.connect(stats_system.note_biome_unlocked)
+	prestige_system.prestiging.connect(stats_system.note_prestige)
+	for mycelium_data in mycelium_node_data:
+		mycelium_data.node_bought.connect(stats_system.note_node_bought)
 
 ## Everything an AchievementDef.Stat can be derived from. A source missing here
 ## only delays the award to the next tick, never loses it, since handle_tick()
@@ -430,6 +466,7 @@ func to_save() -> Dictionary:
 		"biomes": biomes_data.to_save(),
 		"biome_upgrades": biome_upgrade_system.to_save(),
 		"achievements": achievement_progress.to_save(),
+		"stats": stats_data.to_save(),
 		"automation": automation_data.to_save(),
 		"boost_upgrades": boost_upgrade_system.to_save(),
 		"project_upgrades": project_upgrade_system.to_save(),
@@ -445,6 +482,11 @@ func to_save() -> Dictionary:
 ## loaded through its own loader with whatever the save had, so a missing key
 ## leaves that track at its fresh-start values rather than failing the load.
 func load_from_save(game: Dictionary) -> void:
+	# Ahead of player_data, whose setters fire the currency signals StatsSystem
+	# raises peaks from. Loaded second, this would clear those peaks again - and
+	# on a save written before stats existed it would clear them for nothing,
+	# leaving every "most held" record empty until the balance next moved.
+	stats_data.load_from_save(game.get("stats", {}))
 	player_data.load_from_save(game.get("player_data", {}))
 	mycelium_nodes_from_save(game.get("mycelium_nodes", {}))
 	upgrade_system.from_save(game.get("upgrades", {}))
@@ -525,8 +567,23 @@ func mycelium_nodes_from_save(saved_nodes: Dictionary) -> void:
 func node_production_bonuses() -> Array[BigNumber]:
 	return tick_system.node_production_bonuses()
 
+## What every node produces in one tick, summed. The same figure the balance
+## chart's `production` track plots and the statistics overlay reports as the
+## run's production per tick, so the two cannot drift apart.
+func total_production() -> BigNumber:
+	var production := BigNumber.new(0.0, 0)
+	var bonuses: Array[BigNumber] = node_production_bonuses()
+	for i in nodes.mycelium_nodes.size():
+		var node: MyceliumNode = nodes.mycelium_nodes[i]
+		var count := node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
+		production = production.add(count.mul(bonuses[i]))
+	return production
+
 func handle_tick(bonuses: Array[BigNumber] = []) -> void:
 	tick_system.handle_tick(bonuses)
+	# Straight after the cascade, so the peak it records is this tick's payout
+	# rather than one an automation below has already spent into.
+	stats_system.handle_tick()
 	_achievements_dirty = true
 	# Live ticks only. A progress quest measures time the player was here for, so
 	# the offline catch-up must not walk one to its goal - same reason the spawn

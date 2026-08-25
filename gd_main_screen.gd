@@ -21,6 +21,7 @@ const OFFLINE_INCOME_SCENE := preload("res://view/offline_income/sc_offline_inco
 const ACHIEVEMENTS_SCENE := preload("res://view/achievements/sc_achievements_panel.tscn")
 const GROWTH_SCENE := preload("res://view/growth/sc_growth_panel.tscn")
 const EVENTS_SCENE := preload("res://view/events/sc_events_panel.tscn")
+const STATISTICS_SCENE := preload("res://view/statistics/sc_statistics_panel.tscn")
 const NAV_MENU_SCENE := preload("res://view/navigation/sc_nav_menu.tscn")
 
 var _offline_popup_active := false
@@ -31,6 +32,7 @@ func _ready() -> void:
 	top_bar.achievements_pressed.connect(_on_achievements_pressed)
 	top_bar.growth_pressed.connect(_on_growth_pressed)
 	top_bar.events_pressed.connect(_on_events_pressed)
+	top_bar.statistics_pressed.connect(_on_statistics_pressed)
 	nav_disc.pressed.connect(_on_nav_pressed)
 	if App.offline_income_vm:
 		App.offline_income_vm.property_changed.connect(_on_offline_income_changed)
@@ -102,6 +104,17 @@ func _on_nav_pressed() -> void:
 		return
 	var menu := nav_layer.show_popup(NAV_MENU_SCENE)
 	menu.dismissed.connect(nav_layer.clear, CONNECT_ONE_SHOT)
+
+## Same toggle and the same layer as the other three. The statistics sheet is not
+## a "what is waiting for me" answer like they are, but it is the same kind of
+## full-screen read over whatever screen is up, and stacking two of those would
+## leave the one underneath unreachable behind the other's backdrop.
+func _on_statistics_pressed() -> void:
+	if overlay_layer.has_popup():
+		overlay_layer.clear()
+		return
+	var overlay := overlay_layer.show_popup(STATISTICS_SCENE)
+	overlay.dismissed.connect(overlay_layer.clear, CONNECT_ONE_SHOT)
 
 func _show_offline_income_popup() -> void:
 	if _offline_popup_active:

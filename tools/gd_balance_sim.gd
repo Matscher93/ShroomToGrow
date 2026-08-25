@@ -529,7 +529,7 @@ static func _report_progress(path: String, tick: int, ticks: int, prestiges: int
 		"prestiges": prestiges,
 		"prestige_target": prestige_target,
 		"seconds": seconds,
-		"played": format_duration(seconds),
+		"played": TimeFormat.duration(seconds),
 	}))
 	file.close()
 	DirAccess.rename_absolute(staging, path)
@@ -767,7 +767,7 @@ static func _cheapest_locked_perk_cost(app: Node) -> BigNumber:
 ## One point on the trace. Everything unbounded is stored as log10, which is what
 ## a chart plots anyway and what keeps a late run inside a JSON number.
 static func _sample(app: Node, tick: int, seconds: float) -> Dictionary:
-	var production := _total_production(app)
+	var production: BigNumber = app.total_production()
 
 	var manual := 0
 	for node: MyceliumNode in app.nodes.mycelium_nodes:
@@ -802,64 +802,7 @@ static func _sample(app: Node, tick: int, seconds: float) -> Dictionary:
 	}
 
 
-## What every node produces in one tick, summed. The same figure the chart's
-## `production` track plots, so a counterfactual below measures exactly what the
-## chart shows rather than something adjacent to it.
-static func _total_production(app: Node) -> BigNumber:
-	var production := BigNumber.new(0.0, 0)
-	var bonuses: Array[BigNumber] = app.node_production_bonuses()
-	for i in app.nodes.mycelium_nodes.size():
-		var node: MyceliumNode = app.nodes.mycelium_nodes[i]
-		var count := node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
-		production = production.add(count.mul(bonuses[i]))
-	return production
-
-
 # ----------------------------------------------------------------- breakdown
-
-## Which stat buckets feed which resource, in the order a reader wants them.
-##
-## A stat bucket is not what anyone asks about - "what is pushing nutrients" is,
-## and three buckets answer it. This is where that question is answered, rather
-## than in the page that draws the table, because the totals below are measured
-## per resource: the probe has to know which upgrades belong together before it
-## can take them all away at once.
-##
-## `metric` says which of a probe's numbers ranks that resource. Three of them are
-## measured against what the run itself does - nutrients per tick, the seconds a
-## tick takes, the ticks between pumps. The rest get `stat`: the share of their own
-## bucket, because production per tick does not read a &"biomass_gain" upgrade at
-## all and ranking those by the production drop would rank them by zeroes.
-##
-## A stat missing here gets a resource of its own, named after the stat and ranked
-## by its bucket - a new stat in data/ turning up unranked beats it vanishing.
-const RESOURCES := [
-	{"resource": "nutrients", "metric": "production",
-		"stats": ["node_production", "potency_production", "synergy_production"]},
-	{"resource": "tick speed", "metric": "tick", "stats": ["tick_rate"]},
-	{"resource": "water", "metric": "stat", "stats": ["water_production"]},
-	{"resource": "water pump", "metric": "water", "stats": ["water_rate"]},
-	{"resource": "biomass", "metric": "stat", "stats": ["biomass_gain"]},
-	{"resource": "crystals", "metric": "stat", "stats": ["crystal_gain"]},
-	{"resource": "relics", "metric": "stat", "stats": ["relic_gain"]},
-	{"resource": "ichor", "metric": "stat", "stats": ["ichor_gain"]},
-	{"resource": "glyphs", "metric": "stat", "stats": ["glyph_gain"]},
-	{"resource": "automation", "metric": "stat", "stats": ["automation_rate"]},
-	{"resource": "missions", "metric": "stat",
-		"stats": ["mission_speed", "mission_reward", "mission_slots"]},
-	{"resource": "boosts", "metric": "stat",
-		"stats": ["boost_power", "boost_max_level", "creature_rank_cap"]},
-	{"resource": "biome points", "metric": "stat",
-		"stats": ["biome_points", "level_points"]},
-]
-
-
-## The resource a stat feeds, or one invented for a stat RESOURCES does not name.
-static func _resource_of(stat: String) -> Dictionary:
-	for group: Dictionary in RESOURCES:
-		if group["stats"].has(stat):
-			return group
-	return {"resource": stat, "metric": "stat", "stats": [stat]}
 
 ## What the six upgrade tracks are contributing right now, upgrade by upgrade.
 ##
@@ -939,7 +882,7 @@ static func _breakdown_resources(app: Node, base: Dictionary, groups: Array) -> 
 			for effect: Dictionary in upgrade["effects"]:
 				var res: String = effect["resource"]
 				if not wanted.has(res):
-					var def := _resource_of(effect["stat"])
+					var def := StatResources.resource_of(effect["stat"])
 					wanted[res] = {"metric": def["metric"], "tracks": {}}
 				var tracks: Dictionary = wanted[res]["tracks"]
 				if not tracks.has(group["track"]):
@@ -958,7 +901,7 @@ static func _breakdown_resources(app: Node, base: Dictionary, groups: Array) -> 
 					subset["buckets"].append(bucket)
 
 	var out: Array = []
-	for res: String in _resource_order(wanted.keys()):
+	for res: String in StatResources.resource_order(wanted.keys()):
 		var metric: String = wanted[res]["metric"]
 		var tracks: Dictionary = wanted[res]["tracks"]
 		var sources: Array = []
@@ -984,21 +927,6 @@ static func _breakdown_resources(app: Node, base: Dictionary, groups: Array) -> 
 			"sources": sources,
 		})
 	return out
-
-
-## The resources present, in the order RESOURCES declares them, with the ones it
-## does not name after all of them, alphabetically.
-static func _resource_order(present: Array) -> Array:
-	var out: Array = []
-	for group: Dictionary in RESOURCES:
-		if present.has(group["resource"]):
-			out.append(group["resource"])
-	var extra: Array = []
-	for res: String in present:
-		if not out.has(res):
-			extra.append(res)
-	extra.sort()
-	return out + extra
 
 
 ## What one probe is worth under `metric`: the run-level number the resource is
@@ -1048,8 +976,8 @@ static func _breakdown_upgrades(app: Node, base: Dictionary, system: UpgradeSyst
 			"stat": row["stat"],
 			# Which resource this bucket feeds, so the page groups the rows the
 			# same way the probes above measured them.
-			"resource": _resource_of(row["stat"])["resource"],
-			"op": _op_name(row["op"]),
+			"resource": StatResources.resource_of(row["stat"])["resource"],
+			"op": StatResources.op_name(row["op"]),
 			"key": row["key"],
 			# Scientific rather than a float: a COMPOUND effect at a few hundred
 			# levels is well past what a JSON number carries.
@@ -1074,7 +1002,7 @@ static func _breakdown_upgrades(app: Node, base: Dictionary, system: UpgradeSyst
 ## Where the run stands: the three things a probe below can move.
 static func _measure(app: Node) -> Dictionary:
 	return {
-		"production": _total_production(app),
+		"production": app.total_production(),
 		"tick_duration": app.tick_duration(),
 		"water_interval": app.water_pump_interval(),
 	}
@@ -1187,27 +1115,6 @@ static func _measure_buckets(app: Node, buckets: Array) -> Dictionary:
 	return out
 
 
-static func _op_name(op: int) -> String:
-	match op:
-		UpgradeEffectDef.Op.ADD: return "ADD"
-		UpgradeEffectDef.Op.INCREASED: return "INCREASED"
-		UpgradeEffectDef.Op.MORE: return "MORE"
-		_: return "?"
-
-
-## Seconds as a span someone can judge: "2h 14m" rather than 8040. Two units is
-## enough - the minutes matter next to the hours, the seconds do not.
-static func format_duration(seconds: float) -> String:
-	var total := int(round(seconds))
-	if total < 60:
-		return "%ds" % total
-	if total < 3600:
-		return "%dm %ds" % [total / 60, total % 60]
-	if total < 86400:
-		return "%dh %dm" % [total / 3600, (total % 3600) / 60]
-	return "%dd %dh" % [total / 86400, (total % 86400) / 3600]
-
-
 ## log10 of a value that may legitimately be zero, which has none. Null rather
 ## than a made-up floor, so a chart can leave the point out.
 static func _log10(value: BigNumber) -> Variant:
@@ -1235,7 +1142,7 @@ static func _build_report(app: Node, ticks: int, prestiges: int) -> Dictionary:
 			"tick_budget": ticks,
 			"prestiges": pacing["prestiges"],
 			"seconds": pacing["seconds"],
-			"played": format_duration(pacing["seconds"]),
+			"played": TimeFormat.duration(pacing["seconds"]),
 			"milestones": pacing["milestones"],
 		},
 		"errors": perks.get("errors", []),

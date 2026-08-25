@@ -15,6 +15,16 @@ var _production: ProductionSystem
 ## with three arguments.
 var _water: WaterSystem
 
+## Nutrients paid out by the most recent handle_tick(), for a caller that wants
+## the run's production per tick without recomputing the cascade - the statistics
+## overlay's peak-production record reads it once per tick.
+##
+## Only handle_tick() writes it. advance_ticks() deliberately leaves it alone: a
+## strided catch-up lands on the same state as N single ticks but never computes
+## any one tick's payout, so there is no honest value to put here and a made-up
+## one would set a peak the player never reached.
+var last_tick_gain: BigNumber = BigNumber.new(0.0, 0)
+
 func _init(nodes: Array[MyceliumNode], player_data: PlayerData,
 		production: ProductionSystem, water: WaterSystem = null) -> void:
 	_nodes = nodes
@@ -62,6 +72,7 @@ func handle_tick(bonuses: Array[BigNumber] = []) -> void:
 		else:
 			_player_data.nutrients = _player_data.nutrients.add(node_change)
 			_player_data.lifetime_nutrients = _player_data.lifetime_nutrients.add(node_change)
+			last_tick_gain = node_change
 
 ## Advances `count` ticks in one step, landing on exactly the state `count`
 ## calls to handle_tick() would have reached.

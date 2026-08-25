@@ -3,6 +3,11 @@ extends RefCounted
 ## MODEL: one node tier's live state plus its purchase rules.
 
 signal node_changed(nodes: MyceliumNode)
+## Raised by a real purchase, and only by one. Deliberately not
+## MyceliumNode.manual_nodes_changed: that also fires when a save is loaded and
+## when the prestige reset zeroes a tier, so a listener recording "when was this
+## tier first bought" would stamp both.
+signal node_bought(bought_node: MyceliumNode)
 
 var _player_data: PlayerData
 var _prestige_upgrades: UpgradeSystem
@@ -46,4 +51,5 @@ func buy_upgrade() -> bool:
 	node.manual_nodes += 1
 	# Lifetime total, unlike node.manual_nodes, which the prestige reset zeroes.
 	_player_data.lifetime_manual_nodes += 1
+	node_bought.emit(node)
 	return true

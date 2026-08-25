@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/statistics/gd_stat_row.gd" id="1_script"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="2_mono"]
+
+[node name="stat_row" type="HBoxContainer" node_paths=PackedStringArray("lbl_label", "lbl_value")]
+theme_override_constants/separation = 12
+script = ExtResource("1_script")
+lbl_label = NodePath("lbl_label")
+lbl_value = NodePath("lbl_value")
+
+[node name="lbl_label" type="Label" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Label"
+autowrap_mode = 3
+
+[node name="lbl_value" type="Label" parent="."]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_fonts/font = ExtResource("2_mono")
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.7607843, 0.94509804, 0.98039216, 1)
+text = "0"

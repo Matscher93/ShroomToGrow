@@ -6,6 +6,15 @@ extends RefCounted
 ## isolation. Perks live in their own UpgradeSystem, which this never touches:
 ## they are what the run is being traded for.
 
+## Raised at the top of prestige(), before anything is reset, carrying the
+## biomass the run is about to convert into.
+##
+## Before rather than after, because the only interesting thing about a finished
+## run is what it looked like at the end - its ticks, its nutrients, its nodes -
+## and prestige() is about to wipe every one of them. A listener handed the
+## aftermath has nothing left to record.
+signal prestiging(gain: BigNumber)
+
 ## Prestige stays hidden until this biome has been reached at least once.
 const GATE_BIOME := &"permafrost"
 
@@ -44,7 +53,9 @@ func can_prestige() -> bool:
 ## symbiosis upgrades, biome unlocks) and converts it into biomass. Perks are
 ## untouched, they persist across prestiges.
 func prestige() -> void:
-	_player_data.biomass = _player_data.biomass.add(preview_biomass_gain())
+	var gain := preview_biomass_gain()
+	prestiging.emit(gain)
+	_player_data.biomass = _player_data.biomass.add(gain)
 	_player_data.nutrients = BigNumber.from_value(1.0)
 	_player_data.water = BigNumber.from_value(0.0)
 	_player_data.tick_count = 0

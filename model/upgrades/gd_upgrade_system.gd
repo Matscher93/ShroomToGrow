@@ -232,8 +232,11 @@ func buy_with_points(id: StringName, has_point_available: bool) -> bool:
 ## already have their ScalingSourceDef and their cap in them. Level-zero upgrades
 ## are absent for free: _remember() files nothing for them.
 ##
-## For the balance tools. Nothing in the game reads it, and nothing should - it
-## walks the whole track, which is exactly what the caching here exists to avoid.
+## For the balance tools and for the statistics overlay's bonus breakdown, which
+## builds its whole list from one call per track when the panel is opened.
+##
+## Read it once per open and never anywhere near a per-frame path: it walks the
+## whole track, which is exactly what the caching here exists to avoid.
 func breakdown(ctx: ResolveContext) -> Array[Dictionary]:
 	if not _stale.is_empty():
 		_resolve_stale(ctx)
