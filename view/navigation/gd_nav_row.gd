@@ -10,9 +10,6 @@ extends PanelContainer
 signal selected(screen_type: ScreenTypes.Types)
 
 const INACTIVE_LABEL := Color(0.875, 0.933, 0.902)
-## The biome icon shaders paint their own rounded tile in box_color, so an
-## inactive row tints that tile down rather than swapping in a separate chip.
-const INACTIVE_ICON := Color(0.624, 0.714, 0.675)
 const SUBTITLE := Color(0.494, 0.576, 0.529)
 const BADGE_TEXT := Color(0.043, 0.078, 0.063)
 const INACTIVE_ROW_BG := Color(1, 1, 1, 0.035)
@@ -42,15 +39,19 @@ func set_badge(count: int) -> void:
 	panel_badge.visible = count > 0
 	lbl_badge.text = str(count)
 
-## Four cues at once, all keyed off the row's own accent: fill, border, label and
-## icon tile. One of them alone reads as decoration on a list this dense -
-## together they are the only thing saying which row is the screen you are on.
+## The icon tile always carries the destination's accent - the biome icon shaders
+## paint their own rounded tile in box_color, and that colour is how a player
+## picks a screen out of the list before reading its name.
+##
+## Which row is the screen you are on rides on the other three cues, all keyed off
+## the same accent: fill, border and label. One of them alone reads as decoration
+## on a list this dense - together they still carry the current row.
 func _paint(accent: Color, is_current: bool) -> void:
 	var row_style := get_theme_stylebox(&"panel") as StyleBoxFlat
 	row_style.bg_color = Color(accent, 0.1) if is_current else INACTIVE_ROW_BG
 	row_style.border_color = Color(accent, 0.3) if is_current else INACTIVE_ROW_BORDER
 
-	icon.set_shader_color(accent if is_current else INACTIVE_ICON)
+	icon.set_shader_color(accent)
 	lbl_name.add_theme_color_override(&"font_color", accent if is_current else INACTIVE_LABEL)
 	lbl_subtitle.add_theme_color_override(&"font_color", SUBTITLE)
 
