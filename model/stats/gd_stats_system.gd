@@ -124,12 +124,11 @@ func note_node_bought(node: MyceliumNode) -> void:
 func note_prestige(gain: BigNumber) -> void:
 	var now := _now()
 	var index := _player_data.prestige_count + 1
-	_stats.add_run({
+	var record := {
 		"index": index,
 		"started_at": _stats.run_started_at,
 		"ended_at": now,
 		"ticks": _player_data.tick_count,
-		"nutrients": _player_data.nutrients.to_save(),
 		"biomass_gained": gain.to_save(),
 		"biomass_after": _player_data.biomass.add(gain).to_save(),
 		"peak_production": _run_peak_production.to_save(),
@@ -138,7 +137,18 @@ func note_prestige(gain: BigNumber) -> void:
 		"deepest_biome": _deepest_biome(),
 		"perk_levels": _perks.total_levels(),
 		"symbiosis_levels": _symbiosis.total_levels(),
-	})
+	}
+	# Every currency's closing balance, off the same list the peaks are taken
+	# from, so a currency added there lands in the run records too instead of
+	# being remembered in one of the two places and forgotten in the other.
+	#
+	# Most of these survive the sporation - only nutrients and water are reset -
+	# so on those the number is a running total at the moment the run ended
+	# rather than what the run itself earned. Which is what a comparison across
+	# runs wants: it is the balance the next run started from.
+	for field: String in CURRENCY_FIELDS:
+		record[field] = (_player_data.get(field) as BigNumber).to_save()
+	_stats.add_run(record)
 	_stats.add_milestone(MILESTONE_PRESTIGE, str(index), now, index)
 	_stats.run_started_at = now
 	_run_peak_production = BigNumber.new(0.0, 0)

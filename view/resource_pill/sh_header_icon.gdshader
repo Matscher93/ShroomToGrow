@@ -11,6 +11,7 @@ shader_type canvas_item;
 #include "res://shaders/icons/currencies/shi_relic_icon.gdshaderinc"
 #include "res://shaders/icons/currencies/shi_ichor_icon.gdshaderinc"
 #include "res://shaders/icons/currencies/shi_glyph_icon.gdshaderinc"
+#include "res://shaders/icons/currencies/shi_fertilizer_icon.gdshaderinc"
 
 uniform vec2 rect_size;
 uniform vec4 circle_color : source_color;
@@ -27,6 +28,7 @@ float get_icon(vec2 space) {
 	if (icon_id == 4) return relic_icon(space, icon_scale);
 	if (icon_id == 5) return ichor_icon(space, icon_scale);
 	if (icon_id == 6) return glyph_icon(space, icon_scale);
+	if (icon_id == 7) return fertilizer_icon(space, icon_scale);
 	return 0.0;
 }
 

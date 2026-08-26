@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="Currencies" format=3]
+
+[ext_resource type="Script" path="res://model/currencies/gd_currencies.gd" id="1_script"]
+[ext_resource type="Resource" uid="uid://cu7pu8ny7a7lb" path="res://data/currencies/res_nutrients_def.tres" id="2_nutrients"]
+[ext_resource type="Resource" uid="uid://byespeth6sl5t" path="res://data/currencies/res_water_def.tres" id="3_water"]
+[ext_resource type="Resource" uid="uid://cro3wpo0rxwsk" path="res://data/currencies/res_biomass_def.tres" id="4_biomass"]
+[ext_resource type="Resource" path="res://data/currencies/res_crystals_def.tres" id="5_crystals"]
+[ext_resource type="Resource" path="res://data/currencies/res_relics_def.tres" id="6_relics"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="7_ichor"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="8_glyphs"]
+[ext_resource type="Resource" path="res://data/currencies/res_fertilizer_def.tres" id="9_fertilizer"]
+
+[resource]
+script = ExtResource("1_script")
+currencies = {
+0: ExtResource("2_nutrients"),
+1: ExtResource("3_water"),
+2: ExtResource("4_biomass"),
+3: ExtResource("5_crystals"),
+4: ExtResource("6_relics"),
+5: ExtResource("7_ichor"),
+6: ExtResource("8_glyphs"),
+7: ExtResource("9_fertilizer")
+}

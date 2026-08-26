@@ -3,7 +3,14 @@ extends RefCounted
 
 ## Append only: the ordinal is the icon_id shader parameter on the resource pill
 ## and the value serialised into every authored .tres that names a currency.
-enum Types {NUTRIENTS, WATER, BIOMASS, CRYSTALS, RELICS, ICHOR, GLYPHS}
+##
+## Fertilizer sat outside this for a long time, on the grounds that
+## UpgradeSystem.buy() spends a PlayerData field rather than a currency and that
+## nothing produces fertilizer or shows it in the resource bar - both still true.
+## What it also had was a colour and an icon of its own that no def carried, so
+## every screen painting it hardcoded the same green. It is a currency in every
+## way that shows on screen, so it is one here.
+enum Types {NUTRIENTS, WATER, BIOMASS, CRYSTALS, RELICS, ICHOR, GLYPHS, FERTILIZER}
 
 ## The PlayerData field backing a currency, for get()/set() reflection.
 static func field_for(currency: Types) -> StringName:
@@ -20,6 +27,8 @@ static func field_for(currency: Types) -> StringName:
 			return &"ichor"
 		Types.GLYPHS:
 			return &"glyphs"
+		Types.FERTILIZER:
+			return &"fertilizer"
 		_:
 			return &"nutrients"
 
@@ -36,6 +45,7 @@ const LIFETIME_FIELDS := {
 	Types.RELICS: &"lifetime_relics",
 	Types.ICHOR: &"lifetime_ichor",
 	Types.GLYPHS: &"lifetime_glyphs",
+	Types.FERTILIZER: &"lifetime_fertilizer",
 }
 
 static func lifetime_field_for(currency: Types) -> StringName:

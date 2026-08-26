@@ -68,13 +68,37 @@ func test_a_stat_no_resource_names_gets_one_of_its_own() -> void:
 	assert_int(groups.size()).is_equal(1)
 	assert_str(str(groups[0]["resource"])).is_equal("invented_stat")
 
-func test_the_group_total_is_the_resolved_global_multiplier() -> void:
+func test_the_group_total_is_the_resolved_multiplier() -> void:
 	_level(_symbiosis, _def(&"a", "A", &"node_production", UpgradeEffectDef.Op.INCREASED, 0.25), 2)
 	var groups := BonusBreakdown.build(_production)
-	var total: BigNumber = groups[0]["global_total"]
+	var total: BigNumber = groups[0]["total"]
 	# Measured through stack() rather than summed from the rows, so it is exactly
 	# what the game reads: 1.0 * (1 + 0.25*2).
 	assert_str(total.to_display(2)).is_equal("1.50")
+	assert_bool(groups[0]["additive"]).is_false()
+	assert_str(str(groups[0]["total_scope"])).is_equal("")
+
+## A node-scoped effect writes a bucket no global read passes through, so a total
+## resolved globally left the crystal Nutrient Flow boost - authored against node
+## 0 - out of a header printed above the very row listing it.
+func test_the_group_total_reaches_a_node_scoped_effect() -> void:
+	var scoped := _def(&"boost", "Boost", &"node_production", UpgradeEffectDef.Op.MORE, 3.0)
+	scoped.effects[0].scope = UpgradeEffectDef.Scope.NODE
+	scoped.effects[0].target = &"0"
+	_level(_symbiosis, scoped, 1)
+
+	var groups := BonusBreakdown.build(_production)
+	assert_str(str(groups[0]["total_scope"])).is_equal("n:0")
+	# 1.0 * (1 + 3.0), which a global resolve never sees at all.
+	assert_str((groups[0]["total"] as BigNumber).to_display(2)).is_equal("4.00")
+
+## Tick speed is seconds off an interval, authored as ADDs with a negative
+## per_level. There is no multiplier in it and 1.0 is not its base.
+func test_an_all_add_resource_totals_as_an_amount_from_zero() -> void:
+	_level(_symbiosis, _def(&"t", "T", &"tick_rate", UpgradeEffectDef.Op.ADD, -0.1), 3)
+	var groups := BonusBreakdown.build(_production)
+	assert_bool(groups[0]["additive"]).is_true()
+	assert_str((groups[0]["total"] as BigNumber).to_display(2)).is_equal("-0.30")
 
 func test_the_heaviest_op_sorts_first_within_a_track() -> void:
 	_level(_symbiosis, _def(&"add", "Add", &"node_production", UpgradeEffectDef.Op.ADD, 5.0), 1)

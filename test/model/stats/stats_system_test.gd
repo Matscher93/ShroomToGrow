@@ -129,6 +129,26 @@ func test_prestige_records_the_run_from_pre_reset_state() -> void:
 	assert_str(BigNumber.from_save(run["biomass_gained"]).to_display(0)).is_equal("12")
 	assert_str(BigNumber.from_save(run["peak_production"]).to_display(0)).is_equal("80")
 
+## The runs tab lists water, crystals and the three Ruins currencies beside the
+## nutrients, and a record with no key for one of them prints "-" rather than a
+## zero - so every field in the list has to actually be written, not just the two
+## the tab started with.
+func test_prestige_records_every_currency_balance() -> void:
+	_player.nutrients = BigNumber.from_value(500.0)
+	_player.water = BigNumber.from_value(40.0)
+	_player.crystals = BigNumber.from_value(7.0)
+	_player.relics = BigNumber.from_value(3.0)
+
+	_system.note_prestige(BigNumber.from_value(1.0))
+
+	var run: Dictionary = _stats.runs[0]
+	for field: String in StatsSystem.CURRENCY_FIELDS:
+		assert_bool(run.has(field)).override_failure_message(
+			"run record is missing %s" % field).is_true()
+	assert_str(BigNumber.from_save(run["water"]).to_display(0)).is_equal("40")
+	assert_str(BigNumber.from_save(run["crystals"]).to_display(0)).is_equal("7")
+	assert_str(BigNumber.from_save(run["relics"]).to_display(0)).is_equal("3")
+
 func test_prestige_restarts_the_run_clock_and_the_run_peak() -> void:
 	_tick_system.last_tick_gain = BigNumber.from_value(80.0)
 	_system.handle_tick()

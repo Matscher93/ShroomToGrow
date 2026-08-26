@@ -19,7 +19,8 @@ extends RefCounted
 ##
 ## [{
 ##   "resource": String, "stats": Array,     # the buckets this resource is made of
-##   "global_total": BigNumber,              # see below
+##   "additive": bool,                       # see below
+##   "total": BigNumber, "total_scope": String,
 ##   "upgrade_count": int,
 ##   "sources": [{ "track": String, "upgrades": [{
 ##       "id": String, "name": String, "level": int,
@@ -27,12 +28,24 @@ extends RefCounted
 ##   }]}],
 ## }]
 ##
-## `global_total` is the resource's first stat resolved through every track from
-## a base of 1.0 - the real multiplier the game reads, memoised, not a sum of the
-## rows. It is the GLOBAL bucket only: an effect scoped to one node or one tag
-## writes a bucket of its own that no global read ever passes through, so those
-## rows are listed but are not in the header number. A view showing the header
-## has to say "global" for it to be true.
+## `total` is measured through stack() rather than summed from the rows, so it is
+## exactly what the game reads, memoised. Two things decide what it means:
+##
+## `additive` is true when every effect on the resource is an ADD, which makes it
+## an amount rather than a multiplier - tick speed and the water pump are both
+## authored as seconds subtracted from an interval, so they resolve from a base
+## of zero and 1.0 is not the base of anything. Everything else resolves from 1.0
+## and multiplies, and where a resource is several buckets the buckets chain: a
+## node's nutrient output is its potency multiplier times its synergy multiplier
+## with the node_production multipliers stacked over both, which is what
+## ProductionSystem.node_production_bonus() spells out.
+##
+## `total_scope` is the bucket key `total` was resolved at, "" for global. Scoped
+## effects are the reason it exists: the crystal Nutrient Flow boost is authored
+## against node 0, so no global read passes through it at all, and a header
+## resolved globally sat orders of magnitude below rows listed underneath it. The
+## scope reported is whichever one resolves largest - the best a single target
+## actually gets - so the header is never smaller than the rows explaining it.
 static func build(production: ProductionSystem) -> Array:
 	var rows_by_track: Dictionary = production.breakdown()
 
@@ -77,14 +90,89 @@ static func build(production: ProductionSystem) -> Array:
 			upgrades.sort_custom(_heavier_first)
 			total += upgrades.size()
 			sources.append({"track": track, "upgrades": upgrades})
+		var additive := _is_additive(sources)
+		var scope := _best_scope(production, stats, sources, additive)
 		out.append({
 			"resource": resource,
 			"stats": stats,
-			"global_total": production.stack(StringName(stats[0]), BigNumber.from_value(1.0)),
+			"additive": additive,
+			"total": _total(production, stats, additive, scope),
+			"total_scope": scope,
 			"upgrade_count": total,
 			"sources": sources,
 		})
 	return out
+
+## True when nothing here multiplies anything - every effect is an ADD.
+##
+## Read off the rows rather than off a field somebody has to remember to author:
+## a stat is additive because of how its effects are written, and asking them is
+## the only answer that cannot drift from them.
+static func _is_additive(sources: Array) -> bool:
+	for source: Dictionary in sources:
+		for upgrade: Dictionary in source["upgrades"]:
+			for effect: Dictionary in upgrade["effects"]:
+				if int(effect["op"]) != UpgradeEffectDef.Op.ADD:
+					return false
+	return true
+
+## The resource's stats resolved together at one scope - the product of them for
+## a multiplicative resource, the sum for an additive one.
+static func _total(production: ProductionSystem, stats: Array, additive: bool,
+		scope: String) -> BigNumber:
+	var target := _target_of(scope)
+	if additive:
+		var sum := BigNumber.new(0.0, 0)
+		for stat: String in stats:
+			sum = sum.add(production.stack(StringName(stat), BigNumber.new(0.0, 0), target))
+		return sum
+	var product := BigNumber.from_value(1.0)
+	for stat: String in stats:
+		product = product.mul(production.stack(StringName(stat),
+			BigNumber.from_value(1.0), target))
+	return product
+
+## Whichever scope the rows write into resolves largest, "" when that is global.
+##
+## Node buckets only. A tag bucket cannot be reached through stack() at all - it
+## forwards its target as modify()'s node_id and always passes an empty tag list
+## - and nothing in data/ authors a tag-scoped effect today, so the gap costs
+## nothing until one does.
+static func _best_scope(production: ProductionSystem, stats: Array, sources: Array,
+		additive: bool) -> String:
+	var best := ""
+	var best_size := _magnitude(_total(production, stats, additive, ""))
+	for key: String in _scope_keys(sources):
+		if not key.begins_with("n:"):
+			continue
+		var size := _magnitude(_total(production, stats, additive, key))
+		if size.gt(best_size):
+			best = key
+			best_size = size
+	return best
+
+## Every bucket key the resource's rows write into.
+static func _scope_keys(sources: Array) -> Array:
+	var keys: Array = []
+	for source: Dictionary in sources:
+		for upgrade: Dictionary in source["upgrades"]:
+			for effect: Dictionary in upgrade["effects"]:
+				var key := String(effect["key"])
+				if not keys.has(key):
+					keys.append(key)
+	return keys
+
+## A bucket key as the target stack() takes: "n:7" is how the bucket is filed,
+## &"7" is the node it belongs to.
+static func _target_of(scope: String) -> StringName:
+	if scope.begins_with("n:"):
+		return StringName(scope.substr(2))
+	return &""
+
+## Size without sign, so a tick-speed total of -12.7s ranks as bigger than -3.0s
+## rather than smaller.
+static func _magnitude(value: BigNumber) -> BigNumber:
+	return BigNumber.new(absf(value.mantissa), value.exponent)
 
 ## Biggest first, within one track and one resource. MORE above INCREASED above
 ## ADD, because that is the order they compound in and the order the ops rank in

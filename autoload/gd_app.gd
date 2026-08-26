@@ -17,6 +17,7 @@ var screens_data: ScreensData
 var screens_vm: ScreensViewModel
 var navigation_vm: NavigationViewModel
 var screens := load("res://data/screens/all_screens.tres") as Screens
+var currencies := load("res://data/currencies/all_currencies.tres") as Currencies
 
 var offline_income_vm: OfflineIncomeViewModel
 var tick_timer: Timer

@@ -19,6 +19,20 @@ var _id: StringName
 func _ready() -> void:
 	btn_buy.pressed.connect(_on_buy_pressed)
 
+## Fertilizer's own colour, pushed in by the panel from the CurrencyDef rather
+## than read here: the row is a snapshot binding with no App access of its own,
+## and every row in the list wears the same one.
+##
+## The three alphas are the weights the scene authored - a wash for the row, a
+## little more for the level chip, full for its text.
+func set_accent(accent: Color) -> void:
+	var row_style := get_theme_stylebox(&"panel") as StyleBoxFlat
+	row_style.bg_color = Color(accent, 0.05)
+	row_style.border_color = Color(accent, 0.16)
+	var level_style := lbl_level.get_parent().get_theme_stylebox(&"panel") as StyleBoxFlat
+	level_style.bg_color = Color(accent, 0.12)
+	lbl_level.label_settings.font_color = accent
+
 func bind(row: FertilizerRow) -> void:
 	_id = row.id
 	lbl_label.text = row.label

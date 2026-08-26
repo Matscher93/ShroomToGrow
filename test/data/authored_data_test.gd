@@ -1108,3 +1108,40 @@ func test_the_ruins_ladder_has_both_a_control_and_a_colony_half() -> void:
 			control += 1
 	assert_int(control).override_failure_message("No Ruins boost works the board itself.").is_greater(0)
 	assert_int(general).override_failure_message("No Ruins boost reaches outside the Ruins.").is_greater(0)
+
+# ---------------------------------------------------------------- currencies
+
+## The registry is what makes a CurrencyDef reachable at all. Before it existed a
+## def was only findable through whichever ScreenDefinition listed it, which is
+## why fertilizer - never in the resource bar, so on no screen - had no def and
+## every screen painting it hardcoded the same green instead.
+##
+## A currency added to the enum without an entry here goes silently colourless,
+## and CurrencyTypes.field_for() hands back nutrients, so the whole enum is
+## walked rather than a list that could drift from it.
+func test_every_currency_type_has_a_def_filed_under_itself() -> void:
+	for type: CurrencyTypes.Types in CurrencyTypes.Types.values():
+		var def: CurrencyDef = App.currencies.currencies.get(type)
+		assert_object(def).override_failure_message(
+			"No CurrencyDef registered for CurrencyTypes.Types ordinal %d." % type).is_not_null()
+		if def == null:
+			continue
+		assert_int(int(def.currency_type)).override_failure_message(
+			"'%s' is filed in all_currencies.tres under ordinal %d but declares %d." \
+				% [def.currency_name, type, def.currency_type]).is_equal(int(type))
+		assert_str(def.currency_name).override_failure_message(
+			"CurrencyDef ordinal %d has no name." % type).is_not_empty()
+
+## field_for() falls through to nutrients, so a currency added without a case
+## reads and writes the wrong PlayerData balance rather than failing.
+func test_every_currency_type_maps_to_its_own_player_data_field() -> void:
+	var seen := {}
+	var player := PlayerData.new()
+	for type: CurrencyTypes.Types in CurrencyTypes.Types.values():
+		var field := CurrencyTypes.field_for(type)
+		assert_bool(seen.has(field)).override_failure_message(
+			"CurrencyTypes ordinal %d shares the field '%s' with an earlier one - " \
+				% [type, field] + "field_for() is missing a case for it.").is_false()
+		seen[field] = true
+		assert_bool(player.get(field) is BigNumber).override_failure_message(
+			"PlayerData has no BigNumber field '%s'." % field).is_true()

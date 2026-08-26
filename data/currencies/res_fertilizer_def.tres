@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CurrencyDef" format=3]
+
+[ext_resource type="Script" uid="uid://d285gd4vuvyo4" path="res://model/currencies/gd_currency_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+currency_type = 7
+currency_name = "Fertilizer"
+main_color = Color(0.56078434, 0.8392157, 0.41568628, 1)
+label_color = Color(0.75803924, 0.91156864, 0.6786432, 1)
+currency_color = Color(0.8766275, 0.9549804, 0.8363921, 1)
+metadata/_custom_type_script = "uid://d285gd4vuvyo4"

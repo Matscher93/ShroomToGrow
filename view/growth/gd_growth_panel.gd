@@ -72,15 +72,31 @@ func _build_rows() -> void:
 		var row := lp_row_scene.instantiate()
 		vbox_lp_rows.add_child(row)
 		row.invest_requested.connect(_on_invest_requested)
+	# Painted from the CurrencyDef rather than from the green each of these
+	# scenes used to hardcode. Fertilizer got a def of its own precisely because
+	# it was the one currency whose colour lived in whichever scene happened to
+	# draw it - the values still in sc_growth_panel.tscn and
+	# sc_growth_fert_row.tscn are the editor's preview, overwritten here.
+	var accent := _fertilizer_color()
+	lbl_fert_balance.label_settings.font_color = accent
 	for _i in _vm.fert_rows.size():
 		var fert_row := fert_row_scene.instantiate()
 		vbox_fert_rows.add_child(fert_row)
+		fert_row.set_accent(accent)
 		fert_row.buy_requested.connect(_on_fert_buy_requested)
 	for _i in _vm.daily_rows.size():
 		var chip := daily_chip_scene.instantiate()
 		grid_daily.add_child(chip)
 		chip.claim_requested.connect(_on_claim_requested)
 	_refresh_rows()
+
+## Static registry read of a field fixed for the def's lifetime, which is the
+## case the ViewModel rule carves out. Falls back to what the scenes already
+## carry, so a missing def leaves the sheet looking as it always has rather than
+## painting it black.
+func _fertilizer_color() -> Color:
+	var def: CurrencyDef = App.currencies.currencies.get(CurrencyTypes.Types.FERTILIZER)
+	return def.main_color if def else lbl_fert_balance.label_settings.font_color
 
 func _refresh() -> void:
 	lbl_level.text = _vm.level_text

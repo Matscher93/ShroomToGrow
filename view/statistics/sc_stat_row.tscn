@@ -2,16 +2,34 @@
 
 [ext_resource type="Script" path="res://view/statistics/gd_stat_row.gd" id="1_script"]
 [ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="2_mono"]
+[ext_resource type="Shader" uid="uid://ctcrd8ow0qv01" path="res://view/icons/sh_stat_icon.gdshader" id="3_stat_icon"]
 
-[node name="stat_row" type="HBoxContainer" node_paths=PackedStringArray("lbl_label", "lbl_value")]
-theme_override_constants/separation = 12
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_icon"]
+resource_local_to_scene = true
+shader = ExtResource("3_stat_icon")
+shader_parameter/icon_color = Color(0.36078432, 0.78431374, 0.9019608, 1)
+shader_parameter/icon_scale = 1.0
+shader_parameter/icon_id = 0
+
+[node name="stat_row" type="HBoxContainer" node_paths=PackedStringArray("icon", "lbl_label", "lbl_value")]
+theme_override_constants/separation = 10
 script = ExtResource("1_script")
+icon = NodePath("icon")
 lbl_label = NodePath("lbl_label")
 lbl_value = NodePath("lbl_value")
+
+[node name="icon" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_icon")
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 2
 
 [node name="lbl_label" type="Label" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
 text = "Label"
 autowrap_mode = 3
 

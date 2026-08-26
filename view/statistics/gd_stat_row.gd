@@ -1,16 +1,20 @@
 extends HBoxContainer
-## VIEW: one line of the statistics overlay - a label on the left, a value on the
-## right, or a section heading with no value at all.
+## VIEW: one line of the statistics overlay - an icon, a label on the left, a
+## value on the right, or a section heading with no value at all.
 ##
-## Three looks rather than three scenes: every list in the overlay is the same
-## label/value pair, and the records table, a run's fields, a track heading and an
-## upgrade's effect lines differ only in weight. A scene each would be four copies
-## of two Labels in an HBoxContainer.
+## Two looks rather than two scenes: the records table, a run's fields and a
+## bonus card's upgrades are the same label/value pair and differ only in weight.
+## A scene each would be three copies of two Labels in an HBoxContainer.
 
-## Section headings are dimmer and quieter than the rows under them, matching the
-## caption colour the rest of the game's sheets use.
-const HEADER_COLOR := Color(0.43529412, 0.52156866, 0.47843137, 1)
+## The bonus tab's upgrade rows sit two levels in - inside a track group, inside
+## a card whose title is 14 - so they step down from the 13 the scene authors.
+##
+## The scene has to author a size at all for the same reason: with no override a
+## Label takes the theme's 16, and a levelled upgrade printed larger than the
+## resource it belongs to, which is exactly backwards.
+const COMPACT_FONT_SIZE := 12
 
+@export var icon: ColorRect
 @export var lbl_label: Label
 @export var lbl_value: Label
 
@@ -19,14 +23,30 @@ func set_row(label: String, value: String) -> void:
 	lbl_value.text = value
 	lbl_value.visible = not value.is_empty()
 
-## Dimmed, for the lines that explain a row above them rather than being one -
-## an upgrade's individual effects, a milestone's caption.
-func set_muted(muted: bool) -> void:
-	modulate = Color(1, 1, 1, 0.65) if muted else Color(1, 1, 1, 1)
+func set_compact() -> void:
+	lbl_label.add_theme_font_size_override(&"font_size", COMPACT_FONT_SIZE)
+	lbl_value.add_theme_font_size_override(&"font_size", COMPACT_FONT_SIZE)
 
-## An all-caps heading with no value beside it, for the track groupings inside a
-## bonus breakdown.
-func set_header(text: String) -> void:
-	set_row(text.to_upper(), "")
-	lbl_label.add_theme_font_size_override(&"font_size", 11)
-	lbl_label.add_theme_color_override(&"font_color", HEADER_COLOR)
+## `color` is for the rows that are about one place rather than about a number -
+## a run's deepest biome takes that biome's own colour, the way the timeline's
+## milestone tiles do.
+func set_icon(id: StatIcons.Icon, color: Color = StatIcons.ROW_COLOR) -> void:
+	_paint_icon(id, color)
+
+## Blanked rather than hidden, and blanked through the shader rather than through
+## modulate.
+##
+## Hidden would collapse the rect out of the HBoxContainer, and the effect lines
+## under an upgrade have to keep the indent of the rows they explain. Modulate
+## would do nothing at all: these icon shaders write COLOR outright instead of
+## multiplying the incoming vertex colour, so the only alpha that reaches the
+## screen is the one in icon_color.
+func clear_icon() -> void:
+	_paint_icon(StatIcons.Icon.NUTRIENTS, Color(StatIcons.ROW_COLOR, 0.0))
+
+func _paint_icon(id: StatIcons.Icon, color: Color) -> void:
+	var shader_material := icon.material as ShaderMaterial
+	if not shader_material:
+		return
+	shader_material.set_shader_parameter(&"icon_id", int(id))
+	shader_material.set_shader_parameter(&"icon_color", color)

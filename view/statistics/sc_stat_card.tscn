@@ -3,6 +3,10 @@
 [ext_resource type="Script" path="res://view/statistics/gd_stat_card.gd" id="1_script"]
 [ext_resource type="FontFile" uid="uid://bfcncplwx4kw5" path="res://fonts/Space_Grotesk/SpaceGrotesk-Bold.ttf" id="2_bold"]
 [ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="3_mono"]
+[ext_resource type="Shader" uid="uid://ctcrd8ow0qv01" path="res://view/icons/sh_stat_icon.gdshader" id="4_stat_icon"]
+[ext_resource type="Shader" uid="uid://suf78e2uwfmi" path="res://shaders/icons/biomes/sh_forest.gdshader" id="5_biome_icon"]
+[ext_resource type="Shader" uid="uid://b2och7dhkl2si" path="res://shaders/icons/sh_expansion_arrow.gdshader" id="6_arrow"]
+[ext_resource type="Script" path="res://view/base_views/gd_base_color_rect.gd" id="7_colorrect"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
 content_margin_left = 12.0
@@ -17,45 +21,127 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="stat_card" type="PanelContainer" node_paths=PackedStringArray("lbl_title", "lbl_meta", "lbl_caption", "rows")]
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_press"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_icon"]
+resource_local_to_scene = true
+shader = ExtResource("4_stat_icon")
+shader_parameter/icon_color = Color(0.36078432, 0.78431374, 0.9019608, 1)
+shader_parameter/icon_scale = 1.0
+shader_parameter/icon_id = 0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_biome"]
+resource_local_to_scene = true
+shader = ExtResource("5_biome_icon")
+shader_parameter/rect_size = Vector2(26, 26)
+shader_parameter/box_color = Color(0.36078432, 0.78431374, 0.9019608, 1)
+shader_parameter/trunk_color = Color(0.3321732, 0.19756943, 0.089644365, 1)
+shader_parameter/leaves_color = Color(1, 1, 1, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 9.0
+shader_parameter/highlight_radius = 0.7
+shader_parameter/higlight_offset = Vector2(0, 0.5)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_arrow"]
+resource_local_to_scene = true
+shader = ExtResource("6_arrow")
+shader_parameter/radius = 0.5
+
+[node name="stat_card" type="PanelContainer" node_paths=PackedStringArray("icon", "biome_icon", "arrow", "btn_header", "lbl_title", "lbl_meta", "lbl_caption", "rows")]
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("1_script")
-lbl_title = NodePath("VBoxContainer/header/lbl_title")
-lbl_meta = NodePath("VBoxContainer/header/lbl_meta")
-lbl_caption = NodePath("VBoxContainer/lbl_caption")
+icon = NodePath("VBoxContainer/header_press/header_body/header/icon")
+biome_icon = NodePath("VBoxContainer/header_press/header_body/header/biome_icon")
+arrow = NodePath("VBoxContainer/header_press/header_body/header/arrow")
+btn_header = NodePath("VBoxContainer/header_press/btn_header")
+lbl_title = NodePath("VBoxContainer/header_press/header_body/header/lbl_title")
+lbl_meta = NodePath("VBoxContainer/header_press/header_body/header/lbl_meta")
+lbl_caption = NodePath("VBoxContainer/header_press/header_body/lbl_caption")
 rows = NodePath("VBoxContainer/rows")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="header" type="HBoxContainer" parent="VBoxContainer"]
+[node name="header_press" type="PanelContainer" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 12
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_press")
 
-[node name="lbl_title" type="Label" parent="VBoxContainer/header"]
+[node name="header_body" type="VBoxContainer" parent="VBoxContainer/header_press"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="header" type="HBoxContainer" parent="VBoxContainer/header_press/header_body"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="icon" type="ColorRect" parent="VBoxContainer/header_press/header_body/header"]
+material = SubResource("ShaderMaterial_icon")
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="biome_icon" type="ColorRect" parent="VBoxContainer/header_press/header_body/header"]
+material = SubResource("ShaderMaterial_biome")
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("7_colorrect")
+color_param = "box_color"
+
+[node name="lbl_title" type="Label" parent="VBoxContainer/header_press/header_body/header"]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 2
 theme_override_fonts/font = ExtResource("2_bold")
 theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0.9411765, 0.9647059, 0.9254902, 1)
 text = "Title"
 autowrap_mode = 3
 
-[node name="lbl_meta" type="Label" parent="VBoxContainer/header"]
+[node name="lbl_meta" type="Label" parent="VBoxContainer/header_press/header_body/header"]
 layout_mode = 2
 size_flags_vertical = 4
+mouse_filter = 2
 theme_override_fonts/font = ExtResource("3_mono")
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.56078434, 0.7019608, 0.6509804, 1)
 text = "meta"
 
-[node name="lbl_caption" type="Label" parent="VBoxContainer"]
+[node name="arrow" type="ColorRect" parent="VBoxContainer/header_press/header_body/header"]
+material = SubResource("ShaderMaterial_arrow")
+visible = false
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+offset_transform_enabled = true
+offset_transform_pivot = Vector2(0.5, 0.5)
+mouse_filter = 2
+
+[node name="lbl_caption" type="Label" parent="VBoxContainer/header_press/header_body"]
 modulate = Color(1, 1, 1, 0.65)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+mouse_filter = 2
+theme_override_font_sizes/font_size = 11
 text = "caption"
 autowrap_mode = 3
+
+[node name="btn_header" type="Button" parent="VBoxContainer/header_press"]
+visible = false
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/normal = SubResource("StyleBoxEmpty_press")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_press")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_press")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_press")
 
 [node name="rows" type="VBoxContainer" parent="VBoxContainer"]
 layout_mode = 2

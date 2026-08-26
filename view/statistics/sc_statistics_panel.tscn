@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://view/statistics/gd_statistics_panel.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://view/statistics/sc_stat_row.tscn" id="2_stat_row"]
 [ext_resource type="PackedScene" path="res://view/statistics/sc_stat_card.tscn" id="3_stat_card"]
+[ext_resource type="PackedScene" path="res://view/statistics/sc_stat_group.tscn" id="6_stat_group"]
 [ext_resource type="FontFile" uid="uid://bfcncplwx4kw5" path="res://fonts/Space_Grotesk/SpaceGrotesk-Bold.ttf" id="4_title_font"]
 [ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="5_touch_scroll"]
 
@@ -65,6 +66,7 @@ scroll = NodePath("VBoxContainer/sheet/MarginContainer/VBoxContainer/ScrollConta
 vbox_content = NodePath("VBoxContainer/sheet/MarginContainer/VBoxContainer/ScrollContainer/content_margin/vbox_content")
 stat_row_scene = ExtResource("2_stat_row")
 stat_card_scene = ExtResource("3_stat_card")
+stat_group_scene = ExtResource("6_stat_group")
 style_tab_on = SubResource("StyleBoxFlat_tab_on")
 style_tab_off = SubResource("StyleBoxFlat_tab_off")
 

@@ -1,0 +1,73 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/statistics/gd_stat_group.gd" id="1_script"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="2_mono"]
+[ext_resource type="FontFile" uid="uid://bfcncplwx4kw5" path="res://fonts/Space_Grotesk/SpaceGrotesk-Bold.ttf" id="4_bold"]
+[ext_resource type="Shader" uid="uid://b2och7dhkl2si" path="res://shaders/icons/sh_expansion_arrow.gdshader" id="3_arrow"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_press"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_arrow"]
+resource_local_to_scene = true
+shader = ExtResource("3_arrow")
+shader_parameter/radius = 0.5
+
+[node name="stat_group" type="VBoxContainer" node_paths=PackedStringArray("arrow", "btn_header", "lbl_track", "lbl_value", "rows")]
+theme_override_constants/separation = 2
+script = ExtResource("1_script")
+arrow = NodePath("header_press/header/arrow")
+btn_header = NodePath("header_press/btn_header")
+lbl_track = NodePath("header_press/header/lbl_track")
+lbl_value = NodePath("header_press/header/lbl_value")
+rows = NodePath("rows")
+
+[node name="header_press" type="PanelContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_press")
+
+[node name="header" type="HBoxContainer" parent="header_press"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="arrow" type="ColorRect" parent="header_press/header"]
+material = SubResource("ShaderMaterial_arrow")
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+offset_transform_enabled = true
+offset_transform_pivot = Vector2(0.5, 0.5)
+mouse_filter = 2
+
+[node name="lbl_track" type="Label" parent="header_press/header"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_fonts/font = ExtResource("4_bold")
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.43529412, 0.52156866, 0.47843137, 1)
+text = "TRACK"
+autowrap_mode = 3
+
+[node name="lbl_value" type="Label" parent="header_press/header"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_fonts/font = ExtResource("2_mono")
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.56078434, 0.7019608, 0.6509804, 1)
+text = "x1"
+
+[node name="btn_header" type="Button" parent="header_press"]
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/normal = SubResource("StyleBoxEmpty_press")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_press")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_press")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_press")
+
+[node name="rows" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 2
