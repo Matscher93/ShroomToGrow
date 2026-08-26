@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://p7c3cm6dxbjy" path="res://view/offline_income/gd_general_panel_background.gd" id="8_6hxqy"]
 [ext_resource type="Shader" uid="uid://dnsivvo2gt6vf" path="res://view/prestige/sh_web_fade.gdshader" id="9_webfade"]
 [ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="10_hold_repeat"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="11_num_font"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lxikg"]
 
@@ -218,6 +219,7 @@ autowrap_mode = 3
 
 [node name="DetailLevel" type="Label" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow" unique_id=1713716696]
 layout_mode = 2
+theme_override_fonts/font = ExtResource("11_num_font")
 text = "0/5"
 horizontal_alignment = 2
 

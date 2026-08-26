@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://view/boosts/gd_boost_card.gd" id="1_script"]
 [ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="2_hold_repeat"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="3_num_font"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_boost_card"]
 content_margin_left = 12.0
@@ -43,6 +44,7 @@ text = "Boost"
 [node name="lbl_bonus" type="Label" parent="VBoxContainer/header"]
 modulate = Color(0.7607843, 0.94509804, 0.98039216, 1)
 layout_mode = 2
+theme_override_fonts/font = ExtResource("3_num_font")
 text = "x1.00"
 
 [node name="lbl_description" type="Label" parent="VBoxContainer"]

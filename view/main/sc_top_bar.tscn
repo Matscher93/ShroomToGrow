@@ -8,6 +8,7 @@
 [ext_resource type="Shader" uid="uid://b4hlda7wef5eg" path="res://shaders/shared/sh_notification_indicator.gdshader" id="6_notification"]
 [ext_resource type="Shader" path="res://shaders/icons/sh_event_icon.gdshader" id="7_event_icon"]
 [ext_resource type="Shader" path="res://shaders/icons/sh_statistics_icon.gdshader" id="8_statistics_icon"]
+[ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="9_num_font"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_top_bar"]
 
@@ -115,6 +116,7 @@ corner_radius_bottom_right = 9
 corner_radius_bottom_left = 9
 
 [sub_resource type="LabelSettings" id="LabelSettings_events_badge"]
+font = ExtResource("9_num_font")
 font_size = 10
 font_color = Color(0.039215688, 0.09019608, 0.023529412, 1)
 
