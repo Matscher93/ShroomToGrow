@@ -7,7 +7,7 @@
 script = ExtResource("1_script")
 key = &"ruins"
 display_name = "The Ruins"
-description = "Take the things that live here, and send them back down for what is left"
+description = "Send captured creatures delving"
 screen_type = 5
 xp_source = 5
 xp_label = "missions completed"

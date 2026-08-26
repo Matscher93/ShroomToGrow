@@ -162,7 +162,9 @@ disabled_text_color = Color(0.24, 0.24, 0.24, 1)
 layout_mode = 2
 size_flags_vertical = 8
 mouse_filter = 2
-theme_override_constants/margin_bottom = 118
+theme_override_constants/margin_left = 99
+theme_override_constants/margin_right = 11
+theme_override_constants/margin_bottom = 12
 
 [node name="PanelContainer_Info2" type="PanelContainer" parent="InfoAnchor" unique_id=187074852]
 material = SubResource("ShaderMaterial_lj0vt")
@@ -230,4 +232,4 @@ disabled_text_color = Color(0.24, 0.24, 0.24, 1)
 [node name="button" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton/MarginContainer" index="0"]
 script = ExtResource("10_hold_repeat")
 
-[editable path="PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton"]
+[editable path="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton"]
