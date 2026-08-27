@@ -10,9 +10,16 @@
  *   path_cost    what maxing everything from the core down to it costs, which is
  *                the real price of reaching a deep perk
  *
- * Registered on window.BalanceViews, which index.html turns into a view button.
+ * Registered on window.BalanceScreens, which game.js turns into a tab: the web is
+ * one of the game's screens, so it is read next to the biomes rather than beside
+ * the tables.
  */
 (() => {
+  const {
+    growthCurve, chartBlock, engineCurve, engineSeries, numberCell,
+    log10Of: bigLog10,   // the local log10Of below takes a pair, this one a pair's halves
+  } = window.GameKit;
+
   /* Each scale is a span, not a number: `from` is what the perk is worth at its
    * first level, `to` at its last. A perk is drawn as the gradient between the
    * two, so a node that stays cheap and one that climbs three decades over its
@@ -34,11 +41,11 @@
   };
 
   const view = {
-    label: "Web",
-    title: "The prestige web, coloured by what each perk costs",
+    label: "Prestige",
     scale: "path_cost",
     report: null,
     hovered: null,
+    element: null,   // this screen's own root, kept across renders
   };
 
   /* ------------------------------------------------------------------ numbers */
@@ -204,9 +211,12 @@
     }
 
     if (values.length) {
+      // Bottom-left, not top: the cost chart hangs over the top-left corner of
+      // the canvas, and the legend used to sit exactly under it.
       const ticks = svgEl("g");
       [min, (min + max) / 2, max].forEach((value, index) => {
-        const text = svgEl("text", { class: "scale-tick", x: left + 6, y: top + 16 + index * 14 });
+        const text = svgEl("text", { class: "scale-tick",
+          x: left + 6, y: top + height - 34 + index * 14 });
         text.textContent = `${["cheap", "mid", "dear"][index]}: 1e${value.toFixed(1)}`;
         ticks.append(text);
       });
@@ -307,6 +317,7 @@
       target.append(costs);
     }
 
+
     // Effects first, before the perk's own fields. What a perk *does* lives on
     // an UpgradeEffectDef one hop away - and on most perks that def belongs to
     // the branch, so the node's own `effects` list is empty and there is no chip
@@ -336,6 +347,60 @@
     fields.className = "deps-panel";   // the styling the graph's own panel carries
     target.append(fields);
     renderDeps(row.row[0], fields);
+  }
+
+  /** True for a row the cost formula applies to. A chip followed out of the web
+   * can land on an effect or a branch, which have no price of their own. */
+  const isPriced = (entry) => entry
+    && entry.header.includes("_base_cost_mantissa") && entry.header.includes("cost_growth");
+
+  /** What each level of this perk costs, level by level.
+   *
+   * UpgradeSystem.cost() prices a perk the same way it prices everything else,
+   * so the curve comes from GameKit rather than from a copy here, and the
+   * engine's own samples ride behind it as dots: if the mirror ever drifts from
+   * the game, the dots leave the line. */
+  function costChart(entry) {
+    const build = (from, to) => {
+      const series = [{
+        label: "cost of the next level",
+        color: "var(--accent)",
+        points: growthCurve(
+          bigLog10(numberCell(entry, "_base_cost_mantissa", 0),
+            numberCell(entry, "_base_cost_exponent", 0)),
+          numberCell(entry, "cost_growth", 1.15),
+          numberCell(entry, "cost_growth_exponent", 1),
+          from, to),
+      }];
+      const sampled = engineCurve(entry.row[0]);
+      const dots = engineSeries(entry, sampled && sampled.cost, from, to,
+        ([mantissa, exponent]) => bigLog10(mantissa, exponent));
+      if (dots) series.push(dots);
+      return series;
+    };
+
+    const maxLevel = Math.round(numberCell(entry, "max_level", 0));
+    return chartBlock("Biomass per level", build, {
+      log: true, xLabel: "level", width: 560, height: 300,
+      range: { key: "perk-cost", from: 0, to: maxLevel > 0 ? maxLevel : 50, label: "level" },
+    });
+  }
+
+  /** The cost chart, floated over the canvas's top-left corner rather than
+   * folded into the field list on the right.
+   *
+   * The web is radial, so its corners are empty while the panel is 340px of
+   * contested width - the curve is the thing being read against the drawing, and
+   * it wants the room. Absolutely placed rather than laid out in the canvas, so
+   * panning the web does not carry it off screen. */
+  function costOverlay(row) {
+    const wrap = document.createElement("div");
+    wrap.className = "web-cost";
+    const name = document.createElement("div");
+    name.className = "web-cost-name";
+    name.textContent = labelOf(row);
+    wrap.append(name, costChart(row));
+    return wrap;
   }
 
   /** One of the picked perk's effects, with its own value fields. Reference
@@ -460,17 +525,36 @@
     buildEdges();
   };
 
-  view.mount = () => {
-    const wrap = document.createElement("div");
-    wrap.id = "web-view";
-    wrap.innerHTML = `<div class="web-canvas"></div><aside class="web-panel"></aside>`;
-    return wrap;
-  };
+  /** The canvas and its panel, built once and re-filled on every render. A tab
+   * hands over a fresh container each time, so the root is re-appended rather
+   * than rebuilt - dropping and remaking the SVG on every keystroke would lose
+   * the canvas scroll position along with it. */
+  function root() {
+    if (!view.element) {
+      view.element = document.createElement("div");
+      view.element.id = "web-view";
+      view.element.innerHTML = `<div class="web-canvas"></div><aside class="web-panel"></aside>`;
+    }
+    return view.element;
+  }
 
-  view.render = () => {
-    if (!view.report) return;
+  view.render = (body) => {
+    // The Recompute button calls this with nothing to append to; the root is
+    // already in the DOM by then, so re-appending is only for the first render.
+    if (body) body.append(root());
+    else root();
+    if (!view.report) {
+      view.element.querySelector(".web-panel").replaceChildren(
+        Object.assign(document.createElement("p"),
+          { className: "hint", textContent: "The web has not been read yet." }));
+      return;
+    }
     view.element.querySelector(".web-canvas").replaceChildren(drawWeb());
     renderPanel(view.element.querySelector(".web-panel"));
+
+    const priced = focusedRow();
+    view.element.querySelector(".web-cost")?.remove();
+    if (isPriced(priced)) view.element.append(costOverlay(priced));
     const row = focusedRow();
     setStatus(row
       ? `editing ${labelOf(row)}${fileHasChanges(row.file) ? " · unsaved" : ""}`
@@ -478,6 +562,6 @@
         + `${view.report.branches.length - 1} branches`);
   };
 
-  window.BalanceViews = window.BalanceViews || {};
-  window.BalanceViews.web = view;
+  window.BalanceScreens = window.BalanceScreens || {};
+  window.BalanceScreens.prestige = view;
 })();

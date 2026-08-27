@@ -6,7 +6,6 @@
 #extra-views { display: contents; }
 
 #curves-view,
-#web-view,
 #sim-view {
   display: grid;
   grid-template-columns: 1fr 340px;
@@ -14,8 +13,37 @@
 }
 
 #curves-view[hidden],
-#web-view[hidden],
 #sim-view[hidden] { display: none; }
+
+/* The web is a game screen now, so it sits inside #game-view's body rather than
+   beside it in <main>. It keeps the canvas+panel split, but takes its height
+   from the viewport instead of from a grid row it no longer occupies.
+   Positioned, so the cost chart can be placed over its top-left corner. */
+#web-view {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  min-height: 0;
+  height: calc(100vh - 150px);
+  position: relative;
+}
+
+/* The selected perk's cost curve, over the canvas rather than in the panel: the
+   web is radial so this corner is empty, and the curve is read against the
+   drawing. Placed against the view rather than inside the scrolling canvas, so
+   panning the web leaves it where it is. */
+.web-cost {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  max-width: calc(100% - 360px);
+  padding: 8px 10px 6px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  backdrop-filter: blur(3px);
+}
+.web-cost-name { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
 
 .curve-canvas,
 .web-canvas,
@@ -311,3 +339,251 @@
 .unused-table td { padding-right: 12px; }
 .unused-table td button { padding: 1px 8px; }
 .unused-body .warn { color: var(--danger); }
+
+/* --------------------------------------------------------------------- game */
+
+/* A single scrolling column, not the canvas+panel grid the curves/web/sim views
+   use: every biome card is open at once, so the page is long rather than split.
+   The [hidden] rule has to be explicit because the display below would otherwise
+   win over the browser's default for the attribute. */
+#game-view { display: flex; flex-direction: column; overflow: auto; min-height: 0; }
+#game-view[hidden] { display: none; }
+
+.game-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  padding: 8px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.game-tab {
+  font: inherit;
+  padding: 3px 12px;
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.game-tab.active { color: var(--text); border-color: var(--accent); }
+.game-save { margin-left: auto; font: inherit; padding: 3px 12px; }
+
+.game-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px 14px 40px;
+}
+
+/* ------------------------------------------------------------- game: charts */
+
+/* Shrink to the chart's own width, so the biome names below the ladder line up
+   with the points they label rather than spreading over the whole card. */
+.game-chart-block { min-width: 0; width: fit-content; max-width: 100%; }
+.game-chart-title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.game-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* In the prestige panel the caption has 340px to share with the range boxes.
+     It gives way rather than pushing them onto a line of their own. */
+  flex-wrap: nowrap;
+  font: 11px ui-monospace, monospace;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+/* The levels a chart is drawn over. Narrow boxes: these hold a level number,
+   not a cost, and the caption beside them is what carries the width. */
+.game-range { display: flex; align-items: center; gap: 3px; margin-left: auto; flex: none; }
+.game-range input {
+  width: 52px;
+  font: inherit;
+  font-family: ui-monospace, monospace;
+  padding: 1px 4px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.game-range input:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+.game-range .revert { position: static; transform: none; opacity: 1; background: none; width: auto; }
+.game-chart { max-width: 100%; height: auto; overflow: visible; }
+.game-chart .grid { stroke: var(--line); stroke-width: 1; }
+.game-chart .axis { fill: var(--muted); font: 9px ui-monospace, monospace; }
+.game-chart .curve { fill: none; stroke-width: 1.6; }
+.game-chart .engine { opacity: 0.75; }
+.game-chart .hit { fill: transparent; }
+.game-chart .game-marker { stroke: var(--dirty); stroke-width: 1; stroke-dasharray: 2 3; }
+.game-chart-empty { fill: var(--muted); font: 11px ui-monospace, monospace; }
+
+.game-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 2px; }
+.game-legend-item { font: 10px ui-monospace, monospace; color: var(--muted); }
+.game-legend-item i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-radius: 2px;
+}
+
+/* The biome names under the ladder chart, spread to match its six x positions. */
+.game-ladder-names {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 12px 0 46px;
+  margin-top: 8px;   /* clear of the legend row above it */
+}
+.game-ladder-names span {
+  font: 10px ui-monospace, monospace;
+  color: var(--muted);
+  border-top: 2px solid var(--tint);
+  padding-top: 2px;
+}
+
+/* ---------------------------------------------- game: cards (biomes, nodes) */
+
+.game-card {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--tint);
+  border-radius: 8px;
+  background: var(--panel);
+  overflow: hidden;
+}
+.game-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--tint) 12%, transparent);
+  border-bottom: 1px solid var(--line);
+}
+.game-card-icon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--tint);
+}
+.game-card-names { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.game-card-names strong { font-size: 14px; }
+.game-card-names span { font-size: 11px; color: var(--muted); }
+.game-card-badge {
+  font: 10px ui-monospace, monospace;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.game-card-open { font: inherit; padding: 2px 10px; }
+
+.game-card-body { display: flex; flex-direction: column; gap: 12px; padding: 10px 12px 14px; }
+
+.game-group { min-width: 0; }
+.game-group h4 {
+  font: 11px ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0 0 4px;
+}
+/* Fields two abreast where there is room; a multiline description takes the row
+   to itself, since three wrapped lines beside a number reads as neither. */
+.game-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+.game-fields > .field:has(textarea) { grid-column: 1 / -1; }
+.game-fields > .hint, .game-fields > table { grid-column: 1 / -1; }
+.game-fields > .hint { margin: 8px 0 0; font-size: 11px; }
+
+/* The fields on the left, the curve they produce on the right. */
+.game-split { display: grid; grid-template-columns: minmax(280px, 1fr) auto; gap: 4px 18px; }
+.game-split > h4 { grid-column: 1 / -1; }
+@media (max-width: 1100px) {
+  .game-split { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* A mantissa and an exponent are stored separately, so they are edited side by
+   side with the magnitude they add up to after them. */
+.game-big { grid-column: 1 / -1; margin-top: 8px; }
+.game-big > label { font: 11px ui-monospace, monospace; color: var(--muted); }
+.game-big-pair { display: flex; align-items: end; gap: 8px; }
+.game-big-pair .field { flex: 1; min-width: 0; margin-top: 2px; }
+.game-big-echo {
+  flex: none;
+  font: 11px ui-monospace, monospace;
+  color: var(--accent);
+  padding-bottom: 5px;
+  min-width: 70px;
+}
+
+/* The table view left-ellipsises long res:// paths by flipping the first cell
+   to rtl, and that rule reaches every table. This one holds a point count, not
+   a path, and rtl reordered it to "pts 5". */
+.game-gate-table td:first-child { direction: ltr; }
+
+.game-unused { margin-top: 8px; }
+.game-unused summary { font: 11px ui-monospace, monospace; color: var(--muted); cursor: pointer; }
+.game-unused .game-fields { margin-top: 4px; }
+
+.game-chip {
+  font: 11px ui-monospace, monospace;
+  padding: 3px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.game-chip.muted { color: var(--muted); cursor: default; }
+
+/* --------------------------------------------------------- game: slot track */
+
+/* Five across, matching UpgradeSlotGrid.COLUMNS, so the shape on screen is the
+   shape in the game. */
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--slot-columns, 5), minmax(0, 1fr));
+  gap: 6px;
+}
+.slot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 0 6px;
+  text-align: left;
+  font: inherit;
+  padding: 5px 7px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.slot b { grid-row: 1 / 3; align-self: center; font-size: 15px; color: var(--muted); }
+.slot span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.slot i { font: 10px ui-monospace, monospace; color: var(--muted); font-style: normal; }
+.slot.selected { border-color: var(--tint); background: color-mix(in srgb, var(--tint) 16%, var(--bg)); }
+.slot.selected b { color: var(--text); }
+/* Gated slots are drawn back the way the game greys them until the points are spent. */
+.slot.gated span { color: var(--muted); }
+.slot.missing { border-color: var(--danger); }
+.slot.missing span { color: var(--danger); }
+
+.slot-detail {
+  margin-top: 8px;
+  padding: 8px 10px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.slot-detail .game-group { margin-top: 10px; }
+.slot-detail .web-editor-head h3 { margin: 0; font-size: 13px; }
+.slot-detail .warn { color: var(--danger); }

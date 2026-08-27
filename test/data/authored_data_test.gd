@@ -7,26 +7,11 @@ extends GdUnitTestSuite
 ## like this catches it. Everything here reads the same files and the same
 ## loader App registers from.
 
-## Every stat some system actually reads. ProductionSystem consumes all but
-## biome_points, which BiomeSystem reads. An effect naming anything else is
-## inert, so adding a stat means adding it here too.
-const KNOWN_STATS: Array[StringName] = [
-	&"potency_production", &"synergy_production", &"node_production",
-	&"biomass_gain", &"tick_rate", &"biome_points",
-	# Read by PlayerLevelSystem rather than ProductionSystem, the same way
-	# biome_points is read by BiomeSystem.
-	&"level_points",
-	&"crystal_gain", &"automation_rate",
-	&"water_production", &"water_rate",
-	# Read by BoostSystem rather than ProductionSystem: the Well's projects reach
-	# a crystal boost's ceiling and its per-level rate through these.
-	&"boost_max_level", &"boost_power",
-	# The Ruins. mission_slots is read by MissionSystem and creature_rank_cap by
-	# CreatureSystem, the same way biome_points is read by BiomeSystem; the rest
-	# resolve through ProductionSystem like everything above.
-	&"mission_speed", &"mission_slots", &"mission_reward",
-	&"relic_gain", &"ichor_gain", &"glyph_gain", &"creature_rank_cap",
-]
+## Every stat some system actually reads. The list itself lives in StatNames,
+## where the balance editor can read it too and offer it as a dropdown - an
+## effect naming anything else is inert, and that is worth preventing at the
+## point of authoring as well as catching here.
+const KNOWN_STATS := StatNames.ALL
 
 ## The sentence every biome upgrade's description ends with, since all of them
 ## scale with their biome's Size.

@@ -1,0 +1,670 @@
+/* Game view: the balance data laid out the way the game lays it out.
+ *
+ * The table view is one spreadsheet per resource class, which is the shape the
+ * data is stored in and not the shape it is authored in. One biome's truth is
+ * spread over four of those tables - the BiomeDef, its ten UpgradeDefs, their
+ * UpgradeEffectDefs and a ScalingSourceDef - and tuning it means holding all
+ * four in your head at once. The screens here put them back together in the
+ * arrangement the player meets them in, so a number is edited next to the thing
+ * it does.
+ *
+ * This file is only the shell: a tab strip over the screens registered on
+ * window.BalanceScreens, plus the helpers they share (window.GameKit). One
+ * screen per file - game_biomes.js is the first - so adding Boosts later is a
+ * file and a <script> tag.
+ *
+ * Editing goes through fieldEditor() from index.html, the same control the
+ * graph's side panel and the perk web use. That means writeCell(), which means
+ * Save, Save all, the per-field revert and the changed-cell highlight all work
+ * here without this file knowing they exist.
+ *
+ * Registered on window.BalanceViews, which index.html turns into a view button.
+ */
+(() => {
+  const view = {
+    label: "Game",
+    title: "Biomes, laid out the way the game lays them out",
+    screen: null,      // which of window.BalanceScreens is showing
+    curves: null,      // GET /api/curves - the engine's own samples
+    dom: {},
+  };
+
+  const screens = () => window.BalanceScreens || {};
+
+  /* ------------------------------------------------------------------ numbers */
+
+  const SUFFIXES = ["", "k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
+
+  /** A mantissa/exponent pair as the game would show it. BigNumber.to_display()
+   * is the thing being echoed, so a magnitude past the suffix table reads as
+   * "1.0e42" rather than silently losing its scale. */
+  function formatBig(mantissa, exponent) {
+    const m = Number(mantissa);
+    const e = Math.round(Number(exponent));
+    if (!Number.isFinite(m) || !Number.isFinite(e) || m === 0) return "0";
+    const group = Math.floor(e / 3);
+    if (group < 0) return (m * 10 ** e).toPrecision(3);
+    if (group >= SUFFIXES.length) return `${m.toFixed(1)}e${e}`;
+    const scaled = m * 10 ** (e - group * 3);
+    return `${scaled.toFixed(scaled < 10 ? 2 : 1)}${SUFFIXES[group]}`;
+  }
+
+  /** log10 of a mantissa/exponent pair, which is the only space these costs can
+   * be drawn in: a late biome's size price passes 1e300 inside fifty levels. */
+  const log10Of = (mantissa, exponent) => {
+    const m = Number(mantissa);
+    if (!Number.isFinite(m) || m <= 0) return null;
+    return Math.log10(m) + Number(exponent);
+  };
+
+  /* ------------------------------------------------------------------ curves */
+
+  /** The one growth curve the game prices everything with, in log10.
+   *
+   * UpgradeSystem.cost() and BiomeSystem.size_cost() are the same expression
+   * over different fields - `base * growth^(level * growth_exponent^level)` -
+   * so they are mirrored once here rather than once per screen. `base` arrives
+   * already in log10, because a late level's price passes what a double holds
+   * long before the chart runs out of room.
+   *
+   * Computed over the window asked for rather than over a fixed span and
+   * cropped, so pushing a range out samples the formula further.
+   */
+  function growthCurve(base, growth, growthExponent, from, to) {
+    if (base === null || !Number.isFinite(base) || growth <= 0) return [];
+    const out = [];
+    for (let level = from; level <= to; level += 1) {
+      const scaled = level * growthExponent ** level;
+      const value = base + scaled * Math.log10(growth);
+      out.push(Number.isFinite(value) ? value : null);
+    }
+    return out;
+  }
+
+  /** UpgradeEffectDef.magnitude() over a window, and the same scaled by whatever
+   * the effect depends on.
+   *
+   * A level either adds its rate (LINEAR) or compounds it (COMPOUND), and
+   * max_magnitude clamps the result. `factor` is what a ScalingSourceDef
+   * evaluates to, or null when the effect scales with nothing. */
+  function effectCurve({ perLevel, compound, cap, factor }, from, to) {
+    const raw = [];
+    for (let level = from; level <= to; level += 1) {
+      raw.push(compound ? (1 + perLevel) ** level - 1 : perLevel * level);
+    }
+    const clamp = (value) => (cap > 0 ? Math.max(-cap, Math.min(cap, value)) : value);
+    return {
+      raw: raw.map(clamp),
+      scaled: factor === null || factor === undefined
+        ? null : raw.map((value) => clamp(value * factor)),
+      capped: cap > 0 && raw.some((value) => Math.abs(value) > cap),
+    };
+  }
+
+  /** Godot writes an enum cell with its own capitalisation ("Compound", "Biome
+   * Size") while the engine's curve report writes the script's ("COMPOUND").
+   * Fold both so a comparison never depends on which side it came from. */
+  const enumIs = (value, name) =>
+    String(value || "").toUpperCase().replace(/[\s_]/g, "") === name;
+
+  /* ------------------------------------------------------------------- charts */
+
+  const CHART = { width: 460, height: 190, left: 46, right: 12, top: 12, bottom: 26 };
+
+  const hueOf = (index) => `hsl(${(index * 47) % 360} 65% 55%)`;
+
+  /** A line chart over a shared integer x axis.
+   *
+   * `series` is [{ label, points: [y|null], color?, dots?, dashed? }] - one y per
+   * x, and null for "this series has nothing here", so a curve that runs out
+   * before the axis does simply stops. `dots` draws markers instead of a line,
+   * which is how the engine's own samples are overplotted behind a mirrored
+   * curve: if the mirror drifts, the dots leave the line.
+   *
+   * `options.log` says the y values are already log10 and should be labelled as
+   * powers of ten; without it they are labelled as themselves.
+   */
+  function chart(series, options = {}) {
+    const width = options.width || CHART.width;
+    const height = options.height || CHART.height;
+    const plotWidth = width - CHART.left - CHART.right;
+    const plotHeight = height - CHART.top - CHART.bottom;
+
+    const svg = svgEl("svg", {
+      class: "game-chart", viewBox: `0 0 ${width} ${height}`,
+      width, height, preserveAspectRatio: "xMidYMid meet",
+    });
+
+    const finite = (y) => y !== null && Number.isFinite(y);
+    const flat = series.flatMap((s) => s.points).filter(finite);
+    const maxX = Math.max(1, ...series.map((s) => s.points.length - 1));
+    if (!flat.length) {
+      svg.append(svgEl("text", { x: width / 2, y: height / 2, "text-anchor": "middle",
+        class: "game-chart-empty" }));
+      svg.lastChild.textContent = "nothing to plot";
+      return svg;
+    }
+
+    let minY = Math.min(...flat);
+    let maxY = Math.max(...flat);
+    if (options.zeroBased) minY = Math.min(0, minY);
+    if (maxY - minY < 1e-9) { maxY = minY + 1; }   // a flat line still needs a band
+    const pad = (maxY - minY) * 0.06;
+    const floorY = minY;
+    minY -= pad;
+    maxY += pad;
+    // In log space a price never goes below 1, so padding under a series that
+    // starts there only buys an axis labelled 1e-30 for values that cannot exist.
+    if (options.log && floorY >= 0) minY = Math.max(0, minY);
+
+    const x = (index) => CHART.left + (index / maxX) * plotWidth;
+    const y = (value) => CHART.top + (1 - (value - minY) / (maxY - minY)) * plotHeight;
+
+    // Gridlines. In log space they are decades, thinned so a curve spanning
+    // three hundred of them does not draw three hundred lines.
+    const ticks = [];
+    if (options.log) {
+      const step = Math.max(1, Math.ceil((maxY - minY) / 8));
+      for (let e = Math.ceil(minY); e <= Math.floor(maxY); e += step) ticks.push(e);
+    } else {
+      for (let i = 0; i <= 4; i += 1) ticks.push(minY + ((maxY - minY) * i) / 4);
+    }
+    for (const tick of ticks) {
+      svg.append(svgEl("line", { class: "grid",
+        x1: CHART.left, x2: width - CHART.right, y1: y(tick), y2: y(tick) }));
+      const label = svgEl("text", { class: "axis", x: CHART.left - 6, y: y(tick) + 3,
+        "text-anchor": "end" });
+      label.textContent = options.log
+        ? (tick === 0 ? "1" : `1e${Math.round(tick)}`)
+        : formatAxis(tick);
+      svg.append(label);
+    }
+
+    // x axis: first, middle and last, which is as much as a chart this wide reads.
+    for (const index of [0, Math.round(maxX / 2), maxX]) {
+      const label = svgEl("text", { class: "axis", x: x(index), y: height - 8,
+        "text-anchor": "middle" });
+      label.textContent = String((options.xOffset || 0) + index);
+      svg.append(label);
+    }
+    series.forEach((entry, index) => {
+      const color = entry.color || hueOf(index);
+      if (entry.dots) {
+        entry.points.forEach((value, i) => {
+          if (!finite(value)) return;
+          svg.append(svgEl("circle", { class: "engine", cx: x(i), cy: y(value), r: 2,
+            fill: color }));
+        });
+        return;
+      }
+      // A gap starts a new subpath rather than being bridged: a price that has
+      // no value at one biome (a starter biome unlocks for nothing) must leave a
+      // hole, not a straight line drawn through where the point would have been.
+      let path = "";
+      let pen = "M";
+      entry.points.forEach((value, i) => {
+        if (!finite(value)) { pen = "M"; return; }
+        path += `${pen}${x(i).toFixed(1)} ${y(value).toFixed(1)}`;
+        pen = "L";
+      });
+      if (path) {
+        svg.append(svgEl("path", { class: "curve", d: path, stroke: color,
+          "stroke-dasharray": entry.dashed ? "4 3" : "" }));
+      }
+      // A hit target per point, so hovering says which level it is.
+      entry.points.forEach((value, i) => {
+        if (!finite(value)) return;
+        const hit = svgEl("circle", { class: "hit", cx: x(i), cy: y(value), r: 6 });
+        attachTip(hit, `${entry.label} · ${(options.xOffset || 0) + i}: `
+          + `${options.log ? logDisplay(value) : formatAxis(value)}`);
+        svg.append(hit);
+      });
+    });
+
+    // A marker's `at` is a value on the x axis as the reader sees it, not an
+    // index into the series - the window can start anywhere, so the two stopped
+    // being the same thing once the range became adjustable. One outside the
+    // window is dropped rather than clamped to an edge it is not at.
+    for (const marker of options.markers || []) {
+      const index = marker.at - (options.xOffset || 0);
+      if (index < 0 || index > maxX) continue;
+      svg.append(svgEl("line", { class: "game-marker",
+        x1: x(index), x2: x(index), y1: CHART.top, y2: CHART.top + plotHeight }));
+      const label = svgEl("text", { class: "axis", x: x(index) + 3, y: CHART.top + 9 });
+      label.textContent = marker.label;
+      svg.append(label);
+    }
+
+    return svg;
+  }
+
+  const logDisplay = (value) => {
+    const exponent = Math.floor(value);
+    return formatBig(10 ** (value - exponent), exponent);
+  };
+
+  function formatAxis(value) {
+    if (Math.abs(value) >= 1000 || (value !== 0 && Math.abs(value) < 0.01)) {
+      return value.toPrecision(3);
+    }
+    return String(Math.round(value * 100) / 100);
+  }
+
+  /* -------------------------------------------------------------- x ranges */
+
+  const RANGE_KEY = "balance-editor-chart-ranges";
+
+  /** How far each *kind* of chart is drawn, keyed by kind rather than by the
+   * resource being drawn: setting the size chart to 0-200 on one biome sets it
+   * on all six, which is the only way two of them can be read against each
+   * other. Survives the redraw that every keystroke triggers, and the reload
+   * after that, the way the column widths do. */
+  let ranges = {};
+  try {
+    ranges = JSON.parse(localStorage.getItem(RANGE_KEY) || "{}");
+  } catch (error) { /* private mode - the defaults apply */ }
+
+  function saveRanges() {
+    try {
+      localStorage.setItem(RANGE_KEY, JSON.stringify(ranges));
+    } catch (error) { /* private mode - the range just won't survive a reload */ }
+  }
+
+  const stored = (key, part) => {
+    const entry = ranges[key];
+    return entry && Number.isFinite(entry[part]) ? entry[part] : null;
+  };
+
+  /** The window in effect for one chart kind. `spec` carries the defaults the
+   * screen would use on its own, so an unset `to` means "whatever this
+   * particular chart's natural end is" - an upgrade's max_level, say, which
+   * differs per upgrade and so cannot be a stored number. */
+  function rangeOf(spec) {
+    const from = stored(spec.key, "from") ?? spec.from;
+    const to = stored(spec.key, "to") ?? spec.to;
+    // A backwards or empty window would draw nothing and read as a broken chart.
+    return { from, to: Math.max(from + 1, to) };
+  }
+
+  const isCustom = (key) => stored(key, "from") !== null || stored(key, "to") !== null;
+
+  /** key -> the draw() of every chart currently showing that key, so moving one
+   * range moves all the charts it governs. Rebuilt on each full render, since
+   * the blocks from the previous one are detached by then. */
+  const sharing = new Map();
+
+  const redrawShared = (key) => {
+    for (const draw of sharing.get(key) || []) draw();
+  };
+
+  /** from/to boxes for one chart kind, plus a reset back to the screen's own
+   * defaults. Redraws the charts on this key and nothing else: the data fields
+   * elsewhere on the page are mid-edit as often as not, and a full re-render
+   * would take the caret with them. */
+  function rangeControl(spec) {
+    const wrap = document.createElement("span");
+    wrap.className = "game-range";
+    const current = rangeOf(spec);
+
+    const box = (part, value) => {
+      const input = document.createElement("input");
+      input.type = "number";
+      input.step = "1";
+      input.value = String(value);
+      input.title = `${part === "from" ? "First" : "Last"} ${spec.label || "level"} drawn`;
+      input.addEventListener("change", () => {
+        const parsed = Math.round(Number(input.value));
+        // An empty or unparseable box would silently become 0 and move the chart
+        // somewhere nobody asked for; put the value back instead.
+        if (!Number.isFinite(parsed)) { input.value = String(value); return; }
+        ranges[spec.key] = { ...(ranges[spec.key] || {}), [part]: parsed };
+        saveRanges();
+        redrawShared(spec.key);
+      });
+      return input;
+    };
+
+    wrap.append(box("from", current.from), document.createTextNode("–"), box("to", current.to));
+
+    if (isCustom(spec.key)) {
+      const reset = document.createElement("button");
+      reset.className = "revert";
+      reset.type = "button";
+      reset.textContent = "↺";
+      reset.title = "Back to the default range";
+      reset.onclick = () => { delete ranges[spec.key]; saveRanges(); redrawShared(spec.key); };
+      wrap.append(reset);
+    }
+    return wrap;
+  }
+
+  /** A chart under a caption, which is how every chart on a screen is placed.
+   *
+   * `seriesOrBuild` is either the series themselves or, when `options.range` is
+   * given, a `build(from, to)` that produces them for a window - so moving the
+   * range recomputes the curve over the levels asked for rather than cropping a
+   * fixed one. */
+  function chartBlock(title, seriesOrBuild, options = {}) {
+    const wrap = document.createElement("div");
+    wrap.className = "game-chart-block";
+    const head = document.createElement("div");
+    head.className = "game-chart-title";
+    const body = document.createElement("div");
+    wrap.append(head, body);
+
+    const draw = () => {
+      const window_ = options.range ? rangeOf(options.range) : null;
+      const series = typeof seriesOrBuild === "function"
+        ? seriesOrBuild(window_ ? window_.from : 0, window_ ? window_.to : 0)
+        : seriesOrBuild;
+      const drawOptions = window_ ? { ...options, xOffset: window_.from } : options;
+
+      const caption = document.createElement("span");
+      // The x axis is named in the caption rather than beside the axis, where it
+      // sat on top of the last tick's number.
+      caption.textContent = options.xLabel ? `${title}  ·  x: ${options.xLabel}` : title;
+      head.replaceChildren(caption);
+      if (options.range) head.append(rangeControl(options.range));
+
+      body.replaceChildren(chart(series, drawOptions), legendOf(series));
+    };
+
+    if (options.range) {
+      if (!sharing.has(options.range.key)) sharing.set(options.range.key, new Set());
+      sharing.get(options.range.key).add(draw);
+    }
+    draw();
+    return wrap;
+  }
+
+  function legendOf(series) {
+    const legend = document.createElement("div");
+    legend.className = "game-legend";
+    series.forEach((entry, index) => {
+      if (entry.hideFromLegend) return;
+      const item = document.createElement("span");
+      item.className = "game-legend-item";
+      const swatch = document.createElement("i");
+      swatch.style.background = entry.color || hueOf(index);
+      item.append(swatch, document.createTextNode(entry.label));
+      legend.append(item);
+    });
+    return legend;
+  }
+
+  /* -------------------------------------------------------------------- rows */
+
+  /** Every row of one table, in file order. Screens read whole tables (all the
+   * biomes, all the upgrades) far more often than they look one up. */
+  function rowsOf(file) {
+    if (!state.loaded.has(file)) return [];
+    const data = dataOf(file);
+    return data.rows.map((row, rowIndex) =>
+      ({ file, rowIndex, header: data.header, row, path: row[0] }));
+  }
+
+  /** The first row of `file` whose `column` holds `value`, as a rowIndexOf-shaped
+   * entry. This is how upgrade_ids (which hold ids) reach UpgradeDef rows (which
+   * are keyed by res_path). */
+  function findRow(file, column, value) {
+    if (!state.loaded.has(file)) return null;
+    const data = dataOf(file);
+    const index = data.header.indexOf(column);
+    if (index === -1) return null;
+    const rowIndex = data.rows.findIndex((row) => row[index] === value);
+    if (rowIndex === -1) return null;
+    return { file, rowIndex, header: data.header, row: data.rows[rowIndex],
+      path: data.rows[rowIndex][0] };
+  }
+
+  const cell = (entry, column) => {
+    if (!entry) return "";
+    const index = entry.header.indexOf(column);
+    return index === -1 ? "" : entry.row[index];
+  };
+
+  const numberCell = (entry, column, fallback) => {
+    const value = parseFloat(cell(entry, column));
+    return Number.isFinite(value) ? value : fallback;
+  };
+
+  /** fieldEditor by column name rather than index, because a screen knows which
+   * property it is placing and not where the reflection put it. Returns null for
+   * a column this resource does not have, so a screen can list the fields it
+   * would like without asserting the schema. */
+  function field(entry, column) {
+    const columnIndex = entry.header.indexOf(column);
+    if (columnIndex <= 0) return null;
+    return fieldEditor(entry, columnIndex);
+  }
+
+  /** A titled group of fields, skipping the ones this resource does not carry. */
+  function fieldGroup(title, entry, columns) {
+    const wrap = document.createElement("div");
+    wrap.className = "game-group";
+    if (title) {
+      const head = document.createElement("h4");
+      head.textContent = title;
+      wrap.append(head);
+    }
+    const fields = document.createElement("div");
+    fields.className = "game-fields";
+    for (const column of columns) {
+      const editor = field(entry, column);
+      if (editor) fields.append(editor);
+    }
+    wrap.append(fields);
+    return wrap;
+  }
+
+  /** A mantissa/exponent pair edited side by side, with the magnitude they add up
+   * to echoed after them. The pair is what is stored - BigNumber itself is not an
+   * @export - and reading "5.0" and "3" in two boxes is not the same as seeing
+   * "5.00k". */
+  function bigField(entry, label, prefix) {
+    const wrap = document.createElement("div");
+    wrap.className = "game-big";
+    const head = document.createElement("label");
+    head.textContent = label;
+    wrap.append(head);
+
+    const pair = document.createElement("div");
+    pair.className = "game-big-pair";
+    const mantissa = field(entry, `${prefix}_mantissa`);
+    const exponent = field(entry, `${prefix}_exponent`);
+    if (!mantissa || !exponent) return wrap;
+    pair.append(mantissa, exponent);
+
+    const echo = document.createElement("span");
+    echo.className = "game-big-echo";
+    const refresh = () => {
+      const current = dataOf(entry.file).rows[entry.rowIndex];
+      echo.textContent = `= ${formatBig(
+        current[entry.header.indexOf(`${prefix}_mantissa`)],
+        current[entry.header.indexOf(`${prefix}_exponent`)])}`;
+    };
+    refresh();
+    // The pair's own inputs already write the cell; this only mirrors them.
+    for (const input of pair.querySelectorAll("input")) {
+      input.addEventListener("input", refresh);
+    }
+    pair.append(echo);
+    wrap.append(pair);
+    return wrap;
+  }
+
+  /** The engine's own samples for one resource, or null when the report predates
+   * it. Screens draw these as dots behind their own line. */
+  const engineCurve = (path) =>
+    (view.curves && view.curves.curves && view.curves.curves[path]) || null;
+
+  /** One sampled series over the window a chart is drawn on. The engine samples
+   * an open-ended def for 50 levels - BalanceData.CURVE_OPEN_ENDED_LEVELS - so a
+   * range reaching past that leaves the dots behind rather than inventing them. */
+  function engineWindow(samples, from, to, decode) {
+    if (!samples) return null;
+    const out = [];
+    for (let level = from; level <= to; level += 1) {
+      out.push(level < samples.length ? decode(samples[level]) : null);
+    }
+    return out;
+  }
+
+  /** True when this row carries edits that have not been written yet. Per row,
+   * not per file: one biome's cost moving must not silence the charts of the
+   * five others sharing its table. */
+  function rowHasChanges(entry) {
+    const pristine = entry && state.loaded.get(entry.file);
+    if (!pristine) return false;
+    const saved = pristine.rows[entry.rowIndex];
+    const current = dataOf(entry.file).rows[entry.rowIndex];
+    return !!saved && current.some((value, index) => value !== saved[index]);
+  }
+
+  /** The engine's samples for one row, as a series to draw behind the mirror.
+   *
+   * Withdrawn the moment the row is edited, because the samples were computed
+   * from what is on disk and now describe a different curve. Leaving them in did
+   * more than mislead: a series sets the y scale it is drawn on, so flattening a
+   * cost curve left the axis pinned to the old samples' decades and squashed the
+   * new curve into a sliver at the floor. The label stays in the legend so the
+   * dots read as withheld rather than as missing.
+   */
+  function engineSeries(entry, samples, from, to, decode) {
+    if (!samples) return null;
+    if (rowHasChanges(entry)) {
+      return { label: "engine · hidden until Save", points: [], color: "var(--muted)", dots: true };
+    }
+    const points = engineWindow(samples, from, to, decode);
+    return points && { label: "engine", points, color: "var(--muted)", dots: true };
+  }
+
+  window.GameKit = {
+    formatBig, log10Of, growthCurve, effectCurve, enumIs, chart, chartBlock, hueOf,
+    rowsOf, findRow, cell, numberCell,
+    field, fieldGroup, bigField, engineCurve, engineWindow, engineSeries, rowHasChanges,
+  };
+
+  /* ------------------------------------------------------------------- wiring */
+
+  /** Screens whose own open() has run. A screen may need a report of its own -
+   * the prestige web is PerkTree run headlessly - and paying for it on the tab
+   * that wants it beats paying for every screen's on the way in. */
+  const opened = new Set();
+
+  async function ensureOpen(name) {
+    const screen = screens()[name];
+    if (!screen || !screen.open || opened.has(name)) return;
+    await screen.open();
+    opened.add(name);
+  }
+
+  view.invalidate = async () => {
+    // The engine samples go stale the moment a cost is written, and a stale dot
+    // off the line reads as a bug in the maths rather than as an old fetch.
+    view.curves = await api("/api/curves");
+    // Same for whatever a screen computed for itself, but only for the ones that
+    // have actually been opened - invalidating a report nobody fetched would
+    // fetch it.
+    for (const name of opened) {
+      const screen = screens()[name];
+      if (screen && screen.invalidate) await screen.invalidate();
+    }
+  };
+
+  view.open = async () => {
+    // A screen spans several tables at once - a biome card alone reads BiomeDef,
+    // UpgradeDef, UpgradeEffectDef and ScalingSourceDef - so load them all.
+    await loadAllFiles();
+    buildEdges();
+    await view.invalidate();
+    await ensureOpen(activeScreen());
+  };
+
+  /** The screen showing, defaulting to the first registered one. */
+  function activeScreen() {
+    const names = Object.keys(screens());
+    return names.includes(view.screen) ? view.screen : (names[0] || null);
+  }
+
+  view.mount = () => {
+    const wrap = document.createElement("div");
+    wrap.id = "game-view";
+    wrap.innerHTML = `<nav class="game-tabs"></nav><div class="game-body"></div>`;
+    view.dom.tabs = wrap.querySelector(".game-tabs");
+    view.dom.body = wrap.querySelector(".game-body");
+    return wrap;
+  };
+
+  function renderTabs() {
+    view.dom.tabs.replaceChildren();
+    const names = Object.keys(screens());
+    for (const name of names) {
+      const button = document.createElement("button");
+      button.className = "game-tab";
+      button.textContent = screens()[name].label;
+      button.classList.toggle("active", name === view.screen);
+      button.onclick = async () => {
+        if (view.screen === name) return;
+        setStatus(`opening ${screens()[name].label.toLowerCase()}…`);
+        try {
+          await ensureOpen(name);
+        } catch (error) { log(String(error), true); return; }
+        view.screen = name;
+        view.render();
+        view.element.scrollTop = 0;
+      };
+      view.dom.tabs.append(button);
+    }
+    view.dom.tabs.append(saveButton());
+  }
+
+  /** The header's "Save file" is scoped to whichever file the *table* view has
+   * selected, which is unrelated to what was edited here - a screen writes to
+   * four tables at once and to none of them by name. "Save all" is the button
+   * that actually applies these edits, so the view offers it directly rather
+   * than leaving the prominent green one looking like it would work. */
+  function saveButton() {
+    const button = document.createElement("button");
+    button.className = "game-save";
+    const files = [...state.edits.keys()];
+    button.disabled = !files.length;
+    button.textContent = files.length ? `Save ${files.length} file(s)` : "Saved";
+    button.title = files.length
+      ? `Writes ${files.join(", ")} back to the .tres files`
+      : "Nothing edited here yet";
+    button.onclick = () => { saveAll(); };
+    return button;
+  }
+
+  view.render = () => {
+    view.screen = activeScreen();
+    renderTabs();
+    // Every edit and every slot pick redraws the whole page, and this page is a
+    // long one - without this the view jumps to the top on each keystroke.
+    const scroll = view.element ? view.element.scrollTop : 0;
+    sharing.clear();   // the blocks about to be dropped must not keep redrawing
+    view.dom.body.replaceChildren();
+    if (!view.screen) {
+      const empty = document.createElement("p");
+      empty.className = "hint";
+      empty.textContent = "No game screens are registered.";
+      view.dom.body.append(empty);
+      return;
+    }
+    // One screen throwing must not leave the view blank with no explanation.
+    try {
+      screens()[view.screen].render(view.dom.body, view);
+    } catch (error) {
+      log(String(error), true);
+      const failed = document.createElement("p");
+      failed.className = "hint warn";
+      failed.textContent = String(error);
+      view.dom.body.append(failed);
+    }
+    if (view.element) view.element.scrollTop = scroll;
+  };
+
+  window.BalanceViews = window.BalanceViews || {};
+  window.BalanceViews.game = view;
+})();

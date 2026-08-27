@@ -423,9 +423,13 @@
      loaded first and only read the globals below from inside their callbacks,
      so neither file has to know when the other ran. -->
 <script src="curves.js"></script>
-<script src="web.js"></script>
 <script src="sim.js"></script>
 <script src="unused.js"></script>
+<!-- game.js first: the screens read their shared helpers off window.GameKit. -->
+<script src="game.js"></script>
+<script src="game_biomes.js"></script>
+<script src="game_nodes.js"></script>
+<script src="game_prestige.js"></script>
 
 <script>
 const state = {
@@ -696,7 +700,11 @@ const metaOf = (file, columnIndex) => columnsOf(file)[columnIndex] || { type: "t
 /** The editor a column's declared type deserves. Every control answers to
  * `.value` and emits `input`, so the dirty tracking below stays type-blind. */
 function makeControl(meta, value, allowMultiline) {
-  if (meta.type === "enum" || meta.type === "bool") {
+  // A text column can carry `options` too - a `stat` is a plain StringName that
+  // still has to be one of a fixed set, and a typo there is silent: the effect
+  // resolves to zero forever and only the integrity sweep ever says so. Same
+  // control as an enum, so a picked value cannot be misspelt.
+  if (meta.type === "enum" || meta.type === "bool" || meta.options) {
     const select = document.createElement("select");
     const options = meta.type === "bool" ? ["false", "true"] : (meta.options || []);
     for (const option of options) select.append(new Option(option, option));
@@ -844,7 +852,7 @@ function renderGrid() {
       } else {
         const meta = metaOf(state.current, columnIndex);
         const input = makeControl(meta, cell, false);
-        const list = meta.type === "text" ? suggestions.get(columnIndex) : null;
+        const list = meta.type === "text" && !meta.options ? suggestions.get(columnIndex) : null;
         if (list) input.setAttribute("list", list.id);
         input.oninput = () => editCell(rowIndex, columnIndex, input.value, td, input);
         input.onkeydown = (event) => {
@@ -1438,7 +1446,7 @@ function fieldEditor(entry, columnIndex) {
 
   const colors = colorColumns(entry.header, rows);
   const suggestions = buildSuggestions(entry.header, rows, colors);
-  const list = meta.type === "text" ? suggestions.get(columnIndex) : null;
+  const list = meta.type === "text" && !meta.options ? suggestions.get(columnIndex) : null;
   if (list) {
     input.setAttribute("list", `deps-${list.id}`);
     list.id = `deps-${list.id}`;
@@ -1533,12 +1541,16 @@ function renderDeps(focus, target = el.deps) {
     target.append(Object.assign(document.createElement("div"),
       { className: "col", textContent: column }));
     for (const edge of edges) {
-      const target = edge.to ? rowIndexOf(edge.to) : null;
-      const asset = !target && isAsset(edge.part);
+      // Named for what it is - the row this edge points at. Calling it `target`
+      // shadowed the panel being built, so the chip was appended to a row entry
+      // instead of to the panel, which is not a node and has no append.
+      const targetRow = edge.to ? rowIndexOf(edge.to) : null;
+      const asset = !targetRow && isAsset(edge.part);
       const chipEl = chip(
-        target ? labelOf(target) : (asset ? edge.part.split("/").pop() : `${edge.part} (unresolved)`),
-        !target && !asset,
-        target ? () => setFocus(edge.to) : null,
+        targetRow ? labelOf(targetRow)
+          : (asset ? edge.part.split("/").pop() : `${edge.part} (unresolved)`),
+        !targetRow && !asset,
+        targetRow ? () => setFocus(edge.to) : null,
         () => applyRef(edge, null));
       if (asset) chipEl.classList.add("asset");
       target.append(chipEl);

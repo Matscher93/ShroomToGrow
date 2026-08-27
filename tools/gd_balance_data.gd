@@ -126,9 +126,12 @@ static func curves(data_dir: String) -> Dictionary:
 		var seen: Dictionary[int, bool] = {}
 		_expand_subresources(res, path, found, seen)
 		for row: Resource in found:
-			if not _is_priced(row):
-				continue
-			out[row.resource_path] = curve_for(row, fallbacks.get(row.resource_path, []))
+			if _is_priced(row):
+				out[row.resource_path] = curve_for(row, fallbacks.get(row.resource_path, []))
+			elif _is_size_priced(row):
+				out[row.resource_path] = size_curve_for(row)
+			elif _is_node_priced(row):
+				out[row.resource_path] = node_curve_for(row)
 	return {"curves": out, "errors": errors}
 
 
@@ -160,6 +163,92 @@ static func _spread_fallback(node: PerkNodeDef, effects: Array, out: Dictionary)
 static func _is_priced(res: Resource) -> bool:
 	var properties := _properties_by_name(res)
 	return properties.has(&"cost_growth") and properties.has(&"_base_cost_mantissa")
+
+
+## True for a BiomeDef: priced by its own Biome Size formula rather than the
+## shared upgrade one, so `_is_priced` misses it. Named by shape for the same
+## reason `_is_priced` is - this file prices what it is handed without knowing
+## what the model calls it.
+static func _is_size_priced(res: Resource) -> bool:
+	var properties := _properties_by_name(res)
+	return properties.has(&"size_cost_growth") and properties.has(&"_size_base_cost_mantissa")
+
+
+## True for a MyceliumNode: priced by its own manual-buy formula, whose fields
+## are named for nodes rather than for upgrades, so neither check above sees it.
+static func _is_node_priced(res: Resource) -> bool:
+	var properties := _properties_by_name(res)
+	return properties.has(&"cost_increase_per_level") and properties.has(&"_initial_cost_mantissa")
+
+
+## What buying one more of a node tier by hand costs, sampled through
+## MyceliumNodeData.upgrade_cost() so the editor's line can be checked against
+## what the game charges.
+##
+## Walked on a duplicate rather than on the loaded resource: the count is the
+## curve's x axis, and `load()` hands the same instance back to whoever asks
+## next, so stepping the real one would leave a node owning fifty tiers.
+## player_data and the prestige upgrades are null because upgrade_cost() reads
+## neither - only the node.
+static func node_curve_for(res: Resource) -> Dictionary:
+	var node := (res as MyceliumNode).duplicate() as MyceliumNode
+	var data := MyceliumNodeData.new(null, node, null)
+
+	var costs: Array = []
+	var magnitudes: Array = []
+	for level in range(CURVE_OPEN_ENDED_LEVELS + 1):
+		node.manual_nodes = level
+		costs.append(_big_pair(data.upgrade_cost()))
+		magnitudes.append([0.0, 0])
+
+	return {
+		"max_level": 0,
+		"samples": CURVE_OPEN_ENDED_LEVELS,
+		"cost": costs,
+		"effect": magnitudes,
+		"cost_growth": res.get(&"cost_increase_per_level"),
+		"cost_growth_exponent": res.get(&"cost_growth_exponent"),
+		"kind": "node_buy",
+	}
+
+
+## A biome's Biome Size price per level, sampled through BiomeSystem.size_cost()
+## so the editor's own line can be checked against what the game charges.
+##
+## The system is built around a one-biome list and a fresh BiomesData; the eight
+## other collaborators are passed null because size_cost() reaches none of them -
+## it reads the def out of the list and the current size out of BiomesData, and
+## nothing else. There is no size setter, so the loop walks the size up with
+## increase_size() between samples, which is the order it is being sampled in
+## anyway.
+##
+## Shaped like curve_for()'s result so the editor reads both the same way. There
+## is no effect on a biome, so `effect` is flat zero rather than absent.
+static func size_curve_for(res: Resource) -> Dictionary:
+	var list := BiomeList.new()
+	var defs: Array[BiomeDef] = [res as BiomeDef]
+	list.biomes = defs
+	var biomes_data := BiomesData.new()
+	var no_nodes: Array[MyceliumNode] = []
+	var system := BiomeSystem.new(list, biomes_data, null, no_nodes, null, null, null, null, null)
+
+	var key: StringName = res.get(&"key")
+	var costs: Array = []
+	var magnitudes: Array = []
+	for level in range(CURVE_OPEN_ENDED_LEVELS + 1):
+		costs.append(_big_pair(system.size_cost(key)))
+		magnitudes.append([0.0, 0])
+		biomes_data.increase_size(key)
+
+	return {
+		"max_level": 0,
+		"samples": CURVE_OPEN_ENDED_LEVELS,
+		"cost": costs,
+		"effect": magnitudes,
+		"cost_growth": res.get(&"size_cost_growth"),
+		"cost_growth_exponent": res.get(&"size_cost_growth_exponent"),
+		"kind": "biome_size",
+	}
 
 
 ## One def's sampled curve. `fallback_effects` stands in when the def declares
@@ -1172,6 +1261,14 @@ static func _column_meta(column: Dictionary) -> Dictionary:
 			meta["type"] = "dictionary"
 		TYPE_STRING, TYPE_STRING_NAME:
 			meta["type"] = "multiline" if column.hint == PROPERTY_HINT_MULTILINE_TEXT else "text"
+			# A stat is a plain StringName that has to match one some system
+			# reads, and nothing catches a typo until the integrity sweep does.
+			# Handing the editor the vocabulary turns it into a pick instead of
+			# a spelling. Named by shape, like the pricing checks above: any
+			# class with a StringName `stat` speaks this vocabulary, and
+			# AchievementDef's `stat` is a real enum so it never reaches here.
+			if column.name == &"stat":
+				meta["options"] = StatNames.ALL
 		_:
 			meta["type"] = "text"
 	return meta
