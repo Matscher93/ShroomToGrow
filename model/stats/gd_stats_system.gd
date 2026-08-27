@@ -67,12 +67,17 @@ func _now() -> float:
 ## This runs inside the offline catch-up loop as well, which drives tens of
 ## thousands of ticks in a few frames, so nothing that walks a dictionary or the
 ## node array belongs here - see sample_counts() for the rest.
+## Both stamps are set-once, so the clock is read only when one is actually
+## missing rather than on every call: _now() goes through a Callable into
+## Time.get_unix_time_from_system(), and a catch-up pays that tens of thousands
+## of times for a value it then discards.
 func handle_tick() -> void:
-	var now := _now()
-	if _stats.first_played_at <= 0.0:
-		_stats.first_played_at = now
-	if _stats.run_started_at <= 0.0:
-		_stats.run_started_at = now
+	if _stats.first_played_at <= 0.0 or _stats.run_started_at <= 0.0:
+		var now := _now()
+		if _stats.first_played_at <= 0.0:
+			_stats.first_played_at = now
+		if _stats.run_started_at <= 0.0:
+			_stats.run_started_at = now
 
 	var gain := _tick_system.last_tick_gain
 	if gain.gt(_run_peak_production):

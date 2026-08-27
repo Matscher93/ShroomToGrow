@@ -82,16 +82,23 @@ var live_water_delta: BigNumber:
 		if not _capture_taken: return BigNumber.new(0.0, 0)
 		return App.player_data.water.sub(_start_water)
 
+## Scratch for live_node_deltas, reused across reads. The catch-up asks for the
+## deltas on every progress batch and the popup only reads the result straight
+## back out, so a fresh array and a fresh BigNumber per tier per batch was pure
+## churn. Not handed out anywhere that keeps it.
+var _delta_buffer: Array[BigNumber] = []
+
 ## One entry per node tier, in the order App holds them.
 var live_node_deltas: Array[BigNumber]:
 	get:
-		var out: Array[BigNumber] = []
-		for i in App.mycelium_node_data.size():
+		var count := App.mycelium_node_data.size()
+		_delta_buffer.resize(count)
+		for i in count:
 			if not _capture_taken or i >= _start_node_counts.size():
-				out.append(BigNumber.new(0.0, 0))
+				_delta_buffer[i] = BigNumber.new(0.0, 0)
 				continue
-			out.append(App.mycelium_node_data[i].node.auto_nodes.sub(_start_node_counts[i]))
-		return out
+			_delta_buffer[i] = App.mycelium_node_data[i].node.auto_nodes.sub(_start_node_counts[i])
+		return _delta_buffer
 
 ## The node tiers themselves, for the rows' names and colours. A static registry
 ## read: nothing here changes at runtime.

@@ -45,18 +45,32 @@ func node_production_bonuses() -> Array[BigNumber]:
 		bonuses.append(_production.node_production_bonus(node.id_key))
 	return bonuses
 
-## Advances the game one tick. Pass `bonuses` to reuse a hoisted set, leave it
-## empty to compute them fresh.
-func handle_tick(bonuses: Array[BigNumber] = []) -> void:
+## Every node's hand-bought count as a BigNumber, indexed like the node array.
+## The cascade below adds these to the produced totals each tick, and they cannot
+## move while nothing is bought - so a caller driving a long run of ticks builds
+## them once rather than allocating a BigNumber per tier per tick. Same contract
+## and same lifetime as node_production_bonuses().
+func manual_node_counts() -> Array[BigNumber]:
+	var counts: Array[BigNumber] = []
+	for node in _nodes:
+		counts.append(BigNumber.from_value(node.manual_nodes))
+	return counts
+
+## Advances the game one tick. Pass `bonuses`, `pump` and `manual` to reuse a
+## hoisted set, leave them empty to compute them fresh.
+func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
+		manual: Array[BigNumber] = []) -> void:
 	# Read before the counter moves: the pump is due on multiples of its interval,
 	# so it needs the tick the span starts from, not the one it ends on.
 	var before := _player_data.tick_count
 	_player_data.tick_count += 1
 	_player_data.lifetime_ticks += 1
 	if _water != null:
-		_water.handle_ticks(before, 1)
+		_water.handle_ticks(before, 1, pump)
 	if bonuses.is_empty():
 		bonuses = node_production_bonuses()
+	if manual.is_empty():
+		manual = manual_node_counts()
 	# Highest tier first, and that order is load-bearing: each tier writes into
 	# the tier below *before* that tier produces, so a top-tier gain reaches
 	# nutrients within the same tick. Iterating upwards instead would park each
@@ -64,7 +78,7 @@ func handle_tick(bonuses: Array[BigNumber] = []) -> void:
 	# over N ticks and flattening the whole idle curve.
 	for i in range(_nodes.size() - 1, -1, -1):
 		var node := _nodes[i]
-		var node_change := node.auto_nodes.add(BigNumber.from_value(node.manual_nodes))
+		var node_change := node.auto_nodes.add(manual[i])
 		node_change = node_change.mul(bonuses[i])
 		if i != 0:
 			var receiving_node := _nodes[i - 1]

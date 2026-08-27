@@ -72,6 +72,23 @@ func test_handle_tick_seeds_both_timestamps_once() -> void:
 	assert_float(_stats.first_played_at).is_equal(1000.0)
 	assert_float(_stats.run_started_at).is_equal(1000.0)
 
+func test_handle_tick_stops_reading_the_clock_once_both_stamps_are_seeded() -> void:
+	# Both stamps are set-once, and the catch-up drives this tens of thousands of
+	# times. Reading the clock for a value that is then discarded was the single
+	# largest per-tick cost in the loop.
+	var reads := [0]
+	_system.now_provider = func() -> float:
+		reads[0] += 1
+		return _now
+
+	_system.handle_tick()
+	var after_first: int = reads[0]
+	for _i in range(50):
+		_system.handle_tick()
+
+	assert_int(after_first).is_greater(0)
+	assert_int(reads[0]).is_equal(after_first)
+
 func test_sample_counts_takes_the_structural_peaks() -> void:
 	_nodes[0].manual_nodes = 3
 	_nodes[1].manual_nodes = 2

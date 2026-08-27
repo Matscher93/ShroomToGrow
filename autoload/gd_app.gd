@@ -139,6 +139,15 @@ var automations_running := true
 ## for being absent.
 var events_running := true
 
+## Set by SaveManager for the duration of the offline catch-up. Nothing the
+## catch-up does is structural - it buys nothing, unlocks nothing - so the
+## achievement ladder and the statistics overlay's structural sample have nothing
+## new to read on any of the frames the loop yields across, and re-walking every
+## achievement def ~50 times a second for the length of a catch-up is the single
+## largest per-frame cost in it. SaveManager marks the flag dirty once when the
+## loop ends, which banks every tier the gap crossed in one evaluate.
+var offline_catchup := false
+
 ## Set by anything an achievement could measure, drained once per frame in
 ## _process. Evaluating per change would re-walk every achievement several times
 ## a tick, and the offline catch-up loop drives handle_tick() thousands of times
@@ -568,6 +577,15 @@ func mycelium_nodes_from_save(saved_nodes: Dictionary) -> void:
 func node_production_bonuses() -> Array[BigNumber]:
 	return tick_system.node_production_bonuses()
 
+## The other two per-tick invariants a long run of ticks hoists, alongside
+## node_production_bonuses(). See TickSystem.manual_node_counts() and
+## WaterPumpPlan for why they are safe to reuse.
+func manual_node_counts() -> Array[BigNumber]:
+	return tick_system.manual_node_counts()
+
+func water_pump_plan() -> WaterPumpPlan:
+	return water_system.pump_plan()
+
 ## What every node produces in one tick, summed. The same figure the balance
 ## chart's `production` track plots and the statistics overlay reports as the
 ## run's production per tick, so the two cannot drift apart.
@@ -580,12 +598,21 @@ func total_production() -> BigNumber:
 		production = production.add(count.mul(bonuses[i]))
 	return production
 
-func handle_tick(bonuses: Array[BigNumber] = []) -> void:
-	tick_system.handle_tick(bonuses)
+## Pass the hoisted invariants - bonuses, pump plan, manual counts - to drive a
+## long run of ticks without recomputing them; leave them empty for the live
+## timer, which pays for one tick at a time anyway.
+func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
+		manual: Array[BigNumber] = []) -> void:
+	tick_system.handle_tick(bonuses, pump, manual)
 	# Straight after the cascade, so the peak it records is this tick's payout
 	# rather than one an automation below has already spent into.
 	stats_system.handle_tick()
-	_achievements_dirty = true
+	# Live ticks only, same as the two gates below: a catch-up moves nothing the
+	# achievement ladder or the structural stats sample read, so the flag would
+	# only buy a full re-walk on every frame the loop yields across. SaveManager
+	# marks it once at the end instead.
+	if not offline_catchup:
+		_achievements_dirty = true
 	# Live ticks only. A progress quest measures time the player was here for, so
 	# the offline catch-up must not walk one to its goal - same reason the spawn
 	# timer checks this flag.

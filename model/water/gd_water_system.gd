@@ -52,6 +52,16 @@ func interval() -> int:
 func pump_yield() -> BigNumber:
 	return _production.modify_water_gain(BigNumber.from_value(BASE_YIELD))
 
+## The pump's rate as one hoistable value, for a caller advancing many ticks in a
+## row. See WaterPumpPlan for what makes it safe to reuse.
+## A stopped pump short-circuits rather than resolving a rate nothing will use,
+## keeping this no dearer than the is_pumping() check handle_ticks() used to open
+## with.
+func pump_plan() -> WaterPumpPlan:
+	if not is_pumping():
+		return WaterPumpPlan.new(false, int(MIN_INTERVAL), BigNumber.new(0.0, 0))
+	return WaterPumpPlan.new(true, interval(), pump_yield())
+
 ## Ticks the player still waits for the next pump, for the Well's status line.
 ## Reports a full interval while the pump is stopped, since that is what the wait
 ## would be if the lake reopened now.
@@ -69,11 +79,17 @@ func ticks_until_pump(tick_count: int) -> int:
 ## because TickSystem.advance_by() moves the counter by more than one and a
 ## modulo would step straight over the exact multiples inside the span. This is
 ## what makes a strided span pay exactly what walking it tick by tick would.
-func handle_ticks(tick_count_before: int, count: int) -> void:
+##
+## Pass `plan` to reuse a hoisted rate, leave it null to read one fresh. Both
+## paths pay the same water - the plan holds exactly what the fresh path would
+## compute - so only the cost differs.
+func handle_ticks(tick_count_before: int, count: int, plan: WaterPumpPlan = null) -> void:
 	if count <= 0: return
-	if not is_pumping(): return
-	var every := interval()
+	if plan == null:
+		plan = pump_plan()
+	if not plan.pumping: return
+	var every := plan.interval
 	@warning_ignore("integer_division")
 	var events := (tick_count_before + count) / every - tick_count_before / every
 	if events <= 0: return
-	_player_data.water = _player_data.water.add(pump_yield().scale(float(events)))
+	_player_data.water = _player_data.water.add(plan.yield_per_pump.scale(float(events)))

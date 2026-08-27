@@ -268,6 +268,61 @@ func test_striding_ticks_pumps_the_same_water_as_walking_them() -> void:
 
 	assert_float(_player.water.to_float()).is_equal_approx(by_walking, EPS)
 
+# ─── Hoisted invariants ───────────────────────────────────────────────
+
+func test_hoisted_manual_counts_match_the_fresh_ones() -> void:
+	var nodes := _chain([2, 0, 7] as Array[int])
+	var manual := _system(nodes).manual_node_counts()
+
+	assert_int(manual.size()).is_equal(3)
+	assert_float(manual[0].to_float()).is_equal_approx(2.0, EPS)
+	assert_float(manual[1].to_float()).is_equal_approx(0.0, EPS)
+	assert_float(manual[2].to_float()).is_equal_approx(7.0, EPS)
+
+func test_passed_in_manual_counts_are_used_verbatim() -> void:
+	# Same contract as the hoisted bonuses above: the catch-up takes these once
+	# and the loop must not silently recompute them.
+	var nodes := _chain([1] as Array[int])
+	var system := _system(nodes)
+	var hoisted := system.manual_node_counts()
+
+	nodes[0].manual_nodes = 99
+	system.handle_tick([] as Array[BigNumber], null, hoisted)
+
+	assert_float(_player.nutrients.to_float()).is_equal_approx(1.0, EPS)
+
+func test_a_run_of_ticks_with_every_invariant_hoisted_lands_where_a_plain_run_does() -> void:
+	# The offline catch-up drives handle_tick() with all three hoists in hand.
+	# It has to pay exactly what the live timer, which hoists nothing, would.
+	var span := 137
+	var biomes_data := BiomesData.new()
+	biomes_data.unlock(WaterSystem.LAKE_KEY)
+
+	var plain := _well_system(_chain([2, 3, 1] as Array[int]), biomes_data)
+	for _i in span:
+		plain.handle_tick()
+	var by_plain := {
+		"nutrients": _player.nutrients.to_float(),
+		"water": _player.water.to_float(),
+		"lifetime": _player.lifetime_nutrients.to_float(),
+		"ticks": _player.tick_count,
+	}
+
+	_player = PlayerData.new()
+	_player.nutrients = BigNumber.from_value(0.0)
+	var nodes := _chain([2, 3, 1] as Array[int])
+	var hoisted := _well_system(nodes, biomes_data)
+	var bonuses := hoisted.node_production_bonuses()
+	var manual := hoisted.manual_node_counts()
+	var pump := WaterSystem.new(_player, biomes_data, _production).pump_plan()
+	for _i in span:
+		hoisted.handle_tick(bonuses, pump, manual)
+
+	assert_float(_player.nutrients.to_float()).is_equal_approx(by_plain["nutrients"], EPS)
+	assert_float(_player.water.to_float()).is_equal_approx(by_plain["water"], EPS)
+	assert_float(_player.lifetime_nutrients.to_float()).is_equal_approx(by_plain["lifetime"], EPS)
+	assert_int(_player.tick_count).is_equal(by_plain["ticks"])
+
 func test_a_tick_system_without_a_well_still_runs() -> void:
 	# Every existing caller builds this with three arguments.
 	var system := _system(_chain([2] as Array[int]))

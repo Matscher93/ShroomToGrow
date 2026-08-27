@@ -16,6 +16,45 @@ signal achievement_tiers_changed(value: int)
 signal well_project_levels_changed(value: int)
 signal missions_completed_changed(value: int)
 
+## Open batches, and the fields written while they were open. Same idiom and the
+## same rationale as UpgradeSystem.begin_batch(): a caller moving these many
+## times for one visible change collapses to one emit per field. See
+## begin_batch().
+var _batch_depth := 0
+var _batch_pending: Dictionary = {}
+
+## Suppresses this run of writes' change signals until the outermost end_batch(),
+## which then emits once per field that actually moved, with the value it ended
+## on. The fields themselves are written as they happen, so any read in between
+## sees the new value - only the notification waits.
+##
+## What this is for: the offline catch-up drives tens of thousands of ticks, and
+## every nutrients/tick_count write fans out through the bound ViewModels into
+## label rebuilds on the screen behind the popup. The player sees one catch-up,
+## so they get one refresh per frame of it.
+##
+## Always pair with end_batch(). Nesting is counted, only the outermost emits.
+func begin_batch() -> void:
+	_batch_depth += 1
+
+func end_batch() -> void:
+	_batch_depth = maxi(0, _batch_depth - 1)
+	if _batch_depth > 0 or _batch_pending.is_empty():
+		return
+	var pending := _batch_pending.keys()
+	_batch_pending.clear()
+	for field: StringName in pending:
+		emit_signal("%s_changed" % field, get(field))
+
+## True when the setter calling this should stay quiet, having recorded that its
+## field needs an emit at end_batch(). A plain dictionary write per tick in place
+## of a signal fan-out, and idempotent across the whole batch.
+func _defer(field: StringName) -> bool:
+	if _batch_depth <= 0:
+		return false
+	_batch_pending[field] = true
+	return true
+
 ## The BigNumber setters below guard with same_value(), not ==. BigNumber is a
 ## RefCounted, so == is an identity check, false for every freshly built
 ## instance, and its arithmetic never mutates in place. With ==, the guards are
@@ -25,6 +64,7 @@ var nutrients: BigNumber = BigNumber.from_value(1.0):
 		if value == null or nutrients.same_value(value):
 			return
 		nutrients = value
+		if _defer(&"nutrients"): return
 		nutrients_changed.emit(nutrients)
 
 var biomass: BigNumber = BigNumber.from_value(0.0):
@@ -32,6 +72,7 @@ var biomass: BigNumber = BigNumber.from_value(0.0):
 		if value == null or biomass.same_value(value):
 			return
 		biomass = value
+		if _defer(&"biomass"): return
 		biomass_changed.emit(biomass)
 
 var water: BigNumber = BigNumber.from_value(0.0):
@@ -39,6 +80,7 @@ var water: BigNumber = BigNumber.from_value(0.0):
 		if value == null or water.same_value(value):
 			return
 		water = value
+		if _defer(&"water"): return
 		water_changed.emit(water)
 
 ## Achievement reward currency, spent on automations. Permanent: prestige() never
@@ -48,6 +90,7 @@ var crystals: BigNumber = BigNumber.from_value(0.0):
 		if value == null or crystals.same_value(value):
 			return
 		crystals = value
+		if _defer(&"crystals"): return
 		crystals_changed.emit(crystals)
 
 ## Random-event reward currency, spent on the fertilizer upgrade track. Permanent:
@@ -61,6 +104,7 @@ var fertilizer: BigNumber = BigNumber.from_value(0.0):
 		if value == null or fertilizer.same_value(value):
 			return
 		fertilizer = value
+		if _defer(&"fertilizer"): return
 		fertilizer_changed.emit(fertilizer)
 
 ## The three Ruins currencies, paid out by missions. Permanent: prestige() never
@@ -73,6 +117,7 @@ var relics: BigNumber = BigNumber.from_value(0.0):
 		if value == null or relics.same_value(value):
 			return
 		relics = value
+		if _defer(&"relics"): return
 		relics_changed.emit(relics)
 
 var ichor: BigNumber = BigNumber.from_value(0.0):
@@ -80,6 +125,7 @@ var ichor: BigNumber = BigNumber.from_value(0.0):
 		if value == null or ichor.same_value(value):
 			return
 		ichor = value
+		if _defer(&"ichor"): return
 		ichor_changed.emit(ichor)
 
 var glyphs: BigNumber = BigNumber.from_value(0.0):
@@ -87,6 +133,7 @@ var glyphs: BigNumber = BigNumber.from_value(0.0):
 		if value == null or glyphs.same_value(value):
 			return
 		glyphs = value
+		if _defer(&"glyphs"): return
 		glyphs_changed.emit(glyphs)
 
 var tick_count: int = 0:
@@ -94,6 +141,7 @@ var tick_count: int = 0:
 		if tick_count == value:
 			return
 		tick_count = value
+		if _defer(&"tick_count"): return
 		tick_count_changed.emit(tick_count)
 
 var prestige_count: int = 0:
@@ -101,6 +149,7 @@ var prestige_count: int = 0:
 		if prestige_count == value:
 			return
 		prestige_count = value
+		if _defer(&"prestige_count"): return
 		prestige_count_changed.emit(prestige_count)
 
 ## Total achievement tiers ever completed. Doubles as the Crystal Caves XP
@@ -115,6 +164,7 @@ var achievement_tiers: int = 0:
 		if achievement_tiers == value:
 			return
 		achievement_tiers = value
+		if _defer(&"achievement_tiers"): return
 		achievement_tiers_changed.emit(achievement_tiers)
 
 ## Times any well project has been funded, summed. Doubles as the Underground
@@ -130,6 +180,7 @@ var well_project_levels: int = 0:
 		if well_project_levels == value:
 			return
 		well_project_levels = value
+		if _defer(&"well_project_levels"): return
 		well_project_levels_changed.emit(well_project_levels)
 
 ## Missions collected across the whole account. Doubles as the Ruins' XP source
@@ -144,6 +195,7 @@ var missions_completed: int = 0:
 		if missions_completed == value:
 			return
 		missions_completed = value
+		if _defer(&"missions_completed"): return
 		missions_completed_changed.emit(missions_completed)
 
 ## Lifetime totals the achievement ladder measures against. Unlike tick_count and

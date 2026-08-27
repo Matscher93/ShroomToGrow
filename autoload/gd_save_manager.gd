@@ -55,6 +55,12 @@ var now_provider: Callable = func() -> float: return Time.get_unix_time_from_sys
 func _now() -> float:
 	return float(now_provider.call())
 
+## Held so the offline catch-up can stop it for its duration. A save is a full
+## to_save() stringify plus a file write and a backup copy, and landing one on a
+## frame the catch-up is already spending its whole budget on is the one write
+## nothing is waiting for - the loop saves once itself when it finishes.
+var _autosave_timer: Timer
+
 func _ready() -> void:
 	# Run our own logic before the window closes.
 	get_tree().set_auto_accept_quit(false)
@@ -67,11 +73,11 @@ func _ready() -> void:
 	# the other side.
 	load_game()
 
-	var t := Timer.new()
-	t.wait_time = AUTOSAVE_INTERVAL
-	t.timeout.connect(save_game)
-	add_child(t)
-	t.start()
+	_autosave_timer = Timer.new()
+	_autosave_timer.wait_time = AUTOSAVE_INTERVAL
+	_autosave_timer.timeout.connect(save_game)
+	add_child(_autosave_timer)
+	_autosave_timer.start()
 
 func _notification(what: int) -> void:
 	match what:
@@ -440,22 +446,55 @@ func run_offline_progress_calculation() -> void:
 	# progress quests riding on handle_tick() below.
 	App.events_running = false
 	App.event_timer.stop()
+	# An autosave landing mid-loop is a full stringify, a file write and a backup
+	# copy on a frame already spending its whole budget on ticks, and there is
+	# nothing to save that the save at the end of this function does not cover.
+	_autosave_timer.stop()
+	# Same reason as the two flags above: the loop buys and unlocks nothing, so
+	# the achievement ladder and the structural stats sample have nothing new to
+	# read on any frame this yields across. Marked dirty once at the end instead.
+	App.offline_catchup = true
+
 	# Nothing here buys anything, so upgrade levels and manual node counts are
-	# fixed for the loop and the per-node bonus is invariant. Compute it once
-	# instead of ~9 modify() calls per node per tick.
+	# fixed for the loop. That makes all three of these invariant for its whole
+	# length: the per-node bonus (~9 modify() calls per node), the well's pump
+	# rate (two more modify chains, paid every tick even on the ticks no pump
+	# lands in) and the manual counts (a BigNumber allocation per tier). Compute
+	# each once.
 	var bonuses := App.node_production_bonuses()
+	var pump := App.water_pump_plan()
+	var manual := App.manual_node_counts()
+
+	# Every currency and node write below fans out through the bound ViewModels
+	# into rebuilt label strings on the main screen behind the popup. Batched, so
+	# that costs one refresh per frame the loop yields on rather than one per
+	# tick - the same trade the automation batch in App.handle_tick() makes.
+	_begin_tick_batch()
 	var batch_start := Time.get_ticks_msec()
 	for tick_counter in range(1, total_ticks + 1):
-		App.handle_tick(bonuses)
+		App.handle_tick(bonuses, pump, manual)
 
 		if Time.get_ticks_msec() - batch_start >= OFFLINE_CALC_FRAME_BUDGET_MSEC:
+			# Flushed before the frame, so the popup's live deltas and the cards
+			# behind it show the batch just simulated rather than trailing it.
+			_end_tick_batch()
 			App.offline_income_vm.set_calc_progress(tick_counter, total_ticks)
 			await get_tree().process_frame
+			_begin_tick_batch()
 			batch_start = Time.get_ticks_msec()
+	_end_tick_batch()
+
+	App.offline_catchup = false
+	# One evaluate for the whole gap. AchievementSystem banks up to
+	# MAX_TIERS_PER_EVALUATE tiers per achievement in a single call, which is far
+	# more than a capped gap can cross, so nothing is lost by not evaluating as
+	# the loop went.
+	App.mark_achievements_dirty()
 	App.tick_timer.start()
 	App.automations_running = true
 	App.events_running = true
 	App.event_timer.start(App.event_system.next_interval())
+	_autosave_timer.start()
 
 	# final snapshot after tick accumulation
 	save_game_snapshots.append(_collect_data())
@@ -464,6 +503,18 @@ func run_offline_progress_calculation() -> void:
 	App.offline_income_vm.set_calculating(false)
 	save_game()
 	_offline_calc_running = false
+
+## Opens and closes a batch on every emitter the tick loop writes to. Paired, and
+## split out because the loop opens and closes one per frame it yields across.
+func _begin_tick_batch() -> void:
+	App.player_data.begin_batch()
+	for node_data in App.mycelium_node_data:
+		node_data.node.begin_batch()
+
+func _end_tick_batch() -> void:
+	App.player_data.end_batch()
+	for node_data in App.mycelium_node_data:
+		node_data.node.end_batch()
 
 # ---------------------------------------------------------------- hooks
 

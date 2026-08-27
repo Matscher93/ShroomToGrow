@@ -97,6 +97,44 @@ func test_no_ticks_pays_nothing() -> void:
 	_system.handle_ticks(0, -5)
 	assert_float(_player.water.to_float()).is_zero()
 
+# ---------------------------------------------------------------- hoisted rate
+
+## The offline catch-up builds one of these before its loop rather than paying
+## two UpgradeSystem modify chains per tick. It has to pay the same water.
+func test_a_hoisted_plan_pays_exactly_what_the_fresh_path_pays() -> void:
+	_open_lake()
+	_register(&"more_water", &"water_production", UpgradeEffectDef.Op.INCREASED, 0.5, 2)
+	_register(&"faster_water", &"water_rate", UpgradeEffectDef.Op.ADD, -1.0, 3)
+	var span := 137
+
+	var fresh := PlayerData.new()
+	var fresh_system := WaterSystem.new(fresh, _biomes_data, _production)
+	for tick in span:
+		fresh_system.handle_ticks(tick, 1)
+
+	var plan := _system.pump_plan()
+	for tick in span:
+		_system.handle_ticks(tick, 1, plan)
+
+	assert_float(_player.water.to_float()).is_equal_approx(fresh.water.to_float(), EPS)
+
+func test_a_plan_taken_while_the_lake_is_shut_pumps_nothing() -> void:
+	var plan := _system.pump_plan()
+	assert_bool(plan.pumping).is_false()
+	_system.handle_ticks(0, 1000, plan)
+	assert_float(_player.water.to_float()).is_zero()
+
+func test_a_plan_is_used_verbatim() -> void:
+	# The hoist contract: a plan taken before the loop keeps the rate it was
+	# taken at, or hoisting it buys nothing.
+	_open_lake()
+	var plan := _system.pump_plan()
+	_register(&"much_more_water", &"water_production", UpgradeEffectDef.Op.INCREASED, 99.0, 1)
+
+	_system.handle_ticks(0, _system.interval(), plan)
+
+	assert_float(_player.water.to_float()).is_equal_approx(WaterSystem.BASE_YIELD, EPS)
+
 # ---------------------------------------------------------------- stats
 
 func test_water_production_multiplies_the_yield() -> void:

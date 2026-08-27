@@ -4,6 +4,39 @@ extends Resource
 signal manual_nodes_changed(value: int)
 signal auto_nodes_changed(value: BigNumber)
 
+## Open batches, and the fields written while they were open. Same idiom, and the
+## same rationale, as PlayerData.begin_batch() and UpgradeSystem.begin_batch().
+var _batch_depth := 0
+var _batch_pending: Dictionary = {}
+
+## Suppresses this run of writes' change signals until the outermost end_batch(),
+## which then emits once per field that actually moved, with the value it ended
+## on. The fields are written as they happen, so any read in between sees the new
+## value - only the notification waits.
+##
+## What this is for: the offline catch-up moves auto_nodes on every tier every
+## tick, and each write costs the bound node card seven property_changed
+## notifications and the formatted label strings behind them.
+##
+## Always pair with end_batch(). Nesting is counted, only the outermost emits.
+func begin_batch() -> void:
+	_batch_depth += 1
+
+func end_batch() -> void:
+	_batch_depth = maxi(0, _batch_depth - 1)
+	if _batch_depth > 0 or _batch_pending.is_empty():
+		return
+	var pending := _batch_pending.keys()
+	_batch_pending.clear()
+	for field: StringName in pending:
+		emit_signal("%s_changed" % field, get(field))
+
+func _defer(field: StringName) -> bool:
+	if _batch_depth <= 0:
+		return false
+	_batch_pending[field] = true
+	return true
+
 @export var node_id: int = 0
 @export var name: String = ""
 
@@ -24,6 +57,7 @@ var id_key: StringName:
 		if manual_nodes == value:
 			return
 		manual_nodes = value
+		if _defer(&"manual_nodes"): return
 		manual_nodes_changed.emit(manual_nodes)
 
 # BigNumber can't be @export'ed, so the persisted value lives in two plain
@@ -44,6 +78,7 @@ var auto_nodes: BigNumber:
 		_auto_nodes_cache = value
 		_auto_nodes_mantissa = value.mantissa
 		_auto_nodes_exponent = value.exponent
+		if _defer(&"auto_nodes"): return
 		auto_nodes_changed.emit(value)
 
 @export var _initial_cost_mantissa: float = 1.0
