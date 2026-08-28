@@ -655,28 +655,18 @@
 .crystal-card { --tint: #5cc8e6; }
 
 /* A band between the three economies on one long page: without it the mint and
-   the sinks read as one undifferentiated run of cards. */
-.crystal-section {
+   the sinks read as one undifferentiated run of cards. Named generically because
+   the fold keys off it - a band heads the cards that follow rather than the ones
+   it contains, and folding has to reach them. */
+.game-section {
   border-top: 1px solid var(--line);
   padding-top: 10px;
   margin-top: 4px;
 }
-.crystal-section h4 { font-size: 12px; color: var(--text); }
+.game-section > h4 { font-size: 12px; color: var(--text); }
 
-/* ----------------------------------------------------------- game: crystals */
-
-/* The caves accent, shared verbatim by the biome, the screen definition and the
-   crystal currency. */
-.crystal-card { --tint: #5cc8e6; }
-
-/* A band between the three economies on one long page: without it the mint and
-   the sinks read as one undifferentiated run of cards. */
-.crystal-section {
-  border-top: 1px solid var(--line);
-  padding-top: 10px;
-  margin-top: 4px;
-}
-.crystal-section h4 { font-size: 12px; color: var(--text); }
+/* A card folded away by the band above it. */
+.folded-away { display: none; }
 
 /* --------------------------------------------------- game: folding sections */
 

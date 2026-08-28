@@ -341,26 +341,53 @@
    *
    * The body is hidden in CSS rather than detached, so a folded chart keeps its
    * place in the shared-range redraw and comes back unchanged. */
-  function applyCollapse(root, screen) {
-    for (const group of root.querySelectorAll(".game-group")) {
-      const heading = group.firstElementChild;
-      if (!heading || heading.tagName !== "H4") continue;
+  /** What a section band governs: every sibling after it, up to the next band.
+   *
+   * A band heads a run of cards rather than containing them - the heading and
+   * its cards are siblings in the screen body - so folding one has to reach
+   * forward. Folding only its own children hid the heading's hint line and left
+   * all sixteen cards standing, which is not what a fold means. */
+  function sectionRun(band) {
+    const out = [];
+    for (let node = band.nextElementSibling; node; node = node.nextElementSibling) {
+      if (node.classList.contains("game-section")) break;
+      out.push(node);
+    }
+    return out;
+  }
 
+  function applyCollapse(root, screen) {
+    const groups = [...root.querySelectorAll(".game-group")]
+      .filter((group) => {
+        const heading = group.firstElementChild;
+        return heading && heading.tagName === "H4";
+      });
+
+    const setFolded = (group, folded) => {
+      group.classList.toggle("collapsed", folded);
+      if (!group.classList.contains("game-section")) return;
+      for (const node of sectionRun(group)) node.classList.toggle("folded-away", folded);
+    };
+
+    for (const group of groups) {
+      const heading = group.firstElementChild;
       const key = collapseKey(screen, heading.textContent);
-      group.classList.toggle("collapsed", collapsed[key] === true);
-      heading.title = "Fold this section on every card";
+      const isBand = group.classList.contains("game-section");
+      setFolded(group, collapsed[key] === true);
+      heading.title = isBand
+        ? "Fold this whole section away"
+        : "Fold this section on every card";
       heading.onclick = () => {
-        if (collapsed[key]) delete collapsed[key];
-        else collapsed[key] = true;
+        const folded = !collapsed[key];
+        if (folded) collapsed[key] = true;
+        else delete collapsed[key];
         saveCollapsed();
         // Every card carries a section under this heading, so they all move
         // together. Cheaper and steadier than a full re-render, which would
         // rebuild thirty charts to change a class.
-        for (const other of root.querySelectorAll(".game-group")) {
-          const otherHeading = other.firstElementChild;
-          if (!otherHeading || otherHeading.tagName !== "H4") continue;
-          if (collapseKey(screen, otherHeading.textContent) !== key) continue;
-          other.classList.toggle("collapsed", collapsed[key] === true);
+        for (const other of groups) {
+          if (collapseKey(screen, other.firstElementChild.textContent) !== key) continue;
+          setFolded(other, folded);
         }
       };
     }

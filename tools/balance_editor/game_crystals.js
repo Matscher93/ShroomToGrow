@@ -582,7 +582,9 @@
 
   function sectionHeading(text, hint) {
     const wrap = document.createElement("div");
-    wrap.className = "game-group crystal-section";
+    // game-section marks a heading that governs the cards *after* it rather than
+    // the ones inside it, which is what lets the fold reach them.
+    wrap.className = "game-group game-section";
     const heading = document.createElement("h4");
     heading.textContent = text;
     wrap.append(heading);
