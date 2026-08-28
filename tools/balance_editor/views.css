@@ -700,3 +700,25 @@
 /* A folded group is a heading and nothing else, so it should not also carry the
    gap its contents needed. */
 .game-group.collapsed { margin-bottom: -4px; }
+
+/* ------------------------------------------------ game: the tier comparison */
+
+/* One chip per node tier, carrying that tier's authored colour so a chip and a
+   line on the chart are matched by eye rather than by reading a legend. */
+.node-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 4px; }
+.node-chip {
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 9px;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.node-chip.on {
+  color: var(--text);
+  border-color: var(--tint);
+  background: color-mix(in srgb, var(--tint) 18%, var(--bg));
+}
+.node-chip.all { margin-left: 6px; font-family: ui-monospace, monospace; }

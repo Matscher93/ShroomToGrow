@@ -67,6 +67,25 @@ var _pending: Dictionary = {}
 ## id -> whole actions the rate has paid for and the budget has not run yet,
 ## drained by handle_frame(). Transient for the same reason as _pending.
 var _owed: Dictionary = {}
+## biome key -> how far the point-spending walk has already got:
+## {"index", "seen", "spent", "src", "size"}. The walk used to restart at step 0
+## for every single action, which on a hundred-step plan is a hundred-step tally
+## to buy one thing, twenty times a tick.
+##
+## Only the steps the walk has confirmed *bought* are behind the cursor, never a
+## step that is merely gated: a gate opens as points are spent, so the next
+## action has to look at it again.
+##
+## Valid while nothing outside this system has moved the biome's upgrades, which
+## `spent` watches - every purchase goes through BiomeSystem.buy_upgrade() and
+## moves points_spent, and a prestige reset takes it back to zero. `src`/`size`
+## catch the player editing the plan out from under it.
+var _walk: Dictionary = {}
+## biome key -> available_points(), which re-derives biome XP and resolves a stat
+## through every upgrade track. Held for as long as this system is the only thing
+## spending, and re-derived the moment it reads empty - an upgrade can itself
+## grant points.
+var _points: Dictionary = {}
 ## id -> AutomationDef. Built once: automation_def() is called several times per
 ## action, and the authored list never changes at runtime.
 var _defs_by_id: Dictionary = {}
@@ -317,9 +336,12 @@ func _buy_biome_size() -> bool:
 	for def in _biomes.biomes:
 		if not _biomes_data.is_unlocked(def.key):
 			continue
-		if not _biome_system.can_buy_size(def.key):
-			continue
+		# The price once, for both questions. can_buy_size() would work it out
+		# again for the comparison below, and this loop runs over every biome on
+		# every action.
 		var size_cost := _biome_system.size_cost(def.key)
+		if not _player_data.nutrients.gte(size_cost):
+			continue
 		if best_cost == null or size_cost.lt(best_cost):
 			best_cost = size_cost
 			best_key = def.key
@@ -341,9 +363,14 @@ func _buy_symbiosis() -> bool:
 		if synergy_unlocked:
 			ids.append(StringName("NodeSynergy%d" % node_data.node.node_id))
 		for id in ids:
-			if not _symbiosis.can_buy(id, _player_data.nutrients):
+			if not _symbiosis.has_room(id):
 				continue
+			# Same as _buy_biome_size(): the price once, for both the
+			# affordability test and the comparison. There are two candidates per
+			# node tier and this runs on every action.
 			var upgrade_cost := _symbiosis.cost(id)
+			if not _player_data.nutrients.gte(upgrade_cost):
+				continue
 			if best_cost == null or upgrade_cost.lt(best_cost):
 				best_cost = upgrade_cost
 				best_id = id
@@ -360,8 +387,18 @@ func _spend_biome_points() -> bool:
 		var id := next_sequence_step(def)
 		if id.is_empty():
 			continue
+		var budget := _available_points(def.key)
 		if _biome_system.buy_upgrade(id, def.key):
+			# Both caches were right a moment ago and this call is what moved
+			# them, so they are corrected rather than thrown away.
+			_points[def.key] = maxi(0, budget - 1)
+			var state: Variant = _walk.get(def.key)
+			if state != null:
+				state["spent"] = _biomes_data.points_spent(def.key)
 			return true
+		# The budget said there was a point and the purchase disagreed, so the
+		# cached budget is stale - something outside this system spent it.
+		_points.erase(def.key)
 	return false
 
 ## The next step of a biome's sequence that is still outstanding and affordable,
@@ -379,20 +416,64 @@ func _spend_biome_points() -> bool:
 ## Waiting would deadlock the common case where a later, cheaper step is what
 ## unlocks the gate the earlier one is behind.
 func next_sequence_step(def: BiomeDef) -> StringName:
-	# Read the budget once for the whole walk rather than once per step, via
-	# BiomeSystem.has_upgrade_room(). available_points() re-derives biome XP and
-	# resolves a stat through all three upgrade tracks, and a sequence is one
-	# entry per level - hundreds of steps on a filled-in biome. Nothing inside
-	# the walk can raise it, so one point is enough to know the walk is worth
-	# doing at all.
-	if _biome_system.available_points(def.key) < 1:
+	# The sequence first, and only then the budget: most biomes have no plan at
+	# all, and available_points() re-derives biome XP and resolves a stat through
+	# every upgrade track, which is far too much to pay to find out that nothing
+	# was asked for.
+	var sequence := _data.sequence_for(def.key, def.upgrade_ids)
+	if sequence.is_empty():
 		return &""
-	var seen := {}
-	for id: StringName in _data.sequence_for(def.key, def.upgrade_ids):
-		var count: int = seen.get(id, 0) + 1
-		seen[id] = count
+	# Read once for the whole walk rather than once per step, via
+	# BiomeSystem.has_upgrade_room(). Nothing inside the walk can raise it, so
+	# one point is enough to know the walk is worth doing at all.
+	if _available_points(def.key) < 1:
+		return &""
+	var state := _walk_state(def.key, sequence)
+	var seen: Dictionary = state["seen"]
+	# Behind the cursor is settled, so its tally is the shared one and moving it
+	# is permanent. From the first outstanding step on, the walk is provisional -
+	# a gated step is stepped over now and may be buyable in a moment - so the
+	# tally forks there and the cursor stays put.
+	var tally := seen
+	var settled := true
+	var i: int = state["index"]
+	while i < sequence.size():
+		var id: StringName = sequence[i]
+		var count: int = tally.get(id, 0) + 1
 		if count <= _biome_system.upgrade_level(id):
-			continue  # this step is already bought
+			tally[id] = count  # this step is already bought
+			if settled:
+				state["index"] = i + 1
+			i += 1
+			continue
+		if settled:
+			settled = false
+			tally = seen.duplicate()
+		tally[id] = count
 		if _biome_system.has_upgrade_room(id, def.key):
 			return id
+		i += 1
 	return &""
+
+## Where the walk left off for this biome, or a fresh start when anything it was
+## resting on has moved. See _walk.
+func _walk_state(key: StringName, sequence: Array[StringName]) -> Dictionary:
+	var state: Variant = _walk.get(key)
+	if state != null and state["spent"] == _biomes_data.points_spent(key) \
+			and state["size"] == sequence.size() and is_same(state["src"], sequence):
+		return state
+	var fresh := {
+		"index": 0, "seen": {}, "spent": _biomes_data.points_spent(key),
+		"src": sequence, "size": sequence.size(),
+	}
+	_walk[key] = fresh
+	return fresh
+
+## This biome's point budget, held between actions. See _points.
+func _available_points(key: StringName) -> int:
+	var cached: Variant = _points.get(key)
+	if cached != null and int(cached) > 0:
+		return int(cached)
+	var live := _biome_system.available_points(key)
+	_points[key] = live
+	return live

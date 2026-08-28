@@ -376,6 +376,20 @@ func test_cannot_buy_size_without_funds() -> void:
 	assert_bool(_system.can_buy_size(&"meadow")).is_false()
 	assert_bool(_system.buy_size(&"meadow")).is_false()
 
+## The price is memoised against the size it was worked out at, so growing the
+## biome has to move it - and the memo's own instance must never escape, or a
+## caller editing the BigNumber it got back would poison every later read.
+func test_the_size_price_moves_with_the_size_and_is_never_the_memos_own_copy() -> void:
+	_player.nutrients = BigNumber.from_value(1e9)
+	var first := _system.size_cost(&"meadow").to_float()
+	# Vandalise what the last call handed back. A memo handing out its own
+	# instance would be reading this back on the next line.
+	_system.size_cost(&"meadow").mantissa = 0.0
+	assert_float(_system.size_cost(&"meadow").to_float()).is_equal_approx(first, 0.001)
+
+	assert_bool(_system.buy_size(&"meadow")).is_true()
+	assert_float(_system.size_cost(&"meadow").to_float()).is_greater(first)
+
 func test_unknown_biome_has_no_size_cost() -> void:
 	assert_float(_system.size_cost(&"nope").to_float()).is_zero()
 	assert_bool(_system.can_buy_size(&"nope")).is_false()

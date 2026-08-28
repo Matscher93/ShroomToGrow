@@ -18,6 +18,8 @@ var _ctx: ResolveContext
 ## key -> BiomeDef. Built once: biome_def() sits under the automation tick's
 ## inner loops, and the authored list never changes at runtime.
 var _defs_by_key: Dictionary = {}
+## key -> [size, price]. See size_cost().
+var _size_cost_memo: Dictionary = {}
 
 func _init(biomes: BiomeList, biomes_data: BiomesData, player_data: PlayerData,
 		mycelium_nodes: Array[MyceliumNode], production: ProductionSystem,
@@ -206,12 +208,24 @@ func buy_upgrade(id: StringName, key: StringName) -> bool:
 func size(key: StringName) -> int:
 	return _biomes_data.biome_size(key)
 
+## What the next size level costs. Memoised against the size it was worked out
+## at, for the same reason UpgradeSystem.cost() is: the curve costs three
+## BigNumber allocations and a pair of pow()s, and the automation prices every
+## unlocked biome on every action to find the cheapest one. Only buying a size
+## level can move it, and that moves the size.
 func size_cost(key: StringName) -> BigNumber:
 	var def := biome_def(key)
 	if def == null:
 		return BigNumber.new(0.0, 0)
-	var scaled_size := float(size(key)) * pow(def.size_cost_growth_exponent, float(size(key)))
-	return def.size_base_cost.mul(BigNumber.from_value(def.size_cost_growth).pow_float(scaled_size))
+	var current_size := size(key)
+	var memo: Variant = _size_cost_memo.get(key)
+	if memo != null and memo[0] == current_size:
+		# A copy, never the memo's own instance - BigNumber's fields are writable.
+		return (memo[1] as BigNumber).copy()
+	var scaled_size := float(current_size) * pow(def.size_cost_growth_exponent, float(current_size))
+	var price := def.size_base_cost.mul(BigNumber.from_value(def.size_cost_growth).pow_float(scaled_size))
+	_size_cost_memo[key] = [current_size, price]
+	return price.copy()
 
 func can_buy_size(key: StringName) -> bool:
 	if biome_def(key) == null:

@@ -24,7 +24,7 @@
  */
 (() => {
   const {
-    log10Of, growthCurve, effectCurve, enumIs, chartBlock, engineSeries, engineCurve,
+    log10Of, formatBig, growthCurve, effectCurve, enumIs, chartBlock, engineSeries, engineCurve,
     rowsOf, findRow, cell, numberCell, field, fieldGroup, bigField,
   } = window.GameKit;
 
@@ -32,7 +32,42 @@
   const TRACK_LEVELS = 50;       // both tracks are max_level 0, i.e. open ended
   const DEPENDENCY_SIZE = 10;    // the biome size the scaled synergy line is drawn at
 
-  const screen = { label: "Nodes" };
+  /** What the comparison chart plots, and how. Every metric is a curve one card
+   * already draws for a single tier; the point of the section is seeing where
+   * two tiers cross, which no per-card chart can show. */
+  const COMPARE = {
+    buy: {
+      label: "Buy cost", log: true, xLabel: "nodes owned", to: BUY_LEVELS, unit: "nodes",
+      points: (entry, from, to) => buyCurve(entry, from, to),
+    },
+    potency_cost: {
+      // Opens narrower than the rest. The symbiosis tracks carry a
+      // cost_growth_exponent of 1.5, which puts level 50 past 1e1000000000 - a
+      // real number the engine agrees with, and a useless window to land on.
+      label: "Potency cost", log: true, xLabel: "level", to: 25, unit: "potency levels",
+      points: (entry, from, to) => trackPoints(entry, "Potency", "cost", from, to),
+    },
+    potency_effect: {
+      label: "Potency magnitude", zeroBased: true, xLabel: "level", to: TRACK_LEVELS,
+      points: (entry, from, to) => trackPoints(entry, "Potency", "effect", from, to),
+    },
+    synergy_cost: {
+      label: "Synergy cost", log: true, xLabel: "level", to: 25, unit: "synergy levels",
+      points: (entry, from, to) => trackPoints(entry, "Synergy", "cost", from, to),
+    },
+    synergy_effect: {
+      label: "Synergy magnitude", zeroBased: true, xLabel: "level", to: TRACK_LEVELS,
+      points: (entry, from, to) => trackPoints(entry, "Synergy", "effect", from, to),
+    },
+  };
+
+  const screen = {
+    label: "Nodes",
+    metric: "buy",
+    // Which tiers are on the comparison. Null until the first render fills it
+    // with every tier, since the list is not known until the data is loaded.
+    tiers: null,
+  };
 
   const list = (value) => (value || "").split("|").filter(Boolean);
   const cellIs = (entry, column, name) => enumIs(cell(entry, column), name);
@@ -109,6 +144,176 @@
     if (cellIs(dependency, "transform", "SQRT")) return Math.sqrt(value);
     if (cellIs(dependency, "transform", "LOG10")) return Math.log10(Math.max(1, value));
     return value;
+  }
+
+  /** One tier's track curve, or an empty series when that tier has no such
+   * track - a renumbered tier loses its upgrades silently, and a comparison
+   * that quietly dropped it would hide exactly that. */
+  function trackPoints(entry, kind, which, from, to) {
+    const track = trackOf(kind, cell(entry, "node_id"));
+    if (!track.def) return [];
+    if (which === "cost") return trackCostCurve(track.def, from, to);
+    if (!track.effect) return [];
+    return trackEffectCurve(track.effect, from, to).raw;
+  }
+
+  /* -------------------------------------------------------- what a price buys */
+
+  /** Levels looked at when counting what a budget buys. Well past anything the
+   * cumulative cost can stay finite over, so the count is never cut short by the
+   * window rather than by the money. */
+  const AFFORD_CAP = 400;
+
+  /** log10(10^a + 10^b).
+   *
+   * The only safe way to add two of these: a late node on tier 9 costs more than
+   * a double can hold, so a running total kept in linear space would be Infinity
+   * long before the count meant anything. A term eighteen decades under the
+   * larger one cannot move it, so it is dropped rather than underflowed. */
+  function logAdd(a, b) {
+    const hi = Math.max(a, b);
+    const lo = Math.min(a, b);
+    return lo - hi < -18 ? hi : hi + Math.log10(1 + 10 ** (lo - hi));
+  }
+
+  /** Running total of a price curve: entry n is what levels 0..n cost together. */
+  function cumulative(points) {
+    const out = [];
+    let total = null;
+    for (const value of points) {
+      if (value === null || !Number.isFinite(value)) break;
+      total = total === null ? value : logAdd(total, value);
+      out.push(total);
+    }
+    return out;
+  }
+
+  /** How much a budget buys on one ladder, counting from nothing.
+   *
+   * Cumulative rather than marginal: the question a price on the chart raises is
+   * what that much money would actually get you, and the nth level costs
+   * everything before it too. Hovering a tier's own curve at level n therefore
+   * lands near n on that tier, which is the readout checking itself. */
+  function countFor(totals, budget) {
+    let n = 0;
+    while (n < totals.length && totals[n] <= budget) n += 1;
+    return n;
+  }
+
+  /** The hover readout: at the price under the pointer, what every tier on the
+   * comparison would buy. Only for the cost metrics - a magnitude is not a
+   * budget, and node buying and both symbiosis tracks all spend nutrients, so
+   * the comparison is between like and like. */
+  function affordabilityTip(entries, metric) {
+    if (!metric.unit) return null;
+    const ladders = entries
+      .map((entry) => ({
+        name: cell(entry, "name") || `tier ${cell(entry, "node_id")}`,
+        totals: cumulative(metric.points(entry, 0, AFFORD_CAP)),
+      }))
+      .filter((ladder) => ladder.totals.length);
+    if (!ladders.length) return null;
+
+    const width = Math.max(...ladders.map((ladder) => ladder.name.length));
+    return (series, level, value) => {
+      const exponent = Math.floor(value);
+      const budget = formatBig(10 ** (value - exponent), exponent);
+      const lines = ladders.map((ladder) => {
+        const count = countFor(ladder.totals, value);
+        // A count that used up the whole window is a floor, not an answer.
+        const shown = count >= ladder.totals.length ? `${count}+` : `${count}`;
+        return `  ${ladder.name.padEnd(width)}  ${shown}`;
+      });
+      return `${budget} nutrients buys, from nothing:\n${lines.join("\n")}`;
+    };
+  }
+
+  /* ----------------------------------------------------------- the comparison */
+
+  /** Every tier's curve for one metric, on one chart.
+   *
+   * The per-card charts answer "what does this tier do"; only this one answers
+   * "which tier is dearer, and from where" - the question behind every decision
+   * about the chain. Tiers keep their authored colour rather than taking a
+   * generated hue, so a line is matched to a card by eye.
+   *
+   * No engine dots here: ten mirrored lines with ten sets of samples behind them
+   * is unreadable, and the drift check belongs on the per-card charts, which
+   * carry it already. */
+  function compareSection(entries) {
+    const wrap = document.createElement("div");
+    wrap.className = "game-group";
+    const heading = document.createElement("h4");
+    heading.textContent = "Compare tiers";
+    wrap.append(heading);
+
+    if (screen.tiers === null) {
+      screen.tiers = new Set(entries.map((entry) => cell(entry, "node_id")));
+    }
+    const metric = COMPARE[screen.metric] || COMPARE.buy;
+
+    const metrics = document.createElement("div");
+    metrics.className = "web-modes";
+    for (const [key, spec] of Object.entries(COMPARE)) {
+      const button = document.createElement("button");
+      button.textContent = spec.label;
+      button.className = key === screen.metric ? "active" : "";
+      button.onclick = () => {
+        screen.metric = key;
+        renderActiveView();
+      };
+      metrics.append(button);
+    }
+    wrap.append(metrics);
+
+    const chips = document.createElement("div");
+    chips.className = "node-chips";
+    for (const entry of entries) {
+      const id = cell(entry, "node_id");
+      const chip = document.createElement("button");
+      chip.className = screen.tiers.has(id) ? "node-chip on" : "node-chip";
+      chip.style.setProperty("--tint", cell(entry, "color") || "#888");
+      chip.textContent = cell(entry, "name") || `tier ${id}`;
+      chip.onclick = () => {
+        if (screen.tiers.has(id)) screen.tiers.delete(id);
+        else screen.tiers.add(id);
+        renderActiveView();
+      };
+      chips.append(chip);
+    }
+    const all = document.createElement("button");
+    all.className = "node-chip all";
+    const everyOn = entries.every((entry) => screen.tiers.has(cell(entry, "node_id")));
+    all.textContent = everyOn ? "none" : "all";
+    all.title = everyOn ? "Clear the comparison" : "Put every tier on the comparison";
+    all.onclick = () => {
+      screen.tiers = everyOn
+        ? new Set() : new Set(entries.map((entry) => cell(entry, "node_id")));
+      renderActiveView();
+    };
+    chips.append(all);
+    wrap.append(chips);
+
+    const build = (from, to) => entries
+      .filter((entry) => screen.tiers.has(cell(entry, "node_id")))
+      .map((entry) => ({
+        label: cell(entry, "name") || `tier ${cell(entry, "node_id")}`,
+        color: cell(entry, "color") || undefined,
+        points: metric.points(entry, from, to),
+      }));
+
+    wrap.append(chartBlock(metric.label, build, {
+      log: metric.log, zeroBased: metric.zeroBased, xLabel: metric.xLabel,
+      width: 900, height: 300,
+      tipExtra: affordabilityTip(
+        entries.filter((entry) => screen.tiers.has(cell(entry, "node_id"))), metric),
+      // One range per metric. A buy curve is worth reading over fifty nodes and
+      // a symbiosis cost over fifteen levels, so a shared window would open one
+      // of them wrong every time the metric changed.
+      range: { key: `node-compare-${screen.metric}`, from: 0, to: metric.to,
+        label: "level" },
+    }));
+    return wrap;
   }
 
   /* -------------------------------------------------------------- the ladder */
@@ -415,6 +620,7 @@
       return;
     }
     body.append(ladderChart(entries));
+    body.append(compareSection(entries));
     entries.forEach((entry, index) => body.append(card(entry, index, entries.length)));
 
     const missing = entries.filter((entry) =>

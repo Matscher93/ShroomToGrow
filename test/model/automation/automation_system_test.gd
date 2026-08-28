@@ -704,6 +704,35 @@ func test_removing_takes_the_last_step_and_leaves_the_rest_in_place() -> void:
 func test_removing_from_an_empty_sequence_is_refused() -> void:
 	assert_bool(_data.remove_last_from_sequence(&"meadow")).is_false()
 
+## The reconcile is cached rather than run on every read, so an edit between two
+## reads has to invalidate it - otherwise a step the biome no longer has would
+## survive in the sequence the automation walks.
+func test_an_edited_sequence_is_reconciled_again_rather_than_served_from_the_cache() -> void:
+	var meadow := _biome_system.biome_def(&"meadow")
+	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[0])
+	assert_int(_data.sequence_for(&"meadow", meadow.upgrade_ids).size()).is_equal(1)
+
+	_data.upgrade_sequences[&"meadow"].append(&"GoneForever")
+	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[1])
+
+	var sequence := _data.sequence_for(&"meadow", meadow.upgrade_ids)
+	assert_int(sequence.size()).is_equal(2)
+	assert_str(String(sequence[1])).is_equal(String(meadow.upgrade_ids[1]))
+
+## An append and a removal between two reads leave the array the same object and
+## the same length, which is what the revision counter is there for.
+func test_an_edit_that_leaves_the_length_alone_still_invalidates_the_cache() -> void:
+	var meadow := _biome_system.biome_def(&"meadow")
+	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[0])
+	assert_int(_data.sequence_for(&"meadow", meadow.upgrade_ids).size()).is_equal(1)
+
+	assert_bool(_data.remove_last_from_sequence(&"meadow")).is_true()
+	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[1])
+
+	var sequence := _data.sequence_for(&"meadow", meadow.upgrade_ids)
+	assert_int(sequence.size()).is_equal(1)
+	assert_str(String(sequence[0])).is_equal(String(meadow.upgrade_ids[1]))
+
 func test_clearing_empties_the_sequence() -> void:
 	var meadow := _biome_system.biome_def(&"meadow")
 	_data.append_to_sequence(&"meadow", meadow.upgrade_ids[0])

@@ -38,6 +38,9 @@ var _stat_dirty: Dictionary = {}  # stat -> true, buckets to re-sum
 ## invalidate() can have moved. Everything else is a pure function of its level.
 var _context_readers: Dictionary = {}
 
+## id -> [level, price]. See cost().
+var _cost_memo: Dictionary = {}
+
 ## Bumped by every change that makes the resolved effects stale. A caller
 ## stacking several tracks can memoise a resolved value and drop it the moment
 ## any track moves, without knowing what moved - see ProductionSystem, which
@@ -69,6 +72,7 @@ const _K_NODE   := "n:"
 
 func register(def: UpgradeDef) -> void:
 	_defs[def.id] = def
+	_cost_memo.erase(def.id)   # a re-register may have brought a different curve
 	if not _levels.has(def.id):
 		_levels[def.id] = 0
 	if _reads_context(def):
@@ -179,20 +183,42 @@ func combined_bonus(ids: Array, ctx: ResolveContext) -> BigNumber:
 		total = total.mul(BigNumber.from_value(1.0).add(effect_amount(id, ctx)))
 	return total.sub(BigNumber.from_value(1.0))
 
+## The next level's price. Memoised against the level it was worked out at: the
+## curve is a pow(), a from_value() and a pow_float() over three BigNumber
+## allocations - ~5.5us a call, measured - and every card refresh and every
+## automation action asking "what is the cheapest thing I can buy" walks a whole
+## track of them from levels that have not moved.
+##
+## Nothing else can move a price. The curve comes off the authored def, which the
+## tree builders fill in before register() and never touch again, and register()
+## drops the entry anyway.
 func cost(id: StringName) -> BigNumber:
 	var def: UpgradeDef = _defs.get(id)
 	if def == null:
 		return BigNumber.new(0.0, 0)
-	var scaled_level := float(level(id)) * pow(def.cost_growth_exponent, float(level(id)))
-	return def.base_cost.mul(BigNumber.from_value(def.cost_growth).pow_float(scaled_level))
+	var lvl := level(id)
+	var memo: Variant = _cost_memo.get(id)
+	if memo != null and memo[0] == lvl:
+		# A copy, never the memo's own instance: BigNumber's fields are writable
+		# and a caller that edited one in place would poison every later read.
+		return (memo[1] as BigNumber).copy()
+	var scaled_level := float(lvl) * pow(def.cost_growth_exponent, float(lvl))
+	var price := def.base_cost.mul(BigNumber.from_value(def.cost_growth).pow_float(scaled_level))
+	_cost_memo[id] = [lvl, price]
+	return price.copy()
 
-func can_buy(id: StringName, nutrients: BigNumber) -> bool:
+## Everything can_buy() checks except the price: this upgrade exists and still
+## has a level left to take. Split out for the same reason
+## BiomeSystem.has_upgrade_room() is - a caller comparing many upgrades against
+## one balance wants the price once, not once to ask and once to compare.
+func has_room(id: StringName) -> bool:
 	var def: UpgradeDef = _defs.get(id)
 	if def == null:
 		return false
-	if def.max_level > 0 and level(id) >= def.max_level:
-		return false
-	return nutrients.gte(cost(id))
+	return def.max_level <= 0 or level(id) < def.max_level
+
+func can_buy(id: StringName, nutrients: BigNumber) -> bool:
+	return has_room(id) and nutrients.gte(cost(id))
 
 func buy(id: StringName, player_data: PlayerData, currency: StringName = &"nutrients") -> bool:
 	var current: BigNumber = player_data.get(currency)

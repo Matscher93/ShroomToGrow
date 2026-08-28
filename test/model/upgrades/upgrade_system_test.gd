@@ -122,6 +122,20 @@ func test_cost_grows_with_level() -> void:
 	system.from_save({"Thing": 2})
 	assert_float(system.cost(&"Thing").to_float()).is_equal_approx(400.0, 0.001)
 
+## The price is memoised against the level it was worked out at, and the memo's
+## own instance must never escape: BigNumber's fields are writable, so a caller
+## editing one it got back would poison every later read.
+func test_the_price_handed_out_is_never_the_memos_own_copy() -> void:
+	var system := UpgradeSystem.new()
+	var def := _upgrade(&"Thing", [])
+	def.base_cost = BigNumber.from_value(100.0)
+	def.cost_growth = 2.0
+	system.register(def)
+
+	system.cost(&"Thing").mantissa = 0.0
+
+	assert_float(system.cost(&"Thing").to_float()).is_equal_approx(100.0, 0.001)
+
 # ─── modify() stacking ───────────────────────────────────────────────────────
 
 func test_add_op_is_flat() -> void:

@@ -262,11 +262,21 @@
           "stroke-dasharray": entry.dashed ? "4 3" : "" }));
       }
       // A hit target per point, so hovering says which level it is.
+      //
+      // `tipExtra` lets a screen answer a question the point alone cannot - what
+      // a price on one curve would buy on all the others, say. Computed on hover
+      // rather than up front: there are five hundred of these on a wide chart
+      // and almost none of them are ever pointed at.
       entry.points.forEach((value, i) => {
         if (!finite(value)) return;
         const hit = svgEl("circle", { class: "hit", cx: x(i), cy: y(value), r: 6 });
-        attachTip(hit, `${entry.label} · ${(options.xOffset || 0) + i}: `
-          + `${options.log ? logDisplay(value) : formatAxis(value)}`);
+        const level = (options.xOffset || 0) + i;
+        const head = `${entry.label} · ${level}: `
+          + `${options.log ? logDisplay(value) : formatAxis(value)}`;
+        attachTip(hit, options.tipExtra ? () => {
+          const extra = options.tipExtra(entry, level, value);
+          return extra ? `${head}\n${extra}` : head;
+        } : head);
         svg.append(hit);
       });
     });
