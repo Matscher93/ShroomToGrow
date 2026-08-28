@@ -28,9 +28,24 @@ const SEQUENCE_AUTOMATION_ID := &"AutoSpendPoints"
 ##
 ## A budget instead of a count, because the cost that mattered was always frame
 ## time - each action walks every node tier or biome - and that is what this
-## measures directly. Actions the budget cuts short are banked, not dropped, so a
-## rate high enough to overrun simply spreads across the ticks that follow.
+## measures directly. Actions the budget cuts short are owed, not dropped, and
+## handle_frame() below pays them off.
 const RUN_BUDGET_USEC := 2000
+
+## How long the whole system may spend paying off owed actions in one frame -
+## shared by every automation, unlike RUN_BUDGET_USEC, which each one gets in
+## full once a tick.
+##
+## Owed actions used to wait for the next tick, which is ten seconds at base and
+## never under one, so a level whose rate overran the tick budget bought a count
+## the game only delivered a tick later. Paying the debt off across frames keeps
+## a tick's advertised count landing inside that tick, which is what the card
+## promises when the player buys the level.
+##
+## 4ms of a 16ms frame, and only on the frames that actually owe something - a
+## debt small enough to clear in one frame costs a fraction of it, and one large
+## enough to want the whole budget is a debt worth spending the frame on.
+const FRAME_BUDGET_USEC := 4000
 
 var _automations: AutomationList
 var _data: AutomationData
@@ -44,9 +59,14 @@ var _biome_system: BiomeSystem
 ## Levels of the perks automations are gated behind. Read-only from here: perks
 ## are bought with biomass through PerkSystem, never through an automation.
 var _prestige_upgrades: UpgradeSystem
-## id -> banked fraction of an action, carried between ticks. Transient: a
-## reload starting from zero costs at most one tick of progress.
+## id -> banked fraction of an action, carried between ticks. Only ever the
+## fraction: a rate below one action a tick is paced by the tick on purpose, so
+## 0.25 has to stay one action every four ticks rather than every four frames.
+## Transient: a reload starting from zero costs at most one tick of progress.
 var _pending: Dictionary = {}
+## id -> whole actions the rate has paid for and the budget has not run yet,
+## drained by handle_frame(). Transient for the same reason as _pending.
+var _owed: Dictionary = {}
 ## id -> AutomationDef. Built once: automation_def() is called several times per
 ## action, and the authored list never changes at runtime.
 var _defs_by_id: Dictionary = {}
@@ -200,19 +220,65 @@ func _run_pending(id: StringName) -> void:
 		# Banked progress is dropped rather than paid out later: switching an
 		# automation off should stop it, not defer it.
 		_pending.erase(id)
+		_owed.erase(id)
 		return
 	var banked: float = _pending.get(id, 0.0) + runs_per_tick(id)
-	var runs := int(floor(banked))
 	_pending[id] = banked - floor(banked)
-	var deadline := Time.get_ticks_usec() + RUN_BUDGET_USEC
-	for i in range(runs):
+	_owed[id] = owed(id) + int(floor(banked))
+	# The tick still runs everything it can right here. What it cannot reach in
+	# its budget stays owed for the frames after it.
+	_drain(id, Time.get_ticks_usec() + RUN_BUDGET_USEC)
+
+## Pays off as much of one automation's debt as `deadline` allows. Returns
+## whether anything was actually bought, so a caller can skip the work that only
+## a purchase makes necessary.
+func _drain(id: StringName, deadline: int) -> bool:
+	var bought := false
+	while owed(id) > 0:
 		if not run(id):
-			break  # nothing left it can afford, don't spin through the rest
-		if Time.get_ticks_usec() >= deadline:
-			# Out of budget with actions still owed. Bank them whole so the next
-			# tick picks them up rather than losing what the rate paid for.
-			_pending[id] += float(runs - i - 1)
+			# Nothing left it can afford or anything left to buy. The rest of the
+			# debt is dropped rather than carried: an automation that idles
+			# through a tick should not fire a burst the moment it can pay again.
+			_owed[id] = 0
 			break
+		bought = true
+		_owed[id] = owed(id) - 1
+		if Time.get_ticks_usec() >= deadline:
+			break
+	return bought
+
+# ---------------------------------------------------------------- frames
+
+## Actions the rate has already paid for and no tick has managed to run yet.
+func owed(id: StringName) -> int:
+	return _owed.get(id, 0)
+
+func has_owed() -> bool:
+	for id: StringName in _owed:
+		if _owed[id] > 0:
+			return true
+	return false
+
+## Pays off what the tick budget cut short, on the frame after it rather than on
+## the next tick - ten seconds is far too late for a count the card advertises
+## per tick. Returns whether anything was bought, so App only pays for a batched
+## refresh on the frames that moved something.
+##
+## One budget for the whole call, in authored order, matching how handle_tick()
+## walks the same list. Biome auto-unlocks are not repeated here: they are a tick
+## rule, unrated and at most one per biome per run.
+func handle_frame() -> bool:
+	var deadline := Time.get_ticks_usec() + FRAME_BUDGET_USEC
+	var bought := false
+	for def in _automations.automations:
+		if not is_active(def.id):
+			_owed.erase(def.id)
+			continue
+		if _drain(def.id, deadline):
+			bought = true
+		if Time.get_ticks_usec() >= deadline:
+			break
+	return bought
 
 # ---------------------------------------------------------------- firing
 

@@ -370,7 +370,9 @@ func _on_event_timer_timeout() -> void:
 		event_system.try_spawn()
 	event_timer.start(event_system.next_interval())
 
-## One pass per frame at most, and only when something actually moved. See
+## Two jobs, both of them at most one pass a frame and both only when something
+## actually moved: paying off what an automation's tick budget cut short, and
+## re-walking the achievement ladder. See AutomationSystem.handle_frame() and
 ## _achievements_dirty.
 ##
 ## Both consumers ride the one flag rather than each keeping its own: the
@@ -378,6 +380,22 @@ func _on_event_timer_timeout() -> void:
 ## handful of sources - node counts, upgrade levels, biome unlocks, prestiges - so
 ## a second flag would be the first one under another name.
 func _process(_delta: float) -> void:
+	# Ahead of the achievement half, so a purchase made on this frame is counted
+	# on this frame. Gated on the same flag as the tick's automation block:
+	# SaveManager clears it for the whole offline catch-up, and that loop yields
+	# across frames, so without the gate the drain would run inside it.
+	if automations_running and automation_system.has_owed():
+		# Batched for the same reason handle_tick() batches: one automation may
+		# buy many levels in this one call, and every upgrades_changed listener
+		# refreshes synchronously. The player sees one frame, so they get one
+		# refresh.
+		upgrade_system.begin_batch()
+		biome_upgrade_system.begin_batch()
+		prestige_upgrade_system.begin_batch()
+		automation_system.handle_frame()
+		prestige_upgrade_system.end_batch()
+		biome_upgrade_system.end_batch()
+		upgrade_system.end_batch()
 	if not _achievements_dirty:
 		return
 	_achievements_dirty = false

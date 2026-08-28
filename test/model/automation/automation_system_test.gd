@@ -711,3 +711,324 @@ func test_clearing_empties_the_sequence() -> void:
 
 	_data.clear_sequence(&"meadow")
 	assert_array(_data.upgrade_sequences[&"meadow"]).is_empty()
+
+# ─── Amount bought per tick ──────────────────────────────────────────────────
+# The card states a rate to the player - AutomationViewModel._rate_at() reads it
+# straight off runs_per_tick_at(). These tests are the other half of that
+# promise: that a tick actually buys the count it advertises, for every kind,
+# over long runs, and at the levels the authored automations reach.
+
+## Each counter below sums exactly what one action of the matching kind writes,
+## so "how many did this tick buy" is one subtraction. Nodes already have one,
+## _total_manual_nodes().
+
+func _total_biome_size() -> int:
+	var total := 0
+	for def in _biomes.biomes:
+		total += _biome_system.size(def.key)
+	return total
+
+func _total_symbiosis_levels() -> int:
+	var total := 0
+	for node_data in _node_data:
+		total += _symbiosis.level(StringName("NodePotency%d" % node_data.node.node_id))
+		total += _symbiosis.level(StringName("NodeSynergy%d" % node_data.node.node_id))
+	return total
+
+func _total_meadow_upgrade_levels() -> int:
+	var total := 0
+	for id in _biome_system.biome_def(&"meadow").upgrade_ids:
+		total += _biome_upgrades.level(id)
+	return total
+
+## A def that fires a flat `rate` actions a tick at level 1, so a test can name
+## the count it expects instead of deriving it from the level curve.
+func _def_at_rate(kind: AutomationDef.Kind, rate: float) -> AutomationDef:
+	var def := _def(kind)
+	def.base_runs_per_tick = rate
+	def.runs_per_level = 0.0
+	return def
+
+## The rate shape every authored res_*.tres uses: level L promises L actions.
+func _def_per_level(kind: AutomationDef.Kind) -> AutomationDef:
+	var def := _def(kind)
+	def.base_runs_per_tick = 1.0
+	def.runs_per_level = 1.0
+	return def
+
+func _own_levels(count: int) -> void:
+	for i in range(count):
+		_data.add_level(&"test_automation")
+
+func _repeat(id: StringName, count: int) -> Array[StringName]:
+	var steps: Array[StringName] = []
+	for i in range(count):
+		steps.append(id)
+	return steps
+
+## Enough nutrients that price is never what stops a run. Node costs grow
+## super-exponentially, so the pile has to be absurd rather than merely large.
+func _fund_everything() -> void:
+	_player.nutrients = BigNumber.new(1.0, 900)
+
+## What the cheapest tier costs to take `count` levels up from where it stands,
+## without moving it.
+func _cost_of_first_nodes(count: int) -> BigNumber:
+	var before := _nodes[0].manual_nodes
+	var total := BigNumber.new(0.0, 0)
+	for i in range(count):
+		total = total.add(_node_data[0].upgrade_cost())
+		_nodes[0].manual_nodes += 1
+	_nodes[0].manual_nodes = before
+	return total
+
+func test_a_tick_buys_the_promised_count_of_nodes() -> void:
+	var system := _system(_def_at_rate(AutomationDef.Kind.BUY_NODES, 3.0))
+	_own_levels(1)
+	_fund_everything()
+
+	system.handle_tick()
+
+	assert_int(_total_manual_nodes()).is_equal(3)
+
+func test_a_tick_buys_the_promised_count_of_biome_size() -> void:
+	var system := _system(_def_at_rate(AutomationDef.Kind.BUY_BIOME_SIZE, 3.0))
+	_own_levels(1)
+	_fund_everything()
+
+	system.handle_tick()
+
+	assert_int(_total_biome_size()).is_equal(3)
+
+func test_a_tick_buys_the_promised_count_of_symbiosis_levels() -> void:
+	_register_symbiosis()
+	var system := _system(_def_at_rate(AutomationDef.Kind.BUY_SYMBIOSIS, 3.0))
+	_own_levels(1)
+	_fund_everything()
+
+	system.handle_tick()
+
+	assert_int(_total_symbiosis_levels()).is_equal(3)
+
+func test_a_tick_buys_the_promised_count_of_biome_upgrades() -> void:
+	_register_biome_upgrades()
+	_data.upgrade_sequences[&"meadow"] = _repeat(_reachable_meadow_ids()[0], 3)
+	_grant_points(&"meadow", 10)
+	var system := _system(_def_at_rate(AutomationDef.Kind.SPEND_BIOME_POINTS, 3.0))
+	_own_levels(1)
+
+	system.handle_tick()
+
+	assert_int(_total_meadow_upgrade_levels()).is_equal(3)
+
+func test_levels_scale_the_count_a_tick_buys() -> void:
+	var system := _system(_def_per_level(AutomationDef.Kind.BUY_NODES))
+	_own_levels(4)
+	_fund_everything()
+
+	system.handle_tick()
+	assert_int(_total_manual_nodes()).is_equal(4)
+
+	_own_levels(3)
+	system.handle_tick()
+	assert_int(_total_manual_nodes()).is_equal(11)
+
+func test_a_rate_upgrade_scales_the_count_a_tick_buys() -> void:
+	var upgrade := UpgradeDef.new()
+	upgrade.id = &"RateTest"
+	var effect := UpgradeEffectDef.new()
+	effect.stat = &"automation_rate"
+	effect.op = UpgradeEffectDef.Op.INCREASED
+	effect.scope = UpgradeEffectDef.Scope.GLOBAL
+	effect.per_level = 1.0   # +100% rate, so twice the actions
+	upgrade.effects = [effect]
+	_biome_upgrades.register(upgrade)
+	_biome_upgrades.buy_with_points(&"RateTest", true)
+
+	var system := _system(_def_per_level(AutomationDef.Kind.BUY_NODES))
+	_own_levels(4)
+	_fund_everything()
+
+	system.handle_tick()
+
+	assert_int(_total_manual_nodes()).is_equal(8)
+
+## A rate below one is a promise about the long run, not about any one tick, so
+## the total is what has to hold. The one-action slack is float accumulation in
+## the bank - 0.3 is not exactly representable - not a policy of rounding down.
+func test_a_fractional_rate_totals_the_promised_count_over_many_ticks() -> void:
+	var system := _system(_def_at_rate(AutomationDef.Kind.BUY_NODES, 0.3))
+	_own_levels(1)
+	_fund_everything()
+
+	for tick in range(100):
+		system.handle_tick()
+
+	assert_int(_total_manual_nodes()).is_between(29, 30)
+
+## Every authored automation, driven by one AutomationSystem the way App drives
+## it. Each has to deliver its own count in the same tick: the run budget is per
+## automation, and all three nutrient spenders draw on one balance, so one of
+## them working through its actions must not cut the next one short.
+func test_the_authored_automations_each_deliver_their_own_count_in_one_tick() -> void:
+	_register_symbiosis()
+	_register_biome_upgrades()
+	_grant_points(&"meadow", 50)
+	_data.upgrade_sequences[&"meadow"] = _repeat(_reachable_meadow_ids()[0], 10)
+	_fund_everything()
+
+	var list := load("res://data/automation/all_automations.tres") as AutomationList
+	var system := AutomationSystem.new(list, _data, _player, _production, _node_data,
+		_symbiosis, _biomes, _biomes_data, _biome_system, _prestige)
+	# Levels go straight in: the perk gate is on buying, not on firing, and what
+	# a perk costs is PerkSystem's rule rather than this one's.
+	for def in list.automations:
+		for i in range(3):
+			_data.add_level(def.id)
+		assert_float(system.runs_per_tick(def.id)) \
+			.override_failure_message("%s is authored off the 1.0/1.0 rate shape these counts assume." % [def.id]) \
+			.is_equal_approx(3.0, EPS)
+
+	system.handle_tick()
+
+	assert_int(_total_manual_nodes()).is_equal(3)
+	assert_int(_total_biome_size()).is_equal(3)
+	assert_int(_total_symbiosis_levels()).is_equal(3)
+	assert_int(_total_meadow_upgrade_levels()).is_equal(3)
+
+## The rate is a ceiling, not a debt: a tick buys what the run can pay for and
+## stops there, and the actions it could not afford are dropped rather than
+## carried into the next tick.
+func test_a_tick_buys_only_what_the_run_can_afford_and_owes_nothing_after() -> void:
+	var system := _system(_def_at_rate(AutomationDef.Kind.BUY_NODES, 5.0))
+	_own_levels(1)
+	# A hair over two levels of the cheapest tier, because the balance is
+	# BigNumber: paying the exact sum back out leaves a float crumb short of the
+	# second price. Still nowhere near a third level, nor a level of tier 1.
+	_player.nutrients = _cost_of_first_nodes(2).scale(1.0001)
+	assert_bool(_player.nutrients.gte(_cost_of_first_nodes(3))) \
+		.override_failure_message("The budget stretches to three nodes, so it does not pin the count at 2.") \
+		.is_false()
+
+	system.handle_tick()
+	assert_int(_total_manual_nodes()).is_equal(2)
+
+	_fund_everything()
+	system.handle_tick()
+	# 5, not 8: the three the last tick could not afford are gone, not owed.
+	assert_int(_total_manual_nodes()).is_equal(7)
+
+## The heavy kind at the level the card actually reaches. SPEND_BIOME_POINTS
+## walks the recorded sequence on every single action, so this is where
+## RUN_BUDGET_USEC starts ending ticks early: measured against a full 100-step
+## meadow plan at level 20, the first three ticks paid the promised 20 and the
+## next two came up one and two short, at ~2.1ms each, leaving the last three
+## levels to a sixth tick - ten seconds late for a count the card sells per tick.
+##
+## The frames between the ticks are what closes that gap now, so the plan has to
+## finish in the five ticks the rate asks for.
+func test_a_top_level_steward_delivers_its_full_rate_every_tick() -> void:
+	_register_biome_upgrades()
+	var plan: Array[StringName] = []
+	for id in _biome_system.biome_def(&"meadow").upgrade_ids:
+		plan.append_array(_repeat(id, _biome_upgrades.def(id).max_level))
+	_data.upgrade_sequences[&"meadow"] = plan
+	_grant_points(&"meadow", plan.size())
+
+	var system := _system(_def_per_level(AutomationDef.Kind.SPEND_BIOME_POINTS))
+	_own_levels(20)
+	assert_float(system.runs_per_tick(&"test_automation")).is_equal_approx(20.0, EPS)
+
+	for tick in range(plan.size() / 20):
+		system.handle_tick()
+		_run_frames(system)
+
+	assert_int(_total_meadow_upgrade_levels()).is_equal(plan.size())
+
+## The frames App spends between two ticks, or as many of them as the debt needs.
+## The count is a ceiling rather than a measurement: at 60fps a tick is hundreds
+## of frames, and the loop stops as soon as nothing is owed.
+func _run_frames(system: AutomationSystem, limit: int = 60) -> int:
+	var frames := 0
+	while system.has_owed() and frames < limit:
+		system.handle_frame()
+		frames += 1
+	return frames
+
+# ─── Paying off what a tick could not run ────────────────────────────────────
+
+## The debt is paid on the frames after the tick, not on the next tick. Ten
+## seconds is the base tick, and a card advertising a per-tick count cannot mean
+## "next tick" by it.
+func test_actions_the_budget_cut_short_are_paid_off_by_the_following_frames() -> void:
+	var def := _def(AutomationDef.Kind.BUY_NODES)
+	def.base_runs_per_tick = 1e6
+	var system := _system(def)
+	_data.add_level(&"test_automation")
+	# Node costs grow super-exponentially, so the bank has to be absurd for the
+	# budget - not the price - to be what stops the run.
+	_player.nutrients = BigNumber.new(1.0, 900)
+
+	system.handle_tick()
+	var after_the_tick := _total_manual_nodes()
+	var owed_after_the_tick := system.owed(&"test_automation")
+	assert_int(owed_after_the_tick).is_greater(0)
+
+	# No second tick anywhere in here.
+	system.handle_frame()
+
+	assert_int(_total_manual_nodes()).is_greater(after_the_tick)
+	assert_int(system.owed(&"test_automation")).is_less(owed_after_the_tick)
+
+## A frame is not a second tick: it only pays off what a tick already charged
+## for, so an automation nothing has ticked has nothing to run.
+func test_a_frame_buys_nothing_on_its_own() -> void:
+	var system := _system(_def_per_level(AutomationDef.Kind.BUY_NODES))
+	_own_levels(4)
+	_fund_everything()
+
+	for frame in range(10):
+		system.handle_frame()
+
+	assert_bool(system.has_owed()).is_false()
+	assert_int(_total_manual_nodes()).is_zero()
+
+## Same rule as the banked fraction: switching an automation off stops it rather
+## than deferring it, so the debt goes with it instead of firing as a burst on
+## the first frame after it is switched back on.
+func test_switching_off_drops_the_owed_actions_too() -> void:
+	var def := _def(AutomationDef.Kind.BUY_NODES)
+	def.base_runs_per_tick = 1e6
+	var system := _system(def)
+	_data.add_level(&"test_automation")
+	_player.nutrients = BigNumber.new(1.0, 900)
+
+	system.handle_tick()
+	assert_int(system.owed(&"test_automation")).is_greater(0)
+	var after_the_tick := _total_manual_nodes()
+
+	_data.set_enabled(&"test_automation", false)
+	system.handle_frame()
+	assert_bool(system.has_owed()).is_false()
+
+	_data.set_enabled(&"test_automation", true)
+	system.handle_frame()
+	assert_int(_total_manual_nodes()).is_equal(after_the_tick)
+
+## A frame that runs out of things it can afford drops the rest of the debt, the
+## same way a tick does. Otherwise an automation that idled through a poor tick
+## would empty the balance the moment one arrived.
+func test_a_frame_that_cannot_afford_an_action_drops_the_rest_of_the_debt() -> void:
+	var def := _def(AutomationDef.Kind.BUY_NODES)
+	def.base_runs_per_tick = 1e6
+	var system := _system(def)
+	_data.add_level(&"test_automation")
+	_player.nutrients = _cost_of_first_nodes(1).scale(1.0001)
+
+	system.handle_tick()
+	assert_int(_total_manual_nodes()).is_equal(1)
+	assert_bool(system.has_owed()).is_false()
+
+	_fund_everything()
+	system.handle_frame()
+	assert_int(_total_manual_nodes()).is_equal(1)
