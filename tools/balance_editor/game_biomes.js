@@ -21,7 +21,7 @@
  */
 (() => {
   const {
-    log10Of, growthCurve, effectCurve, enumIs, chartBlock, engineSeries,
+    log10Of, growthCurve, effectCurve, enumIs, chartBlock, engineSeries, xpLadder,
     rowsOf, findRow, cell, numberCell,
     field, fieldGroup, bigField, engineCurve,
   } = window.GameKit;
@@ -68,21 +68,6 @@
       from, to);
   }
 
-
-  /** BiomeCalculator.level_for(), read forwards: the total XP standing at the
-   * door of each level. Level 1 is free, level 2 needs 6, and each step after
-   * needs round(previous * 1.55). */
-  function xpLadder(from, to) {
-    const out = [];
-    let need = 6;
-    let total = 0;
-    for (let level = 1; level <= to; level += 1) {
-      if (level >= from) out.push(total);
-      total += need;
-      need = Math.round(need * 1.55);
-    }
-    return out;
-  }
 
   /** UpgradeEffectDef.magnitude() at each level, and the same scaled by the
    * effect's ScalingSourceDef at a representative biome size. */

@@ -587,3 +587,126 @@
 .slot-detail .game-group { margin-top: 10px; }
 .slot-detail .web-editor-head h3 { margin: 0; font-size: 13px; }
 .slot-detail .warn { color: var(--danger); }
+
+/* -------------------------------------------------------------- game: water */
+
+/* WaterSystem's constants, shown because the pump has a baseline the authored
+   data never mentions - and greyed because this editor cannot write a const. */
+.water-consts { display: flex; flex-direction: column; gap: 2px; }
+.water-consts > div { display: flex; align-items: baseline; gap: 8px; }
+.water-consts b { font: 11px ui-monospace, monospace; color: var(--muted); min-width: 108px; }
+.water-consts .num { font: 12px ui-monospace, monospace; color: var(--text); min-width: 34px; }
+.water-consts i { font-style: normal; font-size: 11px; color: var(--muted); }
+
+.water-writers { margin-top: 6px; }
+.water-writers td { padding-right: 12px; }
+/* The first cell holds a stat name, not a res:// path, so the table view's
+   left-ellipsis rtl rule must not reach it. */
+.water-writers td:first-child { direction: ltr; }
+.water-writers .link { cursor: pointer; color: var(--accent); }
+
+/* A boon ladder: one row per rung, in the order the project lists them. */
+.boon-rows { display: flex; flex-direction: column; gap: 4px; }
+.boon-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font: inherit;
+  padding: 5px 9px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.boon-row b { font-size: 13px; color: var(--muted); min-width: 12px; }
+.boon-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.boon-row i { font: 10px ui-monospace, monospace; color: var(--muted); font-style: normal; }
+.boon-row em {
+  font: 10px ui-monospace, monospace;
+  font-style: normal;
+  color: var(--muted);
+  min-width: 118px;
+  text-align: right;
+}
+.boon-row.selected {
+  border-color: var(--tint);
+  border-left-color: var(--tint);
+  background: color-mix(in srgb, var(--tint) 14%, var(--bg));
+}
+.boon-row.selected b { color: var(--text); }
+.boon-row.missing { border-color: var(--danger); }
+.boon-row.missing span { color: var(--danger); }
+
+/* The lake blue the well screen paints itself with. */
+.water-card { --tint: #3f8ed3; }
+/* The name and the file both hold real information, so they wrap rather than
+   being clipped where every other web-table cell would be. */
+.water-writers td:nth-child(2), .water-writers td:last-child { white-space: normal; }
+.water-writers td:last-child { font: 10px ui-monospace, monospace; color: var(--muted); }
+
+/* ----------------------------------------------------------- game: crystals */
+
+/* The caves accent, shared verbatim by the biome, the screen definition and the
+   crystal currency. */
+.crystal-card { --tint: #5cc8e6; }
+
+/* A band between the three economies on one long page: without it the mint and
+   the sinks read as one undifferentiated run of cards. */
+.crystal-section {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+.crystal-section h4 { font-size: 12px; color: var(--text); }
+
+/* ----------------------------------------------------------- game: crystals */
+
+/* The caves accent, shared verbatim by the biome, the screen definition and the
+   crystal currency. */
+.crystal-card { --tint: #5cc8e6; }
+
+/* A band between the three economies on one long page: without it the mint and
+   the sinks read as one undifferentiated run of cards. */
+.crystal-section {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+.crystal-section h4 { font-size: 12px; color: var(--text); }
+
+/* --------------------------------------------------- game: folding sections */
+
+/* Every screen raises its sub-sections as a .game-group with an h4 on top, so
+   the fold hangs off that shape rather than off a helper each screen has to
+   remember to call. */
+.game-group > h4 {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.game-group > h4::before {
+  content: "";
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  transform: rotate(90deg);
+  opacity: 0.7;
+}
+.game-group.collapsed > h4::before { transform: none; }
+.game-group > h4:hover { color: var(--text); }
+
+/* Hidden rather than detached, so a folded chart keeps its place in the
+   shared-range redraw and comes back exactly as it was. */
+.game-group.collapsed > *:not(h4) { display: none; }
+/* A folded group is a heading and nothing else, so it should not also carry the
+   gap its contents needed. */
+.game-group.collapsed { margin-bottom: -4px; }

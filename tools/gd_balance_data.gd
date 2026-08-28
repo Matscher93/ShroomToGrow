@@ -104,12 +104,24 @@ const CURVE_ID := &"#curve"
 ##                                   "cost": [[mantissa, exponent], ...],
 ##                                   "effect": [[mantissa, exponent], ...],
 ##                                   "stat": "...", "op": "...", ... } },
+##           "boons": { res_path: { "effect": [...], "unlock_at_level": int } },
+##           "achievements": { res_path: { "goal": [...], "reward": [...] } },
+##           "boosts": { res_path: { "cost": [...], "multiplier": [...] } },
 ##           "errors": [...] }
+##
+## Four dictionaries rather than one, because only `curves` holds priced defs:
+## the pacing sweep asserts every entry there has a rising cost_growth and the
+## simulator sums every entry's cost array. An achievement is measured in goals,
+## a boon is granted rather than bought, and a boost's ladder restarts its price
+## five times - none of them fit that contract.
 ##
 ## `cost[i]` is what buying the *next* level costs while sitting at level i,
 ## matching what the game charges; `effect[i]` is the total magnitude at level i.
 static func curves(data_dir: String) -> Dictionary:
 	var out := {}
+	var boons := {}
+	var achievements := {}
+	var boosts := {}
 	var errors: Array = []
 	_open_files.clear()
 	_subresources.clear()
@@ -128,11 +140,82 @@ static func curves(data_dir: String) -> Dictionary:
 		for row: Resource in found:
 			if _is_priced(row):
 				out[row.resource_path] = curve_for(row, fallbacks.get(row.resource_path, []))
+				# A well project's payoff is spread over its boons, and only the
+				# first one is reached by curve_for(). Sampled from the project
+				# because a boon knows its own threshold but not the ceiling it
+				# is climbing towards.
+				_add_boon_curves(row, boons)
 			elif _is_size_priced(row):
 				out[row.resource_path] = size_curve_for(row)
 			elif _is_node_priced(row):
 				out[row.resource_path] = node_curve_for(row)
-	return {"curves": out, "errors": errors}
+			elif _is_achievement_curved(row):
+				achievements[row.resource_path] = achievement_curve_for(row)
+			elif _is_boost_curved(row):
+				boosts[row.resource_path] = boost_curve_for(row)
+	return {
+		"curves": out,
+		"boons": boons,
+		"achievements": achievements,
+		"boosts": boosts,
+		"errors": errors,
+	}
+
+
+## Each of a priced def's boons, sampled against the *project's* level and keyed
+## by the boon's own path. Does nothing for a def that carries no boons.
+##
+## Collected apart from `curves` rather than alongside it. Every entry in that
+## dictionary is a *priced* def - the pacing test asserts each one's cost_growth
+## climbs, and the simulator sums each one's cost array - and a boon is neither.
+## It is levelled for free the moment its project is deep enough.
+##
+## The project's level is the honest x axis: a boon's own level is
+## (project level - unlock_at_level + 1), which nothing computes - it falls out of
+## WellSystem.invest() only levelling the boons that are already open. So the
+## curve is flat zero until the threshold and climbs from there, which is the
+## staircase being tuned.
+static func _add_boon_curves(res: Resource, out: Dictionary) -> void:
+	var properties := _properties_by_name(res)
+	if not properties.has(&"boons"):
+		return
+	var max_level: int = res.get(&"max_level") if properties.has(&"max_level") else 0
+	var samples := max_level if max_level > 0 else CURVE_OPEN_ENDED_LEVELS
+	var boons: Array = res.get(&"boons")
+	for boon: Resource in boons:
+		if boon == null or boon.resource_path.is_empty():
+			continue
+		out[boon.resource_path] = boon_curve_for(boon, samples)
+
+
+## One boon's magnitude at each level of the project carrying it.
+##
+## Carries `effect` and no `cost`, because a boon has no price to report: it is
+## never bought, only granted. Anything wanting a cost curve wants `curves`.
+static func boon_curve_for(boon: Resource, samples: int) -> Dictionary:
+	var effect: UpgradeEffectDef = boon.get(&"effect")
+	var unlock_at: int = boon.get(&"unlock_at_level")
+
+	var magnitudes: Array = []
+	for project_level in range(samples + 1):
+		var own_level := maxi(0, project_level - unlock_at + 1)
+		magnitudes.append(_big_pair(effect.magnitude(own_level)) if effect else [0.0, 0])
+
+	var curve := {
+		"max_level": samples,
+		"samples": samples,
+		"effect": magnitudes,
+		"unlock_at_level": unlock_at,
+		"kind": "project_boon",
+	}
+	if effect:
+		curve["stat"] = String(effect.stat)
+		curve["op"] = _enum_key(UpgradeEffectDef.Op, effect.op)
+		curve["scope"] = _enum_key(UpgradeEffectDef.Scope, effect.scope)
+		curve["target"] = String(effect.target)
+		curve["per_level"] = effect.per_level
+		curve["level_scaling"] = _enum_key(UpgradeEffectDef.LevelScaling, effect.level_scaling)
+	return curve
 
 
 ## PerkNodeDef path -> the default_effects of the branch it grows on, the same
@@ -172,6 +255,112 @@ static func _is_priced(res: Resource) -> bool:
 static func _is_size_priced(res: Resource) -> bool:
 	var properties := _properties_by_name(res)
 	return properties.has(&"size_cost_growth") and properties.has(&"_size_base_cost_mantissa")
+
+
+## True for an AchievementDef: it has a goal ladder rather than a price, so
+## neither of the priced checks sees it. Named by shape, like the rest.
+static func _is_achievement_curved(res: Resource) -> bool:
+	var properties := _properties_by_name(res)
+	return properties.has(&"goal_growth") and properties.has(&"_goal_base_mantissa")
+
+
+## One achievement's goal and reward at each tier, sampled through the real
+## AchievementSystem.
+##
+## Through the system rather than off the fields, because the authored curve is
+## not the whole answer: for a counted stat _whole_goal() rounds the goal up and
+## then holds it at least one above where tier 0 sat plus one per tier since, and
+## on a shallow curve that floor term *is* the early ladder. Sampling the formula
+## alone would report goals the game never asks for.
+##
+## The ProductionSystem is a neutral one, mirroring the data sweep's harness:
+## reward_for() multiplies by the live &"crystal_gain" stack, so a system with
+## anything registered would report tuned numbers instead of authored ones.
+static func achievement_curve_for(res: Resource) -> Dictionary:
+	var def := res as AchievementDef
+	var list := AchievementList.new()
+	var defs: Array[AchievementDef] = [def]
+	list.achievements = defs
+	var neutral := ProductionSystem.new(UpgradeSystem.new(), UpgradeSystem.new(),
+		UpgradeSystem.new(), ResolveContext.new())
+	var system := AchievementSystem.new(list, AchievementProgress.new(), PlayerData.new(),
+		neutral, UpgradeSystem.new(), BiomesData.new())
+
+	var samples := def.max_tier if def.max_tier > 0 else CURVE_OPEN_ENDED_LEVELS
+	var goals: Array = []
+	var rewards: Array = []
+	for tier in range(samples + 1):
+		goals.append(_big_pair(system.goal_for(def, tier)))
+		rewards.append(_big_pair(system.reward_for(def, tier)))
+
+	return {
+		"max_level": def.max_tier,
+		"samples": samples,
+		"goal": goals,
+		"reward": rewards,
+		"goal_growth": def.goal_growth,
+		"goal_growth_exponent": def.goal_growth_exponent,
+		"reward_growth": def.reward_growth,
+		"reward_growth_exponent": def.reward_growth_exponent,
+		"counted": AchievementDef.is_counted(def.stat),
+		"stat": _enum_key(AchievementDef.Stat, def.stat),
+		"kind": "achievement",
+	}
+
+
+## True for a BoostDef: its price restarts once per tier, so it carries a
+## tier_cost_growth that no plain priced def has.
+static func _is_boost_curved(res: Resource) -> bool:
+	var properties := _properties_by_name(res)
+	return properties.has(&"tier_cost_growth") and properties.has(&"base_per_level")
+
+
+## One boost's crystal price and total multiplier across the whole authored
+## ladder - every tier, every level of each.
+##
+## Walked through the UpgradeDefs BoostTree generates rather than off the fields,
+## since those defs are what the game actually prices: each tier opens at
+## tier_base_cost(tier) and climbs by cost_growth over the levels bought *within*
+## that tier, which is why the ladder is a staircase rather than one curve.
+##
+## Sampled against the authored ladder, not the perk-gated ceiling. A boost opens
+## at base_max_level 100 and only the cap perk lifts it to the full 500, and a
+## chart stopping at 100 would hide four fifths of what is being tuned.
+static func boost_curve_for(res: Resource) -> Dictionary:
+	var def := res as BoostDef
+	var list := BoostList.new()
+	var defs: Array[BoostDef] = [def]
+	list.boosts = defs
+
+	var system := UpgradeSystem.new()
+	for tier_def: UpgradeDef in BoostTree.build(list):
+		system.register(tier_def)
+
+	var costs: Array = []
+	var multipliers: Array = []
+	var total := BigNumber.from_value(1.0)
+	for level in range(BoostTiers.max_level() + 1):
+		var tier := BoostTiers.tier_for_level(level)
+		var id := BoostTiers.upgrade_id(def.id, tier)
+		@warning_ignore("integer_division")
+		var within := level - (tier - 1) * BoostTiers.LEVELS_PER_TIER
+		system.from_save({String(id): within})
+		costs.append(_big_pair(system.cost(id)))
+		multipliers.append(_big_pair(total))
+		# The level about to be bought is priced above; the multiplier it buys
+		# lands on the next sample, which is what makes level 0 read as x1.
+		total = total.mul(BigNumber.from_value(1.0 + def.per_level(tier)))
+
+	return {
+		"max_level": BoostTiers.max_level(),
+		"samples": BoostTiers.max_level(),
+		"levels_per_tier": BoostTiers.LEVELS_PER_TIER,
+		"cost": costs,
+		"multiplier": multipliers,
+		"cost_growth": def.cost_growth,
+		"tier_cost_growth": def.tier_cost_growth,
+		"kind": "boost",
+	}
 
 
 ## True for a MyceliumNode: priced by its own manual-buy formula, whose fields

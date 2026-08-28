@@ -107,6 +107,56 @@
   const enumIs = (value, name) =>
     String(value || "").toUpperCase().replace(/[\s_]/g, "") === name;
 
+  /** The achievement curve: base * growth^(n ^ exponent), in log10.
+   *
+   * Deliberately not growthCurve(), which is base * growth^(n * exponent^n).
+   * The two agree only at exponent 1.0 - which is what all nine achievements
+   * are authored at, so the engine's own samples would not catch the difference
+   * on today's data. They diverge the moment anyone turns the knob this screen
+   * exists to expose, which is exactly when a wrong mirror would mislead.
+   */
+  function powerCurve(base, growth, exponent, from, to) {
+    if (base === null || !Number.isFinite(base) || growth <= 0) return [];
+    const out = [];
+    for (let tier = from; tier <= to; tier += 1) {
+      const value = base + (tier ** exponent) * Math.log10(growth);
+      out.push(Number.isFinite(value) ? value : null);
+    }
+    return out;
+  }
+
+  /** BiomeCalculator.level_for(), read forwards: the total XP standing at the
+   * door of each level. Level 1 is free, level 2 needs 6, and each step after
+   * needs round(previous * 1.55).
+   *
+   * Shared, because two screens read the same ladder from different ends - the
+   * biome card asks what a level costs, the crystals screen asks what a pile of
+   * achievement tiers buys. */
+  function xpLadder(from, to) {
+    const out = [];
+    let need = 6;
+    let total = 0;
+    for (let level = 1; level <= to; level += 1) {
+      if (level >= from) out.push(total);
+      total += need;
+      need = Math.round(need * 1.55);
+    }
+    return out;
+  }
+
+  /** The level a given XP total reaches, the inverse of the ladder above. */
+  function levelForXp(xp) {
+    let level = 1;
+    let need = 6;
+    let acc = 0;
+    while (xp >= acc + need) {
+      acc += need;
+      level += 1;
+      need = Math.round(need * 1.55);
+    }
+    return level;
+  }
+
   /* ------------------------------------------------------------------- charts */
 
   const CHART = { width: 460, height: 190, left: 46, right: 12, top: 12, bottom: 26 };
@@ -248,6 +298,72 @@
       return value.toPrecision(3);
     }
     return String(Math.round(value * 100) / 100);
+  }
+
+  /* ------------------------------------------------------------- collapsing */
+
+  const COLLAPSE_KEY = "balance-editor-collapsed";
+
+  /** Which sub-sections are folded away, keyed by screen and heading rather than
+   * by card.
+   *
+   * Per heading, so folding "Identity" folds it on all twenty-six project cards
+   * at once - which is the only way it helps on a page that long. Reading one
+   * number across every card is the thing these screens are for, and that means
+   * hiding the other five sections everywhere, not card by card. Same reasoning
+   * as the chart ranges, which are keyed by chart kind for the same reason.
+   *
+   * Survives the redraw every keystroke triggers, and the reload after that. */
+  let collapsed = {};
+  try {
+    collapsed = JSON.parse(localStorage.getItem(COLLAPSE_KEY) || "{}");
+  } catch (error) { /* private mode - everything just starts open */ }
+
+  function saveCollapsed() {
+    try {
+      localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed));
+    } catch (error) { /* private mode - the folds won't survive a reload */ }
+  }
+
+  /** A heading's identity, with any "(4)" count stripped: the boon section is
+   * headed "Boons (4)" on one project and "Boons (3)" on the next, and those are
+   * the same section. */
+  const collapseKey = (screen, heading) =>
+    `${screen}/${heading.replace(/\s*\(\d+\)/g, "").trim()}`;
+
+  /** Turns every `.game-group` heading on a freshly rendered screen into a fold.
+   *
+   * Applied over the finished DOM rather than built into a helper, because the
+   * screens raise their sections in half a dozen different ways - fieldGroup(),
+   * hand-built blocks, split rows - and they all agree on `.game-group` with an
+   * h4 on top. One pass here covers every screen written so far and every one
+   * written later, with nothing to remember.
+   *
+   * The body is hidden in CSS rather than detached, so a folded chart keeps its
+   * place in the shared-range redraw and comes back unchanged. */
+  function applyCollapse(root, screen) {
+    for (const group of root.querySelectorAll(".game-group")) {
+      const heading = group.firstElementChild;
+      if (!heading || heading.tagName !== "H4") continue;
+
+      const key = collapseKey(screen, heading.textContent);
+      group.classList.toggle("collapsed", collapsed[key] === true);
+      heading.title = "Fold this section on every card";
+      heading.onclick = () => {
+        if (collapsed[key]) delete collapsed[key];
+        else collapsed[key] = true;
+        saveCollapsed();
+        // Every card carries a section under this heading, so they all move
+        // together. Cheaper and steadier than a full re-render, which would
+        // rebuild thirty charts to change a class.
+        for (const other of root.querySelectorAll(".game-group")) {
+          const otherHeading = other.firstElementChild;
+          if (!otherHeading || otherHeading.tagName !== "H4") continue;
+          if (collapseKey(screen, otherHeading.textContent) !== key) continue;
+          other.classList.toggle("collapsed", collapsed[key] === true);
+        }
+      };
+    }
   }
 
   /* -------------------------------------------------------------- x ranges */
@@ -494,9 +610,21 @@
   }
 
   /** The engine's own samples for one resource, or null when the report predates
-   * it. Screens draw these as dots behind their own line. */
-  const engineCurve = (path) =>
-    (view.curves && view.curves.curves && view.curves.curves[path]) || null;
+   * it. Screens draw these as dots behind their own line.
+   *
+   * Two dictionaries, because only one of them holds prices: `curves` is every
+   * priced def, `boons` is the well's payoffs, which are granted rather than
+   * bought and so carry an effect and no cost. Callers want "the samples for
+   * this path" either way. */
+  const REPORT_KEYS = ["curves", "boons", "achievements", "boosts"];
+
+  const engineCurve = (path) => {
+    const report = view.curves || {};
+    for (const key of REPORT_KEYS) {
+      if (report[key] && report[key][path]) return report[key][path];
+    }
+    return null;
+  };
 
   /** One sampled series over the window a chart is drawn on. The engine samples
    * an open-ended def for 50 levels - BalanceData.CURVE_OPEN_ENDED_LEVELS - so a
@@ -540,7 +668,8 @@
   }
 
   window.GameKit = {
-    formatBig, log10Of, growthCurve, effectCurve, enumIs, chart, chartBlock, hueOf,
+    formatBig, log10Of, growthCurve, powerCurve, effectCurve, enumIs,
+    xpLadder, levelForXp, chart, chartBlock, hueOf,
     rowsOf, findRow, cell, numberCell,
     field, fieldGroup, bigField, engineCurve, engineWindow, engineSeries, rowHasChanges,
   };
@@ -662,6 +791,7 @@
       failed.textContent = String(error);
       view.dom.body.append(failed);
     }
+    applyCollapse(view.dom.body, view.screen);
     if (view.element) view.element.scrollTop = scroll;
   };
 
