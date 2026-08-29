@@ -209,90 +209,108 @@
 			"effect_at_max": "5.00e0"
 		},
 		{
-			"id": "reach_4",
+			"id": "reach_3",
 			"branch": "rch",
 			"depth": 1,
 			"max_level": 1,
-			"cost_to_max": "5.00e0",
-			"path_cost": "6.00e0",
+			"cost_to_max": "2.00e0",
+			"path_cost": "3.00e0",
 			"effect_at_max": ""
 		},
 		{
-			"id": "reach_attunement_4",
+			"id": "reach_attunement_3",
 			"branch": "rch",
 			"depth": 2,
 			"max_level": 5,
-			"cost_to_max": "6.32e3",
-			"path_cost": "6.32e3",
+			"cost_to_max": "1.26e2",
+			"path_cost": "1.29e2",
 			"effect_at_max": "5.00e0"
+		},
+		{
+			"id": "reach_4",
+			"branch": "rch",
+			"depth": 2,
+			"max_level": 1,
+			"cost_to_max": "5.00e0",
+			"path_cost": "8.00e0",
+			"effect_at_max": ""
 		},
 		{
 			"id": "reach_5",
 			"branch": "rch",
-			"depth": 2,
+			"depth": 3,
 			"max_level": 1,
 			"cost_to_max": "1.00e4",
 			"path_cost": "1.00e4",
 			"effect_at_max": ""
 		},
 		{
+			"id": "reach_attunement_5",
+			"branch": "rch",
+			"depth": 4,
+			"max_level": 5,
+			"cost_to_max": "2.11e8",
+			"path_cost": "2.11e8",
+			"effect_at_max": "5.00e0"
+		},
+		{
 			"id": "reach_6",
 			"branch": "rch",
-			"depth": 3,
+			"depth": 4,
 			"max_level": 1,
 			"cost_to_max": "4.00e10",
 			"path_cost": "4.00e10",
 			"effect_at_max": ""
 		},
 		{
-			"id": "reach_attunement_6",
-			"branch": "rch",
-			"depth": 4,
-			"max_level": 5,
-			"cost_to_max": "8.42e21",
-			"path_cost": "8.42e21",
-			"effect_at_max": "5.00e0"
-		},
-		{
 			"id": "reach_7",
 			"branch": "rch",
-			"depth": 4,
+			"depth": 5,
 			"max_level": 1,
 			"cost_to_max": "1.00e32",
 			"path_cost": "1.00e32",
 			"effect_at_max": ""
 		},
 		{
+			"id": "reach_attunement_7",
+			"branch": "rch",
+			"depth": 6,
+			"max_level": 5,
+			"cost_to_max": "2.11e62",
+			"path_cost": "2.11e62",
+			"effect_at_max": "5.00e0"
+		},
+		{
 			"id": "reach_8",
 			"branch": "rch",
-			"depth": 5,
+			"depth": 6,
 			"max_level": 1,
 			"cost_to_max": "3.00e100",
 			"path_cost": "3.00e100",
 			"effect_at_max": ""
 		},
 		{
-			"id": "reach_attunement_8",
-			"branch": "rch",
-			"depth": 6,
-			"max_level": 5,
-			"cost_to_max": "4.21e301",
-			"path_cost": "4.21e301",
-			"effect_at_max": "5.00e0"
-		},
-		{
 			"id": "reach_9",
 			"branch": "rch",
-			"depth": 6,
+			"depth": 7,
 			"max_level": 1,
 			"cost_to_max": "8.00e500",
 			"path_cost": "8.00e500",
 			"effect_at_max": ""
 		},
 		{
+			"id": "reach_attunement_9",
+			"branch": "rch",
+			"depth": 8,
+			"max_level": 5,
+			"cost_to_max": "4.21e701",
+			"path_cost": "4.21e701",
+			"effect_at_max": "5.00e0"
+		},
+		{
 			"id": "reach_10",
 			"branch": "rch",
-			"depth": 7,
+			"depth": 8,
 			"max_level": 1,
 			"cost_to_max": "1.00e1000",
 			"path_cost": "1.00e1000",
@@ -301,37 +319,37 @@
 		{
 			"id": "reach_attunement_10",
 			"branch": "rch",
-			"depth": 8,
+			"depth": 9,
 			"max_level": 5,
 			"cost_to_max": "2.11e1202",
 			"path_cost": "2.11e1202",
 			"effect_at_max": "5.00e0"
 		},
 		{
-			"id": "reach_attunement_9",
+			"id": "reach_attunement_8",
 			"branch": "rch",
 			"depth": 7,
 			"max_level": 5,
-			"cost_to_max": "4.21e701",
-			"path_cost": "4.21e701",
+			"cost_to_max": "4.21e301",
+			"path_cost": "4.21e301",
 			"effect_at_max": "5.00e0"
 		},
 		{
-			"id": "reach_attunement_7",
+			"id": "reach_attunement_6",
 			"branch": "rch",
 			"depth": 5,
 			"max_level": 5,
-			"cost_to_max": "2.11e62",
-			"path_cost": "2.11e62",
+			"cost_to_max": "8.42e21",
+			"path_cost": "8.42e21",
 			"effect_at_max": "5.00e0"
 		},
 		{
-			"id": "reach_attunement_5",
+			"id": "reach_attunement_4",
 			"branch": "rch",
 			"depth": 3,
 			"max_level": 5,
-			"cost_to_max": "2.11e8",
-			"path_cost": "2.11e8",
+			"cost_to_max": "6.32e3",
+			"path_cost": "6.33e3",
 			"effect_at_max": "5.00e0"
 		},
 		{
@@ -611,12 +629,12 @@
 		},
 		{
 			"branch": "rch",
-			"perks": 14,
-			"max_depth": 8,
+			"perks": 16,
+			"max_depth": 9,
 			"total_cost_to_max": "2.11e1202",
 			"deepest_path_cost": "2.11e1202",
 			"stats": {
-				"level_points (ADD)": "3.50e1"
+				"level_points (ADD)": "4.00e1"
 			}
 		},
 		{
@@ -645,9 +663,9 @@
 			"total_cost_to_max": "1.05e6",
 			"deepest_path_cost": "6.60e5",
 			"stats": {
-				"mission_slots (ADD)": "7.00e0",
+				"farm_slots (ADD)": "7.00e0",
 				"mission_speed (MORE)": "5.00e-1",
-				"creature_rank_cap (ADD)": "5.00e0",
+				"hero_level_cap (ADD)": "5.00e0",
 				"mission_reward (MORE)": "6.00e-1"
 			}
 		}
@@ -682,6 +700,118 @@
 			"cost_to_max": "1.59e7"
 		},
 		{
+			"path": "res://data/biomes/res_biome_crystal_caves.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/biomes/res_biome_forest.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/biomes/res_biome_meadow.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/biomes/res_biome_permafrost.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/biomes/res_biome_ruins.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/biomes/res_biome_underground_lake.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/mycelium_nodes/res_node_l0.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/mycelium_nodes/res_node_l1.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/mycelium_nodes/res_node_l2.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/mycelium_nodes/res_node_l3.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/mycelium_nodes/res_node_l4.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/mycelium_nodes/res_node_l5.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/mycelium_nodes/res_node_l6.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/mycelium_nodes/res_node_l7.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/mycelium_nodes/res_node_l8.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
+			"path": "res://data/mycelium_nodes/res_node_l9.tres",
+			"max_level": 0,
+			"stat": "",
+			"per_level": 0.0,
+			"cost_to_max": "0.00e0"
+		},
+		{
 			"path": "res://data/ruins/res_boost_ruin_crystal_tithe.tres",
 			"max_level": 0,
 			"stat": "crystal_gain",
@@ -698,7 +828,7 @@
 		{
 			"path": "res://data/ruins/res_boost_ruin_deeper_thralls.tres",
 			"max_level": 10,
-			"stat": "creature_rank_cap",
+			"stat": "hero_level_cap",
 			"per_level": 1.0,
 			"cost_to_max": "1.76e6"
 		},
@@ -775,7 +905,7 @@
 		{
 			"path": "res://data/ruins/res_boost_ruin_wider_board.tres",
 			"max_level": 4,
-			"stat": "mission_slots",
+			"stat": "farm_slots",
 			"per_level": 1.0,
 			"cost_to_max": "1.27e3"
 		},
@@ -1526,8 +1656,8 @@
 		"policy": "roi",
 		"tick_budget": 20000,
 		"prestiges": 3,
-		"seconds": 1988.2,
-		"played": "33m 8s",
+		"seconds": 1870.6,
+		"played": "31m 11s",
 		"milestones": [
 			{
 				"tick": 29,
@@ -1536,64 +1666,58 @@
 				"detail": "forest"
 			},
 			{
-				"tick": 64,
-				"seconds": 640.0,
+				"tick": 81,
+				"seconds": 810.0,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
-				"tick": 69,
-				"seconds": 690.0,
-				"event": "biome",
-				"detail": "crystal_caves"
-			},
-			{
-				"tick": 70,
-				"seconds": 700.0,
+				"tick": 90,
+				"seconds": 900.0,
 				"event": "prestige",
-				"detail": "#1, +2.10e0 biomass"
+				"detail": "#1, +1.38e1 biomass"
 			},
 			{
-				"tick": 101,
-				"seconds": 1010.0,
+				"tick": 99,
+				"seconds": 989.2,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
-				"tick": 133,
-				"seconds": 1330.0,
+				"tick": 123,
+				"seconds": 1226.8,
 				"event": "biome",
 				"detail": "permafrost"
-			},
-			{
-				"tick": 139,
-				"seconds": 1390.0,
-				"event": "biome",
-				"detail": "crystal_caves"
 			},
 			{
 				"tick": 140,
-				"seconds": 1400.0,
+				"seconds": 1395.1,
 				"event": "prestige",
-				"detail": "#2, +9.97e0 biomass"
+				"detail": "#2, +5.92e2 biomass"
 			},
 			{
-				"tick": 159,
-				"seconds": 1586.4,
+				"tick": 142,
+				"seconds": 1414.6,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
-				"tick": 197,
-				"seconds": 1958.8,
+				"tick": 147,
+				"seconds": 1462.1,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
-				"tick": 200,
-				"seconds": 1988.2,
+				"tick": 151,
+				"seconds": 1500.1,
+				"event": "biome",
+				"detail": "crystal_caves"
+			},
+			{
+				"tick": 190,
+				"seconds": 1870.6,
 				"event": "prestige",
-				"detail": "#3, +9.97e0 biomass"
+				"detail": "#3, +6.13e6 biomass"
 			}
 		]
 	},

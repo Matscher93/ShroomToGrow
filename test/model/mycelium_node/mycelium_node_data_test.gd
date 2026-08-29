@@ -67,10 +67,10 @@ func test_every_authored_unlock_perk_id_exists_in_the_perk_tree() -> void:
 			.override_failure_message("Node '%s' wants perk '%s', which no branch defines." \
 				% [node.name, node.unlock_perk_id]).is_true()
 
-func test_the_first_three_tiers_are_free_and_the_rest_are_gated() -> void:
+func test_the_first_two_tiers_are_free_and_the_rest_are_gated() -> void:
 	var nodes := load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes
 	for node in nodes.mycelium_nodes:
-		if node.node_id < 3:
+		if node.node_id < 2:
 			assert_str(String(node.unlock_perk_id)).is_empty()
 		else:
 			assert_str(String(node.unlock_perk_id)).is_not_empty()

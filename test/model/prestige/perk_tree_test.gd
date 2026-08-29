@@ -90,7 +90,7 @@ func test_every_branch_root_sits_one_root_radius_from_the_core() -> void:
 # ─── Reach's Attunement ladder ───────────────────────────────────────────────
 
 ## Reach's lowest and highest rungs, which the Attunement pairing spans.
-const REACH_FIRST := 4
+const REACH_FIRST := 3
 const REACH_LAST := 10
 
 ## Every rung of Reach carries an Attunement, and each one hangs off its own

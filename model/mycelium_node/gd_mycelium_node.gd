@@ -97,7 +97,7 @@ var initial_cost: BigNumber:
 		_initial_cost_exponent = value.exponent
 
 ## Perk required before this tier can be bought. Empty means available on a
-## fresh save (the first three). The perk carries no effect, its purchased
+## fresh save (the first two). The perk carries no effect, its purchased
 ## level *is* the unlock.
 @export var unlock_perk_id: StringName = &""
 
