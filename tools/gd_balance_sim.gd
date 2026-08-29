@@ -269,9 +269,9 @@ static func _reset(app: Node) -> void:
 	# runs the spawn timer - so a carried-over offer would sit there unanswered
 	# and only the fertilizer it never pays would differ.
 	app.events_data.load_from_save({})
-	# Creature ranks, the mission board and the completed tally. Without this a
-	# --load= from a real save carried a player's whole Ruins into what the report
-	# calls a first run.
+	# Creature ranks, the mission board, the completed tally and the expeditions
+	# already run. Without this a --load= from a real save carried a player's whole
+	# Ruins into what the report calls a first run.
 	app.ruins_data.load_from_save({})
 	# The doubling level is derived from the investments just cleared, so it has
 	# to follow them down.
@@ -282,6 +282,11 @@ static func _reset(app: Node) -> void:
 	# PlayerData.missions_completed is the same shape, and it is the Ruins biome's
 	# XP source.
 	app.mission_system.sync_missions_completed()
+	# The expedition reward track is a projection of the ladder just cleared, and
+	# it writes into stats the whole simulation is measuring - a run that kept a
+	# doubled node_production from a loaded save would report a first run that is
+	# twice as fast as one.
+	app.mission_system.sync_expedition_rewards()
 
 	# Tier 0 keeps one node for the same reason PrestigeSystem leaves it one:
 	# with nothing producing, a run can never earn the first purchase back.

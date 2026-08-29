@@ -32,6 +32,32 @@ static func field_for(currency: Types) -> StringName:
 		_:
 			return &"nutrients"
 
+## A currency as the word a sentence uses - "5 relics", "20 ichor". Lowercase,
+## because every caller drops it into a phrase rather than starting one with it.
+##
+## Here rather than read off CurrencyDef.currency_name because the places that
+## need it hold the ordinal and not the def: a mission payout is serialised as
+## {currency, m, e}, which is what round-trips through JSON. Two screens were
+## about to carry the same seven-arm match.
+static func display_name_for(currency: Types) -> String:
+	match currency:
+		Types.WATER:
+			return "water"
+		Types.BIOMASS:
+			return "biomass"
+		Types.CRYSTALS:
+			return "crystals"
+		Types.RELICS:
+			return "relics"
+		Types.ICHOR:
+			return "ichor"
+		Types.GLYPHS:
+			return "glyphs"
+		Types.FERTILIZER:
+			return "fertilizer"
+		_:
+			return "nutrients"
+
 ## The PlayerData lifetime counter a currency feeds, or &"" where it has none.
 ##
 ## Water and biomass are deliberately absent: nothing measures either across

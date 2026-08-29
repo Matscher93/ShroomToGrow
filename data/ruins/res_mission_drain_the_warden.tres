@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
 [ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
 [ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="3_cur_ichor"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="4_effect_script"]
 
 [sub_resource type="Resource" id="payout_ichor"]
 script = ExtResource("2_payout_script")
@@ -11,13 +12,25 @@ gain_stat = &"ichor_gain"
 _amount_mantissa = 5.2
 _amount_exponent = 2
 
+[sub_resource type="Resource" id="reward_0"]
+script = ExtResource("4_effect_script")
+stat = &"node_production"
+op = 2
+scope = 0
+target = &""
+per_level = 0.5
+level_scaling = 0
+
 [resource]
 script = ExtResource("1_script")
 id = &"drain_the_warden"
 display_name = "Drain the Warden"
 description = "Something was left to keep the deep halls. It has kept them a very long time."
+is_farm = false
 base_duration_seconds = 2400.0
 min_creature_rank = 4
 min_missions_completed = 45
 unlock_perk_id = &""
+requires_mission_id = &""
 payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_ichor")])
+rewards = Array[ExtResource("4_effect_script")]([SubResource("reward_0")])

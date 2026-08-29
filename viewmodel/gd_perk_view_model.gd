@@ -60,16 +60,15 @@ var can_buy: bool:
 ## Only the first effect is described. Every perk authored so far carries one,
 ## and a perk with several would need wording this can't guess at - that is what
 ## the description field is for.
+##
+## Worded by EffectLabel, so a perk and an expedition reward naming the same stat
+## read as the same thing. It names the scope itself - a global perk is most of
+## them, and "on every node" on every line says nothing the reader did not
+## assume - so all that is added here is the per-level footing.
 func _generated_effect_text() -> String:
 	if _def.effects.is_empty():
 		return ""
-	var effect := _def.effects[0]
-	# Named scope only: a global perk is most of them, and "on every node" on
-	# every line says nothing the reader did not assume.
-	var where := ScopeLabel.suffix(ScopeLabel.of_effect(effect))
-	if effect.op == UpgradeEffectDef.Op.ADD:
-		return "%+.1f %s per level%s" % [effect.per_level, effect.stat, where]
-	return "%+.0f%% %s per level%s" % [effect.per_level * 100.0, effect.stat, where]
+	return "%s per level" % EffectLabel.of_effect(_def.effects[0])
 
 # --- Lifecycle ---
 

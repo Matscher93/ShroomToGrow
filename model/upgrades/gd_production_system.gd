@@ -2,14 +2,14 @@ class_name ProductionSystem
 extends RefCounted
 ## MODEL: resolves a stat through every upgrade track at once.
 ##
-## The eight UpgradeSystems (symbiosis, biome upgrades, perks, crystal boosts,
-## well projects, growth, fertilizer, mission boosts) write into the same stat
-## buckets, so any upgrade targeting a stat contributes automatically. Adding one
-## is a data edit, never a wiring change.
+## The nine UpgradeSystems (symbiosis, biome upgrades, perks, crystal boosts,
+## well projects, growth, fertilizer, mission boosts, expedition rewards) write
+## into the same stat buckets, so any upgrade targeting a stat contributes
+## automatically. Adding one is a data edit, never a wiring change.
 ##
 ## Holds only its inputs, no App reference, so it can be built and exercised in
 ## isolation. Order is fixed: symbiosis, then biome, then prestige, then boosts,
-## then projects, then growth, then fertilizer, then missions.
+## then projects, then growth, then fertilizer, then missions, then expeditions.
 
 var _symbiosis: UpgradeSystem
 var _biome: UpgradeSystem
@@ -19,6 +19,7 @@ var _projects: UpgradeSystem
 var _growth: UpgradeSystem
 var _fertilizer: UpgradeSystem
 var _missions: UpgradeSystem
+var _expeditions: UpgradeSystem
 var _ctx: ResolveContext
 
 ## Resolved results, dropped whole the moment any track changes. One stack() is
@@ -62,11 +63,17 @@ var _keys_by_target: Dictionary = {}
 ## "t:" buckets a read at that node draws from. Trailing and optional for the same
 ## reason as the tracks above; leaving it out means no node carries a tag, and a
 ## TAG effect resolves to nothing.
+##
+## `expeditions` trails `nodes` rather than sitting beside `missions`, which is
+## where it stacks. Parameter order is not stacking order: every existing caller
+## passing `nodes` positionally would otherwise have had to move an argument, and
+## the order that actually matters is the one _run_all() applies.
 func _init(symbiosis: UpgradeSystem, biome: UpgradeSystem, prestige: UpgradeSystem,
 		ctx: ResolveContext, boosts: UpgradeSystem = null,
 		projects: UpgradeSystem = null, growth: UpgradeSystem = null,
 		fertilizer: UpgradeSystem = null, missions: UpgradeSystem = null,
-		nodes: Array[MyceliumNode] = []) -> void:
+		nodes: Array[MyceliumNode] = [],
+		expeditions: UpgradeSystem = null) -> void:
 	_symbiosis = symbiosis
 	_biome = biome
 	_prestige = prestige
@@ -75,6 +82,7 @@ func _init(symbiosis: UpgradeSystem, biome: UpgradeSystem, prestige: UpgradeSyst
 	_growth = growth if growth != null else UpgradeSystem.new()
 	_fertilizer = fertilizer if fertilizer != null else UpgradeSystem.new()
 	_missions = missions if missions != null else UpgradeSystem.new()
+	_expeditions = expeditions if expeditions != null else UpgradeSystem.new()
 	_ctx = ctx
 	for node in nodes:
 		_keys_by_target[node.id_key] = UpgradeSystem.scope_keys(
@@ -118,7 +126,8 @@ func _run_all(stat: StringName, base: BigNumber, keys: PackedStringArray) -> Big
 	value = _projects.modify(stat, value, _ctx, keys)
 	value = _growth.modify(stat, value, _ctx, keys)
 	value = _fertilizer.modify(stat, value, _ctx, keys)
-	return _missions.modify(stat, value, _ctx, keys)
+	value = _missions.modify(stat, value, _ctx, keys)
+	return _expeditions.modify(stat, value, _ctx, keys)
 
 ## Everything boosting the stat *except* the player's own symbiosis levels. The
 ## project, growth and fertilizer tracks belong here as much as the boosts do: all
@@ -140,11 +149,12 @@ func stack_external(stat: StringName, base: BigNumber, target: StringName = &"")
 	value = _growth.modify(stat, value, _ctx, keys)
 	value = _fertilizer.modify(stat, value, _ctx, keys)
 	value = _missions.modify(stat, value, _ctx, keys)
+	value = _expeditions.modify(stat, value, _ctx, keys)
 	return _remember(_memo_external, stat, base, target, value)
 
 # ------------------------------------------------------------ introspection
 
-## The eight tracks in stacking order, each with the name the balance tools show
+## The nine tracks in stacking order, each with the name the balance tools show
 ## it under: [["symbiosis", UpgradeSystem], ["biome", ...], ...].
 ##
 ## Ordered because the order is part of how a stat resolves, and handed out as
@@ -153,7 +163,7 @@ func stack_external(stat: StringName, base: BigNumber, target: StringName = &"")
 ##
 ## Kept in step with stack() by hand. stack() does not read this: it runs on the
 ## hot path, hundreds of times a tick, and would be building this array every
-## time. A ninth track has to be added in both places.
+## time. A tenth track has to be added in both places.
 func tracks() -> Array:
 	return [
 		["symbiosis", _symbiosis],
@@ -164,6 +174,7 @@ func tracks() -> Array:
 		["growth", _growth],
 		["fertilizer", _fertilizer],
 		["missions", _missions],
+		["expeditions", _expeditions],
 	]
 
 ## Every track's breakdown, keyed by track name. See UpgradeSystem.breakdown().
@@ -210,7 +221,8 @@ func _remember(memo: Dictionary, stat: StringName, base: BigNumber, target: Stri
 ## invalidate() moves it.
 func _version() -> int:
 	return _symbiosis.version + _biome.version + _prestige.version + _boosts.version \
-		+ _projects.version + _growth.version + _fertilizer.version + _missions.version
+		+ _projects.version + _growth.version + _fertilizer.version + _missions.version \
+		+ _expeditions.version
 
 # ---------------------------------------------------------------- node output
 
@@ -284,11 +296,14 @@ func mission_speed() -> float:
 	var speed := stack(&"mission_speed", BigNumber.from_value(1.0))
 	return maxf(0.01, speed.to_float())
 
-## Missions the player may have in flight at once, on top of the base allowance.
-## Read as a count rather than a multiplier, the way biome and level points are:
-## an ADD effect on &"mission_slots" is what a perk buys to widen the board.
-func mission_slots() -> int:
-	return int(stack(&"mission_slots", BigNumber.new(0.0, 0)).to_float())
+## Farms the player may have running at once, on top of the base allowance. Read
+## as a count rather than a multiplier, the way biome and level points are: an ADD
+## effect on &"farm_slots" is what a perk buys to widen the board.
+##
+## The only board with a cap. Expeditions are limited by the roster instead - see
+## MissionSystem.expeditions_out().
+func farm_slots() -> int:
+	return int(stack(&"farm_slots", BigNumber.new(0.0, 0)).to_float())
 
 ## Levels one creature may be ranked up beyond its authored ceiling. Scoped by
 ## creature id, so a perk can lift one thrall without lifting the whole roster -

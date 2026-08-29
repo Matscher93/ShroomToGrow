@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
 [ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
 [ext_resource type="Resource" path="res://data/currencies/res_relics_def.tres" id="3_cur_relics"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="4_effect_script"]
 
 [sub_resource type="Resource" id="payout_relics"]
 script = ExtResource("2_payout_script")
@@ -11,13 +12,25 @@ gain_stat = &"relic_gain"
 _amount_mantissa = 4.0
 _amount_exponent = 2
 
+[sub_resource type="Resource" id="reward_0"]
+script = ExtResource("4_effect_script")
+stat = &"biomass_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.3
+level_scaling = 0
+
 [resource]
 script = ExtResource("1_script")
 id = &"plumb_the_undercroft"
 display_name = "Plumb the Undercroft"
 description = "Below the vaults is older work, and below that, older still. Go down until the walls stop being walls."
+is_farm = false
 base_duration_seconds = 1200.0
 min_creature_rank = 3
 min_missions_completed = 30
 unlock_perk_id = &""
+requires_mission_id = &""
 payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_relics")])
+rewards = Array[ExtResource("4_effect_script")]([SubResource("reward_0")])

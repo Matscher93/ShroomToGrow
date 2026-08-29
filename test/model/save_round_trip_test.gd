@@ -70,6 +70,14 @@ func test_well_project_levels_is_not_saved_on_player_data() -> void:
 	original.well_project_levels = 9
 	assert_bool(original.to_save().has("well_project_levels")).is_false()
 
+## The expedition reward track holds no save data of its own: it is a projection
+## of RuinsData.completed_expeditions, rebuilt on load. Two records of the same
+## thing is how they come to disagree.
+func test_the_expedition_reward_track_is_not_saved() -> void:
+	assert_bool(App.to_save().has("expedition_upgrades")) \
+		.override_failure_message("The expedition reward track is being saved; it is a projection.") \
+		.is_false()
+
 func test_missions_completed_is_not_saved_on_player_data() -> void:
 	# Same contract as achievement_tiers and well_project_levels above: a
 	# projection of RuinsData, rebuilt by MissionSystem.sync_missions_completed()

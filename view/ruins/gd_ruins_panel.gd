@@ -1,7 +1,23 @@
 @tool
 extends PanelContainer
-## VIEW: the Ruins screen. Three tabs: the mission board, the roster of
-## controlled creatures, and the ladder the mission currencies buy.
+## VIEW: the Ruins screen. Three tabs: the two boards, the roster of controlled
+## creatures, and the ladder the mission currencies buy.
+##
+## The Missions tab is built out of what is actually happening, not out of the
+## ladder. There are dozens of missions and only a few running, so a flat list of
+## the first made the player scroll past everything they could not act on to reach
+## the two or three they could. What is on screen now is the expeditions that are
+## out, the farms that are running, and the free plots between them - with the
+## choosing moved into a sheet opened on purpose.
+##
+## The expeditions have no reserved places: the board is uncapped, so the list is
+## exactly as long as the number out and the way to add one is the button under
+## it. The farms do have places, because they are capped, so a free plot is drawn
+## as the real thing it is.
+##
+## Under them sits the ledger of expeditions still ahead, folded shut. It is the
+## thing to work towards rather than the thing to do now, which is why it is one
+## row until the player asks for it.
 ##
 ## The tab bar is hidden for the same reason the Crystal Caves' is - the nav menu
 ## lists these three as sub-rows under Ruins, and a second row of tabs at the
@@ -18,26 +34,40 @@ extends PanelContainer
 ## on a hidden tab while its mission landed. It runs only while the screen is up,
 ## which is the whole reason it lives on the view.
 ##
-## The mission cards do not ride on it. A bar redrawn on a poll steps at exactly
-## that interval, so each card animates its own from _process - see MissionCard.
+## The slot cards do not ride on it. A bar redrawn on a poll steps at exactly that
+## interval, so each card animates its own from _process - see SlotCard.
 
 @export var tab_container: FullWidthTabContainer
 @export var missions_tab: ScrollContainer
 @export var creatures_tab: ScrollContainer
 @export var boosts_tab: ScrollContainer
-@export var vbox_missions: VBoxContainer
+@export var vbox_expeditions: VBoxContainer
+@export var vbox_farms: VBoxContainer
+@export var btn_send_expedition: Button
+@export var lbl_send_hint: Label
+@export var section_farms: VBoxContainer
+@export var lbl_farm_board: Label
+@export var btn_ledger: Button
+@export var vbox_ledger: VBoxContainer
+@export var chooser_layer: PopupLayer
 @export var vbox_creatures: VBoxContainer
 @export var vbox_boosts: VBoxContainer
 @export var lbl_current_tab: Label
 @export var lbl_board: Label
 @export var lbl_missions: Label
 @export var btn_collect_all: Button
-@export var mission_card_scene: PackedScene
+@export var slot_card_scene: PackedScene
+@export var choice_row_scene: PackedScene
+@export var chooser_scene: PackedScene
 @export var creature_card_scene: PackedScene
 @export var boost_card_scene: PackedScene
 
 var _vm: RuinsViewModel
 var _countdown_timer: Timer
+## Whether the ledger of remaining expeditions is folded open. Held here rather
+## than on the ViewModel because it is not worth remembering across a nav switch:
+## it is opened to answer one question and shut again.
+var _ledger_open := false
 
 ## Holds structural refreshes back while the player has the pointer down, so a
 ## tick landing mid-press cannot free or reflow the button under their finger.
@@ -53,8 +83,11 @@ func _ready() -> void:
 		return
 
 	btn_collect_all.pressed.connect(_on_collect_all_pressed)
+	btn_ledger.pressed.connect(_on_ledger_pressed)
+	btn_send_expedition.pressed.connect(_on_send_expedition_pressed)
 	bind(App.ruins_vm)
-	_build_missions()
+	_build_boards()
+	_build_ledger()
 	_build_creatures()
 	_build_boosts()
 	_refresh_creatures_tab()
@@ -89,7 +122,14 @@ func _on_property_changed(property: StringName) -> void:
 func _refresh_header() -> void:
 	lbl_board.text = _vm.board_text
 	lbl_missions.text = _vm.missions_text
+	lbl_farm_board.text = _vm.farm_board_text
 	btn_collect_all.visible = _vm.has_collectable
+	section_farms.visible = _vm.farms_visible
+	btn_ledger.text = "%s %s" % ["\u25be" if _ledger_open else "\u25b8", _vm.expeditions_left_text]
+	vbox_ledger.visible = _ledger_open
+	btn_send_expedition.disabled = not _vm.can_send_expedition
+	lbl_send_hint.text = _vm.send_expedition_hint
+	lbl_send_hint.visible = not lbl_send_hint.text.is_empty()
 
 # --- The clock poll ---
 
@@ -176,14 +216,62 @@ func _on_scrolled(value: float, tab: ScrollContainer) -> void:
 func _on_collect_all_pressed() -> void:
 	_vm.collect_all()
 
+## An empty slot was tapped. The chooser lives in this screen's own PopupLayer
+## rather than the main screen's overlay layer: it belongs to the board, it goes
+## away when the player leaves the board, and the layer's static count is what
+## keeps the touch scrollers underneath from scrolling behind it.
+func _on_fill_requested(is_farm: bool) -> void:
+	var chooser := chooser_layer.show_popup(chooser_scene)
+	chooser.set_board(is_farm)
+	chooser.dismissed.connect(chooser_layer.clear, CONNECT_ONE_SHOT)
+
+## The way to start an expedition, now that there is no empty slot to tap. Opens
+## the same chooser an empty farm plot does.
+func _on_send_expedition_pressed() -> void:
+	_on_fill_requested(false)
+
+func _on_ledger_pressed() -> void:
+	_ledger_open = not _ledger_open
+	_refresh_header()
+
 # --- Building ---
 
-func _build_missions() -> void:
-	_clear(vbox_missions)
-	for vm in _vm.mission_vms_ordered:
-		var card := mission_card_scene.instantiate()
-		vbox_missions.add_child(card)
+## Both boards, one slot card per place. Rebuilt only when a board changes width,
+## which is the only thing that changes how many cards there are - what is *in* a
+## place is a repaint the card handles itself.
+func _build_boards() -> void:
+	_build_slots(vbox_expeditions, _vm.expedition_slot_vms)
+	_build_slots(vbox_farms, _vm.farm_slot_vms)
+
+func _build_slots(container: VBoxContainer, vms: Array[MissionSlotViewModel]) -> void:
+	_clear(container)
+	for vm in vms:
+		var card := slot_card_scene.instantiate()
+		container.add_child(card)
 		card.bind(vm)
+		card.fill_requested.connect(_on_fill_requested)
+
+## A widened farm board brings a plot with it, and a finished expedition drops a
+## row out of the ledger. Both are structural, so both come through here.
+func _rebuild_boards() -> void:
+	_build_boards()
+	_build_ledger()
+	_refresh_header()
+
+## Just the expedition list, which changes length on every send and every
+## collect - far more often than the farm board changes width.
+func _rebuild_expeditions() -> void:
+	_build_slots(vbox_expeditions, _vm.expedition_slot_vms)
+	_refresh_header()
+
+## What is still ahead, in ladder order. Rows are read-only here: the ledger says
+## what is coming, and starting one is the chooser's job.
+func _build_ledger() -> void:
+	_clear(vbox_ledger)
+	for vm in _vm.remaining_expedition_vms:
+		var row := choice_row_scene.instantiate()
+		vbox_ledger.add_child(row)
+		row.bind(vm, false)
 
 func _build_creatures() -> void:
 	_clear(vbox_creatures)

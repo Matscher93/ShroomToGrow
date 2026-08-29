@@ -134,3 +134,37 @@ func test_loading_mutates_in_place_rather_than_replacing() -> void:
 	_data.load_from_save({"missions_completed": 4})
 	assert_int(seen[0]).is_greater(0)
 	assert_int(_data.missions_completed).is_equal(4)
+
+# ─── The expedition ladder ───────────────────────────────────────────────────
+
+func test_an_expedition_starts_unfinished() -> void:
+	assert_bool(_data.is_expedition_done(&"dig")).is_false()
+
+func test_marking_an_expedition_records_it_once() -> void:
+	var seen := [0]
+	_data.expeditions_changed.connect(func() -> void: seen[0] += 1)
+	_data.mark_expedition_done(&"dig")
+	_data.mark_expedition_done(&"dig")
+	assert_bool(_data.is_expedition_done(&"dig")).is_true()
+	assert_int(_data.completed_expeditions.size()).is_equal(1)
+	# The second mark changed nothing, so it announced nothing.
+	assert_int(seen[0]).is_equal(1)
+
+func test_completed_expeditions_round_trip() -> void:
+	_data.mark_expedition_done(&"dig")
+	_data.mark_expedition_done(&"delve")
+	var restored := RuinsData.from_save(_data.to_save())
+	assert_bool(restored.is_expedition_done(&"dig")).is_true()
+	assert_bool(restored.is_expedition_done(&"delve")).is_true()
+	assert_int(restored.completed_expeditions.size()).is_equal(2)
+
+func test_a_save_without_the_ladder_loads_it_empty() -> void:
+	_data.mark_expedition_done(&"dig")
+	_data.load_from_save({"missions_completed": 2})
+	assert_int(_data.completed_expeditions.size()).is_zero()
+
+## A save that somehow carries the same id twice must not leave the ladder
+## holding it twice - the reward track projects off this list.
+func test_a_duplicated_saved_expedition_loads_once() -> void:
+	_data.load_from_save({"completed_expeditions": ["dig", "dig"]})
+	assert_int(_data.completed_expeditions.size()).is_equal(1)

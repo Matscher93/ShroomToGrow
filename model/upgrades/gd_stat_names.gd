@@ -27,10 +27,10 @@ const ALL: Array[StringName] = [
 	# Read by BoostSystem rather than ProductionSystem: the Well's projects reach
 	# a crystal boost's ceiling and its per-level rate through these.
 	&"boost_max_level", &"boost_power",
-	# The Ruins. mission_slots is read by MissionSystem and creature_rank_cap by
+	# The Ruins. farm_slots is read by MissionSystem and creature_rank_cap by
 	# CreatureSystem, the same way biome_points is read by BiomeSystem; the rest
 	# resolve through ProductionSystem like everything above.
-	&"mission_speed", &"mission_slots", &"mission_reward",
+	&"mission_speed", &"farm_slots", &"mission_reward",
 	&"relic_gain", &"ichor_gain", &"glyph_gain", &"creature_rank_cap",
 ]
 

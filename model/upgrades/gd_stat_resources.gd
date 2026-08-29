@@ -34,7 +34,7 @@ const RESOURCES := [
 	{"resource": "glyphs", "metric": "stat", "stats": ["glyph_gain"]},
 	{"resource": "automation", "metric": "stat", "stats": ["automation_rate"]},
 	{"resource": "missions", "metric": "stat",
-		"stats": ["mission_speed", "mission_reward", "mission_slots"]},
+		"stats": ["mission_speed", "mission_reward", "farm_slots"]},
 	{"resource": "boosts", "metric": "stat",
 		"stats": ["boost_power", "boost_max_level", "creature_rank_cap"]},
 	{"resource": "biome points", "metric": "stat",

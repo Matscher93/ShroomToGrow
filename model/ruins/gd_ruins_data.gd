@@ -22,15 +22,32 @@ extends RefCounted
 signal active_changed
 signal creatures_changed
 signal missions_completed_changed(value: int)
+## An expedition was finished for the first and only time. Split from
+## active_changed because it moves what the ladder offers and what the reward
+## track holds, neither of which a send or a collect on its own touches.
+signal expeditions_changed
 
 ## Array[Dictionary] of
 ## {"mission_id": StringName, "creature_id": StringName, "started_at": float,
-##  "duration": float, "instance_id": int, "payouts": Array[Dictionary]}.
+##  "duration": float, "instance_id": int, "is_farm": bool,
+##  "payouts": Array[Dictionary]}.
 ## A payout entry is {"currency": int, "m": float, "e": int} - the CurrencyTypes
 ## ordinal and a BigNumber's two halves, which is the shape that round-trips
 ## through JSON without a second serialiser.
 ## Ordered oldest first, which is the order the board lists them in.
+##
+## Expeditions and farms share the one array rather than splitting into two. A
+## creature can only be on one thing at a time whichever kind it is, so
+## find_by_creature() and the busy check it backs stay a single lookup, and the
+## instance ids stay unique across both boards. What the two kinds do not share
+## is a slot allowance - see MissionSystem.slots_used() / farm_slots_used().
 var active: Array[Dictionary] = []
+
+## Expeditions already brought home, which is what makes them one-shot. Also the
+## source of truth for the reward track: MissionSystem.sync_expedition_rewards()
+## projects this onto it after every collect and after every load, so the two can
+## never disagree and the track itself is never saved.
+var completed_expeditions: Array[StringName] = []
 
 ## StringName creature id -> rank. A creature absent from this dictionary, or at
 ## rank 0, has not been taken over yet.
@@ -53,7 +70,7 @@ func count() -> int:
 	return active.size()
 
 func add(mission_id: StringName, creature_id: StringName, started_at: float,
-		duration: float, payouts: Array[Dictionary]) -> int:
+		duration: float, payouts: Array[Dictionary], is_farm: bool = false) -> int:
 	var instance_id := _next_instance_id
 	_next_instance_id += 1
 	active.append({
@@ -62,6 +79,7 @@ func add(mission_id: StringName, creature_id: StringName, started_at: float,
 		"started_at": started_at,
 		"duration": duration,
 		"instance_id": instance_id,
+		"is_farm": is_farm,
 		"payouts": payouts,
 	})
 	active_changed.emit()
@@ -70,6 +88,14 @@ func add(mission_id: StringName, creature_id: StringName, started_at: float,
 func find(instance_id: int) -> Dictionary:
 	for entry in active:
 		if entry["instance_id"] == instance_id:
+			return entry
+	return {}
+
+## The in-flight instance of this mission, or {} when none is out. One-shot
+## expeditions may only be out once at a time - see MissionSystem.can_send().
+func find_by_mission(mission_id: StringName) -> Dictionary:
+	for entry in active:
+		if entry["mission_id"] == mission_id:
 			return entry
 	return {}
 
@@ -88,6 +114,20 @@ func remove(instance_id: int) -> bool:
 		active_changed.emit()
 		return true
 	return false
+
+# ---------------------------------------------------------------- expeditions
+
+func is_expedition_done(mission_id: StringName) -> bool:
+	return completed_expeditions.has(mission_id)
+
+## Records an expedition as finished. Idempotent: collect() is the only caller
+## and it removes the entry straight after, but a double-collect must never leave
+## the ladder holding the same id twice - the reward track projects off this list.
+func mark_expedition_done(mission_id: StringName) -> void:
+	if completed_expeditions.has(mission_id):
+		return
+	completed_expeditions.append(mission_id)
+	expeditions_changed.emit()
 
 # ---------------------------------------------------------------- creatures
 
@@ -111,14 +151,19 @@ func to_save() -> Dictionary:
 			"started_at": float(entry["started_at"]),
 			"duration": float(entry["duration"]),
 			"instance_id": int(entry["instance_id"]),
+			"is_farm": bool(entry["is_farm"]),
 			"payouts": entry["payouts"].duplicate(true),
 		})
 	var ranks := {}
 	for creature_id: StringName in creature_ranks:
 		ranks[String(creature_id)] = int(creature_ranks[creature_id])
+	var done: Array = []
+	for mission_id: StringName in completed_expeditions:
+		done.append(String(mission_id))
 	return {
 		"active": out,
 		"creature_ranks": ranks,
+		"completed_expeditions": done,
 		"missions_completed": missions_completed,
 		"next_instance_id": _next_instance_id,
 	}
@@ -146,6 +191,9 @@ func load_from_save(d: Dictionary) -> void:
 			"started_at": float(entry.get("started_at", 0.0)),
 			"duration": float(entry.get("duration", 0.0)),
 			"instance_id": instance_id,
+			# A save written before farms existed holds expeditions only, which is
+			# what the default says.
+			"is_farm": bool(entry.get("is_farm", false)),
 			"payouts": _payouts_from_save(entry.get("payouts", [])),
 		})
 		_next_instance_id = maxi(_next_instance_id, instance_id + 1)
@@ -158,9 +206,21 @@ func load_from_save(d: Dictionary) -> void:
 	for key: Variant in ranks:
 		creature_ranks[StringName(key)] = int(ranks[key])
 
+	# Absent from a save written before expeditions were one-shot, which leaves
+	# the ladder open. That hands a returning player the new permanent rewards
+	# rather than silently denying them the only chance to earn them.
+	completed_expeditions.clear()
+	var done: Array = d.get("completed_expeditions", [])
+	for raw: Variant in done:
+		var mission_id := StringName(raw)
+		if mission_id.is_empty() or completed_expeditions.has(mission_id):
+			continue
+		completed_expeditions.append(mission_id)
+
 	missions_completed = int(d.get("missions_completed", 0))
 	active_changed.emit()
 	creatures_changed.emit()
+	expeditions_changed.emit()
 
 ## Same guard as the entry loop above, one level down: a payout that is not a
 ## Dictionary is dropped rather than crashing the load, which costs that one

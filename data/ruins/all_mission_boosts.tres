@@ -17,6 +17,7 @@
 [ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_restless_hands.tres" id="15_ruin_restless_hands"]
 [ext_resource type="Resource" path="res://data/ruins/res_boost_ruin_old_covenant.tres" id="16_ruin_old_covenant"]
 
+
 [resource]
 script = ExtResource("1_script")
 boosts = Array[ExtResource("2_boost_script")]([ExtResource("3_ruin_swift_errands"), ExtResource("4_ruin_richer_spoils"), ExtResource("5_ruin_wider_board"), ExtResource("6_ruin_relic_sense"), ExtResource("7_ruin_ichor_still"), ExtResource("8_ruin_glyph_lore"), ExtResource("9_ruin_deeper_thralls"), ExtResource("10_ruin_hungry_roots"), ExtResource("11_ruin_deep_time"), ExtResource("12_ruin_wet_stone"), ExtResource("13_ruin_spore_bounty"), ExtResource("14_ruin_crystal_tithe"), ExtResource("15_ruin_restless_hands"), ExtResource("16_ruin_old_covenant")])

@@ -59,7 +59,7 @@ func _boost_list() -> MissionBoostList:
 		_rung(&"swift", CurrencyTypes.Types.RELICS, &"mission_speed",
 			UpgradeEffectDef.Op.MORE, 0.10, 10.0, 2.0, 0, 0),
 		# Control, capped.
-		_rung(&"wider", CurrencyTypes.Types.GLYPHS, &"mission_slots",
+		_rung(&"wider", CurrencyTypes.Types.GLYPHS, &"farm_slots",
 			UpgradeEffectDef.Op.ADD, 1.0, 50.0, 2.0, 2, 0),
 		# General: reaches the colony, and gated behind the board being worked.
 		_rung(&"roots", CurrencyTypes.Types.RELICS, &"node_production",

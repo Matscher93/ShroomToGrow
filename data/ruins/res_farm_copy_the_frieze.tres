@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="3_cur_glyphs"]
+
+[sub_resource type="Resource" id="payout_glyphs"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("3_cur_glyphs")
+gain_stat = &"glyph_gain"
+_amount_mantissa = 4.0
+_amount_exponent = 0
+
+[resource]
+script = ExtResource("1_script")
+id = &"farm_copy_the_frieze"
+display_name = "Copy the Frieze"
+description = "One panel at a time, over and over. The wall is longer than any thrall's patience, which is why it is not asked for."
+is_farm = true
+base_duration_seconds = 240.0
+min_creature_rank = 2
+min_missions_completed = 0
+unlock_perk_id = &""
+requires_mission_id = &"read_the_frieze"
+payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_glyphs")])

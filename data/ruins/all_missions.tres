@@ -15,6 +15,12 @@
 [ext_resource type="Resource" path="res://data/ruins/res_mission_drain_the_warden.tres" id="13_drain_the_warden"]
 [ext_resource type="Resource" path="res://data/ruins/res_mission_unseal_the_sanctum.tres" id="14_unseal_the_sanctum"]
 
+[ext_resource type="Resource" path="res://data/ruins/res_farm_pick_the_middens.tres" id="15_farm_pick_the_middens"]
+[ext_resource type="Resource" path="res://data/ruins/res_farm_tap_the_seeps.tres" id="16_farm_tap_the_seeps"]
+[ext_resource type="Resource" path="res://data/ruins/res_farm_copy_the_frieze.tres" id="17_farm_copy_the_frieze"]
+[ext_resource type="Resource" path="res://data/ruins/res_farm_work_the_undercroft.tres" id="18_farm_work_the_undercroft"]
+[ext_resource type="Resource" path="res://data/ruins/res_farm_tend_the_choir.tres" id="19_farm_tend_the_choir"]
+
 [resource]
 script = ExtResource("1_script")
-missions = Array[ExtResource("2_mission_script")]([ExtResource("3_sift_rubble"), ExtResource("4_stalk_the_galleries"), ExtResource("5_pry_the_flagstones"), ExtResource("6_trace_the_wardstone"), ExtResource("7_bleed_the_swarm"), ExtResource("8_breach_the_vault"), ExtResource("9_read_the_frieze"), ExtResource("10_hollow_the_brood"), ExtResource("11_plumb_the_undercroft"), ExtResource("12_wake_the_choir"), ExtResource("13_drain_the_warden"), ExtResource("14_unseal_the_sanctum")])
+missions = Array[ExtResource("2_mission_script")]([ExtResource("3_sift_rubble"), ExtResource("4_stalk_the_galleries"), ExtResource("5_pry_the_flagstones"), ExtResource("6_trace_the_wardstone"), ExtResource("7_bleed_the_swarm"), ExtResource("8_breach_the_vault"), ExtResource("9_read_the_frieze"), ExtResource("10_hollow_the_brood"), ExtResource("11_plumb_the_undercroft"), ExtResource("12_wake_the_choir"), ExtResource("13_drain_the_warden"), ExtResource("14_unseal_the_sanctum"), ExtResource("15_farm_pick_the_middens"), ExtResource("16_farm_tap_the_seeps"), ExtResource("17_farm_copy_the_frieze"), ExtResource("18_farm_work_the_undercroft"), ExtResource("19_farm_tend_the_choir")])

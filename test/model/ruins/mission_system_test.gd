@@ -129,33 +129,39 @@ func _grant_stat(id: StringName, stat: StringName, op: UpgradeEffectDef.Op,
 
 # ─── Sending ─────────────────────────────────────────────────────────────────
 
-func test_sending_snapshots_the_duration_and_takes_a_slot() -> void:
+func test_sending_snapshots_the_duration_and_puts_the_creature_out() -> void:
 	var instance_id := _system.send(&"short_run", &"digger")
 	assert_int(instance_id).is_greater(0)
-	assert_int(_system.slots_used()).is_equal(1)
+	assert_int(_system.expeditions_out()).is_equal(1)
 	var entry := _data.find(instance_id)
 	assert_float(entry["duration"]).is_equal_approx(100.0, EPS)
 	assert_float(entry["started_at"]).is_equal_approx(1000.0, EPS)
 
-func test_the_base_board_holds_one_mission() -> void:
-	assert_int(_system.slots()).is_equal(MissionSystem.BASE_SLOTS)
-	assert_int(_system.send(&"short_run", &"digger")).is_greater(0)
-	assert_bool(_system.has_free_slot()).is_false()
-
-func test_a_mission_slots_effect_widens_the_board() -> void:
-	_grant_stat(&"wider", &"mission_slots", UpgradeEffectDef.Op.ADD, 1.0, 2)
-	assert_int(_system.slots()).is_equal(MissionSystem.BASE_SLOTS + 2)
-
-func test_a_full_board_refuses_the_next_send() -> void:
-	assert_int(_system.send(&"short_run", &"digger")).is_greater(0)
+## The board is uncapped: the roster is the only limit, so a second free creature
+## can always go out alongside the first.
+func test_the_board_takes_as_many_expeditions_as_there_are_creatures() -> void:
+	_data.missions_completed = 5      # opens deep_run, which needs rank 3
 	_creatures.recruit(&"idler")
+	_data.set_rank(&"idler", 3)
+	assert_int(_system.send(&"short_run", &"digger")).is_greater(0)
+	assert_int(_system.send(&"deep_run", &"idler")).is_greater(0)
+	assert_int(_system.expeditions_out()).is_equal(2)
+
+## Two of the same one-shot expedition out at once would pay its one-time reward
+## twice. Only reachable since the board stopped being capped.
+func test_the_same_expedition_cannot_be_sent_twice_at_once() -> void:
+	_creatures.recruit(&"idler")
+	assert_int(_system.send(&"short_run", &"digger")).is_greater(0)
 	assert_bool(_system.can_send(&"short_run", &"idler")).is_false()
 	assert_int(_system.send(&"short_run", &"idler")).is_equal(0)
 
-func test_a_busy_creature_cannot_be_sent_twice() -> void:
-	_grant_stat(&"wider", &"mission_slots", UpgradeEffectDef.Op.ADD, 1.0, 2)
+## ...and with nobody free, there is nothing to send. That is the limit that
+## replaced the slot count, and it is one the player lifts by taking another
+## creature over rather than by buying a place.
+func test_an_expedition_needs_a_free_creature() -> void:
 	assert_int(_system.send(&"short_run", &"digger")).is_greater(0)
 	assert_bool(_system.can_send(&"short_run", &"digger")).is_false()
+	assert_int(_system.send(&"short_run", &"digger")).is_equal(0)
 
 func test_a_creature_below_the_rank_bar_cannot_be_sent() -> void:
 	_data.missions_completed = 5   # opens deep_run, which needs rank 3
@@ -254,12 +260,12 @@ func test_a_reward_boost_does_not_raise_a_mission_already_in_flight() -> void:
 
 # ─── Collecting ──────────────────────────────────────────────────────────────
 
-func test_collecting_pays_out_frees_the_slot_and_counts_the_mission() -> void:
+func test_collecting_pays_out_frees_the_creature_and_counts_the_mission() -> void:
 	var instance_id := _system.send(&"short_run", &"digger")
 	_now += 100.0
 	assert_bool(_system.collect(instance_id)).is_true()
 	assert_bool(_player.relics.equals(BigNumber.new(1.0, 1))).is_true()
-	assert_int(_system.slots_used()).is_equal(0)
+	assert_int(_system.expeditions_out()).is_equal(0)
 	assert_int(_data.missions_completed).is_equal(1)
 	assert_bool(_creatures.is_busy(&"digger")).is_false()
 
@@ -274,15 +280,17 @@ func test_an_unfinished_mission_cannot_be_collected() -> void:
 	_now += 50.0
 	assert_bool(_system.collect(instance_id)).is_false()
 	assert_bool(_player.relics.equals(BigNumber.new(0.0, 0))).is_true()
-	assert_int(_system.slots_used()).is_equal(1)
+	assert_int(_system.expeditions_out()).is_equal(1)
 
 func test_collect_all_takes_every_finished_mission_and_leaves_the_rest() -> void:
-	_grant_stat(&"wider", &"mission_slots", UpgradeEffectDef.Op.ADD, 1.0, 2)
+	# Two different expeditions: the same one cannot be out twice at once.
+	_data.missions_completed = 5      # opens deep_run, which needs rank 3
 	_creatures.recruit(&"idler")
+	_data.set_rank(&"idler", 3)
 	var first := _system.send(&"short_run", &"digger")
 	_now += 60.0
-	var second := _system.send(&"short_run", &"idler")
-	_now += 50.0   # first is 110s in and done, second only 50s in
+	var second := _system.send(&"deep_run", &"idler")
+	_now += 50.0   # first is 110s in and done, second only 50s of its 400s
 	assert_int(_system.completed_count()).is_equal(1)
 	assert_int(_system.collect_all()).is_equal(1)
 	assert_bool(_data.find(first).is_empty()).is_true()
@@ -299,3 +307,54 @@ func test_sync_rebuilds_the_projection_after_a_load() -> void:
 	_player.missions_completed = 0
 	_system.sync_missions_completed()
 	assert_int(_player.missions_completed).is_equal(7)
+
+# ─── Picking a creature ──────────────────────────────────────────────────────
+
+## The auto-pick behind the board's one-tap send. Ranked on speed x yield, which
+## is the whole of what a creature brings to an errand.
+
+func test_the_best_creature_is_the_only_free_one() -> void:
+	assert_str(String(_system.best_creature_for(&"short_run"))).is_equal("digger")
+
+func test_nothing_is_picked_when_no_creature_is_free() -> void:
+	_system.send(&"short_run", &"digger")
+	assert_str(String(_system.best_creature_for(&"short_run"))).is_empty()
+
+func test_a_busy_creature_is_never_picked() -> void:
+	_creatures.recruit(&"idler")
+	_system.send(&"short_run", &"digger")
+	assert_str(String(_system.best_creature_for(&"short_run"))).is_equal("idler")
+
+## Affinity rides on both multipliers, so a specialist wins the product without
+## needing a rule of its own - which is exactly what this asserts.
+func test_the_creature_with_affinity_wins() -> void:
+	_creatures.recruit(&"idler")
+	var idler := _creatures.creature_def(&"idler")
+	idler.affinity = [&"short_run"]
+	idler.affinity_bonus = 0.5
+	assert_str(String(_system.best_creature_for(&"short_run"))).is_equal("idler")
+
+## ...but only on the mission it is a specialist in.
+func test_affinity_does_not_carry_to_another_mission() -> void:
+	_creatures.recruit(&"idler")
+	var idler := _creatures.creature_def(&"idler")
+	idler.affinity = [&"deep_run"]
+	idler.affinity_bonus = 0.5
+	assert_str(String(_system.best_creature_for(&"short_run"))).is_equal("digger")
+
+func test_the_stronger_creature_wins_without_affinity() -> void:
+	_creatures.recruit(&"idler")
+	var idler := _creatures.creature_def(&"idler")
+	idler.speed_per_rank = 1.0
+	idler.yield_per_rank = 1.0
+	assert_str(String(_system.best_creature_for(&"short_run"))).is_equal("idler")
+
+## A creature below the mission's rank bar is not a candidate, however strong.
+func test_a_creature_under_the_rank_bar_is_never_picked() -> void:
+	_data.missions_completed = 5   # opens deep_run, which needs rank 3
+	_creatures.recruit(&"idler")
+	var idler := _creatures.creature_def(&"idler")
+	idler.speed_per_rank = 1.0
+	idler.yield_per_rank = 1.0
+	_data.set_rank(&"digger", 3)
+	assert_str(String(_system.best_creature_for(&"deep_run"))).is_equal("digger")

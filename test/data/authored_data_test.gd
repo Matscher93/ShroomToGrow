@@ -28,6 +28,12 @@ var _boosts: Array[BoostDef]
 var _projects: Array[ProjectDef]
 var _producers: Array[GrowthProducerDef]
 var _missions: Array[MissionDef]
+## The two kinds, split out. Almost every invariant below holds for one kind and
+## is meaningless for the other: an expedition is a rung on a ladder ordered by
+## min_missions_completed, and a farm is opened by finishing a named expedition
+## instead, so comparing the two against each other says nothing.
+var _expeditions: Array[MissionDef]
+var _farms: Array[MissionDef]
 var _creatures: Array[CreatureDef]
 var _mission_boosts: Array[MissionBoostDef]
 
@@ -43,6 +49,13 @@ func before_test() -> void:
 	_projects = (load("res://data/well/all_projects.tres") as ProjectList).projects
 	_producers = (load("res://data/growth/all_producers.tres") as GrowthProducerList).producers
 	_missions = (load("res://data/ruins/all_missions.tres") as MissionList).missions
+	_expeditions = []
+	_farms = []
+	for mission in _missions:
+		if mission.is_farm:
+			_farms.append(mission)
+		else:
+			_expeditions.append(mission)
 	_creatures = (load("res://data/ruins/all_creatures.tres") as CreatureList).creatures
 	_mission_boosts = (load("res://data/ruins/all_mission_boosts.tres") as MissionBoostList).boosts
 
@@ -979,15 +992,70 @@ func test_every_mission_takes_time() -> void:
 		assert_float(def.base_duration_seconds) \
 			.override_failure_message("Mission '%s' takes no time." % def.id).is_greater(0.0)
 
-## List order is the order the player meets them, so a later mission that opens
-## sooner would be a rung the ladder skips over.
-func test_missions_open_in_list_order() -> void:
-	for i in range(1, _missions.size()):
-		assert_int(_missions[i].min_missions_completed) \
-			.override_failure_message("Mission '%s' opens at %d, before '%s' at %d." \
-				% [_missions[i].id, _missions[i].min_missions_completed,
-					_missions[i - 1].id, _missions[i - 1].min_missions_completed]) \
-			.is_greater_equal(_missions[i - 1].min_missions_completed)
+## List order is the order the player meets them, so a later expedition that
+## opens sooner would be a rung the ladder skips over.
+##
+## Expeditions only. A farm's place in the ladder is the expedition it names, not
+## a tally, so ordering it against one says nothing.
+func test_expeditions_open_in_list_order() -> void:
+	for i in range(1, _expeditions.size()):
+		assert_int(_expeditions[i].min_missions_completed) \
+			.override_failure_message("Expedition '%s' opens at %d, before '%s' at %d." \
+				% [_expeditions[i].id, _expeditions[i].min_missions_completed,
+					_expeditions[i - 1].id, _expeditions[i - 1].min_missions_completed]) \
+			.is_greater_equal(_expeditions[i - 1].min_missions_completed)
+
+## An expedition is run once ever, so its whole lasting value is the reward. One
+## without a reward is a rung that gives the player nothing to have climbed.
+func test_every_expedition_grants_a_reward() -> void:
+	for def in _expeditions:
+		assert_bool(def.rewards.is_empty()) \
+			.override_failure_message("Expedition '%s' grants no permanent reward." % def.id) \
+			.is_false()
+
+## A farm loops, so a reward on one would be granted over and over.
+## ExpeditionRewardTree refuses to register it, which means the effect is silently
+## inert - exactly the class of mistake this sweep exists to catch.
+func test_no_farm_grants_a_reward() -> void:
+	for def in _farms:
+		assert_bool(def.rewards.is_empty()) \
+			.override_failure_message("Farm '%s' carries rewards, which only expeditions grant." % def.id) \
+			.is_true()
+
+## A reward naming a stat no system reads resolves to zero forever, with no error
+## at load and no symptom at runtime - the same trap every other effect here is
+## swept for.
+func test_every_expedition_reward_names_a_known_stat() -> void:
+	for def in _expeditions:
+		for effect in def.rewards:
+			assert_bool(KNOWN_STATS.has(effect.stat)) \
+				.override_failure_message("Expedition '%s' rewards unknown stat '%s'." \
+					% [def.id, effect.stat]) \
+				.is_true()
+			assert_float(effect.per_level) \
+				.override_failure_message("Expedition '%s' rewards '%s' by nothing." \
+					% [def.id, effect.stat]) \
+				.is_not_equal(0.0)
+
+## The gate is a plain StringName, so a typo opens nothing and says nothing.
+func test_every_farm_is_opened_by_a_real_expedition() -> void:
+	var by_id := {}
+	for def in _expeditions:
+		by_id[def.id] = def
+	for def in _farms:
+		assert_bool(by_id.has(def.requires_mission_id)) \
+			.override_failure_message("Farm '%s' waits on '%s', which is not an expedition." \
+				% [def.id, def.requires_mission_id]) \
+			.is_true()
+
+## Only an expedition can be waited on, and only a farm may wait: an expedition
+## gated behind another one would be a second ladder running beside the tally.
+func test_only_farms_name_a_required_expedition() -> void:
+	for def in _expeditions:
+		assert_str(String(def.requires_mission_id)) \
+			.override_failure_message("Expedition '%s' waits on '%s'; the tally is its only gate." \
+				% [def.id, def.requires_mission_id]) \
+			.is_empty()
 
 ## A longer errand that pays no better is one no player would ever choose.
 ##
@@ -995,9 +1063,18 @@ func test_missions_open_in_list_order() -> void:
 ## deliberately not on the same scale - a ritual pays a handful of glyphs where a
 ## dig pays dozens of relics - so a raw total is not a number two missions paying
 ## different currencies can be ranked by.
-func test_a_longer_mission_pays_more_of_the_same_currency() -> void:
-	for type: CurrencyTypes.Types in _mission_currencies():
-		var ordered := _missions_paying(type)
+func test_a_longer_expedition_pays_more_of_the_same_currency() -> void:
+	_assert_longer_pays_more(_expeditions)
+
+## The same curve over the farms, on their own. An expedition pays once ever and
+## a farm pays per cycle, so the two are not on one scale any more than relics
+## and glyphs are.
+func test_a_longer_farm_pays_more_of_the_same_currency() -> void:
+	_assert_longer_pays_more(_farms)
+
+func _assert_longer_pays_more(missions: Array[MissionDef]) -> void:
+	for type: CurrencyTypes.Types in _mission_currencies(missions):
+		var ordered := _missions_paying(missions, type)
 		ordered.sort_custom(func(a: MissionDef, b: MissionDef) -> bool:
 			return a.base_duration_seconds < b.base_duration_seconds)
 		for i in range(1, ordered.size()):
@@ -1009,17 +1086,17 @@ func test_a_longer_mission_pays_more_of_the_same_currency() -> void:
 					% [ordered[i].id, ordered[i - 1].id, CurrencyTypes.field_for(type)]) \
 				.is_greater(_payout_of(ordered[i - 1], type))
 
-func _mission_currencies() -> Array:
+func _mission_currencies(missions: Array[MissionDef]) -> Array:
 	var types := {}
-	for def in _missions:
+	for def in missions:
 		for payout in def.payouts:
 			if payout.currency != null:
 				types[payout.currency.currency_type] = true
 	return types.keys()
 
-func _missions_paying(type: CurrencyTypes.Types) -> Array[MissionDef]:
+func _missions_paying(missions: Array[MissionDef], type: CurrencyTypes.Types) -> Array[MissionDef]:
 	var out: Array[MissionDef] = []
-	for def in _missions:
+	for def in missions:
 		if _payout_of(def, type) > 0.0:
 			out.append(def)
 	return out

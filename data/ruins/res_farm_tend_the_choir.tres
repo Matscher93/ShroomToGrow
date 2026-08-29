@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="3_cur_glyphs"]
+
+[sub_resource type="Resource" id="payout_glyphs"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("3_cur_glyphs")
+gain_stat = &"glyph_gain"
+_amount_mantissa = 2.0
+_amount_exponent = 1
+
+[resource]
+script = ExtResource("1_script")
+id = &"farm_tend_the_choir"
+display_name = "Tend the Choir"
+description = "Keep the singers fed and roughly in tune. What they let slip between verses is written down."
+is_farm = true
+base_duration_seconds = 600.0
+min_creature_rank = 3
+min_missions_completed = 0
+unlock_perk_id = &""
+requires_mission_id = &"wake_the_choir"
+payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_glyphs")])

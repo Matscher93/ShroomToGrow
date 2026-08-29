@@ -53,6 +53,27 @@ func test_reset_clears_the_ruins() -> void:
 	assert_int(App.ruins_data.missions_completed).is_zero()
 	assert_int(App.player_data.missions_completed).is_zero()
 
+## The expedition rewards write into the very stats the simulation measures, so a
+## run that kept one from a loaded save would report a first run that is faster
+## than any first run actually is.
+func test_reset_clears_the_expedition_rewards() -> void:
+	SIM._reset(App)
+	var expedition := _first_rewarding_expedition()
+	App.ruins_data.mark_expedition_done(expedition)
+	App.mission_system.sync_expedition_rewards()
+	assert_int(App.expedition_upgrade_system.level(expedition)).is_equal(1)
+
+	SIM._reset(App)
+
+	assert_int(App.ruins_data.completed_expeditions.size()).is_zero()
+	assert_int(App.expedition_upgrade_system.level(expedition)).is_zero()
+
+func _first_rewarding_expedition() -> StringName:
+	for def in App.mission_defs.missions:
+		if not def.is_farm and not def.rewards.is_empty():
+			return def.id
+	return &""
+
 func test_reset_leaves_tier_zero_with_one_node() -> void:
 	# Not a fresh-save value: with nothing producing, a run can never earn the
 	# first purchase back, so _reset() seeds it the way PrestigeSystem does.

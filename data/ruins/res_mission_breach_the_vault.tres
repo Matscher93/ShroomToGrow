@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
 [ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
 [ext_resource type="Resource" path="res://data/currencies/res_relics_def.tres" id="3_cur_relics"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="4_effect_script"]
 
 [sub_resource type="Resource" id="payout_relics"]
 script = ExtResource("2_payout_script")
@@ -11,13 +12,25 @@ gain_stat = &"relic_gain"
 _amount_mantissa = 9.0
 _amount_exponent = 1
 
+[sub_resource type="Resource" id="reward_0"]
+script = ExtResource("4_effect_script")
+stat = &"node_production"
+op = 2
+scope = 0
+target = &""
+per_level = 1.0
+level_scaling = 0
+
 [resource]
 script = ExtResource("1_script")
 id = &"breach_the_vault"
 display_name = "Breach the Vault"
 description = "The door held for an age. It will not hold against something that does not tire."
+is_farm = false
 base_duration_seconds = 420.0
 min_creature_rank = 2
 min_missions_completed = 12
 unlock_perk_id = &""
+requires_mission_id = &""
 payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_relics")])
+rewards = Array[ExtResource("4_effect_script")]([SubResource("reward_0")])

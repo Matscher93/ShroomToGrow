@@ -21,7 +21,7 @@
 script = ExtResource("3_node_script")
 id = &"dominion_reach"
 display_name = "Long Reach"
-description = "+1 mission at a time, per level. The far end of the branch, and the last slots the Ruins will ever give up."
+description = "+1 farm running at a time, per level. The far end of the branch, and the last plots the Ruins will ever give up."
 max_level = 3
 _base_cost_mantissa = 2.0
 _base_cost_exponent = 4

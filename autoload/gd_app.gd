@@ -55,6 +55,12 @@ var fertilizer_upgrade_system: UpgradeSystem
 ## are generated from MissionBoostTree rather than authored, and it is permanent -
 ## the mission currencies survive a sporation, and so does what they bought.
 var mission_upgrade_system: UpgradeSystem
+## Permanent upgrades granted by finishing an expedition, one UpgradeDef per
+## expedition that carries rewards. Its own track rather than a corner of the
+## boost ladder because nothing here is ever bought: MissionSystem grants a level
+## when the expedition is collected, and the levels are a projection of
+## RuinsData.completed_expeditions rather than save data of their own.
+var expedition_upgrade_system: UpgradeSystem
 var resolve_context := ResolveContext.new()
 
 ## Game rules, split out by domain. Each is constructed with the state it needs
@@ -118,6 +124,10 @@ var mission_boosts := load("res://data/ruins/all_mission_boosts.tres") as Missio
 var ruins_data: RuinsData
 var creature_vms: Dictionary = {}       # StringName -> CreatureViewModel
 var mission_vms: Dictionary = {}        # StringName -> MissionViewModel
+## String key -> MissionSlotViewModel, built on demand by mission_slot_vm().
+## Keyed rather than listed because the two boards grow: a perk widening the
+## board asks for a slot index that has never been drawn before.
+var mission_slot_vms: Dictionary = {}
 var mission_boost_vms: Dictionary = {}  # StringName -> MissionBoostViewModel
 var ruins_vm: RuinsViewModel
 
@@ -196,10 +206,14 @@ func _ready() -> void:
 	for def in MissionBoostTree.build(mission_boosts):
 		mission_upgrade_system.register(def)
 
+	expedition_upgrade_system = UpgradeSystem.new()
+	for def in ExpeditionRewardTree.build(mission_defs):
+		expedition_upgrade_system.register(def)
+
 	production_system = ProductionSystem.new(upgrade_system, biome_upgrade_system,
 		prestige_upgrade_system, resolve_context, boost_upgrade_system,
 		project_upgrade_system, growth_upgrade_system, fertilizer_upgrade_system,
-		mission_upgrade_system, nodes.mycelium_nodes)
+		mission_upgrade_system, nodes.mycelium_nodes, expedition_upgrade_system)
 	# Built before the tick system, which drives the pump: the well's rate and
 	# yield are stats like any other, but whether it runs at all is a biome unlock.
 	biomes_data = BiomesData.new()
@@ -274,7 +288,11 @@ func _ready() -> void:
 	creature_system = CreatureSystem.new(ruins_data, player_data, creature_defs,
 		production_system)
 	mission_system = MissionSystem.new(ruins_data, player_data, biomes_data,
-		production_system, creature_system, mission_defs, prestige_upgrade_system)
+		production_system, creature_system, mission_defs, prestige_upgrade_system,
+		expedition_upgrade_system)
+	# The reward track is a projection of which expeditions are finished, so a
+	# fresh game seeds it here and a loaded one re-seeds it in load_from_save().
+	mission_system.sync_expedition_rewards()
 	mission_boost_system = MissionBoostSystem.new(player_data, mission_upgrade_system,
 		ruins_data, mission_boosts)
 
@@ -543,9 +561,16 @@ func load_from_save(game: Dictionary) -> void:
 	# PlayerData.missions_completed is a projection of the tally just loaded, not
 	# a saved field, so it has to be rebuilt here - same as well_project_levels.
 	mission_system.sync_missions_completed()
+	# The expedition reward track is a projection of the expeditions just loaded,
+	# not a saved field, for the same reason - so it is rebuilt here too.
+	mission_system.sync_expedition_rewards()
 	# Only a device clock moved backwards can leave a mission's start in the
 	# future, and only a load can be the first thing to notice.
 	mission_system.sync_clock_rollback()
+	# Every whole cycle the farms turned while the game was closed, paid in one
+	# O(1) sweep. This is the entire offline catch-up for the Ruins: the missions
+	# themselves need none, since completion is derived from two timestamps.
+	mission_system.settle_farms()
 	daily_reward_data.load_from_save(game.get("daily_reward", {}))
 	# Only a device clock moved backwards can leave a last-claim day in the
 	# future, and only a load can be the first thing to notice.
@@ -636,6 +661,12 @@ func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
 	# timer checks this flag.
 	if events_running:
 		event_system.handle_tick()
+	# The farms. Not gated on a running flag and not skipped for a catch-up: a
+	# farm pays on the wall clock whether or not the game was open, and the sweep
+	# only decides when the payout lands. It is idempotent by construction - a
+	# second call in the same second finds no whole cycle - so a catch-up running
+	# it once a tick pays exactly what one call at the end would have.
+	mission_system.settle_farms()
 	# After production, so an automation spends the nutrients this tick just
 	# paid out rather than always working a tick behind.
 	if automations_running:
@@ -1036,11 +1067,27 @@ func set_automation_enabled(id: StringName, value: bool) -> void:
 func is_parasitic_control_active() -> bool:
 	return mission_system.is_controlling()
 
-func mission_slots() -> int:
-	return mission_system.slots()
+func expeditions_out() -> int:
+	return mission_system.expeditions_out()
 
-func mission_slots_used() -> int:
-	return mission_system.slots_used()
+## The ViewModel for one place on one of the two boards, built the first time
+## that place is drawn and kept for the app's lifetime after.
+##
+## On demand rather than one per def in _ready() like mission_vms, because the
+## number of slots is not known then: it is whatever the upgrade tracks currently
+## add up to, and it goes up. Bounded by the widest the boards ever get, which is
+## a handful.
+func mission_slot_vm(index: int, is_farm: bool) -> MissionSlotViewModel:
+	var key := "%s%d" % ["f" if is_farm else "e", index]
+	if not mission_slot_vms.has(key):
+		mission_slot_vms[key] = MissionSlotViewModel.new(index, is_farm)
+	return mission_slot_vms[key]
+
+func farm_slots() -> int:
+	return mission_system.farm_slots()
+
+func farm_slots_used() -> int:
+	return mission_system.farm_slots_used()
 
 func missions_completed() -> int:
 	return ruins_data.missions_completed
@@ -1050,6 +1097,12 @@ func mission_def(mission_id: StringName) -> MissionDef:
 
 func is_mission_unlocked(mission_id: StringName) -> bool:
 	return mission_system.is_unlocked(mission_id)
+
+func is_mission_completed(mission_id: StringName) -> bool:
+	return mission_system.is_completed(mission_id)
+
+func best_creature_for_mission(mission_id: StringName) -> StringName:
+	return mission_system.best_creature_for(mission_id)
 
 func missions_until_mission_unlock(mission_id: StringName) -> int:
 	return mission_system.missions_until_unlock(mission_id)
@@ -1080,6 +1133,24 @@ func is_mission_complete(entry: Dictionary) -> bool:
 
 func collectable_mission_count() -> int:
 	return mission_system.completed_count()
+
+func active_expeditions() -> Array[Dictionary]:
+	return mission_system.active_expeditions()
+
+func active_farms() -> Array[Dictionary]:
+	return mission_system.active_farms()
+
+func farm_progress_ratio(entry: Dictionary) -> float:
+	return mission_system.farm_progress_ratio(entry)
+
+func can_start_farm(mission_id: StringName, creature_id: StringName) -> bool:
+	return mission_system.can_start_farm(mission_id, creature_id)
+
+func start_farm(mission_id: StringName, creature_id: StringName) -> int:
+	return mission_system.start_farm(mission_id, creature_id)
+
+func stop_farm(instance_id: int) -> bool:
+	return mission_system.stop_farm(instance_id)
 
 func can_send_mission(mission_id: StringName, creature_id: StringName) -> bool:
 	return mission_system.can_send(mission_id, creature_id)

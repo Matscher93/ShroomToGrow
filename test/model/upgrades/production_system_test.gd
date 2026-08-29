@@ -175,7 +175,7 @@ func test_tracks_are_named_in_stacking_order() -> void:
 	for pair: Array in _production.tracks():
 		names.append(pair[0])
 	assert_array(names).is_equal(["symbiosis", "biome", "prestige", "boosts",
-		"projects", "growth", "fertilizer", "missions"])
+		"projects", "growth", "fertilizer", "missions", "expeditions"])
 
 func test_tracks_hand_out_the_systems_they_were_built_with() -> void:
 	var by_name := {}

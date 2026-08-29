@@ -259,6 +259,26 @@ func buy_with_points(id: StringName, has_point_available: bool) -> bool:
 	_emit_changed()
 	return true
 
+## Sets a level directly for a caller that earned it without paying for it: an
+## expedition reward is granted by finishing the expedition, not bought.
+##
+## Unlike set_level_for_analysis() this DOES emit upgrades_changed, because it is
+## a real change the cards and the stat readers have to see. Unlike buy() it does
+## not move lifetime_levels, which counts purchases - and a grant is not one.
+##
+## Returns whether the level actually moved, so a projection rebuilding a whole
+## track can tell an idempotent re-grant from a real one and stay silent.
+func grant_level(id: StringName, lvl: int) -> bool:
+	if not _defs.has(id):
+		return false
+	var wanted := maxi(0, lvl)
+	if _levels.get(id, 0) == wanted:
+		return false
+	_levels[id] = wanted
+	_touch([id])
+	_emit_changed()
+	return true
+
 ## Read-only view of what every levelled upgrade in this track contributes, one
 ## row per effect: {id, name, level, stat, key, op, mag}.
 ##

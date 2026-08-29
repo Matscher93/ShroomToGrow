@@ -1,12 +1,16 @@
 class_name MissionViewModel
 extends ViewModel
-## VIEWMODEL: one mission's card - who is out on it, how long is left, and what
-## bringing it home will pay.
+## VIEWMODEL: one mission as the chooser offers it - what it pays, what it would
+## take, and who is best placed to go.
 ## Owns formatting, derived state and enabled/disabled logic.
 ## References the model, never a Node.
 ##
-## One per authored mission, built once and owned by App: every card repaints
+## One per authored mission, built once and owned by App: every row repaints
 ## when the board moves, so they all need live state at the same time.
+##
+## Serves both kinds. An expedition is sent and collected once ever; a farm is
+## started and stopped and pays itself. is_farm says which, and the two commands
+## below are the only place the difference reaches the view.
 
 ## The board moved - a mission was sent, collected, or a gate opened.
 const PROP_MISSION_CHANGED := &"mission_changed"
@@ -25,10 +29,16 @@ var _def: MissionDef
 
 # --- View -> ViewModel ---
 
-## Sends the creature the card currently has picked. Returns false when the send
-## was refused, which the card treats as "nothing changed" - can_send already
-## says why, and a disabled button is the normal path.
-func send(creature_id: StringName) -> bool:
+## Puts the picked creature on this mission - sent out on an expedition, or set
+## going on a farm. Returns false when it was refused, which the row treats as
+## "nothing changed": can_start already says why, and a disabled button is the
+## normal path.
+##
+## One command rather than two so the chooser does not have to branch: which of
+## the two boards this lands on is a property of the mission, not of the press.
+func start(creature_id: StringName) -> bool:
+	if _def.is_farm:
+		return App.start_farm(_id, creature_id) > 0
 	return App.send_mission(_id, creature_id) > 0
 
 func collect() -> bool:
@@ -45,6 +55,14 @@ var display_name: String:
 var description: String:
 	get: return _def.description
 
+var is_farm: bool:
+	get: return _def.is_farm
+
+## True once this expedition has been brought home. It never opens again, and the
+## reward it granted stays granted.
+var is_completed: bool:
+	get: return App.is_mission_completed(_id)
+
 var is_active: bool:
 	get: return not App.active_mission(_id).is_empty()
 
@@ -58,7 +76,24 @@ var is_unlocked: bool:
 	get: return App.is_mission_unlocked(_id)
 
 var progress_ratio: float:
-	get: return App.mission_progress_ratio(App.active_mission(_id))
+	get:
+		var entry := App.active_mission(_id)
+		if _def.is_farm:
+			return App.farm_progress_ratio(entry)
+		return App.mission_progress_ratio(entry)
+
+## The free creature best placed to take this, or &"" when none can. What the
+## chooser pre-selects, so the common path is one tap.
+var best_creature_id: StringName:
+	get: return App.best_creature_for_mission(_id)
+
+## The permanent upgrade finishing this expedition grants, as a phrase. Empty for
+## a farm, which grants none - it pays its payouts and nothing else.
+##
+## This is the reason to pick one expedition over another, so it belongs on the
+## row itself rather than behind a tap.
+var boon_text: String:
+	get: return EffectLabel.of_effects(_def.rewards)
 
 ## The creature currently carrying this, or "" when none is.
 var active_creature_id: StringName:
@@ -68,50 +103,82 @@ var active_creature_id: StringName:
 
 var status_text: String:
 	get:
+		if is_completed:
+			return "Done"
 		if not is_unlocked:
-			if not _def.unlock_perk_id.is_empty() \
-					and App.prestige_upgrade_system.level(_def.unlock_perk_id) <= 0:
-				return "Needs %s" % _perk_name(_def.unlock_perk_id)
-			return "Opens after %d more missions" % App.missions_until_mission_unlock(_id)
+			return _locked_text
 		var entry := App.active_mission(_id)
 		if entry.is_empty():
+			if _def.is_farm:
+				return "Rank %d or better - %s a cycle" % [_def.min_creature_rank,
+					_base_duration_text]
 			return "Rank %d or better - %s" % [_def.min_creature_rank, _base_duration_text]
 		var creature := App.creature_def(entry["creature_id"])
 		var who := creature.display_name if creature != null else "Something"
+		if _def.is_farm:
+			return "%s is working it" % who
 		if is_complete:
 			return "%s is back" % who
 		return "%s is out" % who
 
-## The countdown. Empty when nothing is out, so the card's timer line collapses
+## Why this is shut, in the order the player can act on it: a gate they can open
+## by finishing something named beats one that only counts.
+var _locked_text: String:
+	get:
+		if not _def.requires_mission_id.is_empty() \
+				and not App.is_mission_completed(_def.requires_mission_id):
+			return "Opens after %s" % _mission_name(_def.requires_mission_id)
+		if not _def.unlock_perk_id.is_empty() \
+				and App.prestige_upgrade_system.level(_def.unlock_perk_id) <= 0:
+			return "Needs %s" % _perk_name(_def.unlock_perk_id)
+		return "Opens after %d more missions" % App.missions_until_mission_unlock(_id)
+
+## The countdown. Empty when nothing is out, so the row's timer line collapses
 ## rather than showing a stale zero.
+##
+## A farm never reads "Ready": it has no finish to wait for, so what is shown is
+## how long the cycle in progress has left.
 var countdown_text: String:
 	get:
 		var entry := App.active_mission(_id)
 		if entry.is_empty():
 			return ""
+		if _def.is_farm:
+			return _duration_text(App.mission_seconds_remaining(entry))
 		if App.is_mission_complete(entry):
 			return "Ready"
 		return _duration_text(App.mission_seconds_remaining(entry))
 
-## What this mission would pay if sent right now with `creature_id`, or its
-## authored payout with no creature bonus when none is picked. While a mission is
-## out it reports the snapshot instead - the card promised that number, so it is
-## the number it keeps showing.
-func reward_text(creature_id: StringName) -> String:
+## What this mission would pay if sent right now with `creature_id`, or with
+## whoever is best placed when none is picked. While a mission is out it reports
+## the snapshot instead - the row promised that number, so it is the number it
+## keeps showing.
+##
+## On a farm this is one cycle's worth, which is what the row pairs with the
+## cycle length beside it.
+func reward_text(creature_id: StringName = &"") -> String:
 	var entry := App.active_mission(_id)
+	var who := creature_id if not creature_id.is_empty() else best_creature_id
 	var payouts: Array[Dictionary] = entry["payouts"] if not entry.is_empty() \
-		else App.mission_payouts(_id, creature_id)
+		else App.mission_payouts(_id, who)
 	var parts: PackedStringArray = []
 	for payout in payouts:
 		var amount := BigNumber.new(float(payout["m"]), int(payout["e"]))
-		parts.append("%s %s" % [amount.to_display(), _currency_name(int(payout["currency"]))])
+		parts.append("%s %s" % [amount.to_display(), CurrencyTypes.display_name_for(int(payout["currency"]) as CurrencyTypes.Types)])
 	return ", ".join(parts)
 
-## What sending this creature would take, for the card's line under the picker.
-func duration_text(creature_id: StringName) -> String:
-	return _duration_text(App.mission_duration(_id, creature_id))
+## What sending this creature would take, for the row's line under the picker.
+## Falls back to whoever is best placed, so an untouched row still quotes a real
+## number rather than the authored one nobody will run it at.
+func duration_text(creature_id: StringName = &"") -> String:
+	var who := creature_id if not creature_id.is_empty() else best_creature_id
+	return _duration_text(App.mission_duration(_id, who))
 
-func can_send(creature_id: StringName) -> bool:
+## Whether this creature could be put on this mission right now, on whichever of
+## the two boards it belongs to.
+func can_start(creature_id: StringName) -> bool:
+	if _def.is_farm:
+		return App.can_start_farm(_id, creature_id)
 	return App.can_send_mission(_id, creature_id)
 
 ## Creatures that could take this right now, for the card's picker. Empty is the
@@ -130,6 +197,9 @@ func _init(mission_id: StringName, def: MissionDef) -> void:
 	App.ruins_data.active_changed.connect(_on_changed)
 	App.ruins_data.creatures_changed.connect(_on_changed)
 	App.ruins_data.missions_completed_changed.connect(_on_changed.unbind(1))
+	# Finishing an expedition closes it and opens the farms that wait on it, and
+	# neither shows up in the signals above.
+	App.ruins_data.expeditions_changed.connect(_on_changed)
 	# A boost or a perk moves what this pays and how long it takes, and both can
 	# be bought from another screen while the board is open.
 	App.mission_upgrade_system.upgrades_changed.connect(_on_changed)
@@ -142,6 +212,7 @@ func dispose() -> void:
 	App.ruins_data.active_changed.disconnect(_on_changed)
 	App.ruins_data.creatures_changed.disconnect(_on_changed)
 	App.ruins_data.missions_completed_changed.disconnect(_on_changed.unbind(1))
+	App.ruins_data.expeditions_changed.disconnect(_on_changed)
 	App.mission_upgrade_system.upgrades_changed.disconnect(_on_changed)
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
 	App.biome_upgrade_system.upgrades_changed.disconnect(_on_changed)
@@ -174,22 +245,9 @@ func _duration_text(seconds: float) -> String:
 	@warning_ignore("integer_division")
 	return "%dh %02dm" % [total / 3600, (total % 3600) / 60]
 
-func _currency_name(currency: int) -> String:
-	match currency as CurrencyTypes.Types:
-		CurrencyTypes.Types.RELICS:
-			return "relics"
-		CurrencyTypes.Types.ICHOR:
-			return "ichor"
-		CurrencyTypes.Types.GLYPHS:
-			return "glyphs"
-		CurrencyTypes.Types.CRYSTALS:
-			return "crystals"
-		CurrencyTypes.Types.BIOMASS:
-			return "biomass"
-		CurrencyTypes.Types.WATER:
-			return "water"
-		_:
-			return "nutrients"
+func _mission_name(mission_id: StringName) -> String:
+	var def := App.mission_def(mission_id)
+	return def.display_name if def != null else "an earlier expedition"
 
 func _perk_name(perk_id: StringName) -> String:
 	var def := App.perk_def(perk_id)
