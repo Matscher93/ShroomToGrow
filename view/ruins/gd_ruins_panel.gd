@@ -110,6 +110,14 @@ func _on_property_changed(property: StringName) -> void:
 	match property:
 		RuinsViewModel.PROP_BOARD_CHANGED:
 			_refresh_header()
+			# The expedition list is exactly as long as the number out, so
+			# sending or collecting one changes how many cards there are.
+			# Structural, so it waits for the finger.
+			_guard.run_when_free(&"expeditions", _rebuild_expeditions)
+		RuinsViewModel.PROP_BOARDS_RESIZED:
+			# The farm board only changes width, which is rarer and worth not
+			# freeing a running farm's card for on every send.
+			_guard.run_when_free(&"boards", _rebuild_boards)
 		RuinsViewModel.PROP_CREATURES_VISIBLE:
 			_guard.run_when_free(&"creatures_tab", _refresh_creatures_tab)
 		RuinsViewModel.PROP_CLOCK_MOVED:

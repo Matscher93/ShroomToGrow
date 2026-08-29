@@ -25,6 +25,25 @@ func after_test() -> void:
 	_panel.free()
 	App.ruins_data.load_from_save(_saved_ruins)
 
+## Takes over every creature the roster offers, so there is somebody to send.
+func _recruit() -> void:
+	App.biomes_data.unlock(MissionSystem.RUINS_KEY)
+	for def in App.creature_defs.creatures:
+		App.ruins_data.set_rank(def.id, 5)
+
+func _first_sendable() -> StringName:
+	for def in App.mission_defs.missions:
+		if not def.is_farm and App.is_mission_unlocked(def.id):
+			return def.id
+	return &""
+
+## The expedition some farm names as the thing that opens it.
+func _farm_opener() -> StringName:
+	for def in App.mission_defs.missions:
+		if def.is_farm and not def.requires_mission_id.is_empty():
+			return def.requires_mission_id
+	return &""
+
 ## Presses go through the guard, which defers a rebuild by a frame.
 func _press(button: Button) -> void:
 	button.pressed.emit()
@@ -52,6 +71,39 @@ func test_the_farm_board_draws_one_card_per_plot() -> void:
 ## in a plot, and a section headed FARMS is a promise the player cannot act on.
 func test_the_farms_section_is_hidden_until_a_farm_is_open() -> void:
 	assert_bool(_panel.section_farms.visible).is_equal(App.ruins_vm.farms_visible)
+
+## The list is exactly as long as the number out, so it has to follow a send and
+## a collect - not only the moment the screen was opened.
+func test_the_expedition_list_follows_the_board() -> void:
+	_recruit()
+	var mission := _first_sendable()
+	assert_int(App.send_mission(mission, App.best_creature_for_mission(mission))).is_greater(0)
+	await get_tree().process_frame
+	assert_int(_panel.vbox_expeditions.get_child_count()).override_failure_message(
+		"Sending an expedition did not add a card.").is_equal(1)
+
+	var entry := App.active_mission(mission)
+	App.ruins_data.remove(int(entry["instance_id"]))
+	await get_tree().process_frame
+	assert_int(_panel.vbox_expeditions.get_child_count()).override_failure_message(
+		"Clearing the board did not remove the card.").is_zero()
+
+## Sending is what makes the board non-empty, so the header has to move with it.
+func test_the_header_follows_the_board() -> void:
+	_recruit()
+	var mission := _first_sendable()
+	App.send_mission(mission, App.best_creature_for_mission(mission))
+	await get_tree().process_frame
+	assert_str(_panel.lbl_board.text).contains("1 out")
+
+## Finishing an expedition can open a farm, which brings a whole section on
+## screen - the other half of what the board notifications have to reach.
+func test_the_farms_section_arrives_when_an_expedition_opens_one() -> void:
+	assert_bool(_panel.section_farms.visible).is_false()
+	App.ruins_data.mark_expedition_done(_farm_opener())
+	await get_tree().process_frame
+	assert_bool(_panel.section_farms.visible).override_failure_message(
+		"Opening a farm did not bring the FARMS section on screen.").is_true()
 
 # ─── The ledger ──────────────────────────────────────────────────────────────
 
@@ -94,6 +146,61 @@ func test_the_chooser_offers_the_expeditions_that_can_be_sent() -> void:
 	assert_str(chooser.lbl_title.text).is_equal("Send an expedition")
 	assert_int(chooser.vbox_missions.get_child_count()) \
 		.is_equal(App.ruins_vm.sendable_missions(false).size())
+
+## A press on the backdrop that travels is a scroll, not a tap. Overscrolling the
+## list used to carry onto the backdrop and shut the sheet under the player.
+func test_dragging_across_the_backdrop_does_not_close_the_chooser() -> void:
+	await _press(_panel.btn_send_expedition)
+	var chooser: Node = _panel.chooser_layer.get_child(0)
+	chooser._gui_input(_click(true, Vector2(10, 700)))
+	chooser._gui_input(_motion(Vector2(10, 640)))
+	chooser._gui_input(_click(false, Vector2(10, 640)))
+	await get_tree().process_frame
+	assert_bool(_panel.chooser_layer.has_popup()).override_failure_message(
+		"A drag across the backdrop closed the chooser.").is_true()
+
+## The touch scroller cancels a press it has turned into a scroll by pushing the
+## pointer far outside every control. The backdrop still holds the grab, so that
+## is the motion it sees - and it has to read as a cancelled tap.
+func test_the_scrollers_press_cancel_does_not_close_the_chooser() -> void:
+	await _press(_panel.btn_send_expedition)
+	var chooser: Node = _panel.chooser_layer.get_child(0)
+	chooser._gui_input(_click(true, Vector2(10, 700)))
+	chooser._gui_input(_motion(Vector2(-100000, -100000)))
+	chooser._gui_input(_click(false, Vector2(10, 700)))
+	await get_tree().process_frame
+	assert_bool(_panel.chooser_layer.has_popup()).is_true()
+
+## A tap that stays put still closes it, which is the whole point of the backdrop.
+func test_tapping_the_backdrop_closes_the_chooser() -> void:
+	await _press(_panel.btn_send_expedition)
+	var chooser: Node = _panel.chooser_layer.get_child(0)
+	chooser.dismissed.connect(_panel.chooser_layer.clear, CONNECT_ONE_SHOT)
+	chooser._gui_input(_click(true, Vector2(10, 700)))
+	chooser._gui_input(_click(false, Vector2(12, 702)))
+	await get_tree().process_frame
+	assert_bool(_panel.chooser_layer.has_popup()).is_false()
+
+## Closing on the press meant the sheet was gone before the player had finished
+## the gesture, so nothing else could reinterpret it.
+func test_the_backdrop_does_not_close_on_the_press_alone() -> void:
+	await _press(_panel.btn_send_expedition)
+	var chooser: Node = _panel.chooser_layer.get_child(0)
+	chooser._gui_input(_click(true, Vector2(10, 700)))
+	await get_tree().process_frame
+	assert_bool(_panel.chooser_layer.has_popup()).is_true()
+
+func _click(pressed: bool, at: Vector2) -> InputEventMouseButton:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = pressed
+	event.position = at
+	return event
+
+func _motion(to: Vector2) -> InputEventMouseMotion:
+	var event := InputEventMouseMotion.new()
+	event.position = to
+	return event
 
 func test_closing_the_chooser_clears_the_layer() -> void:
 	await _press(_panel.btn_send_expedition)

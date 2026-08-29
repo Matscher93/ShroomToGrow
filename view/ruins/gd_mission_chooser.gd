@@ -10,7 +10,18 @@ extends PanelContainer
 ##
 ## The root is the dimmed backdrop; tapping it closes, exactly like the close
 ## button. The sheet inside it is a PanelContainer, so it swallows its own presses
-## and a tap on a row never reaches the backdrop. Same shape as the events sheet.
+## and a tap on a row never reaches the backdrop.
+##
+## A *tap*, not a press: press, then release without travelling. Closing on the
+## press itself meant a drag that began on the backdrop - or one that started in
+## the list and carried past its end onto it - shut the sheet under the player,
+## which is what overscrolling it felt like. The distance check is the same one
+## the collapsible sections use, and the touch scroller's own press-cancel (a
+## pointer motion far outside every control) trips it for free.
+
+## Far enough for the gesture to be a scroll rather than a tap, so the tap is
+## cancelled. Matches BiomeSequenceSection.TAP_CANCEL_DISTANCE.
+const TAP_CANCEL_DISTANCE := 10.0
 
 ## Emitted when the player dismisses the sheet. Whoever spawned this instance
 ## owns freeing it. This view never queue_frees itself, so it can't desync the
@@ -30,10 +41,13 @@ signal dismissed
 var is_farm := false
 
 var _vm: RuinsViewModel
+## A press has landed on the backdrop and has not yet travelled far enough to be
+## a scroll. Only a release while this holds closes the sheet.
+var _press_active := false
+var _press_start := Vector2.ZERO
 
 func _ready() -> void:
 	btn_close.pressed.connect(_on_dismiss_pressed)
-	gui_input.connect(_on_backdrop_input)
 	bind(App.ruins_vm)
 
 func bind(vm: RuinsViewModel) -> void:
@@ -93,10 +107,23 @@ func _on_chosen(vm: MissionViewModel, creature_id: StringName) -> void:
 func _on_dismiss_pressed() -> void:
 	dismissed.emit()
 
-## A tap on the backdrop, meaning outside the sheet, closes it.
-func _on_backdrop_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		dismissed.emit()
+## A tap on the backdrop - outside the sheet - closes it. A drag across it does
+## not: only a release that has stayed put counts.
+func _gui_input(event: InputEvent) -> void:
+	var button := event as InputEventMouseButton
+	if button and button.button_index == MOUSE_BUTTON_LEFT:
+		accept_event()
+		if button.pressed:
+			_press_active = true
+			_press_start = button.position
+		elif _press_active:
+			_press_active = false
+			dismissed.emit()
 		return
-	if event is InputEventScreenTouch and event.pressed:
-		dismissed.emit()
+	# The backdrop keeps the pointer grab it took on the press, so it goes on
+	# hearing the motion wherever the finger travels - including the far-off
+	# position the touch scroller uses to cancel a press it has turned into a
+	# scroll.
+	if event is InputEventMouseMotion and _press_active:
+		if event.position.distance_to(_press_start) > TAP_CANCEL_DISTANCE:
+			_press_active = false
