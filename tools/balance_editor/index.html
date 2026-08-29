@@ -432,6 +432,7 @@
 <script src="game_water.js"></script>
 <script src="game_crystals.js"></script>
 <script src="game_prestige.js"></script>
+<script src="game_ruins.js"></script>
 
 <script>
 const state = {
@@ -927,6 +928,14 @@ const KEY_REFS = [
     when: { column: "scope", equals: "TAG" } },
   { file: "UpgradeEffectDef", column: "target", target: "MyceliumNode",
     targetColumn: "node_id", when: { column: "scope", equals: "NODE" } },
+  // The Ruins economy is keyed end to end: a mission names its hero, a farm names
+  // the expedition that opens it, and either may name a perk that has to be bought
+  // first. None of the three is a res:// path, so without these the graph shows a
+  // chain of 156 missions as 156 unconnected rows.
+  { file: "MissionDef", column: "hero_id", target: "HeroDef", targetColumn: "id" },
+  { file: "MissionDef", column: "requires_mission_id", target: "MissionDef",
+    targetColumn: "id" },
+  { file: "MissionDef", column: "unlock_perk_id", target: "PerkNodeDef", targetColumn: "id" },
 ];
 
 /** Extra rules for path columns. Detection is automatic; these only narrow what
@@ -955,6 +964,21 @@ const PATH_REFS = [
     creates: "MyceliumNode", createsFile: true },
   { file: "PerkBranchList", column: "branches", list: true,
     creates: "PerkBranchDef", createsFile: true },
+  // Ruins. The three registries hold files; everything below them is a
+  // sub-resource of the def that carries it, which is why only the registries
+  // say createsFile.
+  { file: "MissionList", column: "missions", list: true,
+    creates: "MissionDef", createsFile: true },
+  { file: "HeroList", column: "heroes", list: true,
+    creates: "HeroDef", createsFile: true },
+  { file: "MissionBoostList", column: "boosts", list: true,
+    creates: "MissionBoostDef", createsFile: true },
+  { file: "MissionDef", column: "payouts", list: true, creates: "MissionPayoutDef" },
+  { file: "MissionDef", column: "rewards", list: true, creates: "UpgradeEffectDef" },
+  { file: "HeroDef", column: "extra_recruit_costs", list: true,
+    creates: "MissionPayoutDef" },
+  { file: "WorkerCostDef", column: "prices", list: true, creates: "MissionPayoutDef" },
+  { file: "MissionBoostDef", column: "effects", list: true, creates: "UpgradeEffectDef" },
 ];
 
 const keyRefsFor = (file, column) =>
@@ -1699,6 +1723,10 @@ function defaultDirFor(entry, column) {
 function createRow(entry, column, rule) {
   const row = document.createElement("div");
   row.className = "create";
+  // A class with no identity column has nothing to type, so the box is a button
+  // alone. Building the input anyway and hiding it keeps the auto-path listener
+  // below on one code path, but there is no path to fill for a sub-resource.
+  const named = hasIdentity(rule.creates);
   const id = document.createElement("input");
   id.placeholder = `new ${rule.creates} id`;
 
@@ -1725,12 +1753,12 @@ function createRow(entry, column, rule) {
   for (const field of [id, path]) {
     if (field) field.onkeydown = (event) => { if (event.key === "Enter") submit(); };
   }
-  row.append(id, ...(path ? [path] : []), button);
+  row.append(...(named ? [id] : []), ...(path ? [path] : []), button);
   return row;
 }
 
 async function createChild(entry, column, rule, id, path) {
-  if (!id) {
+  if (!id && hasIdentity(rule.creates)) {
     log("give the new resource an id first - ids are runtime keys, and save keys for perks", true);
     return;
   }
@@ -1767,11 +1795,23 @@ async function createChild(entry, column, rule, id, path) {
   }
 }
 
-/** Some classes call their identity `key` rather than `id`. */
+/** Some classes call their identity `key` rather than `id`, and some - an
+ * UpgradeEffectDef, a MissionPayoutDef - have no identity column at all: they are
+ * told apart by the resource that carries them and by nothing else. Those get no
+ * values, and `hasIdentity` below is what stops the create box asking for a name
+ * that has nowhere to go. */
 function identityValues(table, id) {
-  const columns = state.loaded.has(table) ? columnsOf(table).map((c) => c.name) : ["id"];
-  return columns.includes("id") ? { id } : { key: id };
+  const columns = identityColumns(table);
+  if (columns.includes("id")) return { id };
+  return columns.includes("key") ? { key: id } : {};
 }
+
+const identityColumns = (table) =>
+  (state.loaded.has(table) ? columnsOf(table).map((column) => column.name) : ["id"]);
+
+/** Whether a new row of this class can be named on creation. */
+const hasIdentity = (table) =>
+  identityColumns(table).some((name) => name === "id" || name === "key");
 
 /** Previews the deletion, then asks. The preview is what makes the confirmation
  * meaningful: it names every reference that goes and everything that would be
@@ -1818,7 +1858,9 @@ async function deleteResource(path) {
     // The focus just ceased to exist; fall back to something in the same table.
     const rows = state.loaded.has(state.current) ? dataOf(state.current).rows : [];
     state.focus = rows.length ? rows[0][0] : null;
-    renderGraph();
+    // Whatever is on screen, not the graph: a game screen can delete too, and it
+    // is still showing the card of a resource that no longer exists.
+    renderActiveView();
   } catch (error) {
     log(String(error), true);
   }

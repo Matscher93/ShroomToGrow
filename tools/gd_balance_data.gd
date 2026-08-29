@@ -89,6 +89,11 @@ static func snapshot(data_dir: String) -> Dictionary:
 ## Levels sampled for a def with no max_level of its own (0 = infinite).
 const CURVE_OPEN_ENDED_LEVELS := 50
 
+## Workers sampled for the hire curve. The crew has no authored ceiling - it is
+## bounded by what farms are open and what the player can pay - so this is a
+## span wide enough to read the growth off, not a limit.
+const WORKER_CURVE_CREW := 30
+
 ## Id the throwaway UpgradeDef is registered under while sampling. '#' never
 ## appears in an authored id, so it cannot collide with one.
 const CURVE_ID := &"#curve"
@@ -107,13 +112,17 @@ const CURVE_ID := &"#curve"
 ##           "boons": { res_path: { "effect": [...], "unlock_at_level": int } },
 ##           "achievements": { res_path: { "goal": [...], "reward": [...] } },
 ##           "boosts": { res_path: { "cost": [...], "multiplier": [...] } },
+##           "heroes": { res_path: { "cost": [...], "speed": [...], "yield": [...] } },
+##           "workers": { res_path: { "prices": [{ currency, cost: [...] }] } },
 ##           "errors": [...] }
 ##
-## Four dictionaries rather than one, because only `curves` holds priced defs:
+## Six dictionaries rather than one, because only `curves` holds priced defs:
 ## the pacing sweep asserts every entry there has a rising cost_growth and the
 ## simulator sums every entry's cost array. An achievement is measured in goals,
 ## a boon is granted rather than bought, and a boost's ladder restarts its price
-## five times - none of them fit that contract.
+## five times - none of them fit that contract. A hero's ladder is priced per
+## level of a creature rather than per level of an upgrade, and a worker's has no
+## single price at all: it is one ladder per currency, climbing together.
 ##
 ## `cost[i]` is what buying the *next* level costs while sitting at level i,
 ## matching what the game charges; `effect[i]` is the total magnitude at level i.
@@ -122,6 +131,8 @@ static func curves(data_dir: String) -> Dictionary:
 	var boons := {}
 	var achievements := {}
 	var boosts := {}
+	var heroes := {}
+	var workers := {}
 	var errors: Array = []
 	_open_files.clear()
 	_subresources.clear()
@@ -153,11 +164,17 @@ static func curves(data_dir: String) -> Dictionary:
 				achievements[row.resource_path] = achievement_curve_for(row)
 			elif _is_boost_curved(row):
 				boosts[row.resource_path] = boost_curve_for(row)
+			elif _is_hero_leveled(row):
+				heroes[row.resource_path] = hero_curve_for(row)
+			elif _is_worker_priced(row):
+				workers[row.resource_path] = worker_curve_for(row)
 	return {
 		"curves": out,
 		"boons": boons,
 		"achievements": achievements,
 		"boosts": boosts,
+		"heroes": heroes,
+		"workers": workers,
 		"errors": errors,
 	}
 
@@ -360,6 +377,86 @@ static func boost_curve_for(res: Resource) -> Dictionary:
 		"cost_growth": def.cost_growth,
 		"tier_cost_growth": def.tier_cost_growth,
 		"kind": "boost",
+	}
+
+
+## True for a HeroDef: its ladder is named for levelling a creature rather than
+## for buying an upgrade, so `_is_priced` does not see it.
+static func _is_hero_leveled(res: Resource) -> bool:
+	var properties := _properties_by_name(res)
+	return properties.has(&"level_cost_growth") and properties.has(&"_level_base_cost_mantissa")
+
+
+## One hero's level ladder, and what each level is worth.
+##
+## Sampled to `base_level_cap` rather than to the &"hero_level_cap" ceiling: the
+## bonus is scoped per hero id and lives in effects elsewhere, so a curve drawn to
+## it would be a different length on every hero for reasons the card cannot show.
+##
+## `cost[i]` is what the step from level i to i+1 costs, matching
+## HeroSystem.level_cost() - base * growth^(level - 1), with level 1 free.
+## `speed` and `yield` are the multipliers standing at level i, which is what
+## MissionSystem divides a duration and scales a payout by.
+static func hero_curve_for(res: Resource) -> Dictionary:
+	var def := res as HeroDef
+	var levels := maxi(1, def.base_level_cap)
+	var growth := BigNumber.from_value(def.level_cost_growth)
+
+	var costs: Array = []
+	var speeds: Array = []
+	var yields: Array = []
+	for level in range(levels + 1):
+		costs.append(_big_pair(def.level_base_cost.mul(growth.pow_int(maxi(0, level - 1)))))
+		speeds.append(maxf(0.01, 1.0 + def.speed_per_level * float(level)))
+		yields.append(maxf(0.0, 1.0 + def.yield_per_level * float(level)))
+
+	return {
+		"max_level": levels,
+		"samples": levels,
+		"cost": costs,
+		"speed": speeds,
+		"yield": yields,
+		"recruit_cost": _big_pair(def.recruit_cost),
+		"cost_growth": def.level_cost_growth,
+		"kind": "hero_level",
+	}
+
+
+## True for a WorkerCostDef: it carries a cost_growth over a list of prices
+## rather than over one mantissa of its own, so `_is_priced` does not see it.
+static func _is_worker_priced(res: Resource) -> bool:
+	var properties := _properties_by_name(res)
+	return properties.has(&"cost_growth") and properties.has(&"prices") \
+		and not properties.has(&"_base_cost_mantissa")
+
+
+## What the next worker costs at each size of the crew, one array per currency.
+##
+## Every price climbs on the same growth - WorkerSystem.prices() raises it once
+## and multiplies all three by it - so the lines are parallel in log space and the
+## chart is really about where they start.
+static func worker_curve_for(res: Resource) -> Dictionary:
+	var def := res as WorkerCostDef
+	var growth := BigNumber.from_value(def.cost_growth)
+
+	var prices: Array = []
+	for price: MissionPayoutDef in def.prices:
+		if price == null:
+			continue
+		var samples: Array = []
+		for owned in range(WORKER_CURVE_CREW + 1):
+			samples.append(_big_pair(price.amount.mul(growth.pow_int(owned))))
+		prices.append({
+			"currency": price.currency.resource_path if price.currency else "",
+			"cost": samples,
+		})
+
+	return {
+		"max_level": WORKER_CURVE_CREW,
+		"samples": WORKER_CURVE_CREW,
+		"prices": prices,
+		"cost_growth": def.cost_growth,
+		"kind": "worker_hire",
 	}
 
 

@@ -832,11 +832,12 @@
   /** The engine's own samples for one resource, or null when the report predates
    * it. Screens draw these as dots behind their own line.
    *
-   * Two dictionaries, because only one of them holds prices: `curves` is every
-   * priced def, `boons` is the well's payoffs, which are granted rather than
-   * bought and so carry an effect and no cost. Callers want "the samples for
-   * this path" either way. */
-  const REPORT_KEYS = ["curves", "boons", "achievements", "boosts"];
+   * Several dictionaries, because only one of them holds prices: `curves` is
+   * every priced def, `boons` is the well's payoffs, which are granted rather
+   * than bought and so carry an effect and no cost, and `heroes` and `workers`
+   * are ladders priced per creature rather than per upgrade. Callers want "the
+   * samples for this path" either way. */
+  const REPORT_KEYS = ["curves", "boons", "achievements", "boosts", "heroes", "workers"];
 
   const engineCurve = (path) => {
     const report = view.curves || {};

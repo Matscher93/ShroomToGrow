@@ -738,3 +738,32 @@
   background: color-mix(in srgb, var(--tint) 18%, var(--bg));
 }
 .node-chip.all { margin-left: 6px; font-family: ui-monospace, monospace; }
+
+/* --------------------------------------------------------------- game: ruins */
+
+/* The section switcher, and the chain picker under it. Two rows of the same
+   control, so the chain reads as a level below the section rather than as a
+   second, unrelated choice. */
+.ruins-sections { margin-bottom: 2px; }
+.ruins-picker { margin: 0 0 6px 14px; font-size: 12px; }
+.ruins-picker button { padding: 1px 8px; }
+
+/* A payout, a price or a reward: its fields, with the button that removes it
+   pushed to the end of the row rather than sitting under them. The row is
+   ruled off because a mission carries three of them in a stack and without a
+   line the second one's currency reads as the first one's. */
+.ruins-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 12px;
+  padding: 6px 0 0;
+  border-top: 1px solid var(--line);
+}
+.ruins-row:first-of-type { border-top: none; padding-top: 0; }
+.ruins-row > .hint { grid-column: 1 / -1; margin: 2px 0 0; }
+.ruins-row > button.danger { font: inherit; padding: 2px 10px; }
+
+/* Cards here are read one after another down a long page - a chain is twenty of
+   them - so they need the air the biome cards get from being three abreast. */
+.ruins-card + .ruins-card { margin-top: 2px; }
