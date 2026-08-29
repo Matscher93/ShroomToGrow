@@ -27,7 +27,7 @@
 (() => {
   const {
     log10Of, growthCurve, powerCurve, chartBlock, engineSeries, engineCurve, xpLadder,
-    rowsOf, cell, numberCell, field, fieldGroup, bigField,
+    rowsOf, cell, numberCell, field, fieldGroup, bigField, scopeTargetFields,
   } = window.GameKit;
 
   const CRYSTAL_STAT = "crystal_gain";
@@ -413,7 +413,11 @@
     wrap.append(body);
 
     body.append(fieldGroup("Identity", entry, ["id", "display_name", "description"]));
-    body.append(fieldGroup("Effect", entry, ["stat", "scope", "target"]));
+    const effect = fieldGroup("Effect", entry, ["stat"]);
+    // Paired, and under TAG the group's tiers are picked here - see
+    // GameKit.scopeTargetFields.
+    effect.querySelector(".game-fields").append(scopeTargetFields(entry));
+    body.append(effect);
     body.append(fieldGroup("Gates", entry,
       ["unlock_perk_id", "base_max_level", "max_level_perk_id", "max_level_per_perk_level"]));
 

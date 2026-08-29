@@ -59,6 +59,16 @@ func _scope_targets() -> Dictionary:
 		targets[boost.id] = true
 	return targets
 
+## Every group a node declares. There is no authored list of tags anywhere else:
+## a tag means exactly "the nodes carrying it", so the node resources are the
+## vocabulary, and a second list would only be somewhere to forget.
+func _declared_tags() -> Dictionary:
+	var tags := {}
+	for node in _nodes:
+		for tag in node.tags:
+			tags[tag] = true
+	return tags
+
 func _biome_keys() -> Dictionary:
 	var keys := {}
 	for biome in _biomes:
@@ -155,13 +165,51 @@ func test_every_scoped_effect_has_a_target() -> void:
 
 func test_every_scoped_effect_target_resolves() -> void:
 	var targets := _scope_targets()
+	var tags := _declared_tags()
 	for def in _all_upgrade_defs():
 		for e in def.effects:
-			if e.scope != UpgradeEffectDef.Scope.NODE:
-				continue
-			assert_bool(targets.has(e.target)) \
-				.override_failure_message("Upgrade '%s' targets '%s', which is neither a node tier nor a biome." \
-					% [def.id, e.target]).is_true()
+			match e.scope:
+				UpgradeEffectDef.Scope.NODE:
+					assert_bool(targets.has(e.target)) \
+						.override_failure_message("Upgrade '%s' targets '%s', which is neither a node tier nor a biome." \
+							% [def.id, e.target]).is_true()
+				UpgradeEffectDef.Scope.TAG:
+					assert_bool(tags.has(e.target)) \
+						.override_failure_message("Upgrade '%s' targets group '%s', which no node carries. It is dead at every level." \
+							% [def.id, e.target]).is_true()
+
+func test_no_node_declares_the_same_tag_twice() -> void:
+	# UpgradeSystem.scope_keys() dedupes, so a duplicate is silent rather than
+	# double-counted - which is exactly why it needs catching here.
+	for node in _nodes:
+		var seen := {}
+		for tag in node.tags:
+			assert_bool(seen.has(tag)) \
+				.override_failure_message("Node tier %d lists group '%s' twice." \
+					% [node.node_id, tag]).is_false()
+			seen[tag] = true
+
+func test_no_tag_is_also_a_node_id() -> void:
+	# The two share the `target` field and are told apart by scope alone, so a
+	# group named "3" reads as a scope confusion everywhere a key is printed.
+	var targets := _scope_targets()
+	for node in _nodes:
+		for tag in node.tags:
+			assert_bool(targets.has(tag)) \
+				.override_failure_message("Group '%s' on tier %d is also a node, biome or boost id." \
+					% [tag, node.node_id]).is_false()
+
+func test_every_declared_tag_is_carried_by_more_than_one_node() -> void:
+	# A group of one is Scope.NODE written the long way, and hides a typo in a
+	# tag that was meant to join an existing group.
+	var counts := {}
+	for node in _nodes:
+		for tag in node.tags:
+			counts[tag] = int(counts.get(tag, 0)) + 1
+	for tag: StringName in counts:
+		assert_int(int(counts[tag])) \
+			.override_failure_message("Group '%s' is carried by one node. Use Scope.NODE, or fix the spelling." \
+				% tag).is_greater(1)
 
 func test_every_dependency_kind_is_still_supported() -> void:
 	# STAT and RESOURCE were removed but kept their ordinals, so an old .tres

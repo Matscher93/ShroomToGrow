@@ -64,9 +64,12 @@ func _generated_effect_text() -> String:
 	if _def.effects.is_empty():
 		return ""
 	var effect := _def.effects[0]
+	# Named scope only: a global perk is most of them, and "on every node" on
+	# every line says nothing the reader did not assume.
+	var where := ScopeLabel.suffix(ScopeLabel.of_effect(effect))
 	if effect.op == UpgradeEffectDef.Op.ADD:
-		return "%+.1f %s per level" % [effect.per_level, effect.stat]
-	return "%+.0f%% %s per level" % [effect.per_level * 100.0, effect.stat]
+		return "%+.1f %s per level%s" % [effect.per_level, effect.stat, where]
+	return "%+.0f%% %s per level%s" % [effect.per_level * 100.0, effect.stat, where]
 
 # --- Lifecycle ---
 

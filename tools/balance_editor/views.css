@@ -37,6 +37,11 @@
   left: 10px;
   z-index: 2;
   max-width: calc(100% - 360px);
+  /* Price and payout stacked is taller than a short window, and the overlay is
+     absolutely placed - without this the effect curve runs off the canvas with
+     no way to reach it. */
+  max-height: calc(100% - 20px);
+  overflow: auto;
   padding: 8px 10px 6px;
   background: color-mix(in srgb, var(--panel) 92%, transparent);
   border: 1px solid var(--line);
@@ -543,6 +548,17 @@
   cursor: pointer;
 }
 .game-chip.muted { color: var(--muted); cursor: default; }
+/* A tier that carries the group being edited. Filled rather than outlined,
+   because the row is read as "who is in", not "who exists". */
+.game-chip.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+.game-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+.game-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+/* The picker spans the field grid: ten tier chips do not fit in half a card. */
+.game-fields > .game-tiers, .game-target > .game-tiers { grid-column: 1 / -1; }
 
 /* --------------------------------------------------------- game: slot track */
 

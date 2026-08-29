@@ -585,10 +585,193 @@
    * property it is placing and not where the reflection put it. Returns null for
    * a column this resource does not have, so a screen can list the fields it
    * would like without asserting the schema. */
-  function field(entry, column) {
+  function field(entry, column, metaOverride) {
     const columnIndex = entry.header.indexOf(column);
     if (columnIndex <= 0) return null;
-    return fieldEditor(entry, columnIndex);
+    return fieldEditor(entry, columnIndex, metaOverride);
+  }
+
+  /** What an effect's `target` may legally hold, given the scope and stat beside
+   * it. Delegates to candidatesFor so the vocabulary lives in one place: the
+   * KEY_REFS rules already say which table a target names under which scope. */
+  function targetOptionsFor(effect) {
+    return candidatesFor(liveRow(effect), "target");
+  }
+
+  /* ------------------------------------------------------------ node groups */
+
+  const NODE_FILE = "MyceliumNode";
+
+  const tagsOfNode = (node) => (cell(node, "tags") || "").split("|").filter(Boolean);
+
+  /** The tiers in authored order. Empty when the table is not loaded, which is
+   * what keeps a screen that never reads nodes from throwing. */
+  function nodeRows() {
+    return rowsOf(NODE_FILE)
+      .slice()
+      .sort((a, b) => numberCell(a, "node_id", 0) - numberCell(b, "node_id", 0));
+  }
+
+  /** Every group any tier declares, with how many carry it. There is no authored
+   * list of groups: a group is exactly the set of nodes naming it, which is why
+   * this is counted rather than looked up. */
+  function declaredGroups() {
+    const counts = new Map();
+    for (const node of nodeRows()) {
+      for (const tag of tagsOfNode(node)) counts.set(tag, (counts.get(tag) || 0) + 1);
+    }
+    return counts;
+  }
+
+  /** Puts one tier in or out of a group, by rewriting its own `tags` cell. The
+   * membership is authored on the node, never on the effect - the effect only
+   * names the group - so this is the one write that can change what a TAG-scoped
+   * effect reaches. */
+  function toggleNodeTag(node, tag, member) {
+    const columnIndex = node.header.indexOf("tags");
+    if (columnIndex <= 0 || !tag) return;
+    const tags = tagsOfNode(liveRow(node)).filter((each) => each !== tag);
+    if (member) tags.push(tag);
+    writeCell(NODE_FILE, node.rowIndex, columnIndex, tags.join("|"));
+    renderFileList();
+    setStatus(`${NODE_FILE}${isDirty(NODE_FILE) ? " - unsaved" : " - no changes"}`);
+    // Membership shows in three places at once - this picker, the tier's own
+    // Wiring field, and every card's reach table - so the whole view redraws.
+    renderActiveView();
+  }
+
+  /** Which tiers a group reaches, as toggles.
+   *
+   * The point of the control: a group only exists as the set of nodes carrying
+   * its name, so authoring one otherwise means opening ten node cards and typing
+   * the same word into each. Here the effect that names the group is also where
+   * its members are picked. */
+  function tierPicker(tag) {
+    const wrap = document.createElement("div");
+    wrap.className = "field game-tiers";
+    const label = document.createElement("label");
+    label.append("tiers in this group");
+    wrap.append(label);
+
+    const nodes = nodeRows();
+    if (!nodes.length) {
+      const hint = document.createElement("p");
+      hint.className = "hint";
+      hint.textContent = "No mycelium nodes loaded, so the group's members cannot be picked here.";
+      wrap.append(hint);
+      return wrap;
+    }
+
+    const chips = document.createElement("div");
+    chips.className = "game-chips";
+    for (const node of nodes) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "game-chip";
+      const member = tag && tagsOfNode(node).includes(tag);
+      chip.classList.toggle("on", !!member);
+      chip.textContent = `${cell(node, "node_id")} · ${cell(node, "name") || "(unnamed)"}`;
+      chip.disabled = !tag;
+      chip.title = tag
+        ? (member ? `Take tier ${cell(node, "node_id")} out of "${tag}"`
+                  : `Put tier ${cell(node, "node_id")} into "${tag}"`)
+        : "Name the group first";
+      chip.onclick = () => toggleNodeTag(node, tag, !member);
+      chips.append(chip);
+    }
+    wrap.append(chips);
+
+    const hint = document.createElement("p");
+    hint.className = tag && !declaredGroups().get(tag) ? "hint warn" : "hint";
+    if (!tag) {
+      hint.textContent = "Name a group above, then pick the tiers it reaches.";
+    } else if (!declaredGroups().get(tag)) {
+      hint.textContent = `No tier carries "${tag}" yet, so this effect reaches nothing. `
+        + "Pick its tiers above.";
+    } else {
+      hint.textContent = "Membership is stored on the tiers themselves, so this writes "
+        + `${NODE_FILE} rather than the effect. Every effect naming "${tag}" reaches the `
+        + "same set.";
+    }
+    wrap.append(hint);
+    return wrap;
+  }
+
+  /** The entry as it stands right now. An edit clones the file's rows into
+   * state.edits, so an entry captured before the first write to that file still
+   * points at the pristine array and reads its own scope as whatever it was. */
+  function liveRow(entry) {
+    const data = dataOf(entry.file);
+    if (!data || !data.rows[entry.rowIndex]) return entry;
+    return { ...entry, header: data.header, row: data.rows[entry.rowIndex] };
+  }
+
+  /** An effect's scope and target as one pair, because neither is editable on its
+   * own: the scope decides what the target may say, so changing it has to reissue
+   * the target control. GLOBAL has no target at all, and says so rather than
+   * leaving a box that looks fillable.
+   *
+   * `warn` is asked for a complaint about the pair after every repaint. It lives
+   * here rather than beside the call so it cannot go stale: a scope changed in
+   * place does not redraw the screen, and a warning left over from the previous
+   * scope is worse than none. */
+  function scopeTargetFields(effect, warn) {
+    const wrap = document.createDocumentFragment();
+    const scopeField = field(effect, "scope");
+    const slot = document.createElement("div");
+    slot.className = "game-target";
+    if (!scopeField) return wrap;
+
+    const paint = () => {
+      slot.replaceChildren();
+      if (enumIs(cell(liveRow(effect), "scope"), "GLOBAL")) {
+        const editor = field(effect, "target", { type: "text", options: null });
+        if (editor) {
+          for (const input of editor.querySelectorAll("input, select, textarea")) {
+            input.disabled = true;
+          }
+          slot.append(editor);
+        }
+        const hint = document.createElement("p");
+        hint.className = "hint";
+        hint.textContent = "global — every tier, and the cascade applies it once per tier.";
+        slot.append(hint);
+      } else if (enumIs(cell(liveRow(effect), "scope"), "TAG")) {
+        // Typed rather than picked, because this is where a group is born -
+        // there is no list of groups to choose from until some tier carries one,
+        // and the picker below is what puts the first tier in it. The declared
+        // ones ride along as a datalist so an existing group is still one click.
+        const editor = field(effect, "target",
+          { type: "text", options: null, noSuggestions: true });
+        if (editor) {
+          const groups = declaredGroups();
+          if (groups.size) {
+            const list = document.createElement("datalist");
+            list.id = `group-list-${effect.file}-${effect.rowIndex}`;
+            for (const [tag, count] of groups) {
+              list.append(new Option(`${count} node${count === 1 ? "" : "s"}`, tag));
+            }
+            const input = editor.querySelector("input");
+            if (input) input.setAttribute("list", list.id);
+            editor.append(list);
+          }
+          slot.append(editor);
+        }
+        slot.append(tierPicker(cell(liveRow(effect), "target")));
+      } else {
+        const editor = field(effect, "target", { type: "text", options: targetOptionsFor(effect) });
+        if (editor) slot.append(editor);
+      }
+      const complaint = warn && warn(liveRow(effect));
+      if (complaint) slot.append(complaint);
+    };
+
+    // The scope select writes the cell on `input` like every other control, so
+    // repainting after it means the target options are read from the new scope.
+    scopeField.addEventListener("input", paint);
+    paint();
+    wrap.append(scopeField, slot);
+    return wrap;
   }
 
   /** A titled group of fields, skipping the ones this resource does not carry. */
@@ -709,6 +892,7 @@
     xpLadder, levelForXp, chart, chartBlock, hueOf,
     rowsOf, findRow, cell, numberCell,
     field, fieldGroup, bigField, engineCurve, engineWindow, engineSeries, rowHasChanges,
+    targetOptionsFor, scopeTargetFields, liveRow, tierPicker, declaredGroups, tagsOfNode,
   };
 
   /* ------------------------------------------------------------------- wiring */

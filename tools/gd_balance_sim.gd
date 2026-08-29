@@ -1097,21 +1097,25 @@ static func _orders_between(held: BigNumber, lost: BigNumber) -> float:
 ## rather than of the add alone. What it buys is one number per bucket, comparable
 ## against the other upgrades writing that same bucket, which is what it is for.
 ##
-## TAG-scoped effects are skipped: ProductionSystem.stack() takes a node target
-## but no tags, and no authored effect is TAG-scoped - data/ holds 180 GLOBAL and
-## 53 NODE. One turning up would go unranked, not misranked.
+## A node bucket goes through stack(), so the measurement picks up the tags that
+## node carries too - what that tier is actually worth. A group bucket has no
+## target to stack() at, so it is read against the global bucket on its own.
 static func _measure_buckets(app: Node, buckets: Array) -> Dictionary:
 	var out := {}
 	for bucket: Array in buckets:
 		var stat: String = bucket[0]
 		var key: String = bucket[1]
-		var target := &""
+		var value: BigNumber
 		if key.begins_with("t:"):
-			continue
-		if key.begins_with("n:"):
-			target = StringName(key.substr(2))
-		out["%s@%s" % [stat, key]] = app.production_system.stack(
-			StringName(stat), BigNumber.from_value(1.0), target)
+			value = app.production_system.stack_at(StringName(stat), BigNumber.from_value(1.0),
+				UpgradeSystem.scope_keys(PackedStringArray([key.substr(2)]), &""))
+		else:
+			var target := &""
+			if key.begins_with("n:"):
+				target = StringName(key.substr(2))
+			value = app.production_system.stack(StringName(stat),
+				BigNumber.from_value(1.0), target)
+		out["%s@%s" % [stat, key]] = value
 	return out
 
 

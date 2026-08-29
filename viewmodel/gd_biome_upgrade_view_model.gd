@@ -23,6 +23,12 @@ var desc_text: String:
 	get:
 		var def := App.biome_upgrade_system.def(_id)
 		var body := def.description if def else ""
+		# A scoped upgrade says which tier or group it lands on. Appended rather
+		# than authored, so the ten-tiers-one-wording problem the symbiosis track
+		# has cannot start here too; a global upgrade is left exactly as written.
+		var scope := ScopeLabel.of_effects(def.effects) if def else ""
+		if not scope.is_empty():
+			body = "%s\nApplies to %s." % [body, scope]
 		if App.is_biome_upgrade_unlocked(_id, _key):
 			return body
 		var needed := def.min_biome_points_spent if def else 0

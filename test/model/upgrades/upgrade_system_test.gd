@@ -16,6 +16,11 @@ func _effect(stat: StringName, per_level: float, op: UpgradeEffectDef.Op,
 	e.target = target
 	return e
 
+## The key set a read at one node, carrying these groups, draws from - what
+## ProductionSystem builds from a MyceliumNode before it calls modify().
+func _at_node(node_id: StringName, tags: Array = []) -> PackedStringArray:
+	return UpgradeSystem.scope_keys(PackedStringArray(tags), node_id)
+
 func _upgrade(id: StringName, effects: Array[UpgradeEffectDef], max_level := 0) -> UpgradeDef:
 	var d := UpgradeDef.new()
 	d.id = id
@@ -168,10 +173,61 @@ func test_node_scope_only_applies_to_its_target() -> void:
 	system.from_save({"NodeOnly": 1})
 	var ctx := ResolveContext.new()
 
-	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx, [], &"3").to_float()) \
+	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx, _at_node(&"3")).to_float()) \
 		.is_equal_approx(2.0, EPS)
-	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx, [], &"7").to_float()) \
+	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx, _at_node(&"7")).to_float()) \
 		.is_equal_approx(1.0, EPS)
+
+func test_tag_scope_applies_to_every_node_carrying_the_tag() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Group", [_effect(&"stat", 1.0,
+		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.TAG, &"canopy")]))
+	system.from_save({"Group": 1})
+	var ctx := ResolveContext.new()
+
+	for node: StringName in [&"3", &"7"]:
+		assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ctx,
+			_at_node(node, [&"canopy"])).to_float()).is_equal_approx(2.0, EPS)
+
+func test_tag_scope_skips_a_node_without_the_tag() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Group", [_effect(&"stat", 1.0,
+		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.TAG, &"canopy")]))
+	system.from_save({"Group": 1})
+
+	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ResolveContext.new(),
+		_at_node(&"3", [&"lower"])).to_float()).is_equal_approx(1.0, EPS)
+
+## A node listing one tag twice must not be worth twice the group bonus. The
+## dedupe lives in scope_keys() because a duplicate is otherwise silent: nothing
+## errors, that one tier is just quietly ahead of the rest of its group.
+func test_a_duplicated_tag_is_only_counted_once() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Group", [_effect(&"stat", 1.0,
+		UpgradeEffectDef.Op.MORE, UpgradeEffectDef.Scope.TAG, &"canopy")]))
+	system.from_save({"Group": 1})
+
+	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ResolveContext.new(),
+		_at_node(&"3", [&"canopy", &"canopy"])).to_float()).is_equal_approx(2.0, EPS)
+
+## Global, group and node INCREASEDs share one additive pool - they are not three
+## multipliers. A group bonus is therefore worth less as the global pool grows,
+## which is why a bonus meant to stand on its own is authored as MORE. Pinned
+## here so the pooling is not "fixed" into something the balance was never built
+## against.
+func test_global_tag_and_node_increases_pool_together() -> void:
+	var system := UpgradeSystem.new()
+	system.register(_upgrade(&"Everywhere", [_effect(&"stat", 0.5,
+		UpgradeEffectDef.Op.INCREASED)]))
+	system.register(_upgrade(&"Group", [_effect(&"stat", 0.5,
+		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.TAG, &"canopy")]))
+	system.register(_upgrade(&"Tier", [_effect(&"stat", 0.5,
+		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.NODE, &"3")]))
+	system.from_save({"Everywhere": 1, "Group": 1, "Tier": 1})
+
+	# 1 * (1 + 0.5 + 0.5 + 0.5), not 1.5^3.
+	assert_float(system.modify(&"stat", BigNumber.from_value(1.0), ResolveContext.new(),
+		_at_node(&"3", [&"canopy"])).to_float()).is_equal_approx(2.5, EPS)
 
 func test_unrelated_stat_is_untouched() -> void:
 	var system := UpgradeSystem.new()

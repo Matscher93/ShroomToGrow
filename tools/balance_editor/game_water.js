@@ -30,7 +30,7 @@
   const {
     log10Of, formatBig, growthCurve, effectCurve, enumIs, chartBlock,
     engineSeries, engineCurve, rowsOf, cell, numberCell,
-    field, fieldGroup, bigField,
+    field, fieldGroup, bigField, scopeTargetFields,
   } = window.GameKit;
 
   /* WaterSystem's own constants. GDScript `const`s, not .tres - this editor
@@ -196,8 +196,12 @@
       return wrap;
     }
 
-    wrap.append(fieldGroup("", producer,
-      ["currency", "stat", "scope", "target", "lp_per_level", "daily_per_level"]));
+    wrap.append(fieldGroup("", producer, ["currency", "stat"]));
+    const producerScope = document.createElement("div");
+    producerScope.className = "game-fields";
+    producerScope.append(scopeTargetFields(producer));
+    wrap.append(producerScope);
+    wrap.append(fieldGroup("", producer, ["lp_per_level", "daily_per_level"]));
 
     const note = document.createElement("p");
     note.className = "hint";
@@ -552,8 +556,14 @@
 
     const left = document.createElement("div");
     left.className = "game-fields";
-    for (const column of ["stat", "op", "scope", "target", "per_level", "level_scaling",
-                          "max_magnitude"]) {
+    for (const column of ["stat", "op"]) {
+      const editor = field(slot.effect, column);
+      if (editor) left.append(editor);
+    }
+    // Paired, and under TAG the group's tiers are picked here - see
+    // GameKit.scopeTargetFields.
+    left.append(scopeTargetFields(slot.effect));
+    for (const column of ["per_level", "level_scaling", "max_magnitude"]) {
       const editor = field(slot.effect, column);
       if (editor) left.append(editor);
     }

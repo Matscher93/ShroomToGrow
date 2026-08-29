@@ -70,6 +70,15 @@ const _K_GLOBAL := "g"
 const _K_TAG    := "t:"
 const _K_NODE   := "n:"
 
+## The key set a reader with no node and no tags draws from, and modify()'s
+## default. Shared rather than rebuilt: every global stat read would otherwise
+## allocate a one-element array to say "nothing but global".
+##
+## A static var rather than a const because PackedStringArray() is not a constant
+## expression. Handing it out is still safe - a PackedStringArray is a value, so a
+## caller that appends to what it got back is appending to its own copy.
+static var GLOBAL_KEYS := PackedStringArray([_K_GLOBAL])
+
 func register(def: UpgradeDef) -> void:
 	_defs[def.id] = def
 	_cost_memo.erase(def.id)   # a re-register may have brought a different curve
@@ -372,13 +381,27 @@ func _scope_key(scope: UpgradeEffectDef.Scope, target: StringName) -> String:
 			push_error("Unknown scope %d" % scope)
 			return _K_GLOBAL
 
-# Query side: which buckets does this node read from?
-func _applicable_keys(tags: PackedStringArray, node_id: StringName) -> PackedStringArray:
+## Query side: which buckets a reader carrying these tags, on this node, draws
+## from - global always, plus one per tag, plus its own.
+##
+## Built by the caller and handed to modify() rather than rebuilt inside it:
+## resolving one stat for one node is eight modify() calls across the eight
+## tracks, and the tick loop drives that hundreds of times a tick, so the array
+## is built once per target and reused. ProductionSystem caches it per target.
+##
+## Deduped, because a node listing the same tag twice would otherwise have that
+## bucket's add and inc counted twice and its more squared - silently, and only
+## for that one node.
+static func scope_keys(tags: PackedStringArray, node_id: StringName) -> PackedStringArray:
 	var keys := PackedStringArray([_K_GLOBAL])   # global always applies
 	for tag in tags:
-		keys.append(_K_TAG + tag)
+		var key := _K_TAG + tag
+		if not keys.has(key):
+			keys.append(key)
 	if not node_id.is_empty():
-		keys.append(_K_NODE + String(node_id))
+		var node_key := _K_NODE + String(node_id)
+		if not keys.has(node_key):
+			keys.append(node_key)
 	return keys
 
 ## Re-resolves every upgrade marked stale, and marks the stats they write - the
@@ -443,9 +466,10 @@ func _bucket(stat: StringName) -> Dictionary:
 ## per track), and the automation tick drives it hundreds of times a tick. Hence
 ## the null accumulators and the bare Dictionary.get() - the identity BigNumbers
 ## the old default arguments built for every miss, then threw away, were most of
-## the cost of a cache hit.
-func modify(stat: StringName, base: BigNumber, ctx: ResolveContext, tags: PackedStringArray = [],
-			node_id: StringName = &"") -> BigNumber:
+## the cost of a cache hit. `keys` comes from scope_keys(), built once per target
+## by the caller for the same reason.
+func modify(stat: StringName, base: BigNumber, ctx: ResolveContext,
+			keys: PackedStringArray = GLOBAL_KEYS) -> BigNumber:
 	if not _stale.is_empty():
 		_resolve_stale(ctx)
 	var bucket := _bucket(stat)
@@ -454,7 +478,7 @@ func modify(stat: StringName, base: BigNumber, ctx: ResolveContext, tags: Packed
 	var add: BigNumber = null
 	var inc: BigNumber = null
 	var more: BigNumber = null
-	for key in _applicable_keys(tags, node_id):   # ["g", "t:mycelium", "n:<id>"]
+	for key in keys:   # ["g", "t:canopy", "n:<id>"], from scope_keys()
 		var agg: Variant = bucket.get(key)
 		if agg == null:
 			continue

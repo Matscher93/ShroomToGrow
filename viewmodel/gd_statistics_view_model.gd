@@ -286,7 +286,7 @@ func _milestone_title(row: Dictionary) -> Array:
 		StatsSystem.MILESTONE_BIOME:
 			return ["Reached %s" % _biome_name(key), "First unlocked during run %d" % [run + 1]]
 		StatsSystem.MILESTONE_NODE:
-			return ["Grew %s" % _node_name(key), _node_detail(key, run)]
+			return ["Grew %s" % ScopeLabel.node_name(key), _node_detail(key, run)]
 		StatsSystem.MILESTONE_PRESTIGE:
 			return ["Sporated (run %s)" % key, "Traded the run in for biomass"]
 		_:
@@ -312,12 +312,6 @@ func _biome_key(display_name: String) -> String:
 		if def.display_name == display_name:
 			return String(def.key)
 	return ""
-
-func _node_name(node_id: String) -> String:
-	for node in App.nodes.mycelium_nodes:
-		if str(node.node_id) == node_id:
-			return node.name
-	return "node %s" % node_id
 
 ## Which tier of node this was, said the way the node panel already says it.
 ##
@@ -345,7 +339,7 @@ func _build_bonus_groups() -> Array:
 			var upgrades: Array = []
 			var track_effects: Array = []
 			for upgrade: Dictionary in source["upgrades"]:
-				var scope := _shared_scope(upgrade["effects"])
+				var scope := ScopeLabel.of_keys(upgrade["effects"])
 				track_effects.append_array(upgrade["effects"] as Array)
 				var display_name := String(upgrade["name"])
 				if display_name.is_empty():
@@ -453,39 +447,8 @@ func _amount_text(amount: BigNumber) -> String:
 func _total_text(group: Dictionary) -> String:
 	var total: BigNumber = group["total"]
 	var text := _amount_text(total) if group["additive"] else "x%s" % total.to_display(2)
-	var scope := _scope_name(String(group["total_scope"]))
+	var scope := ScopeLabel.of_key(String(group["total_scope"]))
 	return text if scope.is_empty() else "%s (%s)" % [text, scope]
-
-## The scope every one of an upgrade's effects shares, or "" when they differ or
-## are global.
-##
-## Ten node-scoped copies of one upgrade are ten separate defs with one display
-## name between them, so a column of "Mycelium Potency" repeated ten times is
-## what a reader gets otherwise. Where the scope is the only thing telling them
-## apart, it belongs in the name.
-func _shared_scope(effects: Array) -> String:
-	var shared := ""
-	for effect: Dictionary in effects:
-		var scope := _scope_name(String(effect["key"]))
-		if scope.is_empty():
-			return ""
-		if shared.is_empty():
-			shared = scope
-		elif shared != scope:
-			return ""
-	return shared
-
-## The scope key as something readable, and "" for a global one - most effects
-## are global and repeating "global" on every row is noise.
-##
-## A node key is turned back into the node's own name: "n:7" is the key the
-## bucket is filed under, not something the player has ever seen.
-func _scope_name(key: String) -> String:
-	if key.begins_with("n:"):
-		return _node_name(key.substr(2))
-	if key.begins_with("t:"):
-		return key.substr(2)
-	return ""
 
 func _track_name(track: String) -> String:
 	match track:

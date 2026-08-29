@@ -16,8 +16,9 @@
  */
 (() => {
   const {
-    growthCurve, chartBlock, engineCurve, engineSeries, numberCell,
+    growthCurve, effectCurve, chartBlock, engineCurve, engineSeries, cell, numberCell, enumIs,
     log10Of: bigLog10,   // the local log10Of below takes a pair, this one a pair's halves
+    scopeTargetFields,
   } = window.GameKit;
 
   /* Each scale is a span, not a number: `from` is what the perk is worth at its
@@ -393,6 +394,70 @@
    * contested width - the curve is the thing being read against the drawing, and
    * it wants the room. Absolutely placed rather than laid out in the canvas, so
    * panning the web does not carry it off screen. */
+  /** What one level of this perk actually gives, level by level.
+   *
+   * The cost curve alone says what a perk costs to climb, never whether the
+   * climb is worth it - and the two are authored on different resources, the
+   * price on the perk and the payout on an UpgradeEffectDef one hop away (often
+   * the branch's, shared by every perk on the arm). Read together they are the
+   * ratio being tuned, which is why this sits under the price rather than in the
+   * field list on the right.
+   *
+   * Only the first effect is drawn. Every authored perk carries one, and a perk
+   * with several has no single curve to plot - the note says so rather than
+   * picking one silently. */
+  function effectChart(perk) {
+    const path = ((perk && perk.effect_paths) || [])[0];
+    if (!path) return null;
+    const effect = rowIndexOf(path);
+    if (!effect) return null;
+
+    const perLevel = numberCell(effect, "per_level", 0);
+    const compound = enumIs(cell(effect, "level_scaling"), "COMPOUND");
+    const cap = numberCell(effect, "max_magnitude", 0);
+    let capped = false;
+
+    const build = (from, to) => {
+      const curve = effectCurve({ perLevel, compound, cap, factor: null }, from, to);
+      capped = curve.capped;
+      const series = [{
+        label: `${cell(effect, "stat") || "effect"} magnitude`,
+        color: "var(--accent)",
+        points: curve.raw,
+      }];
+      // Keyed on the perk, which is what the engine files its samples under -
+      // the effect resource has no curve of its own in the report.
+      const sampled = engineCurve(state.focus);
+      const dots = engineSeries(effect, sampled && sampled.effect, from, to,
+        ([mantissa, exponent]) => mantissa * 10 ** exponent);
+      if (dots) series.push(dots);
+      return series;
+    };
+
+    const maxLevel = Math.round(numberCell(focusedRow(), "max_level", 0));
+    const block = chartBlock("Effect per level", build, {
+      zeroBased: true, xLabel: "level", width: 560, height: 220,
+      range: { key: "perk-effect", from: 0, to: maxLevel > 0 ? maxLevel : 50, label: "level" },
+    });
+
+    const notes = [];
+    if (capped) notes.push("max_magnitude clamps this curve — the flat top is the cap.");
+    if (cell(effect, "dependency")) {
+      notes.push("This effect scales by a ScalingSourceDef as well, which is not drawn: "
+        + "the line is the authored magnitude before that multiplier.");
+    }
+    if (((perk && perk.effect_paths) || []).length > 1) {
+      notes.push(`Only the first of ${perk.effect_paths.length} effects is drawn.`);
+    }
+    if (notes.length) {
+      const hint = document.createElement("p");
+      hint.className = "hint";
+      hint.textContent = notes.join(" ");
+      block.append(hint);
+    }
+    return block;
+  }
+
   function costOverlay(row) {
     const wrap = document.createElement("div");
     wrap.className = "web-cost";
@@ -400,6 +465,11 @@
     name.className = "web-cost-name";
     name.textContent = labelOf(row);
     wrap.append(name, costChart(row));
+
+    // A followed chip can be priced without being a perk, and then there is no
+    // effect to pair with the price.
+    const effect = effectChart(selectedPerk());
+    if (effect) wrap.append(effect);
     return wrap;
   }
 
@@ -431,7 +501,16 @@
 
     const references = referenceColumns(entry.file);
     entry.header.forEach((column, columnIndex) => {
-      if (columnIndex === 0 || references.has(column)) return;
+      // `target` is a reference column, so the generic loop skips it and the
+      // graph's chip picker is where it would otherwise be edited. A perk that
+      // names a group has nothing to pick there - a group is a vocabulary, not a
+      // row - so scope and target are placed here as the same pair every other
+      // screen shows, tier picker included.
+      if (column === "scope") {
+        block.append(scopeTargetFields(entry));
+        return;
+      }
+      if (columnIndex === 0 || column === "target" || references.has(column)) return;
       block.append(fieldEditor(entry, columnIndex));
     });
     return block;
@@ -534,6 +613,17 @@
       view.element = document.createElement("div");
       view.element.id = "web-view";
       view.element.innerHTML = `<div class="web-canvas"></div><aside class="web-panel"></aside>`;
+      // Where the two scrollers are, remembered as they move rather than read at
+      // the top of render(): the tab detaches this whole element before calling
+      // us (game.js empties the body first), and a detached element comes back
+      // with both offsets already at zero. By the time render() runs there is
+      // nothing left to read.
+      const canvas = view.element.querySelector(".web-canvas");
+      const panel = view.element.querySelector(".web-panel");
+      canvas.addEventListener("scroll", () => {
+        view.canvasScroll = { left: canvas.scrollLeft, top: canvas.scrollTop };
+      });
+      panel.addEventListener("scroll", () => { view.panelTop = panel.scrollTop; });
     }
     return view.element;
   }
@@ -549,8 +639,29 @@
           { className: "hint", textContent: "The web has not been read yet." }));
       return;
     }
-    view.element.querySelector(".web-canvas").replaceChildren(drawWeb());
-    renderPanel(view.element.querySelector(".web-panel"));
+    // A render happens on every selection, every keystroke in the panel and every
+    // scale switch, and each one replaces both halves' children. Without putting
+    // the offsets back the web jumps to its top-left corner the moment a perk is
+    // clicked - exactly when the pan that found it matters most.
+    const canvas = view.element.querySelector(".web-canvas");
+    const panel = view.element.querySelector(".web-panel");
+    // The panel holds different content per perk, so its offset is only worth
+    // keeping while the same one stays selected: a redraw from an edit should
+    // leave the field under the cursor where it was, but picking a new perk
+    // should start at the top of what it says rather than partway down it.
+    const sameFocus = view.lastFocus === state.focus;
+    view.lastFocus = state.focus;
+
+    canvas.replaceChildren(drawWeb());
+    renderPanel(panel);
+
+    // After the content is back, so there is something to scroll to. The browser
+    // clamps whatever the new content is too short for.
+    if (view.canvasScroll) {
+      canvas.scrollLeft = view.canvasScroll.left;
+      canvas.scrollTop = view.canvasScroll.top;
+    }
+    panel.scrollTop = sameFocus ? (view.panelTop || 0) : 0;
 
     const priced = focusedRow();
     view.element.querySelector(".web-cost")?.remove();

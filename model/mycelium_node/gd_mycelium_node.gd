@@ -101,6 +101,25 @@ var initial_cost: BigNumber:
 ## level *is* the unlock.
 @export var unlock_perk_id: StringName = &""
 
+## Groups this tier belongs to, for TAG-scoped upgrade effects. A tag is just a
+## name several tiers share - "canopy", "lower" - so one authored effect reaches a
+## set of tiers without a copy per tier. A tag only one node carries is
+## Scope.NODE written the long way, and the integrity sweep says so.
+##
+## Authored data only: nothing writes this at runtime and the save does not carry
+## it, which is what lets ProductionSystem index it once at startup.
+##
+## Two things to know before authoring against it:
+##
+## - A TAG Op.INCREASED lands in the same additive pool as every global and node
+##   INCREASED on that stat, so a group bonus is worth steadily less as that pool
+##   grows. A group bonus meant to be its own multiplier must be Op.MORE.
+## - The cascade trap Scope.NODE exists to avoid applies to a group too, raised to
+##   the size of the group: a &"node_production" effect tagged across K tiers is
+##   applied once per tagged link, so x1.5 over five tiers lands as x1.5^5 at the
+##   nutrient output. See BoostDef.scope.
+@export var tags: Array[StringName] = []
+
 @export var color: Color
 @export var level_font_color: Color
 @export var cost_increase_per_level: float = 1.5

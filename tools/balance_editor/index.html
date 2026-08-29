@@ -513,6 +513,14 @@ function makeGridResizer(container, panel, key, edge, fallback, min = 160, max =
     savePanelWidths();
     clear();
   };
+
+  // Handed back so a caller that hides the panel can take the handle with it and
+  // put the column track back afterwards - the width lives in an inline style
+  // here, so the stylesheet cannot restore it on its own.
+  return {
+    handle,
+    restore: () => (panelWidths[key] ? apply(panelWidths[key]) : clear()),
+  };
 }
 
 try {
@@ -708,10 +716,15 @@ function makeControl(meta, value, allowMultiline) {
   // control as an enum, so a picked value cannot be misspelt.
   if (meta.type === "enum" || meta.type === "bool" || meta.options) {
     const select = document.createElement("select");
-    const options = meta.type === "bool" ? ["false", "true"] : (meta.options || []);
-    for (const option of options) select.append(new Option(option, option));
+    // An option is a bare string, or {value, label} where the two differ - a
+    // node tier reads better as "3 - Rhizomorph" than as "3".
+    const options = (meta.type === "bool" ? ["false", "true"] : (meta.options || []))
+      .map((option) => (typeof option === "string" ? { value: option, label: option } : option));
+    for (const option of options) select.append(new Option(option.label, option.value));
     // Never silently rewrite a value the property does not offer - show it.
-    if (!options.includes(value)) select.append(new Option(`${value} (unknown)`, value));
+    if (!options.some((option) => option.value === value)) {
+      select.append(new Option(`${value} (unknown)`, value));
+    }
     select.value = value;
     return select;
   }
@@ -854,7 +867,11 @@ function renderGrid() {
       } else {
         const meta = metaOf(state.current, columnIndex);
         const input = makeControl(meta, cell, false);
-        const list = meta.type === "text" && !meta.options ? suggestions.get(columnIndex) : null;
+        // `noSuggestions` is for a caller that brings its own datalist: the column's
+  // own distinct values are the wrong vocabulary for an effect's target, which
+  // holds node tiers, biome keys and boost ids all at once.
+  const list = meta.type === "text" && !meta.options && !meta.noSuggestions
+    ? suggestions.get(columnIndex) : null;
         if (list) input.setAttribute("list", list.id);
         input.oninput = () => editCell(rowIndex, columnIndex, input.value, td, input);
         input.onkeydown = (event) => {
@@ -895,12 +912,21 @@ const KEY_REFS = [
   // a synthetic stat key ("ManualNode3") with no row behind it.
   { file: "ScalingSourceDef", column: "key", target: "BiomeDef", targetColumn: "key",
     when: { column: "kind", equals: "Biome Size" } },
-  // `target` is polymorphic: a biome key for biome_points effects, a mycelium
-  // node tier for everything else, and empty when the effect is global.
+  // `target` is polymorphic, and what it means depends on the scope beside it as
+  // well as on the stat: under NODE it is a biome key for biome_points, a boost
+  // id for the two boost stats and a mycelium tier for everything else; under TAG
+  // it is a group name, which is a vocabulary rather than a row. A GLOBAL effect
+  // matches no rule at all, which is the right answer - it has no target.
   { file: "UpgradeEffectDef", column: "target", target: "BiomeDef", targetColumn: "key",
-    when: { column: "stat", equals: "biome_points" } },
+    when: [{ column: "scope", equals: "NODE" }, { column: "stat", equals: "biome_points" }] },
+  { file: "UpgradeEffectDef", column: "target", target: "BoostDef", targetColumn: "id",
+    when: [{ column: "scope", equals: "NODE" },
+           { column: "stat", oneOf: ["boost_power", "boost_max_level"] }] },
   { file: "UpgradeEffectDef", column: "target", target: "MyceliumNode",
-    targetColumn: "node_id" },
+    targetColumn: "tags", vocabulary: true,
+    when: { column: "scope", equals: "TAG" } },
+  { file: "UpgradeEffectDef", column: "target", target: "MyceliumNode",
+    targetColumn: "node_id", when: { column: "scope", equals: "NODE" } },
 ];
 
 /** Extra rules for path columns. Detection is automatic; these only narrow what
@@ -935,13 +961,26 @@ const keyRefsFor = (file, column) =>
   KEY_REFS.filter((ref) => ref.file === file && ref.column === column);
 
 /** The rule that applies to one row. Several rules can share a column when its
- * meaning depends on a sibling column, so guarded ones are tried in order and
- * an unguarded rule acts as the fallback. Without a row, answers "any rule". */
+ * meaning depends on its siblings, so guarded ones are tried in order and an
+ * unguarded rule acts as the fallback. A guard is one `when` or a list of them,
+ * all of which must hold, each either `equals` one value or is `oneOf` several.
+ * Without a row, answers "any rule". */
 function keyRefFor(file, column, header, row) {
   const rules = keyRefsFor(file, column);
   if (!header || !row) return rules[0];
-  return rules.find((rule) => !rule.when
-    || row[header.indexOf(rule.when.column)] === rule.when.equals) || null;
+  // Folded on both sides, because Godot writes an enum cell with its own
+  // capitalisation ("Node", "Biome Size") and a rule spelling it the script's
+  // way would silently never match. Plain string guards fold to themselves.
+  const fold = (value) => String(value == null ? "" : value).toUpperCase().replace(/[\s_]/g, "");
+  return rules.find((rule) => {
+    const guards = rule.when ? [].concat(rule.when) : [];
+    return guards.every((guard) => {
+      const value = fold(row[header.indexOf(guard.column)]);
+      return guard.oneOf
+        ? guard.oneOf.some((option) => fold(option) === value)
+        : value === fold(guard.equals);
+    });
+  }) || null;
 }
 
 const pathRefFor = (file, column) =>
@@ -1007,6 +1046,10 @@ function edgesFrom(file, rowIndex) {
 
     const keyRef = keyRefFor(file, column, data.header, row);
     if (keyRef) {
+      // A vocabulary is a name several rows share, not a row: resolving it would
+      // pick whichever node happens to carry the tag first and print one tier's
+      // name for the whole group.
+      if (keyRef.vocabulary) return;
       const parts = keyRef.list ? raw.split("|").filter(Boolean) : [raw];
       parts.forEach((part, partIndex) => {
         edges.push({ ...base, kind: "key", list: keyRef.list, part, partIndex,
@@ -1149,7 +1192,13 @@ function revertFile() {
 function writeCell(file, rowIndex, columnIndex, value) {
   if (!state.edits.has(file)) {
     const pristine = state.loaded.get(file);
+    // Spread first, so `columns` and `script` survive the clone. Rebuilding the
+    // copy from header and rows alone dropped the column meta, and columnsOf()
+    // falls back to "every column is text" without it: one edit anywhere in a
+    // file turned that file's enums into free text boxes and its numbers into
+    // plain ones, for the rest of the session.
     state.edits.set(file, {
+      ...pristine,
       header: [...pristine.header],
       rows: pristine.rows.map((row) => [...row]),
     });
@@ -1356,6 +1405,10 @@ function selfAndUpstream(path, column) {
 /** Candidate targets for one row's column, already filtered to the legal ones. */
 function candidatesFor(entry, column) {
   const keyRef = keyRefFor(entry.file, column, entry.header, entry.row);
+  // A key column whose rules all guard themselves off has nothing to offer -
+  // a GLOBAL effect's target names nothing. Falling through to the path branch
+  // below would answer with every res:// row in the project instead.
+  if (!keyRef && keyRefsFor(entry.file, column).length) return [];
   const path = entry.row[0];
   const used = new Set(state.edges
     .filter((edge) => edge.from === path && edge.column === column)
@@ -1366,6 +1419,22 @@ function candidatesFor(entry, column) {
     // renderDeps and leave the panel half built.
     if (!state.loaded.has(keyRef.target)) return [];
     const data = dataOf(keyRef.target);
+
+    // A vocabulary column holds names rather than row keys - a group is the set
+    // of rows carrying it - so the candidates are the distinct values, counted.
+    if (keyRef.vocabulary) {
+      const valueIndex = data.header.indexOf(keyRef.targetColumn);
+      const counts = new Map();
+      for (const row of data.rows) {
+        for (const part of (row[valueIndex] || "").split("|").filter(Boolean)) {
+          counts.set(part, (counts.get(part) || 0) + 1);
+        }
+      }
+      return [...counts].map(([value, count]) => ({
+        value, label: `${value} - ${count} node${count === 1 ? "" : "s"}`,
+      }));
+    }
+
     const valueColumn = data.header.indexOf(keyRef.targetColumn);
     // Perk keys repeat across branches, so an unscoped list is four identical
     // "II"s and picking one is a coin flip. Scope it the same way resolution is.
@@ -1432,8 +1501,12 @@ function referenceColumns(file) {
   return columns;
 }
 
-/** One editable value in the panel, wired to the same writeCell the table uses. */
-function fieldEditor(entry, columnIndex) {
+/** One editable value in the panel, wired to the same writeCell the table uses.
+ *
+ * `metaOverride` narrows the control for one row rather than for the column:
+ * an effect's `target` is a node tier, a group or nothing at all depending on
+ * the scope beside it, and the snapshot's per-column meta cannot say which. */
+function fieldEditor(entry, columnIndex, metaOverride) {
   const column = entry.header[columnIndex];
   const saved = state.loaded.get(entry.file).rows[entry.rowIndex][columnIndex];
   const rows = dataOf(entry.file).rows;
@@ -1443,12 +1516,16 @@ function fieldEditor(entry, columnIndex) {
   const label = document.createElement("label");
   label.append(column);
 
-  const meta = metaOf(entry.file, columnIndex);
+  const meta = { ...metaOf(entry.file, columnIndex), ...(metaOverride || {}) };
   const input = makeControl(meta, rows[entry.rowIndex][columnIndex], true);
 
   const colors = colorColumns(entry.header, rows);
   const suggestions = buildSuggestions(entry.header, rows, colors);
-  const list = meta.type === "text" && !meta.options ? suggestions.get(columnIndex) : null;
+  // `noSuggestions` is for a caller that brings its own datalist: the column's
+  // own distinct values are the wrong vocabulary for an effect's target, which
+  // holds node tiers, biome keys and boost ids all at once.
+  const list = meta.type === "text" && !meta.options && !meta.noSuggestions
+    ? suggestions.get(columnIndex) : null;
   if (list) {
     input.setAttribute("list", `deps-${list.id}`);
     list.id = `deps-${list.id}`;
@@ -1832,8 +1909,29 @@ function redrawForField(input) {
  * async `open()` for whatever it needs loaded before it can draw. */
 const modules = window.BalanceViews || {};
 
+/** The file list's resizer, kept so the sidebar can be folded away with it. */
+let filesResizer = null;
+
+/** The file list belongs to the table: it picks which table the grid shows. No
+ * other view is a table - the graph spans every file at once, and a game screen
+ * reads four of them per card - so outside the table view the column is 240px of
+ * nothing, taken off the width the actual view has to work in. */
+function setSidebarVisible(visible) {
+  if (!el.files) return;
+  el.files.hidden = !visible;
+  if (filesResizer) filesResizer.handle.hidden = !visible;
+  const main = document.querySelector("main");
+  if (visible) {
+    if (filesResizer) filesResizer.restore();
+    else main.style.gridTemplateColumns = "";
+  } else {
+    main.style.gridTemplateColumns = "1fr";
+  }
+}
+
 function setView(view) {
   state.view = view;
+  setSidebarVisible(view === "table");
   el.viewTable.classList.toggle("active", view === "table");
   el.viewGraph.classList.toggle("active", view === "graph");
   document.querySelector(".table-wrap").hidden = view !== "table";
@@ -2097,7 +2195,8 @@ window.addEventListener("beforeunload", (event) => {
 (async function start() {
   mountModules();
   watchForChanges();
-  makeGridResizer(document.querySelector("main"), el.files, "files", "start", 240, 140, 560);
+  filesResizer = makeGridResizer(
+    document.querySelector("main"), el.files, "files", "start", 240, 140, 560);
   makeGridResizer(el.graphView, el.deps, "deps", "end", 320, 220, 900);
   try {
     const info = await api("/api/files");

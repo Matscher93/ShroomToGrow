@@ -29,6 +29,19 @@ func _effect(stat: StringName, per_level: float, op: UpgradeEffectDef.Op,
 	e.target = target
 	return e
 
+func _node(node_id: int, tags: Array[StringName]) -> MyceliumNode:
+	var node := MyceliumNode.new()
+	node.node_id = node_id
+	node.tags = tags
+	return node
+
+## Rebuilds the system over a node list, since the tag index is read once at
+## construction. The tracks are kept, so a _register() either side of this call
+## still lands in the same place.
+func _with_nodes(nodes: Array[MyceliumNode]) -> void:
+	_production = ProductionSystem.new(_symbiosis, _biome, _prestige, _ctx,
+		null, null, null, null, null, nodes)
+
 func _register(system: UpgradeSystem, id: StringName, effects: Array[UpgradeEffectDef]) -> void:
 	var d := UpgradeDef.new()
 	d.id = id
@@ -75,6 +88,45 @@ func test_bonuses_are_scoped_to_their_node() -> void:
 	_register(_symbiosis, &"SymPot", [_effect(&"potency_production", 1.0,
 		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.NODE, &"3")])
 	assert_float(_production.node_potency_bonus(&"7").to_float()).is_equal_approx(1.0, EPS)
+
+# ─── Groups ──────────────────────────────────────────────────────────────────
+
+func test_a_tag_bonus_reaches_every_node_carrying_it() -> void:
+	_with_nodes([_node(3, [&"canopy"]), _node(7, [&"canopy"]), _node(1, [])])
+	_register(_biome, &"Canopy", [_effect(&"potency_production", 1.0,
+		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.TAG, &"canopy")])
+
+	assert_float(_production.node_potency_bonus(&"3").to_float()).is_equal_approx(2.0, EPS)
+	assert_float(_production.node_potency_bonus(&"7").to_float()).is_equal_approx(2.0, EPS)
+
+func test_a_tag_bonus_does_not_reach_an_untagged_node() -> void:
+	_with_nodes([_node(3, [&"canopy"]), _node(1, [])])
+	_register(_biome, &"Canopy", [_effect(&"potency_production", 1.0,
+		UpgradeEffectDef.Op.INCREASED, UpgradeEffectDef.Scope.TAG, &"canopy")])
+
+	assert_float(_production.node_potency_bonus(&"1").to_float()).is_equal_approx(1.0, EPS)
+
+## `target` carries biome keys and boost ids as well as node tiers, and only the
+## node ones have tags. A biome read must not pick up a node's groups because the
+## two share the field.
+func test_a_biome_target_is_not_read_as_a_node_tag() -> void:
+	_with_nodes([_node(3, [&"canopy"])])
+	_register(_prestige, &"Canopy", [_effect(&"biome_points", 5.0,
+		UpgradeEffectDef.Op.ADD, UpgradeEffectDef.Scope.TAG, &"canopy")])
+
+	assert_float(_production.stack(&"biome_points", BigNumber.new(0.0, 0), &"forest").to_float()) \
+		.is_equal_approx(0.0, EPS)
+
+## The memo is keyed on the target, and a group spans several. Two tiers reading
+## the same group must both get it rather than the second one reading the first
+## one's cached answer - or missing it because the first read filled the memo.
+func test_two_nodes_sharing_a_tag_both_get_it() -> void:
+	_with_nodes([_node(3, [&"canopy"]), _node(7, [&"canopy"])])
+	_register(_biome, &"Canopy", [_effect(&"node_production", 1.0,
+		UpgradeEffectDef.Op.MORE, UpgradeEffectDef.Scope.TAG, &"canopy")])
+
+	assert_float(_production.node_production_bonus(&"3").to_float()).is_equal_approx(2.0, EPS)
+	assert_float(_production.node_production_bonus(&"7").to_float()).is_equal_approx(2.0, EPS)
 
 func test_synergy_uses_its_own_stat() -> void:
 	_register(_biome, &"Syn", [_effect(&"synergy_production", 2.0,

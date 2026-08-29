@@ -141,6 +141,34 @@ func test_node_production_bonuses_are_keyed_by_node_id_not_index() -> void:
 	assert_float(bonuses[0].to_float()).is_equal_approx(1.0, EPS)
 	assert_float(bonuses[1].to_float()).is_equal_approx(2.0, EPS)
 
+## The trap a group bonus on &"node_production" sets, as a number rather than a
+## comment: the cascade applies the bonus once per tagged link, so a x2 across
+## three tiers is x2^3 at the nutrient output, not x2. Anyone changing the
+## cascade or the bucket combination sees this move.
+func test_a_tag_bonus_multiplies_every_tagged_tier_in_the_cascade() -> void:
+	var nodes: Array[MyceliumNode] = [_node(0), _node(1), _node(2, 1)]
+	for node in nodes:
+		node.tags = [&"canopy"] as Array[StringName]
+	_production = ProductionSystem.new(_symbiosis, _biome, _prestige, _ctx,
+		null, null, null, null, null, nodes)
+	var e := UpgradeEffectDef.new()
+	e.stat = &"node_production"
+	e.per_level = 1.0
+	e.op = UpgradeEffectDef.Op.INCREASED
+	e.scope = UpgradeEffectDef.Scope.TAG
+	e.target = &"canopy"
+	var d := UpgradeDef.new()
+	d.id = &"Canopy"
+	d.effects = [e]
+	_symbiosis.register(d)
+	_symbiosis.set_level_for_analysis(&"Canopy", 1)
+
+	_system(nodes).handle_tick()
+
+	# tier 2: 1 * 2 = 2 into tier 1, tier 1: 2 * 2 = 4 into tier 0,
+	# tier 0: 4 * 2 = 8 into nutrients.
+	assert_float(_player.nutrients.to_float()).is_equal_approx(8.0, EPS)
+
 func test_an_empty_bonus_array_is_computed_fresh() -> void:
 	var nodes := _chain([1] as Array[int])
 	_register(_symbiosis, &"Tier0", &"node_production", 1.0, &"0")

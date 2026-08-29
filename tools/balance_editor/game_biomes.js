@@ -23,7 +23,7 @@
   const {
     log10Of, growthCurve, effectCurve, enumIs, chartBlock, engineSeries, xpLadder,
     rowsOf, findRow, cell, numberCell,
-    field, fieldGroup, bigField, engineCurve,
+    field, fieldGroup, bigField, engineCurve, scopeTargetFields,
   } = window.GameKit;
 
   const SIZE_LEVELS = 50;        // matches BalanceData.CURVE_OPEN_ENDED_LEVELS
@@ -438,8 +438,14 @@
 
     const left = document.createElement("div");
     left.className = "game-fields";
-    for (const column of ["stat", "op", "scope", "target", "per_level", "level_scaling",
-                          "max_magnitude"]) {
+    for (const column of ["stat", "op"]) {
+      const editor = field(slot.effect, column);
+      if (editor) left.append(editor);
+    }
+    // Paired, and under TAG the group's tiers are picked here - see
+    // GameKit.scopeTargetFields.
+    left.append(scopeTargetFields(slot.effect));
+    for (const column of ["per_level", "level_scaling", "max_magnitude"]) {
       const editor = field(slot.effect, column);
       if (editor) left.append(editor);
     }

@@ -199,7 +199,7 @@ func _ready() -> void:
 	production_system = ProductionSystem.new(upgrade_system, biome_upgrade_system,
 		prestige_upgrade_system, resolve_context, boost_upgrade_system,
 		project_upgrade_system, growth_upgrade_system, fertilizer_upgrade_system,
-		mission_upgrade_system)
+		mission_upgrade_system, nodes.mycelium_nodes)
 	# Built before the tick system, which drives the pump: the well's rate and
 	# yield are stats like any other, but whether it runs at all is a biome unlock.
 	biomes_data = BiomesData.new()

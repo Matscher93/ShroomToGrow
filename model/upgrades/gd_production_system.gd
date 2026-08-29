@@ -35,16 +35,38 @@ var _memo: Dictionary = {}
 var _memo_external: Dictionary = {}
 var _memo_version := -1
 
+## target -> the bucket keys a read at that target draws from, as
+## UpgradeSystem.scope_keys() builds them. Seeded from the node list at
+## construction so a node's tags cost nothing on the hot path, and filled lazily
+## for anything else - `target` also carries biome keys, boost ids and creature
+## ids, and those resolve to ["g", "n:<it>"] with no tags. Node ids are digits and
+## the rest are words, so the two namespaces cannot collide.
+##
+## Bounded by authored data ("" plus the node, biome, boost and creature ids), so
+## it saturates within the first tick rather than growing.
+##
+## Never invalidated: MyceliumNode.tags is authored data, loaded once, and the
+## save carries only manual_nodes and _auto_nodes_*. Anything that starts moving
+## tags at runtime has to clear this *and* both memos, since _version() only
+## tracks the upgrade tracks and would not move.
+var _keys_by_target: Dictionary = {}
+
 ## `boosts`, `projects`, `growth`, `fertilizer` and `missions` default to empty
 ## tracks so the callers that predate the boosts menu, the well, the growth sheet,
 ## the events queue and the ruins - and the tests that only care about one of the
 ## other three - keep building a ProductionSystem with four arguments. An empty
 ## UpgradeSystem resolves to the identity, so the stack below needs no null check
 ## on the hot path.
+##
+## `nodes` is what TAG-scoped effects resolve against: a node's tags decide which
+## "t:" buckets a read at that node draws from. Trailing and optional for the same
+## reason as the tracks above; leaving it out means no node carries a tag, and a
+## TAG effect resolves to nothing.
 func _init(symbiosis: UpgradeSystem, biome: UpgradeSystem, prestige: UpgradeSystem,
 		ctx: ResolveContext, boosts: UpgradeSystem = null,
 		projects: UpgradeSystem = null, growth: UpgradeSystem = null,
-		fertilizer: UpgradeSystem = null, missions: UpgradeSystem = null) -> void:
+		fertilizer: UpgradeSystem = null, missions: UpgradeSystem = null,
+		nodes: Array[MyceliumNode] = []) -> void:
 	_symbiosis = symbiosis
 	_biome = biome
 	_prestige = prestige
@@ -54,22 +76,49 @@ func _init(symbiosis: UpgradeSystem, biome: UpgradeSystem, prestige: UpgradeSyst
 	_fertilizer = fertilizer if fertilizer != null else UpgradeSystem.new()
 	_missions = missions if missions != null else UpgradeSystem.new()
 	_ctx = ctx
+	for node in nodes:
+		_keys_by_target[node.id_key] = UpgradeSystem.scope_keys(
+			PackedStringArray(node.tags), node.id_key)
+
+## The bucket keys a read at this target draws from, cached per target.
+##
+## Tags are derived here rather than passed in by the caller so that they stay a
+## pure function of `target`: the memo below is keyed on (stat, base, target), and
+## a caller-supplied tag list would either be missing from that key - unsound the
+## moment two callers disagree - or force the composite String key the memo
+## exists to avoid.
+func _keys_for(target: StringName) -> PackedStringArray:
+	var keys: Variant = _keys_by_target.get(target)
+	if keys != null:
+		return keys
+	var built := UpgradeSystem.scope_keys(PackedStringArray(), target)
+	_keys_by_target[target] = built
+	return built
 
 ## Runs base through every track. `target` scopes the lookup to one node id
-## or biome key, leave it empty for a global stat.
+## or biome key, leave it empty for a global stat. A node's tags come along with
+## it, so a TAG-scoped effect reaches every tier carrying the tag.
 func stack(stat: StringName, base: BigNumber, target: StringName = &"") -> BigNumber:
 	var hit := _recall(_memo, stat, base, target)
 	if hit != null:
 		return hit
-	var value := _symbiosis.modify(stat, base, _ctx, [], target)
-	value = _biome.modify(stat, value, _ctx, [], target)
-	value = _prestige.modify(stat, value, _ctx, [], target)
-	value = _boosts.modify(stat, value, _ctx, [], target)
-	value = _projects.modify(stat, value, _ctx, [], target)
-	value = _growth.modify(stat, value, _ctx, [], target)
-	value = _fertilizer.modify(stat, value, _ctx, [], target)
-	value = _missions.modify(stat, value, _ctx, [], target)
-	return _remember(_memo, stat, base, target, value)
+	return _remember(_memo, stat, base, target, _run_all(stat, base, _keys_for(target)))
+
+## Resolves against an explicit bucket key set, skipping both the target lookup
+## and the memo. For the two tools that measure one bucket at a time and need to
+## read a "t:" bucket, which no single target names on its own.
+func stack_at(stat: StringName, base: BigNumber, keys: PackedStringArray) -> BigNumber:
+	return _run_all(stat, base, keys)
+
+func _run_all(stat: StringName, base: BigNumber, keys: PackedStringArray) -> BigNumber:
+	var value := _symbiosis.modify(stat, base, _ctx, keys)
+	value = _biome.modify(stat, value, _ctx, keys)
+	value = _prestige.modify(stat, value, _ctx, keys)
+	value = _boosts.modify(stat, value, _ctx, keys)
+	value = _projects.modify(stat, value, _ctx, keys)
+	value = _growth.modify(stat, value, _ctx, keys)
+	value = _fertilizer.modify(stat, value, _ctx, keys)
+	return _missions.modify(stat, value, _ctx, keys)
 
 ## Everything boosting the stat *except* the player's own symbiosis levels. The
 ## project, growth and fertilizer tracks belong here as much as the boosts do: all
@@ -83,13 +132,14 @@ func stack_external(stat: StringName, base: BigNumber, target: StringName = &"")
 	var hit := _recall(_memo_external, stat, base, target)
 	if hit != null:
 		return hit
-	var value := _biome.modify(stat, base, _ctx, [], target)
-	value = _prestige.modify(stat, value, _ctx, [], target)
-	value = _boosts.modify(stat, value, _ctx, [], target)
-	value = _projects.modify(stat, value, _ctx, [], target)
-	value = _growth.modify(stat, value, _ctx, [], target)
-	value = _fertilizer.modify(stat, value, _ctx, [], target)
-	value = _missions.modify(stat, value, _ctx, [], target)
+	var keys := _keys_for(target)
+	var value := _biome.modify(stat, base, _ctx, keys)
+	value = _prestige.modify(stat, value, _ctx, keys)
+	value = _boosts.modify(stat, value, _ctx, keys)
+	value = _projects.modify(stat, value, _ctx, keys)
+	value = _growth.modify(stat, value, _ctx, keys)
+	value = _fertilizer.modify(stat, value, _ctx, keys)
+	value = _missions.modify(stat, value, _ctx, keys)
 	return _remember(_memo_external, stat, base, target, value)
 
 # ------------------------------------------------------------ introspection

@@ -25,12 +25,23 @@
 (() => {
   const {
     log10Of, formatBig, growthCurve, effectCurve, enumIs, chartBlock, engineSeries, engineCurve,
-    rowsOf, findRow, cell, numberCell, field, fieldGroup, bigField,
+    rowsOf, findRow, cell, numberCell, field, fieldGroup, bigField, scopeTargetFields,
+    declaredGroups, tagsOfNode,
   } = window.GameKit;
 
   const BUY_LEVELS = 50;         // matches BalanceData.CURVE_OPEN_ENDED_LEVELS
   const TRACK_LEVELS = 50;       // both tracks are max_level 0, i.e. open ended
   const DEPENDENCY_SIZE = 10;    // the biome size the scaled synergy line is drawn at
+
+  /** The three stats that land on a tier's own output. potency and synergy
+   * multiply into the symbiosis bonus, node_production multiplies over both -
+   * ProductionSystem.node_production_bonus() folds them in that order. */
+  const NODE_STATS = ["potency_production", "synergy_production", "node_production"];
+
+  // Groups are read through GameKit so the screen and the scope/target control
+  // cannot disagree about who is in one.
+  const tagsOf = tagsOfNode;
+  const declaredTags = declaredGroups;
 
   /** What the comparison chart plots, and how. Every metric is a curve one card
    * already draws for a single tier; the point of the section is seeing where
@@ -363,12 +374,40 @@
     wrap.append(body);
 
     body.append(fieldGroup("Identity", entry, ["name", "desc"]));
-    body.append(fieldGroup("Wiring", entry,
-      ["node_id", "color", "level_font_color", "unlock_perk_id"]));
+    body.append(wiringBlock(entry));
     body.append(buyBlock(entry));
     body.append(trackBlock(trackOf("Potency", cell(entry, "node_id")), entry));
     body.append(trackBlock(trackOf("Synergy", cell(entry, "node_id")), entry));
+    body.append(reachSection(entry));
     body.append(startingState(entry));
+    return wrap;
+  }
+
+  /** Wiring, plus the groups this tier belongs to. A group is free text because
+   * this is where one is born - there is nowhere else to declare it - so the
+   * hint below names who else carries each, and a group of one shows as such.
+   */
+  function wiringBlock(entry) {
+    const wrap = fieldGroup("Wiring", entry,
+      ["node_id", "color", "level_font_color", "unlock_perk_id", "tags"]);
+    const tags = tagsOf(entry);
+    if (!tags.length) return wrap;
+
+    const counts = declaredTags();
+    const parts = tags.map((tag) => {
+      const others = nodeEntries()
+        .filter((other) => other !== entry && tagsOf(other).includes(tag))
+        .map((other) => `tier ${cell(other, "node_id")}`);
+      return others.length
+        ? `${tag}: with ${others.join(", ")}`
+        : `${tag}: this tier alone - a group of one is a node-scoped effect ` +
+          "written the long way, or a typo";
+    });
+    const hint = document.createElement("p");
+    hint.className = counts.size && parts.some((part) => part.includes("alone"))
+      ? "hint warn" : "hint";
+    hint.textContent = parts.join(" · ");
+    wrap.append(hint);
     return wrap;
   }
 
@@ -512,23 +551,39 @@
 
     const effectFields = document.createElement("div");
     effectFields.className = "game-fields";
-    for (const column of ["stat", "op", "scope", "target", "per_level", "level_scaling",
-                          "max_magnitude"]) {
+    for (const column of ["stat", "op"]) {
+      const editor = field(track.effect, column);
+      if (editor) effectFields.append(editor);
+    }
+    // Paired, because the scope decides what the target may say — see
+    // GameKit.scopeTargetFields, which also owns the warning below so a scope
+    // changed in place cannot leave the previous scope's complaint standing.
+    //
+    // scope NODE with target "<tier>" is what keeps a node_production bonus to
+    // this tier alone; a target that has drifted off the tier is silent. A group
+    // this tier does not carry is the same mistake spelled differently.
+    effectFields.append(scopeTargetFields(track.effect, (effect) => {
+      const target = cell(effect, "target");
+      const nodeId = cell(node, "node_id");
+      const wrong = document.createElement("p");
+      wrong.className = "hint warn";
+      if (cellIs(effect, "scope", "NODE") && target !== nodeId) {
+        wrong.textContent = `Scoped to node "${target}" but this is tier ${nodeId} — `
+          + "the effect lands on a different tier, or on none.";
+        return wrong;
+      }
+      if (cellIs(effect, "scope", "TAG") && !tagsOf(node).includes(target)) {
+        wrong.textContent = `Scoped to group "${target}", which tier ${nodeId} does not carry — `
+          + "this tier's own track does not reach it.";
+        return wrong;
+      }
+      return null;
+    }));
+    for (const column of ["per_level", "level_scaling", "max_magnitude"]) {
       const editor = field(track.effect, column);
       if (editor) effectFields.append(editor);
     }
     effectFields.append(dependencyChip(track.effect));
-    // scope NODE with target "<tier>" is what keeps a node_production bonus to
-    // this tier alone; a target that has drifted off the tier is silent.
-    const target = cell(track.effect, "target");
-    const nodeId = cell(node, "node_id");
-    if (cellIs(track.effect, "scope", "NODE") && target !== nodeId) {
-      const wrong = document.createElement("p");
-      wrong.className = "hint warn";
-      wrong.textContent = `Scoped to node "${target}" but this is tier ${nodeId} — `
-        + "the effect lands on a different tier, or on none.";
-      effectFields.append(wrong);
-    }
     effectSplit.append(effectFields);
 
     let capped = false;
@@ -596,6 +651,145 @@
    * like any other field - but they are a running save's counters that happen to
    * be authored with a starting value, not balance. Folded away so they are
    * reachable without sitting among the numbers being tuned. */
+  /* ----------------------------------------------------------------- reach */
+
+  /** Enough of a path to place a row without the column running off the card. */
+  function shortPath(path) {
+    const parts = (path || "").split("::")[0].replace(/^res:\/\/data\//, "").split("/");
+    return parts.slice(-2).join("/");
+  }
+
+  /** Everything authored anywhere that lands on this tier's own output, and how
+   * far each one reaches.
+   *
+   * Scanned rather than listed: effects reach their systems by plain StringName,
+   * so the only way to know what boosts a tier is to look at every row naming a
+   * stat. A FertilizerUpgradeDef takes its scope and target from the producer it
+   * expands, so it is reported through that producer's row rather than twice. */
+  function nodeWriters(entry) {
+    const nodeId = cell(entry, "node_id");
+    const tags = tagsOf(entry);
+    const out = [];
+
+    for (const file of state.files) {
+      if (!state.loaded.has(file)) continue;
+      const data = dataOf(file);
+      if (!data.header.includes("stat")) continue;
+      for (const row of rowsOf(file)) {
+        const stat = cell(row, "stat");
+        if (!NODE_STATS.includes(stat)) continue;
+
+        const target = cell(row, "target");
+        let reach = null;
+        if (!cell(row, "scope") || cellIs(row, "scope", "GLOBAL")) reach = "every tier";
+        else if (cellIs(row, "scope", "NODE") && target === nodeId) reach = "this tier";
+        else if (cellIs(row, "scope", "TAG") && tags.includes(target)) reach = `group ${target}`;
+        if (!reach) continue;
+
+        out.push({
+          entry: row,
+          reach,
+          stat,
+          label: labelOf(row),
+          where: shortPath(row.path),
+          // A BoostDef names its rate base_per_level and a producer lp_per_level;
+          // neither carries an op, because the tree that expands them fixes it.
+          op: cell(row, "op") || "—",
+          perLevel: cell(row, "per_level") || cell(row, "base_per_level")
+            || cell(row, "lp_per_level") || "—",
+          scaling: cell(row, "level_scaling") || "—",
+        });
+      }
+    }
+    // Widest reach first: what every tier gets is the backdrop the tier's own
+    // effects are read against.
+    const order = { "every tier": 0, "this tier": 2 };
+    const rank = (row) => (row.reach in order ? order[row.reach] : 1);
+    return out.sort((a, b) =>
+      rank(a) - rank(b) || a.reach.localeCompare(b.reach)
+      || a.stat.localeCompare(b.stat) || a.where.localeCompare(b.where));
+  }
+
+  function reachSection(entry) {
+    const wrap = document.createElement("div");
+    wrap.className = "game-group";
+    const rows = nodeWriters(entry);
+
+    const heading = document.createElement("h4");
+    heading.textContent = `Everything that boosts tier ${cell(entry, "node_id")} (${rows.length})`;
+    wrap.append(heading);
+
+    const note = document.createElement("p");
+    note.className = "hint";
+    note.textContent = "potency and synergy multiply into this tier's symbiosis bonus and "
+      + "node_production multiplies over both. Found by scanning every table with a stat "
+      + "column, which is the only way to know: effects reach their systems by plain "
+      + "StringName and nothing links them back. A fertilizer upgrade takes its scope from "
+      + "the producer it expands, so it is listed as that producer.";
+    wrap.append(note);
+
+    const table = document.createElement("table");
+    table.className = "web-table water-writers";
+    const head = table.insertRow();
+    for (const column of ["reach", "stat", "what", "op", "per level", "scaling", "file"]) {
+      const th = document.createElement("th");
+      th.textContent = column;
+      head.append(th);
+    }
+
+    let lastReach = null;
+    for (const row of rows) {
+      const tr = table.insertRow();
+      if (row.reach !== lastReach) tr.className = "branch";
+      lastReach = row.reach;
+      tr.insertCell().textContent = row.reach;
+      tr.insertCell().textContent = row.stat;
+
+      const name = tr.insertCell();
+      name.textContent = row.label;
+      name.className = "link";
+      name.title = "Open this in the graph";
+      name.onclick = () => { setFocus(row.entry.path); setView("graph"); };
+
+      tr.insertCell().textContent = row.op;
+      tr.insertCell().textContent = row.perLevel;
+      tr.insertCell().textContent = row.scaling;
+      tr.insertCell().textContent = row.where;
+    }
+    wrap.append(table);
+
+    const cascade = cascadeWarning(entry, rows);
+    if (cascade) wrap.append(cascade);
+    return wrap;
+  }
+
+  /** node_production is applied once per link of the tier cascade, so a bonus
+   * reaching K tiers is worth its multiplier to the power K at the nutrient
+   * output. That is why the boosts and the growth producers pin themselves to
+   * tier 0 — spelled out here, at the point where someone widens one. */
+  function cascadeWarning(entry, rows) {
+    const tiers = nodeEntries().length;
+    const counts = declaredTags();
+    const spans = new Map();
+    for (const row of rows) {
+      if (row.stat !== "node_production") continue;
+      if (row.reach === "every tier") spans.set("every tier", tiers);
+      else if (row.reach.startsWith("group ")) {
+        const size = counts.get(row.reach.slice(6)) || 1;
+        if (size > 1) spans.set(row.reach, size);
+      }
+    }
+    if (!spans.size) return null;
+
+    const parts = [...spans].map(([reach, size]) =>
+      `${reach} (${size} tiers, so x1.5 there lands as x1.5^${size} in nutrients)`);
+    const warn = document.createElement("p");
+    warn.className = "hint warn";
+    warn.textContent = `node_production above reaches more than this tier: ${parts.join(", ")}. `
+      + "The cascade applies it once per link.";
+    return warn;
+  }
+
   function startingState(entry) {
     const details = document.createElement("details");
     details.className = "game-unused";
@@ -626,8 +820,10 @@
     const missing = entries.filter((entry) =>
       !trackOf("Potency", cell(entry, "node_id")).def
       || !trackOf("Synergy", cell(entry, "node_id")).def).length;
+    const groups = declaredTags().size;
     setStatus(`${entries.length} node tiers`
-      + (missing ? ` · ${missing} missing a track` : " · every tier has both tracks"));
+      + (missing ? ` · ${missing} missing a track` : " · every tier has both tracks")
+      + ` · ${groups} group${groups === 1 ? "" : "s"}`);
   };
 
   window.BalanceScreens = window.BalanceScreens || {};

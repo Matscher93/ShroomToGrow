@@ -92,6 +92,19 @@ func test_the_group_total_reaches_a_node_scoped_effect() -> void:
 	# 1.0 * (1 + 3.0), which a global resolve never sees at all.
 	assert_str((groups[0]["total"] as BigNumber).to_display(2)).is_equal("4.00")
 
+## A group bucket has no node to resolve at - a group is not a tier - so the
+## total reads the bucket directly. Skipping it, as this did while TAG was dead,
+## would put a header below the rows explaining it just as a node scope did.
+func test_a_tag_scoped_total_reports_its_group() -> void:
+	var scoped := _def(&"canopy", "Canopy", &"node_production", UpgradeEffectDef.Op.MORE, 3.0)
+	scoped.effects[0].scope = UpgradeEffectDef.Scope.TAG
+	scoped.effects[0].target = &"canopy"
+	_level(_symbiosis, scoped, 1)
+
+	var groups := BonusBreakdown.build(_production)
+	assert_str(str(groups[0]["total_scope"])).is_equal("t:canopy")
+	assert_str((groups[0]["total"] as BigNumber).to_display(2)).is_equal("4.00")
+
 ## Tick speed is seconds off an interval, authored as ADDs with a negative
 ## per_level. There is no multiplier in it and 1.0 is not its base.
 func test_an_all_add_resource_totals_as_an_amount_from_zero() -> void:

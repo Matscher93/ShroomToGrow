@@ -120,30 +120,42 @@ static func _is_additive(sources: Array) -> bool:
 ## a multiplicative resource, the sum for an additive one.
 static func _total(production: ProductionSystem, stats: Array, additive: bool,
 		scope: String) -> BigNumber:
-	var target := _target_of(scope)
 	if additive:
 		var sum := BigNumber.new(0.0, 0)
 		for stat: String in stats:
-			sum = sum.add(production.stack(StringName(stat), BigNumber.new(0.0, 0), target))
+			sum = sum.add(_resolve_at(production, StringName(stat), BigNumber.new(0.0, 0), scope))
 		return sum
 	var product := BigNumber.from_value(1.0)
 	for stat: String in stats:
-		product = product.mul(production.stack(StringName(stat),
-			BigNumber.from_value(1.0), target))
+		product = product.mul(_resolve_at(production, StringName(stat),
+			BigNumber.from_value(1.0), scope))
 	return product
+
+## One stat resolved at one bucket key.
+##
+## A node key goes through stack() rather than being turned into a key set here,
+## so the read picks up the tags that node carries as well - a tier in a boosted
+## group is worth what the game says it is worth. A tag key has no target to
+## stack() at (a group is not a node), so it reads its own bucket over the global
+## one directly.
+static func _resolve_at(production: ProductionSystem, stat: StringName, base: BigNumber,
+		scope: String) -> BigNumber:
+	if scope.begins_with("t:"):
+		return production.stack_at(stat, base,
+			UpgradeSystem.scope_keys(PackedStringArray([scope.substr(2)]), &""))
+	return production.stack(stat, base, _target_of(scope))
 
 ## Whichever scope the rows write into resolves largest, "" when that is global.
 ##
-## Node buckets only. A tag bucket cannot be reached through stack() at all - it
-## forwards its target as modify()'s node_id and always passes an empty tag list
-## - and nothing in data/ authors a tag-scoped effect today, so the gap costs
-## nothing until one does.
+## Node and tag buckets alike: a group bonus is as much a reason for a header to
+## sit above its rows as a single-node one, and reads the same way once the tier
+## it names is a group instead.
 static func _best_scope(production: ProductionSystem, stats: Array, sources: Array,
 		additive: bool) -> String:
 	var best := ""
 	var best_size := _magnitude(_total(production, stats, additive, ""))
 	for key: String in _scope_keys(sources):
-		if not key.begins_with("n:"):
+		if not (key.begins_with("n:") or key.begins_with("t:")):
 			continue
 		var size := _magnitude(_total(production, stats, additive, key))
 		if size.gt(best_size):
