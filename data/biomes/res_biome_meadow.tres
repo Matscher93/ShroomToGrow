@@ -14,6 +14,6 @@ biome_color = Color(0.49019608, 0.9411765, 0.8235294, 1)
 biome_shader = ExtResource("1_1ot1h")
 upgrade_ids = Array[StringName]([&"DenseMycelium", &"ForestUpgrade2", &"ForestUpgrade3", &"ForestUpgrade4", &"ForestUpgrade5", &"ForestUpgrade6", &"ForestUpgrade7", &"ForestUpgrade8", &"ForestUpgrade9", &"ForestUpgrade10"])
 always_unlocked = true
-_size_base_cost_exponent = 1
+_size_base_cost_exponent = 2
 size_cost_growth = 1.25
 size_cost_growth_exponent = 1.01

@@ -11,6 +11,6 @@ display_name = "Mycelium Potency"
 description = "increases mycelium production by 10% each level"
 _base_cost_exponent = 33
 cost_growth = 16.0
-cost_growth_exponent = 1.04
+cost_growth_exponent = 1.05
 effects = Array[ExtResource("1_ls420")]([ExtResource("2_46jik")])
 metadata/_custom_type_script = "uid://cvpufn4k21esd"
