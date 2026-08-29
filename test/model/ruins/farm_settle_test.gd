@@ -25,8 +25,9 @@ var _upgrades: UpgradeSystem
 var _production: ProductionSystem
 var _ctx: ResolveContext
 var _data: RuinsData
-var _creatures: CreatureSystem
+var _heroes: HeroSystem
 var _system: MissionSystem
+var _workers: WorkerSystem
 var _now: float = 1000.0
 
 func before_test() -> void:
@@ -42,12 +43,16 @@ func before_test() -> void:
 		_prestige, _ctx, UpgradeSystem.new(), UpgradeSystem.new(), UpgradeSystem.new(),
 		UpgradeSystem.new(), _upgrades)
 	_data = RuinsData.new()
-	_creatures = CreatureSystem.new(_data, _player, _creature_list(), _production)
-	_system = MissionSystem.new(_data, _player, _biomes_data, _production, _creatures,
-		_mission_list(), _prestige)
+	_heroes = HeroSystem.new(_data, _player, _hero_list(), _production)
+	_workers = WorkerSystem.new(_data, _player, _worker_cost(), _production)
+	_system = MissionSystem.new(_data, _player, _biomes_data, _production, _heroes,
+		_mission_list(), _prestige, null, _workers)
+	# Enough hired that the tests below are about the farms rather than about
+	# being able to staff one.
+	_data.workers_owned = 6
 	_system.now_provider = func() -> float: return _now
-	_creatures.recruit(&"digger")
-	_creatures.recruit(&"hauler")
+	_heroes.recruit(&"digger")
+	_heroes.recruit(&"hauler")
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -64,9 +69,10 @@ func _payout(mantissa: float, exponent: int) -> MissionPayoutDef:
 func _mission_list() -> MissionList:
 	var errand := MissionDef.new()
 	errand.id = &"errand"
+	errand.hero_id = &"digger"
 	errand.display_name = "Errand"
 	errand.base_duration_seconds = 100.0
-	errand.min_creature_rank = 1
+	errand.min_hero_level = 1
 	errand.payouts = [_payout(1.0, 0)]
 
 	var plot := MissionDef.new()
@@ -74,40 +80,64 @@ func _mission_list() -> MissionList:
 	plot.display_name = "Plot"
 	plot.is_farm = true
 	plot.base_duration_seconds = CYCLE
-	plot.min_creature_rank = 1
+	plot.min_hero_level = 1
 	plot.payouts = [_payout(1.0, 1)]
 
 	var list := MissionList.new()
 	list.missions = [errand, plot]
 	return list
 
-func _creature_list() -> CreatureList:
-	var list := CreatureList.new()
-	list.creatures = [_creature(&"digger", "Digger"), _creature(&"hauler", "Hauler")]
+func _hero_list() -> HeroList:
+	var list := HeroList.new()
+	list.heroes = [_hero(&"digger", "Digger"), _hero(&"hauler", "Hauler")]
 	return list
 
-func _creature(id: StringName, name: String) -> CreatureDef:
+func _hero(id: StringName, name: String) -> HeroDef:
 	var currency := CurrencyDef.new()
 	currency.currency_type = CurrencyTypes.Types.RELICS
-	var def := CreatureDef.new()
+	var def := HeroDef.new()
 	def.id = id
 	def.display_name = name
-	def.speed_per_rank = 0.0     # rank 1 is a clean x1.0, so cycles read as authored
-	def.yield_per_rank = 0.0
-	def.affinity_bonus = 0.0
-	def.base_rank_cap = 5
+	def.speed_per_level = 0.0     # level 1 is a clean x1.0, so cycles read as authored
+	def.yield_per_level = 0.0
+	def.base_level_cap = 5
 	def.recruit_currency = currency
 	def.recruit_cost = BigNumber.new(0.0, 0)
-	def.rank_currency = currency
-	def.rank_base_cost = BigNumber.new(0.0, 0)
-	def.rank_cost_growth = 1.0
+	def.level_currency = currency
+	def.level_base_cost = BigNumber.new(0.0, 0)
+	def.level_cost_growth = 1.0
 	return def
 
 func _relics() -> float:
 	return _player.relics.to_float()
 
-func _start_farm() -> int:
-	var instance_id := _system.start_farm(&"plot", &"digger")
+func _worker_cost() -> WorkerCostDef:
+	var currency := CurrencyDef.new()
+	currency.currency_type = CurrencyTypes.Types.RELICS
+	var price := MissionPayoutDef.new()
+	price.currency = currency
+	price.amount = BigNumber.new(1.0, 1)      # 10 relics, doubling per worker
+	var cost := WorkerCostDef.new()
+	cost.prices = [price] as Array[MissionPayoutDef]
+	cost.cost_growth = 2.0
+	return cost
+
+## Raises how many workers one farm will hold, the way a boost rung does.
+func _grant_worker_room(levels: int) -> void:
+	var effect := UpgradeEffectDef.new()
+	effect.stat = &"workers_per_farm"
+	effect.op = UpgradeEffectDef.Op.ADD
+	effect.per_level = 1.0
+	var def := UpgradeDef.new()
+	def.id = &"room"
+	def.max_level = levels
+	def.effects = [effect] as Array[UpgradeEffectDef]
+	_upgrades.register(def)
+	for _i in levels:
+		assert_bool(_upgrades.buy_with_points(&"room", true)).is_true()
+
+func _start_farm(workers: int = 1) -> int:
+	var instance_id := _system.start_farm(&"plot", workers)
 	assert_int(instance_id).is_greater(0)
 	return instance_id
 
@@ -191,22 +221,21 @@ func test_an_expedition_does_not_take_a_farm_plot() -> void:
 	assert_int(_system.expeditions_out()).is_equal(1)
 	assert_bool(_system.has_free_farm_slot()).is_true()
 
-## One roster, two boards: a creature tending a farm is not available for an
-## errand, which is the whole tension the farms add.
-func test_a_creature_on_a_farm_is_busy() -> void:
+## The two halves of the roster never compete: a farm is worked by workers, so
+## starting one leaves every hero free for its own chain.
+func test_a_farm_leaves_the_heroes_alone() -> void:
 	_start_farm()
-	assert_bool(_creatures.is_busy(&"digger")).is_true()
-	assert_bool(_system.can_send(&"errand", &"digger")).is_false()
-	assert_bool(_system.can_send(&"errand", &"hauler")).is_true()
+	assert_bool(_heroes.is_busy(&"digger")).is_false()
+	assert_bool(_system.can_send(&"errand", &"digger")).is_true()
 
 func test_the_farm_board_fills_up() -> void:
 	_start_farm()
 	assert_bool(_system.has_free_farm_slot()).is_false()
-	assert_int(_system.start_farm(&"plot", &"hauler")).is_zero()
+	assert_int(_system.start_farm(&"plot", 1)).is_zero()
 
 func test_send_refuses_a_farm_and_start_farm_refuses_an_expedition() -> void:
 	assert_int(_system.send(&"plot", &"digger")).is_zero()
-	assert_int(_system.start_farm(&"errand", &"digger")).is_zero()
+	assert_int(_system.start_farm(&"errand", 1)).is_zero()
 
 # ─── Collecting ──────────────────────────────────────────────────────────────
 
@@ -226,14 +255,14 @@ func test_collect_refuses_a_farm() -> void:
 
 func test_collect_all_leaves_the_farms_running() -> void:
 	_start_farm()
-	assert_int(_system.send(&"errand", &"hauler")).is_greater(0)
+	assert_int(_system.send(&"errand", &"digger")).is_greater(0)
 	_now += CYCLE * 2.0
 	assert_int(_system.collect_all()).is_equal(1)
 	assert_int(_system.farm_slots_used()).is_equal(1)
 
 # ─── Stopping ────────────────────────────────────────────────────────────────
 
-## Stopping settles first, so taking a creature off never costs the player a
+## Stopping settles first, so taking a hero off never costs the player a
 ## cycle it had already turned.
 func test_stopping_a_farm_pays_what_it_had_earned() -> void:
 	var instance_id := _start_farm()
@@ -241,7 +270,9 @@ func test_stopping_a_farm_pays_what_it_had_earned() -> void:
 	assert_bool(_system.stop_farm(instance_id)).is_true()
 	assert_float(_relics()).is_equal_approx(PER_CYCLE * 2.0, EPS)
 	assert_int(_system.farm_slots_used()).is_zero()
-	assert_bool(_creatures.is_busy(&"digger")).is_false()
+	# The workers are back in the pool the moment the entry is gone: where a
+	# worker is, is read off the board.
+	assert_int(_workers.idle()).is_equal(6)
 
 func test_stop_farm_refuses_an_expedition() -> void:
 	var instance_id := _system.send(&"errand", &"digger")
@@ -274,7 +305,7 @@ func test_an_entry_saved_without_a_kind_loads_as_an_expedition() -> void:
 	var old_save := {
 		"active": [{
 			"mission_id": "errand",
-			"creature_id": "digger",
+			"hero_id": "digger",
 			"started_at": 500.0,
 			"duration": 100.0,
 			"instance_id": 3,
@@ -286,3 +317,73 @@ func test_an_entry_saved_without_a_kind_loads_as_an_expedition() -> void:
 	assert_int(restored.count()).is_equal(1)
 	assert_bool(bool(restored.active[0]["is_farm"])).is_false()
 	assert_int(restored.missions_completed).is_equal(4)
+
+# ─── Workers ─────────────────────────────────────────────────────────────────
+
+## The whole point of a second worker: N of them divide the cycle by N.
+func test_workers_divide_the_cycle() -> void:
+	assert_float(_system.duration_for(&"plot", &"", 1)).is_equal_approx(CYCLE, EPS)
+	assert_float(_system.duration_for(&"plot", &"", 2)).is_equal_approx(CYCLE / 2.0, EPS)
+	assert_float(_system.duration_for(&"plot", &"", 4)).is_equal_approx(CYCLE / 4.0, EPS)
+
+## A farm holds one worker until an upgrade says otherwise, so a second is
+## refused before the ceiling moves and taken after it.
+func test_a_farm_holds_one_worker_until_the_ceiling_moves() -> void:
+	assert_int(_workers.max_per_farm(&"plot")).is_equal(WorkerSystem.BASE_WORKERS_PER_FARM)
+	assert_int(_system.start_farm(&"plot", 2)).is_zero()
+	_grant_worker_room(2)
+	assert_int(_workers.max_per_farm(&"plot")).is_equal(3)
+	assert_int(_system.start_farm(&"plot", 2)).is_greater(0)
+
+func test_a_farm_cannot_take_more_workers_than_are_idle() -> void:
+	_grant_worker_room(9)
+	_data.workers_owned = 2
+	assert_int(_system.start_farm(&"plot", 3)).is_zero()
+	assert_int(_system.start_farm(&"plot", 2)).is_greater(0)
+	assert_int(_workers.idle()).is_zero()
+
+## Adding a worker settles first, so the cycles already turned are paid at the
+## rate they were turned at rather than at the new one.
+func test_adding_a_worker_settles_before_it_speeds_the_farm_up() -> void:
+	_grant_worker_room(3)
+	var instance_id := _start_farm()
+	_now += CYCLE * 2.0
+	assert_bool(_system.set_farm_workers(instance_id, 2)).is_true()
+	assert_float(_relics()).is_equal_approx(PER_CYCLE * 2.0, EPS)
+	assert_float(float(_data.find(instance_id)["duration"])).is_equal_approx(CYCLE / 2.0, EPS)
+
+	# And from here it pays at the new rate: half a cycle is now CYCLE/2.
+	_now += CYCLE / 2.0
+	assert_int(_system.settle_farms()).is_equal(1)
+	assert_float(_relics()).is_equal_approx(PER_CYCLE * 3.0, EPS)
+
+## The part-cycle already served is carried as a share of the cycle rather than
+## as seconds, so a worker added halfway through leaves the farm halfway through.
+func test_a_part_cycle_is_carried_across_a_worker_change() -> void:
+	_grant_worker_room(3)
+	var instance_id := _start_farm()
+	_now += CYCLE / 2.0
+	_system.set_farm_workers(instance_id, 2)
+	assert_float(_system.farm_progress_ratio(_data.find(instance_id))).is_equal_approx(0.5, EPS)
+
+func test_a_worker_change_below_one_or_above_the_ceiling_is_refused() -> void:
+	var instance_id := _start_farm()
+	assert_bool(_system.set_farm_workers(instance_id, 0)).is_false()
+	assert_bool(_system.set_farm_workers(instance_id, 2)).is_false()
+	assert_int(int(_data.find(instance_id)["workers"])).is_equal(1)
+
+func test_workers_on_a_farm_are_not_idle() -> void:
+	_grant_worker_room(3)
+	_start_farm(3)
+	assert_int(_workers.assigned()).is_equal(3)
+	assert_int(_workers.idle()).is_equal(3)
+
+## A farm pays its authored rate per cycle however many workers turn it: they are
+## already paid for in cycles, and paying them twice would make stacking one farm
+## strictly better than running two.
+func test_workers_speed_the_farm_without_also_enriching_it() -> void:
+	_grant_worker_room(3)
+	_start_farm(2)
+	_now += CYCLE
+	assert_int(_system.settle_farms()).is_equal(2)
+	assert_float(_relics()).is_equal_approx(PER_CYCLE * 2.0, EPS)

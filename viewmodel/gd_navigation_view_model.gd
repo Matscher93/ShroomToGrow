@@ -128,7 +128,7 @@ func _init() -> void:
 	# Sending and collecting move the collectable count directly. A mission
 	# *finishing* fires nothing - see badge_count().
 	App.ruins_data.active_changed.connect(_on_badges_changed)
-	# Reaching the first creature brings the Creatures row in, which is a row
+	# Reaching the first hero brings the Heroes row in, which is a row
 	# change rather than a badge one.
 	App.ruins_data.missions_completed_changed.connect(_on_destinations_changed.unbind(1))
 
@@ -190,8 +190,8 @@ func _is_sub_visible(sub: SubScreenDefinition) -> bool:
 	match sub.visible_when:
 		SubScreenDefinition.VisibleWhen.BOOSTS_UNLOCKED:
 			return App.crystal_caves_vm.boosts_visible
-		SubScreenDefinition.VisibleWhen.CREATURES_UNLOCKED:
-			return App.ruins_vm.creatures_visible
+		SubScreenDefinition.VisibleWhen.HEROES_UNLOCKED:
+			return App.ruins_vm.heroes_visible
 	return true
 
 ## Which sub-view the given screen is showing, or -1 for a screen that has none.

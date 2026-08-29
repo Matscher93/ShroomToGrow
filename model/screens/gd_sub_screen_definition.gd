@@ -14,7 +14,7 @@ enum BadgeSource { NONE, AFFORDABLE_BOOSTS, AFFORDABLE_AUTOMATIONS,
 
 ## When the row belongs in the menu at all. A sub-view that its screen hides is a
 ## row leading somewhere that is not on screen, so the two gates have to agree.
-enum VisibleWhen { ALWAYS, BOOSTS_UNLOCKED, CREATURES_UNLOCKED }
+enum VisibleWhen { ALWAYS, BOOSTS_UNLOCKED, HEROES_UNLOCKED }
 
 @export var display_name: String
 @export var tab_index: int

@@ -6,7 +6,7 @@ extends GdUnitTestSuite
 ## against App._ready() with nothing checking the two agree.
 ##
 ## They did not: the entire Ruins was absent from _reset() for as long as the
-## Ruins existed, so `--load=<a real save>` carried that player's creature ranks,
+## Ruins existed, so `--load=<a real save>` carried that player's hero levels,
 ## mission board and completed tally straight into what tools/balance_report.json
 ## then reported as a baseline. test/data/balance_pacing_test.gd pins that report,
 ## so the drift could not show up there either.
@@ -60,12 +60,14 @@ func test_reset_clears_the_expedition_rewards() -> void:
 	SIM._reset(App)
 	var expedition := _first_rewarding_expedition()
 	App.ruins_data.mark_expedition_done(expedition)
+	App.ruins_data.workers_owned = 5
 	App.mission_system.sync_expedition_rewards()
 	assert_int(App.expedition_upgrade_system.level(expedition)).is_equal(1)
 
 	SIM._reset(App)
 
 	assert_int(App.ruins_data.completed_expeditions.size()).is_zero()
+	assert_int(App.ruins_data.workers_owned).is_zero()
 	assert_int(App.expedition_upgrade_system.level(expedition)).is_zero()
 
 func _first_rewarding_expedition() -> StringName:
@@ -107,7 +109,7 @@ func _dirty_everything() -> void:
 	App.daily_reward_data.load_from_save({"streak": 6})
 	App.events_data.add(App.random_events.events[0].id, 3)
 	App.ruins_data.missions_completed = 12
-	App.ruins_data.creature_ranks[App.creature_defs.creatures[0].id] = 2
+	App.ruins_data.hero_levels[App.hero_defs.heroes[0].id] = 2
 
 ## Levels the first upgrade a track holds, whatever it happens to be. _defs is
 ## private by convention only, and reaching for it here is the same call

@@ -6,7 +6,7 @@
 
 [sub_resource type="Resource" id="effect_0"]
 script = ExtResource("2_effect_script")
-stat = &"creature_rank_cap"
+stat = &"hero_level_cap"
 op = 0
 scope = 0
 target = &""
@@ -17,7 +17,7 @@ level_scaling = 0
 script = ExtResource("1_script")
 id = &"ruin_deeper_thralls"
 display_name = "Deeper Thralls"
-description = "Every creature may be ranked one step further, per level."
+description = "Every hero may be leveled one step further, per level."
 currency = ExtResource("3_currency")
 _base_cost_mantissa = 2.0
 _base_cost_exponent = 2

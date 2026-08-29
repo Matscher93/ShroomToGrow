@@ -1,16 +1,21 @@
 class_name MissionViewModel
 extends ViewModel
-## VIEWMODEL: one mission as the chooser offers it - what it pays, what it would
-## take, and who is best placed to go.
+## VIEWMODEL: one mission's numbers - what it pays and what it would take.
 ## Owns formatting, derived state and enabled/disabled logic.
 ## References the model, never a Node.
 ##
-## One per authored mission, built once and owned by App: every row repaints
-## when the board moves, so they all need live state at the same time.
+## One per authored mission, built once and owned by App. Nothing binds one
+## directly any more: the hero rows and the farm rows read through it for the
+## numbers a step or a cycle is worth, so the two cannot drift apart.
 ##
-## Serves both kinds. An expedition is sent and collected once ever; a farm is
-## started and stopped and pays itself. is_farm says which, and the two commands
-## below are the only place the difference reaches the view.
+## Serves both kinds. An expedition is sent on its chain's hero and collected once
+## ever; a farm is worked by a count of workers and pays itself. is_farm says
+## which, and the two commands below are the only place the difference reaches
+## the view.
+##
+## There is no picker any more. An expedition's hero is settled by which chain it
+## belongs to, and a farm's workers are a count rather than a choice of unit, so
+## nothing on this row asks the player who is going.
 
 ## The board moved - a mission was sent, collected, or a gate opened.
 const PROP_MISSION_CHANGED := &"mission_changed"
@@ -29,17 +34,17 @@ var _def: MissionDef
 
 # --- View -> ViewModel ---
 
-## Puts the picked creature on this mission - sent out on an expedition, or set
-## going on a farm. Returns false when it was refused, which the row treats as
-## "nothing changed": can_start already says why, and a disabled button is the
-## normal path.
+## Starts this mission - its chain's hero out on an expedition, or one worker on
+## a farm. Returns false when it was refused, which the row treats as "nothing
+## changed": can_start already says why, and a disabled button is the normal path.
 ##
-## One command rather than two so the chooser does not have to branch: which of
-## the two boards this lands on is a property of the mission, not of the press.
-func start(creature_id: StringName) -> bool:
+## One command rather than two so a caller does not have to branch: which of the
+## two boards this lands on is a property of the mission, not of the press. A farm
+## starts on a single worker and is widened from its own row afterwards.
+func start() -> bool:
 	if _def.is_farm:
-		return App.start_farm(_id, creature_id) > 0
-	return App.send_mission(_id, creature_id) > 0
+		return App.start_farm(_id, 1) > 0
+	return App.send_mission(_id, _def.hero_id) > 0
 
 func collect() -> bool:
 	var entry := App.active_mission(_id)
@@ -82,10 +87,22 @@ var progress_ratio: float:
 			return App.farm_progress_ratio(entry)
 		return App.mission_progress_ratio(entry)
 
-## The free creature best placed to take this, or &"" when none can. What the
-## chooser pre-selects, so the common path is one tap.
-var best_creature_id: StringName:
-	get: return App.best_creature_for_mission(_id)
+## The hero whose chain this expedition belongs to, or &"" on a farm.
+var hero_id: StringName:
+	get: return _def.hero_id
+
+var hero_name: String:
+	get:
+		var def := App.hero_def(_def.hero_id)
+		return def.display_name if def != null else ""
+
+## The level this expedition asks of its hero, beside the level it has. Empty
+## when the step wants nothing more than a fresh recruit, which is most of them.
+var gate_text: String:
+	get:
+		if _def.is_farm or _def.min_hero_level <= 1:
+			return ""
+		return "Needs %s at level %d" % [hero_name, _def.min_hero_level]
 
 ## The permanent upgrade finishing this expedition grants, as a phrase. Empty for
 ## a farm, which grants none - it pays its payouts and nothing else.
@@ -95,11 +112,11 @@ var best_creature_id: StringName:
 var boon_text: String:
 	get: return EffectLabel.of_effects(_def.rewards)
 
-## The creature currently carrying this, or "" when none is.
-var active_creature_id: StringName:
+## The hero currently carrying this, or "" when none is.
+var active_hero_id: StringName:
 	get:
 		var entry := App.active_mission(_id)
-		return entry["creature_id"] if not entry.is_empty() else &""
+		return entry["hero_id"] if not entry.is_empty() else &""
 
 var status_text: String:
 	get:
@@ -110,11 +127,10 @@ var status_text: String:
 		var entry := App.active_mission(_id)
 		if entry.is_empty():
 			if _def.is_farm:
-				return "Rank %d or better - %s a cycle" % [_def.min_creature_rank,
-					_base_duration_text]
-			return "Rank %d or better - %s" % [_def.min_creature_rank, _base_duration_text]
-		var creature := App.creature_def(entry["creature_id"])
-		var who := creature.display_name if creature != null else "Something"
+				return "%s a cycle on one worker" % _base_duration_text
+			return "%s with %s" % [duration_text(), hero_name]
+		var hero := App.hero_def(entry["hero_id"])
+		var who := hero.display_name if hero != null else "Something"
 		if _def.is_farm:
 			return "%s is working it" % who
 		if is_complete:
@@ -125,13 +141,22 @@ var status_text: String:
 ## by finishing something named beats one that only counts.
 var _locked_text: String:
 	get:
-		if not _def.requires_mission_id.is_empty() \
-				and not App.is_mission_completed(_def.requires_mission_id):
-			return "Opens after %s" % _mission_name(_def.requires_mission_id)
 		if not _def.unlock_perk_id.is_empty() \
 				and App.prestige_upgrade_system.level(_def.unlock_perk_id) <= 0:
 			return "Needs %s" % _perk_name(_def.unlock_perk_id)
-		return "Opens after %d more missions" % App.missions_until_mission_unlock(_id)
+		if _def.is_farm:
+			if not _def.requires_mission_id.is_empty() \
+					and not App.is_mission_completed(_def.requires_mission_id):
+				return "Opens after %s" % _mission_name(_def.requires_mission_id)
+			return "Opens after %d more missions" % App.missions_until_mission_unlock(_id)
+		# An expedition is shut by one of two things, and they want opposite
+		# answers from the player: walk the chain, or level the hero.
+		if not App.is_hero_recruited(_def.hero_id):
+			return "Needs %s taken over" % hero_name
+		var owed := App.levels_until_mission_unlock(_id)
+		if owed > 0:
+			return "Needs %s at level %d" % [hero_name, _def.min_hero_level]
+		return "Earlier in %s's chain" % hero_name
 
 ## The countdown. Empty when nothing is out, so the row's timer line collapses
 ## rather than showing a stale zero.
@@ -149,53 +174,45 @@ var countdown_text: String:
 			return "Ready"
 		return _duration_text(App.mission_seconds_remaining(entry))
 
-## What this mission would pay if sent right now with `creature_id`, or with
+## What this mission would pay if sent right now with `hero_id`, or with
 ## whoever is best placed when none is picked. While a mission is out it reports
 ## the snapshot instead - the row promised that number, so it is the number it
 ## keeps showing.
 ##
 ## On a farm this is one cycle's worth, which is what the row pairs with the
 ## cycle length beside it.
-func reward_text(creature_id: StringName = &"") -> String:
+func reward_text() -> String:
 	var entry := App.active_mission(_id)
-	var who := creature_id if not creature_id.is_empty() else best_creature_id
 	var payouts: Array[Dictionary] = entry["payouts"] if not entry.is_empty() \
-		else App.mission_payouts(_id, who)
+		else App.mission_payouts(_id, _def.hero_id)
 	var parts: PackedStringArray = []
 	for payout in payouts:
 		var amount := BigNumber.new(float(payout["m"]), int(payout["e"]))
 		parts.append("%s %s" % [amount.to_display(), CurrencyTypes.display_name_for(int(payout["currency"]) as CurrencyTypes.Types)])
 	return ", ".join(parts)
 
-## What sending this creature would take, for the row's line under the picker.
+## What sending this hero would take, for the row's line under the picker.
 ## Falls back to whoever is best placed, so an untouched row still quotes a real
 ## number rather than the authored one nobody will run it at.
-func duration_text(creature_id: StringName = &"") -> String:
-	var who := creature_id if not creature_id.is_empty() else best_creature_id
-	return _duration_text(App.mission_duration(_id, who))
+func duration_text() -> String:
+	return _duration_text(App.mission_duration(_id, _def.hero_id, 1))
 
-## Whether this creature could be put on this mission right now, on whichever of
+## Whether this hero could be put on this mission right now, on whichever of
 ## the two boards it belongs to.
-func can_start(creature_id: StringName) -> bool:
+func can_start() -> bool:
 	if _def.is_farm:
-		return App.can_start_farm(_id, creature_id)
-	return App.can_send_mission(_id, creature_id)
+		return App.can_start_farm(_id, 1)
+	return App.can_send_mission(_id, _def.hero_id)
 
-## Creatures that could take this right now, for the card's picker. Empty is the
+## Heroes that could take this right now, for the card's picker. Empty is the
 ## normal early state, not an error: nothing has been taken over yet.
-func available_creatures() -> Array[CreatureDef]:
-	return App.creatures_available_for(_def)
-
-func has_affinity(creature_id: StringName) -> bool:
-	return App.creature_has_affinity(creature_id, _id)
-
 # --- Lifecycle ---
 
 func _init(mission_id: StringName, def: MissionDef) -> void:
 	_id = mission_id
 	_def = def
 	App.ruins_data.active_changed.connect(_on_changed)
-	App.ruins_data.creatures_changed.connect(_on_changed)
+	App.ruins_data.heroes_changed.connect(_on_changed)
 	App.ruins_data.missions_completed_changed.connect(_on_changed.unbind(1))
 	# Finishing an expedition closes it and opens the farms that wait on it, and
 	# neither shows up in the signals above.
@@ -210,7 +227,7 @@ func _init(mission_id: StringName, def: MissionDef) -> void:
 
 func dispose() -> void:
 	App.ruins_data.active_changed.disconnect(_on_changed)
-	App.ruins_data.creatures_changed.disconnect(_on_changed)
+	App.ruins_data.heroes_changed.disconnect(_on_changed)
 	App.ruins_data.missions_completed_changed.disconnect(_on_changed.unbind(1))
 	App.ruins_data.expeditions_changed.disconnect(_on_changed)
 	App.mission_upgrade_system.upgrades_changed.disconnect(_on_changed)

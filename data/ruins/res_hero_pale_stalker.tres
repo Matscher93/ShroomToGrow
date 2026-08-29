@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="HeroDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_hero_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="2_recruit_cur"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="3_level_cur"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="4_pay_ichor"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"pale_stalker"
+display_name = "Pale Stalker"
+description = "Long in the leg and quiet on stone. It hunted these galleries before the doors were shut."
+speed_per_level = 0.18
+yield_per_level = 0.16
+base_level_cap = 6
+min_missions_completed = 4
+payout_currencies = Array[Resource]([ExtResource("4_pay_ichor")])
+recruit_currency = ExtResource("2_recruit_cur")
+_recruit_cost_mantissa = 1.2
+_recruit_cost_exponent = 2
+level_currency = ExtResource("3_level_cur")
+_level_base_cost_mantissa = 2.0
+_level_base_cost_exponent = 1
+level_cost_growth = 1.7

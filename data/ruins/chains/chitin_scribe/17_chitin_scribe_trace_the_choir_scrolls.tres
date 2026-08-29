@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="3_cur_glyphs"]
+
+[sub_resource type="Resource" id="payout_glyphs"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("3_cur_glyphs")
+gain_stat = &"glyph_gain"
+_amount_mantissa = 4.328437
+_amount_exponent = 3
+
+[resource]
+script = ExtResource("1_script")
+id = &"chitin_scribe_trace_the_choir_scrolls"
+display_name = "Trace the Choir Scrolls"
+description = "Trace the Choir Scrolls. Step 17 of Chitin Scribe's chain."
+is_farm = false
+hero_id = &"chitin_scribe"
+base_duration_seconds = 14405.4
+min_hero_level = 1
+min_missions_completed = 0
+unlock_perk_id = &""
+requires_mission_id = &""
+payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_glyphs")])

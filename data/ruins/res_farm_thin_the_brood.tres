@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="3_cur_ichor"]
+
+[sub_resource type="Resource" id="payout_ichor"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("3_cur_ichor")
+gain_stat = &"ichor_gain"
+_amount_mantissa = 3.0
+_amount_exponent = 1
+
+[resource]
+script = ExtResource("1_script")
+id = &"farm_thin_the_brood"
+display_name = "Thin The Brood"
+description = "A standing detail, worked by whoever can be spared. Opened by Pale Stalker."
+is_farm = true
+hero_id = &""
+base_duration_seconds = 360.0
+min_hero_level = 1
+min_missions_completed = 0
+unlock_perk_id = &""
+requires_mission_id = &"pale_stalker_stalk_the_nest_ways"
+payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_ichor")])

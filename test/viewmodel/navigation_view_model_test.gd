@@ -89,19 +89,19 @@ func test_every_sub_row_is_one_its_screen_authors() -> void:
 				"screen %d lists sub row '%s', which it does not author." \
 					% [row.screen_type, sub.label]).contains([sub.label])
 
-## The gate the Ruins screen puts on its Creatures tab, checked the same way the
-## Boosts one below is: before the first creature is within reach the tab is a
+## The gate the Ruins screen puts on its Heroes tab, checked the same way the
+## Boosts one below is: before the first hero is within reach the tab is a
 ## page of locked cards, so a row leading to it would lead somewhere not on
 ## screen.
-func test_the_creatures_sub_row_follows_the_creatures_tab() -> void:
+func test_the_heroes_sub_row_follows_the_heroes_tab() -> void:
 	var row := _destination(ScreenTypes.Types.RUINS)
 	if row == null:
 		return
 	var listed := false
 	for sub in row.subs:
-		if sub.label == "Creatures":
+		if sub.label == "Heroes":
 			listed = true
-	assert_bool(listed).is_equal(App.ruins_vm.creatures_visible)
+	assert_bool(listed).is_equal(App.ruins_vm.heroes_visible)
 
 ## The same gate the screen puts on the tab itself. Before the first boost perk
 ## the Boosts tab is hidden, so a row leading to it would lead somewhere that is

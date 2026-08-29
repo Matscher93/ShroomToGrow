@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="HeroDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_hero_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="2_recruit_cur"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="3_level_cur"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="4_pay_glyphs"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"chitin_scribe"
+display_name = "Chitin Scribe"
+description = "It has copied the wall-marks onto its own shell for so long that the two are hard to tell apart."
+speed_per_level = 0.12
+yield_per_level = 0.24
+base_level_cap = 6
+min_missions_completed = 10
+payout_currencies = Array[Resource]([ExtResource("4_pay_glyphs")])
+recruit_currency = ExtResource("2_recruit_cur")
+_recruit_cost_mantissa = 6.0
+_recruit_cost_exponent = 1
+level_currency = ExtResource("3_level_cur")
+_level_base_cost_mantissa = 1.5
+_level_base_cost_exponent = 1
+level_cost_growth = 1.75

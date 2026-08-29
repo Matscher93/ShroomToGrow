@@ -19,7 +19,7 @@ var _rewards: UpgradeSystem
 var _production: ProductionSystem
 var _ctx: ResolveContext
 var _data: RuinsData
-var _creatures: CreatureSystem
+var _heroes: HeroSystem
 var _list: MissionList
 var _system: MissionSystem
 var _now: float = 1000.0
@@ -39,11 +39,11 @@ func before_test() -> void:
 	_list = _mission_list()
 	for def in ExpeditionRewardTree.build(_list):
 		_rewards.register(def)
-	_creatures = CreatureSystem.new(_data, _player, _creature_list(), _production)
-	_system = MissionSystem.new(_data, _player, _biomes_data, _production, _creatures,
+	_heroes = HeroSystem.new(_data, _player, _hero_list(), _production)
+	_system = MissionSystem.new(_data, _player, _biomes_data, _production, _heroes,
 		_list, _prestige, _rewards)
 	_system.now_provider = func() -> float: return _now
-	_creatures.recruit(&"digger")
+	_heroes.recruit(&"digger")
 	_system.sync_expedition_rewards()
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -71,9 +71,10 @@ func _mission_list() -> MissionList:
 	# recognise rather than a level count.
 	var dig := MissionDef.new()
 	dig.id = &"dig"
+	dig.hero_id = &"digger"
 	dig.display_name = "Dig"
 	dig.base_duration_seconds = 100.0
-	dig.min_creature_rank = 1
+	dig.min_hero_level = 1
 	dig.payouts = [_payout()]
 	dig.rewards = [_reward(&"node_production", UpgradeEffectDef.Op.MORE, 1.0)]
 
@@ -82,33 +83,33 @@ func _mission_list() -> MissionList:
 	farm.display_name = "Farm"
 	farm.is_farm = true
 	farm.base_duration_seconds = 50.0
-	farm.min_creature_rank = 1
+	farm.min_hero_level = 1
 	farm.requires_mission_id = &"dig"
+	farm.hero_id = &""
 	farm.payouts = [_payout()]
 
 	var list := MissionList.new()
 	list.missions = [dig, farm]
 	return list
 
-func _creature_list() -> CreatureList:
+func _hero_list() -> HeroList:
 	var currency := CurrencyDef.new()
 	currency.currency_type = CurrencyTypes.Types.RELICS
 
-	var digger := CreatureDef.new()
+	var digger := HeroDef.new()
 	digger.id = &"digger"
 	digger.display_name = "Digger"
-	digger.speed_per_rank = 0.0
-	digger.yield_per_rank = 0.0
-	digger.affinity_bonus = 0.0
-	digger.base_rank_cap = 5
+	digger.speed_per_level = 0.0
+	digger.yield_per_level = 0.0
+	digger.base_level_cap = 5
 	digger.recruit_currency = currency
 	digger.recruit_cost = BigNumber.new(0.0, 0)
-	digger.rank_currency = currency
-	digger.rank_base_cost = BigNumber.new(0.0, 0)
-	digger.rank_cost_growth = 1.0
+	digger.level_currency = currency
+	digger.level_base_cost = BigNumber.new(0.0, 0)
+	digger.level_cost_growth = 1.0
 
-	var list := CreatureList.new()
-	list.creatures = [digger]
+	var list := HeroList.new()
+	list.heroes = [digger]
 	return list
 
 ## Sends the expedition, waits it out and brings it home.
@@ -190,7 +191,7 @@ func test_a_load_rebuilds_the_track_from_the_saved_expeditions() -> void:
 	for def in ExpeditionRewardTree.build(_list):
 		track.register(def)
 	var system := MissionSystem.new(fresh, PlayerData.new(), _biomes_data, _production,
-		_creatures, _list, _prestige, track)
+		_heroes, _list, _prestige, track)
 	system.sync_expedition_rewards()
 
 	assert_int(track.level(&"dig")).is_equal(1)

@@ -34,7 +34,9 @@ var _missions: Array[MissionDef]
 ## instead, so comparing the two against each other says nothing.
 var _expeditions: Array[MissionDef]
 var _farms: Array[MissionDef]
-var _creatures: Array[CreatureDef]
+var _heroes: Array[HeroDef]
+## StringName hero id -> its expeditions, in authored order.
+var _chains: Dictionary = {}
 var _mission_boosts: Array[MissionBoostDef]
 
 func before_test() -> void:
@@ -56,7 +58,12 @@ func before_test() -> void:
 			_farms.append(mission)
 		else:
 			_expeditions.append(mission)
-	_creatures = (load("res://data/ruins/all_creatures.tres") as CreatureList).creatures
+	_heroes = (load("res://data/ruins/all_heroes.tres") as HeroList).heroes
+	_chains = {}
+	for mission in _expeditions:
+		if not _chains.has(mission.hero_id):
+			_chains[mission.hero_id] = []
+		_chains[mission.hero_id].append(mission)
 	_mission_boosts = (load("res://data/ruins/all_mission_boosts.tres") as MissionBoostList).boosts
 
 ## Node tiers, biomes and crystal boosts all address by StringName, and
@@ -943,11 +950,11 @@ func test_every_mission_id_is_unique() -> void:
 			.override_failure_message("Mission id '%s' is used twice." % def.id).is_false()
 		seen[def.id] = true
 
-func test_every_creature_id_is_unique() -> void:
+func test_every_hero_id_is_unique() -> void:
 	var seen := {}
-	for def in _creatures:
+	for def in _heroes:
 		assert_bool(seen.has(def.id)) \
-			.override_failure_message("Creature id '%s' is used twice." % def.id).is_false()
+			.override_failure_message("Hero id '%s' is used twice." % def.id).is_false()
 		seen[def.id] = true
 
 func test_every_ruins_boost_id_is_unique() -> void:
@@ -992,147 +999,136 @@ func test_every_mission_takes_time() -> void:
 		assert_float(def.base_duration_seconds) \
 			.override_failure_message("Mission '%s' takes no time." % def.id).is_greater(0.0)
 
-## List order is the order the player meets them, so a later expedition that
-## opens sooner would be a rung the ladder skips over.
+## A chain is walked in order, so a later step that is shorter or pays less than
+## the one before it is a rung the player would rather not have climbed.
 ##
-## Expeditions only. A farm's place in the ladder is the expedition it names, not
-## a tally, so ordering it against one says nothing.
-func test_expeditions_open_in_list_order() -> void:
-	for i in range(1, _expeditions.size()):
-		assert_int(_expeditions[i].min_missions_completed) \
-			.override_failure_message("Expedition '%s' opens at %d, before '%s' at %d." \
-				% [_expeditions[i].id, _expeditions[i].min_missions_completed,
-					_expeditions[i - 1].id, _expeditions[i - 1].min_missions_completed]) \
-			.is_greater_equal(_expeditions[i - 1].min_missions_completed)
+## Held per chain rather than across all seven: the chains are independent
+## progressions in different currencies, and comparing one against another says
+## nothing.
+func test_every_chain_climbs() -> void:
+	for hero_id: StringName in _chains:
+		var steps: Array = _chains[hero_id]
+		for i in range(1, steps.size()):
+			var here: MissionDef = steps[i]
+			var before: MissionDef = steps[i - 1]
+			assert_float(here.base_duration_seconds) \
+				.override_failure_message("'%s' is shorter than '%s' before it in %s's chain." \
+					% [here.id, before.id, hero_id]) \
+				.is_greater(before.base_duration_seconds)
+			assert_float(_payout_total(here)) \
+				.override_failure_message("'%s' pays no more than '%s' before it in %s's chain." \
+					% [here.id, before.id, hero_id]) \
+				.is_greater(_payout_total(before))
 
-## An expedition is run once ever, so its whole lasting value is the reward. One
-## without a reward is a rung that gives the player nothing to have climbed.
-func test_every_expedition_grants_a_reward() -> void:
-	for def in _expeditions:
-		assert_bool(def.rewards.is_empty()) \
-			.override_failure_message("Expedition '%s' grants no permanent reward." % def.id) \
-			.is_false()
-
-## A farm loops, so a reward on one would be granted over and over.
-## ExpeditionRewardTree refuses to register it, which means the effect is silently
-## inert - exactly the class of mistake this sweep exists to catch.
-func test_no_farm_grants_a_reward() -> void:
-	for def in _farms:
-		assert_bool(def.rewards.is_empty()) \
-			.override_failure_message("Farm '%s' carries rewards, which only expeditions grant." % def.id) \
-			.is_true()
-
-## A reward naming a stat no system reads resolves to zero forever, with no error
-## at load and no symptom at runtime - the same trap every other effect here is
-## swept for.
-func test_every_expedition_reward_names_a_known_stat() -> void:
-	for def in _expeditions:
-		for effect in def.rewards:
-			assert_bool(KNOWN_STATS.has(effect.stat)) \
-				.override_failure_message("Expedition '%s' rewards unknown stat '%s'." \
-					% [def.id, effect.stat]) \
-				.is_true()
-			assert_float(effect.per_level) \
-				.override_failure_message("Expedition '%s' rewards '%s' by nothing." \
-					% [def.id, effect.stat]) \
-				.is_not_equal(0.0)
-
-## The gate is a plain StringName, so a typo opens nothing and says nothing.
-func test_every_farm_is_opened_by_a_real_expedition() -> void:
-	var by_id := {}
-	for def in _expeditions:
-		by_id[def.id] = def
-	for def in _farms:
-		assert_bool(by_id.has(def.requires_mission_id)) \
-			.override_failure_message("Farm '%s' waits on '%s', which is not an expedition." \
-				% [def.id, def.requires_mission_id]) \
-			.is_true()
-
-## Only an expedition can be waited on, and only a farm may wait: an expedition
-## gated behind another one would be a second ladder running beside the tally.
-func test_only_farms_name_a_required_expedition() -> void:
-	for def in _expeditions:
-		assert_str(String(def.requires_mission_id)) \
-			.override_failure_message("Expedition '%s' waits on '%s'; the tally is its only gate." \
-				% [def.id, def.requires_mission_id]) \
-			.is_empty()
-
-## A longer errand that pays no better is one no player would ever choose.
-##
-## Compared within one currency at a time, never across them: the three are
-## deliberately not on the same scale - a ritual pays a handful of glyphs where a
-## dig pays dozens of relics - so a raw total is not a number two missions paying
-## different currencies can be ranked by.
-func test_a_longer_expedition_pays_more_of_the_same_currency() -> void:
-	_assert_longer_pays_more(_expeditions)
-
-## The same curve over the farms, on their own. An expedition pays once ever and
-## a farm pays per cycle, so the two are not on one scale any more than relics
-## and glyphs are.
-func test_a_longer_farm_pays_more_of_the_same_currency() -> void:
-	_assert_longer_pays_more(_farms)
-
-func _assert_longer_pays_more(missions: Array[MissionDef]) -> void:
-	for type: CurrencyTypes.Types in _mission_currencies(missions):
-		var ordered := _missions_paying(missions, type)
-		ordered.sort_custom(func(a: MissionDef, b: MissionDef) -> bool:
-			return a.base_duration_seconds < b.base_duration_seconds)
-		for i in range(1, ordered.size()):
-			if is_equal_approx(ordered[i].base_duration_seconds,
-					ordered[i - 1].base_duration_seconds):
-				continue
-			assert_float(_payout_of(ordered[i], type)) \
-				.override_failure_message("Mission '%s' runs longer than '%s' but pays no more %s." \
-					% [ordered[i].id, ordered[i - 1].id, CurrencyTypes.field_for(type)]) \
-				.is_greater(_payout_of(ordered[i - 1], type))
-
-func _mission_currencies(missions: Array[MissionDef]) -> Array:
-	var types := {}
-	for def in missions:
-		for payout in def.payouts:
-			if payout.currency != null:
-				types[payout.currency.currency_type] = true
-	return types.keys()
-
-func _missions_paying(missions: Array[MissionDef], type: CurrencyTypes.Types) -> Array[MissionDef]:
-	var out: Array[MissionDef] = []
-	for def in missions:
-		if _payout_of(def, type) > 0.0:
-			out.append(def)
-	return out
-
-func _payout_of(def: MissionDef, type: CurrencyTypes.Types) -> float:
+func _payout_total(def: MissionDef) -> float:
 	var total := 0.0
 	for payout in def.payouts:
-		if payout.currency != null and payout.currency.currency_type == type:
-			total += payout.amount.to_float()
+		total += payout.amount.to_float()
 	return total
 
-## Every affinity names a mission that exists. A typo here is silent: the
-## creature simply never gets its bonus.
-func test_every_creature_affinity_names_a_real_mission() -> void:
+## Seven chains of twenty. The number is the shape of the whole feature, so it is
+## worth failing loudly rather than quietly shipping a chain of nineteen.
+func test_every_hero_has_a_full_chain() -> void:
+	assert_int(_chains.size()).is_equal(_heroes.size())
+	for hero: HeroDef in _heroes:
+		assert_int((_chains.get(hero.id, []) as Array).size()) \
+			.override_failure_message("Hero '%s' has no chain of twenty." % hero.id) \
+			.is_equal(20)
+
+## Every fifth step asks for one more hero level than the block before it, and no
+## other step asks for anything. A gate anywhere else is a wall the player cannot
+## see coming.
+func test_the_level_gates_sit_every_fifth_step() -> void:
+	var expected := {5: 2, 10: 3, 15: 4}
+	for hero_id: StringName in _chains:
+		var steps: Array = _chains[hero_id]
+		for i in steps.size():
+			var def: MissionDef = steps[i]
+			assert_int(def.min_hero_level) \
+				.override_failure_message("Step %d of %s's chain ('%s') asks for level %d." \
+					% [i + 1, hero_id, def.id, def.min_hero_level]) \
+				.is_equal(int(expected.get(i, 1)))
+
+## The chain is the only ladder an expedition has. A stray tally gate would be a
+## second one, invisible beside it.
+func test_no_expedition_carries_a_tally_gate() -> void:
+	for def in _expeditions:
+		assert_int(def.min_missions_completed) \
+			.override_failure_message("Expedition '%s' also gates on the tally." % def.id) \
+			.is_zero()
+
+## An expedition's predecessor is derived from its chain's authored order, so a
+## hand-written link would be a second answer to the same question.
+func test_no_expedition_names_a_required_mission() -> void:
+	for def in _expeditions:
+		assert_str(String(def.requires_mission_id)) \
+			.override_failure_message("Expedition '%s' names a required mission; its chain says which." % def.id) \
+			.is_empty()
+
+func test_every_expedition_names_a_real_hero() -> void:
 	var ids := {}
-	for def in _missions:
-		ids[def.id] = true
-	for creature in _creatures:
-		for mission_id in creature.affinity:
-			assert_bool(ids.has(mission_id)) \
-				.override_failure_message("Creature '%s' has affinity for '%s', which is not a mission." \
-					% [creature.id, mission_id]).is_true()
+	for hero in _heroes:
+		ids[hero.id] = true
+	for def in _expeditions:
+		assert_bool(ids.has(def.hero_id)) \
+			.override_failure_message("Expedition '%s' names hero '%s', which does not exist." \
+				% [def.id, def.hero_id]) \
+			.is_true()
 
-## Every mission has to be reachable by somebody: a rank bar above every
-## creature's ceiling is a card that can never be played.
-func test_every_mission_is_within_some_creatures_reach() -> void:
+## The payout rule the whole roster is built on: the first three heroes pay one
+## currency each, the next three pay two, the last pays all three. A chain that
+## quietly started paying a fourth, or the wrong one, is exactly the drift this
+## sweep exists to catch.
+func test_every_mission_pays_in_its_heros_currencies() -> void:
+	for hero: HeroDef in _heroes:
+		var allowed := {}
+		for currency in hero.payout_currencies:
+			allowed[currency.currency_type] = true
+		assert_bool(allowed.is_empty()) \
+			.override_failure_message("Hero '%s' names no payout currencies." % hero.id) \
+			.is_false()
+		for def: MissionDef in _chains.get(hero.id, []):
+			for payout in def.payouts:
+				assert_bool(allowed.has(payout.currency.currency_type)) \
+					.override_failure_message("'%s' pays %s, which is not %s's currency." \
+						% [def.id, payout.currency.currency_name, hero.id]) \
+					.is_true()
+
+## A farm belongs to whichever chain opened it, and pays in that hero's
+## currencies for the same reason its expeditions do.
+func test_every_farm_pays_in_the_currencies_of_the_chain_that_opened_it() -> void:
+	var hero_of := {}
+	for def in _expeditions:
+		hero_of[def.id] = def.hero_id
+	var by_id := {}
+	for hero in _heroes:
+		by_id[hero.id] = hero
+	for farm in _farms:
+		var hero: HeroDef = by_id.get(hero_of.get(farm.requires_mission_id, &""))
+		if hero == null:
+			continue
+		var allowed := {}
+		for currency in hero.payout_currencies:
+			allowed[currency.currency_type] = true
+		for payout in farm.payouts:
+			assert_bool(allowed.has(payout.currency.currency_type)) \
+				.override_failure_message("Farm '%s' pays %s, which is not %s's currency." \
+					% [farm.id, payout.currency.currency_name, hero.id]) \
+				.is_true()
+
+## Every mission has to be reachable by somebody: a level bar above every
+## hero's ceiling is a card that can never be played.
+func test_every_mission_is_within_some_heroes_reach() -> void:
 	var best := 0
-	for creature in _creatures:
-		best = maxi(best, creature.base_rank_cap)
+	for hero in _heroes:
+		best = maxi(best, hero.base_level_cap)
 	for def in _missions:
-		assert_int(def.min_creature_rank) \
-			.override_failure_message("Mission '%s' needs rank %d, above every creature's ceiling of %d." \
-				% [def.id, def.min_creature_rank, best]).is_less_equal(best)
+		assert_int(def.min_hero_level) \
+			.override_failure_message("Mission '%s' needs level %d, above every hero's ceiling of %d." \
+				% [def.id, def.min_hero_level, best]).is_less_equal(best)
 
-## The bootstrap. Every mission needs a creature to carry it, and the three Ruins
-## currencies have exactly one source - a collected mission. So if every creature
+## The bootstrap. Every mission needs a hero to carry it, and the three Ruins
+## currencies have exactly one source - a collected mission. So if every hero
 ## at the front of the roster is priced in one of them, the Ruins can never be
 ## entered at all: the board sits there with an empty picker and a dead Send
 ## button, and nothing the player can do anywhere in the game opens it.
@@ -1140,7 +1136,7 @@ func test_every_mission_is_within_some_creatures_reach() -> void:
 ## Shipped exactly that way once. The end-to-end check missed it by granting
 ## itself relics before recruiting, which is precisely the step a real save has
 ## no way to perform.
-func test_the_first_creature_is_affordable_before_any_mission_is_run() -> void:
+func test_the_first_hero_is_affordable_before_any_mission_is_run() -> void:
 	var mission_only := {}
 	for def in _missions:
 		for payout in def.payouts:
@@ -1148,34 +1144,34 @@ func test_the_first_creature_is_affordable_before_any_mission_is_run() -> void:
 				mission_only[payout.currency.currency_type] = true
 
 	var reachable := false
-	for creature in _creatures:
-		if creature.min_missions_completed > 0 or creature.recruit_currency == null:
+	for hero in _heroes:
+		if hero.min_missions_completed > 0 or hero.recruit_currency == null:
 			continue
-		if not mission_only.has(creature.recruit_currency.currency_type):
+		if not mission_only.has(hero.recruit_currency.currency_type):
 			reachable = true
 	assert_bool(reachable).override_failure_message(
-		"No creature is both open at zero missions and priced outside the currencies "
+		"No hero is both open at zero missions and priced outside the currencies "
 		+ "only missions pay - the Ruins cannot be entered.").is_true()
 
-func test_every_creature_is_priced_in_something() -> void:
-	for def in _creatures:
+func test_every_hero_is_priced_in_something() -> void:
+	for def in _heroes:
 		assert_object(def.recruit_currency) \
-			.override_failure_message("Creature '%s' has no recruit currency." % def.id).is_not_null()
-		assert_object(def.rank_currency) \
-			.override_failure_message("Creature '%s' has no rank currency." % def.id).is_not_null()
-		assert_float(def.rank_cost_growth) \
-			.override_failure_message("Creature '%s' has rank cost growth %f, so ranking it never gets dearer." \
-				% [def.id, def.rank_cost_growth]).is_greater(1.0)
-		assert_int(def.base_rank_cap) \
-			.override_failure_message("Creature '%s' can never be ranked." % def.id).is_greater(0)
+			.override_failure_message("Hero '%s' has no recruit currency." % def.id).is_not_null()
+		assert_object(def.level_currency) \
+			.override_failure_message("Hero '%s' has no level currency." % def.id).is_not_null()
+		assert_float(def.level_cost_growth) \
+			.override_failure_message("Hero '%s' has level cost growth %f, so leveling it never gets dearer." \
+				% [def.id, def.level_cost_growth]).is_greater(1.0)
+		assert_int(def.base_level_cap) \
+			.override_failure_message("Hero '%s' can never be leveled." % def.id).is_greater(0)
 
-func test_creatures_open_in_list_order() -> void:
-	for i in range(1, _creatures.size()):
-		assert_int(_creatures[i].min_missions_completed) \
-			.override_failure_message("Creature '%s' opens at %d, before '%s' at %d." \
-				% [_creatures[i].id, _creatures[i].min_missions_completed,
-					_creatures[i - 1].id, _creatures[i - 1].min_missions_completed]) \
-			.is_greater_equal(_creatures[i - 1].min_missions_completed)
+func test_heroes_open_in_list_order() -> void:
+	for i in range(1, _heroes.size()):
+		assert_int(_heroes[i].min_missions_completed) \
+			.override_failure_message("Hero '%s' opens at %d, before '%s' at %d." \
+				% [_heroes[i].id, _heroes[i].min_missions_completed,
+					_heroes[i - 1].id, _heroes[i - 1].min_missions_completed]) \
+			.is_greater_equal(_heroes[i - 1].min_missions_completed)
 
 func test_every_ruins_boost_is_priced_and_gets_dearer() -> void:
 	for def in _mission_boosts:

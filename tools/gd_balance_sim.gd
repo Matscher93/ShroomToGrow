@@ -234,7 +234,7 @@ func _prepare() -> Node:
 ##
 ## Hand-maintained against App._ready(), and it has drifted before: the whole
 ## Ruins was missing here for as long as the Ruins existed, so a --load= from a
-## real save carried that player's creature ranks and mission tally into the
+## real save carried that player's hero levels and mission tally into the
 ## baseline, and balance_report.json measured pacing for a game with no missions
 ## in it. test/data/balance_pacing_test.gd pins that report, so the drift was
 ## invisible. Anything App builds and saves belongs here too.
@@ -269,7 +269,7 @@ static func _reset(app: Node) -> void:
 	# runs the spawn timer - so a carried-over offer would sit there unanswered
 	# and only the fertilizer it never pays would differ.
 	app.events_data.load_from_save({})
-	# Creature ranks, the mission board, the completed tally and the expeditions
+	# Hero levels, the mission board, the completed tally and the expeditions
 	# already run. Without this a --load= from a real save carried a player's whole
 	# Ruins into what the report calls a first run.
 	app.ruins_data.load_from_save({})
@@ -287,6 +287,10 @@ static func _reset(app: Node) -> void:
 	# doubled node_production from a loaded save would report a first run that is
 	# twice as fast as one.
 	app.mission_system.sync_expedition_rewards()
+	# The worker pool goes with the roster: a --load= from a real save otherwise
+	# carried a player's hired workers into what the report calls a first run,
+	# and every farm in it would turn at their rate.
+	app.ruins_data.workers_owned = 0
 
 	# Tier 0 keeps one node for the same reason PrestigeSystem leaves it one:
 	# with nothing producing, a run can never earn the first purchase back.
@@ -827,7 +831,7 @@ static func _sample(app: Node, tick: int, seconds: float) -> Dictionary:
 ## &"crystal_gain" upgrade moves none of the three and reads as worth nothing at
 ## all. So the same probe also measures the stat buckets the upgrade itself writes
 ## - see _measure_buckets() - and reports what each one loses without it. That is
-## the number that ranks the upgrades a run-level probe is blind to.
+## the number that levels the upgrades a run-level probe is blind to.
 ##
 ## Every probe puts back the level it took away before the next one starts, so a
 ## breakdown leaves the run exactly where it found it.
@@ -868,9 +872,9 @@ static func _breakdown(app: Node, tick: int, seconds: float) -> Dictionary:
 ##
 ## Measured, not summed from the rows: MORE effects compound, so a column of
 ## per-upgrade drops adds up past 100% long before it says anything - fifteen
-## upgrades each worth "the run falls 99% without it" sum to 1485%, which ranks
+## upgrades each worth "the run falls 99% without it" sum to 1485%, which levels
 ## the tracks by how many upgrades they happen to hold. Taking the whole set away
-## at once is one probe and one honest number, and it is what the page ranks by.
+## at once is one probe and one honest number, and it is what the page levels by.
 ##
 ## Costs one probe per resource plus one per resource and track that meet: 42 on
 ## top of the 211 a full run already takes, so a sixth again of the same measured
@@ -897,7 +901,7 @@ static func _breakdown_resources(app: Node, base: Dictionary, groups: Array) -> 
 				if not subset["ids"].has(id):
 					subset["ids"].append(id)
 				# Only a stat-ranked resource needs its buckets measured. Nutrients
-				# writes some thirty of them and is ranked on the run-level probe
+				# writes some thirty of them and is leveled on the run-level probe
 				# regardless, so measuring them would be paid for nothing.
 				if wanted[res]["metric"] != "stat":
 					continue
@@ -944,7 +948,7 @@ static func _influence(metric: String, impact: Dictionary) -> float:
 		"stat":
 			# The biggest bucket, not the sum of them: a share of mission speed and
 			# a share of mission payout are shares of two different things, and
-			# adding them would rank a resource by how many buckets feed it.
+			# adding them would level a resource by how many buckets feed it.
 			var top := 0.0
 			for key: String in impact["stat_orders"]:
 				top = maxf(top, impact["stat_orders"][key])
@@ -1063,7 +1067,7 @@ static func _impact_without_many(app: Node, base: Dictionary, sets: Array,
 		# stops saying anything up here: production runs to 1e1400 and a whole
 		# track taken away lands the ratio under what a float can hold, so every
 		# one of them reads as exactly -100%. Orders of magnitude keep separating
-		# them long after that, and are what the page ranks by. See
+		# them long after that, and are what the page levels by. See
 		# _orders_between().
 		"production_orders": _orders_between(held, lost),
 		# Positive means the upgrade shortens it - taking it away puts the seconds

@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="HeroDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_hero_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_relics_def.tres" id="2_recruit_cur"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="3_level_cur"]
+[ext_resource type="Resource" path="res://data/currencies/res_relics_def.tres" id="4_pay_relics"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="5_pay_ichor"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="6_pay_glyphs"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="7_payout_script"]
+
+[sub_resource type="Resource" id="extra_ichor"]
+script = ExtResource("7_payout_script")
+currency = ExtResource("5_pay_ichor")
+gain_stat = &""
+_amount_mantissa = 1.2
+_amount_exponent = 4
+
+[sub_resource type="Resource" id="extra_glyphs"]
+script = ExtResource("7_payout_script")
+currency = ExtResource("6_pay_glyphs")
+gain_stat = &""
+_amount_mantissa = 6.0
+_amount_exponent = 3
+
+[resource]
+script = ExtResource("1_script")
+id = &"sealed_choir"
+display_name = "The Sealed Choir"
+description = "The thing the sanctum was sealed around. It has been singing to itself the whole time, and now it has been answered."
+speed_per_level = 0.28
+yield_per_level = 0.36
+base_level_cap = 14
+min_missions_completed = 120
+payout_currencies = Array[Resource]([ExtResource("4_pay_relics"), ExtResource("5_pay_ichor"), ExtResource("6_pay_glyphs")])
+recruit_currency = ExtResource("2_recruit_cur")
+_recruit_cost_mantissa = 4.0
+_recruit_cost_exponent = 4
+level_currency = ExtResource("3_level_cur")
+_level_base_cost_mantissa = 2.5
+_level_base_cost_exponent = 4
+level_cost_growth = 1.95
+extra_recruit_costs = Array[ExtResource("7_payout_script")]([SubResource("extra_ichor"), SubResource("extra_glyphs")])

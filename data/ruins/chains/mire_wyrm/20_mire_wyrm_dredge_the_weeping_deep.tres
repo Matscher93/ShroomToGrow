@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="3_cur_ichor"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="4_cur_glyphs"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="5_effect_script"]
+
+[sub_resource type="Resource" id="payout_ichor"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("3_cur_ichor")
+gain_stat = &"ichor_gain"
+_amount_mantissa = 2.4
+_amount_exponent = 5
+
+[sub_resource type="Resource" id="payout_glyphs"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("4_cur_glyphs")
+gain_stat = &"glyph_gain"
+_amount_mantissa = 1.6
+_amount_exponent = 5
+
+[sub_resource type="Resource" id="reward_0"]
+script = ExtResource("5_effect_script")
+stat = &"biomass_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.75
+level_scaling = 0
+
+[resource]
+script = ExtResource("1_script")
+id = &"mire_wyrm_dredge_the_weeping_deep"
+display_name = "Dredge the Weeping Deep"
+description = "Dredge the Weeping Deep. Step 20 of Mire Wyrm's chain."
+is_farm = false
+hero_id = &"mire_wyrm"
+base_duration_seconds = 14400.0
+min_hero_level = 1
+min_missions_completed = 0
+unlock_perk_id = &""
+requires_mission_id = &""
+payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_ichor"), SubResource("payout_glyphs")])
+rewards = Array[ExtResource("5_effect_script")]([SubResource("reward_0")])

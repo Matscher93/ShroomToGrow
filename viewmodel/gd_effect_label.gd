@@ -8,10 +8,10 @@ extends RefCounted
 ## what to call it. This is presentation.
 ##
 ## One place, because there were about to be four. An expedition's reward is
-## shown on its slot card, on its row in the chooser and in the ladder of what is
-## left, and a perk with no authored description already generated a sentence of
-## its own. Four spellings of the same effect would have been four different
-## words for one thing.
+## shown on its hero's row while it is the step in front of them, and a perk with
+## no authored description already generated a sentence of its own. Several
+## spellings of the same effect would have been several different words for one
+## thing.
 
 ## Stats whose group noun does not read as a thing the effect moves. StatResources
 ## groups by the resource a stat feeds, which is the right axis for a breakdown
@@ -24,7 +24,7 @@ const NOUNS := {
 	&"farm_slots": "farm plot",
 	&"mission_speed": "mission speed",
 	&"mission_reward": "mission payout",
-	&"creature_rank_cap": "creature rank",
+	&"hero_level_cap": "hero level",
 	&"boost_max_level": "boost level",
 	&"boost_power": "boost power",
 	&"biome_points": "biome point",

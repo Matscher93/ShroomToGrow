@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_relics_def.tres" id="3_cur_relics"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="4_cur_ichor"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="5_effect_script"]
+
+[sub_resource type="Resource" id="payout_relics"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("3_cur_relics")
+gain_stat = &"relic_gain"
+_amount_mantissa = 1.150183
+_amount_exponent = 3
+
+[sub_resource type="Resource" id="payout_ichor"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("4_cur_ichor")
+gain_stat = &"ichor_gain"
+_amount_mantissa = 7.667884
+_amount_exponent = 2
+
+[sub_resource type="Resource" id="reward_0"]
+script = ExtResource("5_effect_script")
+stat = &"relic_gain"
+op = 2
+scope = 0
+target = &""
+per_level = 0.35
+level_scaling = 0
+
+[resource]
+script = ExtResource("1_script")
+id = &"bone_hauler_drag_the_fallen_arch"
+display_name = "Drag the Fallen Arch"
+description = "Drag the Fallen Arch. Step 10 of Bone Hauler's chain."
+is_farm = false
+hero_id = &"bone_hauler"
+base_duration_seconds = 1336.0
+min_hero_level = 1
+min_missions_completed = 0
+unlock_perk_id = &""
+requires_mission_id = &""
+payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_relics"), SubResource("payout_ichor")])
+rewards = Array[ExtResource("5_effect_script")]([SubResource("reward_0")])

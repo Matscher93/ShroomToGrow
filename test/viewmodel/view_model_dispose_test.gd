@@ -114,10 +114,10 @@ func test_project_view_model_disposes_cleanly() -> void:
 		_assert_symmetric("ProjectViewModel(%s)" % def.id,
 			func() -> ViewModel: return ProjectViewModel.new(def.id, def))
 
-func test_creature_view_model_disposes_cleanly() -> void:
-	for def in App.creature_defs.creatures:
-		_assert_symmetric("CreatureViewModel(%s)" % def.id,
-			func() -> ViewModel: return CreatureViewModel.new(def.id, def))
+func test_hero_view_model_disposes_cleanly() -> void:
+	for def in App.hero_defs.heroes:
+		_assert_symmetric("HeroViewModel(%s)" % def.id,
+			func() -> ViewModel: return HeroViewModel.new(def.id, def))
 
 func test_mission_view_model_disposes_cleanly() -> void:
 	for def in App.mission_defs.missions:

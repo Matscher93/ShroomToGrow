@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
-stat = &"creature_rank_cap"
+stat = &"hero_level_cap"
 op = 0
 scope = 0
 target = &""

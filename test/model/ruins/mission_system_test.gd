@@ -18,7 +18,7 @@ var _prestige: UpgradeSystem
 var _production: ProductionSystem
 var _ctx: ResolveContext
 var _data: RuinsData
-var _creatures: CreatureSystem
+var _heroes: HeroSystem
 var _system: MissionSystem
 var _now: float = 1000.0
 
@@ -37,11 +37,11 @@ func before_test() -> void:
 		_prestige, _ctx, UpgradeSystem.new(), UpgradeSystem.new(), UpgradeSystem.new(),
 		UpgradeSystem.new(), _upgrades)
 	_data = RuinsData.new()
-	_creatures = CreatureSystem.new(_data, _player, _creature_list(), _production)
-	_system = MissionSystem.new(_data, _player, _biomes_data, _production, _creatures,
+	_heroes = HeroSystem.new(_data, _player, _hero_list(), _production)
+	_system = MissionSystem.new(_data, _player, _biomes_data, _production, _heroes,
 		_mission_list(), _prestige)
 	_system.now_provider = func() -> float: return _now
-	_creatures.recruit(&"digger")
+	_heroes.recruit(&"digger")
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -57,58 +57,73 @@ func _payout(currency_type: CurrencyTypes.Types, gain_stat: StringName,
 	return payout
 
 func _mission_list() -> MissionList:
+	# Digger's chain is two steps, the second behind a level gate - which is the
+	# whole shape of a real chain in miniature.
 	var short_run := MissionDef.new()
 	short_run.id = &"short_run"
 	short_run.display_name = "Short Run"
+	short_run.hero_id = &"digger"
 	short_run.base_duration_seconds = 100.0
-	short_run.min_creature_rank = 1
-	short_run.min_missions_completed = 0
+	short_run.min_hero_level = 1
 	short_run.payouts = [_payout(CurrencyTypes.Types.RELICS, &"relic_gain", 1.0, 1)]
 
 	var deep_run := MissionDef.new()
 	deep_run.id = &"deep_run"
 	deep_run.display_name = "Deep Run"
+	deep_run.hero_id = &"digger"
 	deep_run.base_duration_seconds = 400.0
-	deep_run.min_creature_rank = 3
-	deep_run.min_missions_completed = 2
+	deep_run.min_hero_level = 3
 	deep_run.payouts = [_payout(CurrencyTypes.Types.GLYPHS, &"glyph_gain", 5.0, 0)]
 
+	# Idler's chain, so the board can hold two expeditions at once.
+	var side_run := MissionDef.new()
+	side_run.id = &"side_run"
+	side_run.display_name = "Side Run"
+	side_run.hero_id = &"idler"
+	side_run.base_duration_seconds = 200.0
+	side_run.min_hero_level = 1
+	side_run.payouts = [_payout(CurrencyTypes.Types.RELICS, &"relic_gain", 2.0, 0)]
+
 	var list := MissionList.new()
-	list.missions = [short_run, deep_run]
+	list.missions = [short_run, deep_run, side_run]
 	return list
 
-func _creature_list() -> CreatureList:
+## Walks digger past the first step of its chain, which is what opens the second.
+func _finish_short_run() -> void:
+	assert_int(_system.send(&"short_run", &"digger")).is_greater(0)
+	_now += 100.0
+	assert_bool(_system.collect(_data.active[0]["instance_id"])).is_true()
+
+func _hero_list() -> HeroList:
 	var currency := CurrencyDef.new()
 	currency.currency_type = CurrencyTypes.Types.RELICS
 
-	var digger := CreatureDef.new()
+	var digger := HeroDef.new()
 	digger.id = &"digger"
 	digger.display_name = "Digger"
-	digger.speed_per_rank = 0.0     # rank 1 is a clean x1.0, so durations read as authored
-	digger.yield_per_rank = 0.0
-	digger.affinity_bonus = 0.0
-	digger.base_rank_cap = 5
+	digger.speed_per_level = 0.0     # level 1 is a clean x1.0, so durations read as authored
+	digger.yield_per_level = 0.0
+	digger.base_level_cap = 5
 	digger.recruit_currency = currency
 	digger.recruit_cost = BigNumber.new(0.0, 0)
-	digger.rank_currency = currency
-	digger.rank_base_cost = BigNumber.new(0.0, 0)
-	digger.rank_cost_growth = 1.0
+	digger.level_currency = currency
+	digger.level_base_cost = BigNumber.new(0.0, 0)
+	digger.level_cost_growth = 1.0
 
-	var idler := CreatureDef.new()
+	var idler := HeroDef.new()
 	idler.id = &"idler"
 	idler.display_name = "Idler"
-	idler.speed_per_rank = 0.0
-	idler.yield_per_rank = 0.0
-	idler.affinity_bonus = 0.0
-	idler.base_rank_cap = 5
+	idler.speed_per_level = 0.0
+	idler.yield_per_level = 0.0
+	idler.base_level_cap = 5
 	idler.recruit_currency = currency
 	idler.recruit_cost = BigNumber.new(0.0, 0)
-	idler.rank_currency = currency
-	idler.rank_base_cost = BigNumber.new(0.0, 0)
-	idler.rank_cost_growth = 1.0
+	idler.level_currency = currency
+	idler.level_base_cost = BigNumber.new(0.0, 0)
+	idler.level_cost_growth = 1.0
 
-	var list := CreatureList.new()
-	list.creatures = [digger, idler]
+	var list := HeroList.new()
+	list.heroes = [digger, idler]
 	return list
 
 ## Levels a stat on the mission track, the way a boost rung does.
@@ -129,7 +144,7 @@ func _grant_stat(id: StringName, stat: StringName, op: UpgradeEffectDef.Op,
 
 # ─── Sending ─────────────────────────────────────────────────────────────────
 
-func test_sending_snapshots_the_duration_and_puts_the_creature_out() -> void:
+func test_sending_snapshots_the_duration_and_puts_the_hero_out() -> void:
 	var instance_id := _system.send(&"short_run", &"digger")
 	assert_int(instance_id).is_greater(0)
 	assert_int(_system.expeditions_out()).is_equal(1)
@@ -137,42 +152,45 @@ func test_sending_snapshots_the_duration_and_puts_the_creature_out() -> void:
 	assert_float(entry["duration"]).is_equal_approx(100.0, EPS)
 	assert_float(entry["started_at"]).is_equal_approx(1000.0, EPS)
 
-## The board is uncapped: the roster is the only limit, so a second free creature
+## The board is uncapped: the roster is the only limit, so a second free hero
 ## can always go out alongside the first.
-func test_the_board_takes_as_many_expeditions_as_there_are_creatures() -> void:
-	_data.missions_completed = 5      # opens deep_run, which needs rank 3
-	_creatures.recruit(&"idler")
-	_data.set_rank(&"idler", 3)
+func test_the_board_takes_as_many_expeditions_as_there_are_heroes() -> void:
+	_heroes.recruit(&"idler")
 	assert_int(_system.send(&"short_run", &"digger")).is_greater(0)
-	assert_int(_system.send(&"deep_run", &"idler")).is_greater(0)
+	assert_int(_system.send(&"side_run", &"idler")).is_greater(0)
 	assert_int(_system.expeditions_out()).is_equal(2)
 
 ## Two of the same one-shot expedition out at once would pay its one-time reward
 ## twice. Only reachable since the board stopped being capped.
 func test_the_same_expedition_cannot_be_sent_twice_at_once() -> void:
-	_creatures.recruit(&"idler")
+	_heroes.recruit(&"idler")
 	assert_int(_system.send(&"short_run", &"digger")).is_greater(0)
 	assert_bool(_system.can_send(&"short_run", &"idler")).is_false()
 	assert_int(_system.send(&"short_run", &"idler")).is_equal(0)
 
 ## ...and with nobody free, there is nothing to send. That is the limit that
 ## replaced the slot count, and it is one the player lifts by taking another
-## creature over rather than by buying a place.
-func test_an_expedition_needs_a_free_creature() -> void:
+## hero over rather than by buying a place.
+func test_an_expedition_needs_a_free_hero() -> void:
 	assert_int(_system.send(&"short_run", &"digger")).is_greater(0)
 	assert_bool(_system.can_send(&"short_run", &"digger")).is_false()
 	assert_int(_system.send(&"short_run", &"digger")).is_equal(0)
 
-func test_a_creature_below_the_rank_bar_cannot_be_sent() -> void:
-	_data.missions_completed = 5   # opens deep_run, which needs rank 3
-	assert_bool(_system.is_unlocked(&"deep_run")).is_true()
+## The chain gate: the step is next in line, but its hero is not levelled far
+## enough to take it.
+func test_a_hero_below_the_level_gate_cannot_be_sent() -> void:
+	_finish_short_run()
+	assert_bool(_system.is_unlocked(&"deep_run")).is_false()
 	assert_bool(_system.can_send(&"deep_run", &"digger")).is_false()
-	_data.set_rank(&"digger", 3)
+	_data.set_level(&"digger", 3)
+	assert_bool(_system.is_unlocked(&"deep_run")).is_true()
 	assert_bool(_system.can_send(&"deep_run", &"digger")).is_true()
 
-func test_a_locked_mission_cannot_be_sent() -> void:
+## A step further along the chain than the player has walked is shut, however
+## high the hero's level.
+func test_a_step_out_of_chain_order_cannot_be_sent() -> void:
+	_data.set_level(&"digger", 3)
 	assert_bool(_system.is_unlocked(&"deep_run")).is_false()
-	assert_int(_system.missions_until_unlock(&"deep_run")).is_equal(2)
 	assert_int(_system.send(&"deep_run", &"digger")).is_equal(0)
 
 func test_a_sealed_ruin_sends_nobody() -> void:
@@ -227,7 +245,7 @@ func test_a_mission_speed_effect_shortens_the_next_send() -> void:
 	_grant_stat(&"swift", &"mission_speed", UpgradeEffectDef.Op.MORE, 1.0, 1)
 	assert_float(_system.duration_for(&"short_run", &"digger")).is_equal_approx(50.0, EPS)
 
-## The snapshot contract: a boost bought while a creature is out does not move
+## The snapshot contract: a boost bought while a hero is out does not move
 ## the errand it is already on.
 func test_a_speed_boost_does_not_shorten_a_mission_already_in_flight() -> void:
 	var instance_id := _system.send(&"short_run", &"digger")
@@ -260,14 +278,14 @@ func test_a_reward_boost_does_not_raise_a_mission_already_in_flight() -> void:
 
 # ─── Collecting ──────────────────────────────────────────────────────────────
 
-func test_collecting_pays_out_frees_the_creature_and_counts_the_mission() -> void:
+func test_collecting_pays_out_frees_the_hero_and_counts_the_mission() -> void:
 	var instance_id := _system.send(&"short_run", &"digger")
 	_now += 100.0
 	assert_bool(_system.collect(instance_id)).is_true()
 	assert_bool(_player.relics.equals(BigNumber.new(1.0, 1))).is_true()
 	assert_int(_system.expeditions_out()).is_equal(0)
 	assert_int(_data.missions_completed).is_equal(1)
-	assert_bool(_creatures.is_busy(&"digger")).is_false()
+	assert_bool(_heroes.is_busy(&"digger")).is_false()
 
 func test_collecting_moves_the_lifetime_total() -> void:
 	var instance_id := _system.send(&"short_run", &"digger")
@@ -284,13 +302,11 @@ func test_an_unfinished_mission_cannot_be_collected() -> void:
 
 func test_collect_all_takes_every_finished_mission_and_leaves_the_rest() -> void:
 	# Two different expeditions: the same one cannot be out twice at once.
-	_data.missions_completed = 5      # opens deep_run, which needs rank 3
-	_creatures.recruit(&"idler")
-	_data.set_rank(&"idler", 3)
+	_heroes.recruit(&"idler")
 	var first := _system.send(&"short_run", &"digger")
 	_now += 60.0
-	var second := _system.send(&"deep_run", &"idler")
-	_now += 50.0   # first is 110s in and done, second only 50s of its 400s
+	var second := _system.send(&"side_run", &"idler")
+	_now += 50.0   # first is 110s in and done, second only 50s of its 200s
 	assert_int(_system.completed_count()).is_equal(1)
 	assert_int(_system.collect_all()).is_equal(1)
 	assert_bool(_data.find(first).is_empty()).is_true()
@@ -308,53 +324,54 @@ func test_sync_rebuilds_the_projection_after_a_load() -> void:
 	_system.sync_missions_completed()
 	assert_int(_player.missions_completed).is_equal(7)
 
-# ─── Picking a creature ──────────────────────────────────────────────────────
+# ─── Walking a chain ─────────────────────────────────────────────────────────
 
-## The auto-pick behind the board's one-tap send. Ranked on speed x yield, which
-## is the whole of what a creature brings to an errand.
+## A chain is walked in order, and where a hero stands in it is how many of its
+## own expeditions are home.
+func test_a_chain_is_walked_one_step_at_a_time() -> void:
+	assert_int(_system.chain_length(&"digger")).is_equal(2)
+	assert_int(_system.chain_position(&"digger")).is_zero()
+	assert_str(String(_system.next_step(&"digger").id)).is_equal("short_run")
 
-func test_the_best_creature_is_the_only_free_one() -> void:
-	assert_str(String(_system.best_creature_for(&"short_run"))).is_equal("digger")
+	_finish_short_run()
+	assert_int(_system.chain_position(&"digger")).is_equal(1)
+	assert_str(String(_system.next_step(&"digger").id)).is_equal("deep_run")
 
-func test_nothing_is_picked_when_no_creature_is_free() -> void:
+func test_a_finished_chain_offers_nothing() -> void:
+	_finish_short_run()
+	_data.set_level(&"digger", 3)
+	assert_int(_system.send(&"deep_run", &"digger")).is_greater(0)
+	_now += 400.0
+	assert_bool(_system.collect(_data.active[0]["instance_id"])).is_true()
+	assert_int(_system.chain_position(&"digger")).is_equal(2)
+	assert_object(_system.next_step(&"digger")).is_null()
+	assert_str(String(_system.sendable_step(&"digger"))).is_empty()
+
+## Only the chain's own hero. Nothing on screen offers another, but the model is
+## what makes that true rather than the screen.
+func test_another_heros_expedition_is_refused() -> void:
+	_heroes.recruit(&"idler")
+	assert_bool(_system.can_send(&"short_run", &"idler")).is_false()
+	assert_int(_system.send(&"short_run", &"idler")).is_zero()
+
+## What the Send button reads: the one step this hero could start right now.
+func test_the_sendable_step_is_the_next_one_it_can_actually_take() -> void:
+	assert_str(String(_system.sendable_step(&"digger"))).is_equal("short_run")
+	_finish_short_run()
+	# Next in line, but behind a level it has not reached.
+	assert_str(String(_system.sendable_step(&"digger"))).is_empty()
+	_data.set_level(&"digger", 3)
+	assert_str(String(_system.sendable_step(&"digger"))).is_equal("deep_run")
+
+func test_a_hero_already_out_has_no_sendable_step() -> void:
 	_system.send(&"short_run", &"digger")
-	assert_str(String(_system.best_creature_for(&"short_run"))).is_empty()
+	assert_str(String(_system.sendable_step(&"digger"))).is_empty()
 
-func test_a_busy_creature_is_never_picked() -> void:
-	_creatures.recruit(&"idler")
-	_system.send(&"short_run", &"digger")
-	assert_str(String(_system.best_creature_for(&"short_run"))).is_equal("idler")
+func test_an_unrecruited_hero_has_no_sendable_step() -> void:
+	assert_str(String(_system.sendable_step(&"idler"))).is_empty()
 
-## Affinity rides on both multipliers, so a specialist wins the product without
-## needing a rule of its own - which is exactly what this asserts.
-func test_the_creature_with_affinity_wins() -> void:
-	_creatures.recruit(&"idler")
-	var idler := _creatures.creature_def(&"idler")
-	idler.affinity = [&"short_run"]
-	idler.affinity_bonus = 0.5
-	assert_str(String(_system.best_creature_for(&"short_run"))).is_equal("idler")
-
-## ...but only on the mission it is a specialist in.
-func test_affinity_does_not_carry_to_another_mission() -> void:
-	_creatures.recruit(&"idler")
-	var idler := _creatures.creature_def(&"idler")
-	idler.affinity = [&"deep_run"]
-	idler.affinity_bonus = 0.5
-	assert_str(String(_system.best_creature_for(&"short_run"))).is_equal("digger")
-
-func test_the_stronger_creature_wins_without_affinity() -> void:
-	_creatures.recruit(&"idler")
-	var idler := _creatures.creature_def(&"idler")
-	idler.speed_per_rank = 1.0
-	idler.yield_per_rank = 1.0
-	assert_str(String(_system.best_creature_for(&"short_run"))).is_equal("idler")
-
-## A creature below the mission's rank bar is not a candidate, however strong.
-func test_a_creature_under_the_rank_bar_is_never_picked() -> void:
-	_data.missions_completed = 5   # opens deep_run, which needs rank 3
-	_creatures.recruit(&"idler")
-	var idler := _creatures.creature_def(&"idler")
-	idler.speed_per_rank = 1.0
-	idler.yield_per_rank = 1.0
-	_data.set_rank(&"digger", 3)
-	assert_str(String(_system.best_creature_for(&"deep_run"))).is_equal("digger")
+## The level a step still wants, for the line the card shows while it waits.
+func test_levels_until_unlock_counts_down_to_the_gate() -> void:
+	assert_int(_system.levels_until_unlock(&"deep_run")).is_equal(2)
+	_data.set_level(&"digger", 3)
+	assert_int(_system.levels_until_unlock(&"deep_run")).is_zero()

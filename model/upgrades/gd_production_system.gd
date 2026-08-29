@@ -39,11 +39,11 @@ var _memo_version := -1
 ## target -> the bucket keys a read at that target draws from, as
 ## UpgradeSystem.scope_keys() builds them. Seeded from the node list at
 ## construction so a node's tags cost nothing on the hot path, and filled lazily
-## for anything else - `target` also carries biome keys, boost ids and creature
+## for anything else - `target` also carries biome keys, boost ids and hero
 ## ids, and those resolve to ["g", "n:<it>"] with no tags. Node ids are digits and
 ## the rest are words, so the two namespaces cannot collide.
 ##
-## Bounded by authored data ("" plus the node, biome, boost and creature ids), so
+## Bounded by authored data ("" plus the node, biome, boost and hero ids), so
 ## it saturates within the first tick rather than growing.
 ##
 ## Never invalidated: MyceliumNode.tags is authored data, loaded once, and the
@@ -290,10 +290,15 @@ func tick_duration(base_duration: float, minimum: float) -> float:
 # ---------------------------------------------------------------- missions
 
 ## Divides a mission's authored duration, so an upgrade raising &"mission_speed"
-## brings a creature home sooner. Clamped away from zero and below, which a
+## brings a hero home sooner. Clamped away from zero and below, which a
 ## stacked bonus could otherwise reach - same shape as automation_rate().
-func mission_speed() -> float:
-	var speed := stack(&"mission_speed", BigNumber.from_value(1.0))
+##
+## Takes the mission id as its target, so an effect scoped to one mission and a
+## global one both apply: _keys_for() resolves a target into ["g", "n:<it>"].
+## That is what lets an expedition reward speed up one named farm without a stat
+## of its own - the same shape hero_level_bonus() reads per hero.
+func mission_speed(mission_id: StringName = &"") -> float:
+	var speed := stack(&"mission_speed", BigNumber.from_value(1.0), mission_id)
 	return maxf(0.01, speed.to_float())
 
 ## Farms the player may have running at once, on top of the base allowance. Read
@@ -305,21 +310,32 @@ func mission_speed() -> float:
 func farm_slots() -> int:
 	return int(stack(&"farm_slots", BigNumber.new(0.0, 0)).to_float())
 
-## Levels one creature may be ranked up beyond its authored ceiling. Scoped by
-## creature id, so a perk can lift one thrall without lifting the whole roster -
+## Levels one hero may be levelled up beyond its authored ceiling. Scoped by
+## hero id, so a perk can lift one thrall without lifting the whole roster -
 ## the same shape BoostSystem.extra_max_levels() reads &"boost_max_level" in.
-func creature_rank_bonus(creature_id: StringName) -> int:
-	return int(stack(&"creature_rank_cap", BigNumber.new(0.0, 0), creature_id).to_float())
+## Workers one farm may hold, on top of the base allowance. Scoped by mission id
+## for the same reason hero_level_bonus() is scoped by hero: an upgrade should be
+## able to widen one farm without widening every farm.
+func workers_per_farm(mission_id: StringName = &"") -> int:
+	return int(stack(&"workers_per_farm", BigNumber.new(0.0, 0), mission_id).to_float())
+
+func hero_level_bonus(hero_id: StringName) -> int:
+	return int(stack(&"hero_level_cap", BigNumber.new(0.0, 0), hero_id).to_float())
 
 ## What one mission payout is worth: the shared &"mission_reward" multiplier and
 ## then the payout's own per-currency stat, so a boost can lift every mission or
 ## only the ones paying in glyphs.
 ##
+## &"mission_reward" is read at the mission's own id, so a reward scoped to one
+## farm lifts that farm alone while a global one still lifts everything - see
+## mission_speed() for why passing the id as the target is enough.
+##
 ## stack_external, not stack: the three Ruins currencies are permanent, so the
 ## symbiosis track the next sporation wipes must not inflate a payout the player
 ## keeps - the same reasoning modify_crystal_gain() is built on.
-func modify_mission_reward(base: BigNumber, gain_stat: StringName) -> BigNumber:
-	var value := stack_external(&"mission_reward", base)
+func modify_mission_reward(base: BigNumber, gain_stat: StringName,
+		mission_id: StringName = &"") -> BigNumber:
+	var value := stack_external(&"mission_reward", base, mission_id)
 	if gain_stat.is_empty():
 		return value
 	return stack_external(gain_stat, value)

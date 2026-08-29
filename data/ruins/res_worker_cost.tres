@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="WorkerCostDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_worker_cost_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_price_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_relics_def.tres" id="3_cur_relics"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="4_cur_ichor"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="5_cur_glyphs"]
+
+[sub_resource type="Resource" id="price_relics"]
+script = ExtResource("2_price_script")
+currency = ExtResource("3_cur_relics")
+gain_stat = &""
+_amount_mantissa = 4.0
+_amount_exponent = 1
+
+[sub_resource type="Resource" id="price_ichor"]
+script = ExtResource("2_price_script")
+currency = ExtResource("4_cur_ichor")
+gain_stat = &""
+_amount_mantissa = 1.5
+_amount_exponent = 1
+
+[sub_resource type="Resource" id="price_glyphs"]
+script = ExtResource("2_price_script")
+currency = ExtResource("5_cur_glyphs")
+gain_stat = &""
+_amount_mantissa = 5.0
+_amount_exponent = 0
+
+[resource]
+script = ExtResource("1_script")
+prices = Array[ExtResource("2_price_script")]([SubResource("price_relics"), SubResource("price_ichor"), SubResource("price_glyphs")])
+cost_growth = 1.35

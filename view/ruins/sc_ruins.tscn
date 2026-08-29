@@ -1,14 +1,12 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://view/ruins/gd_ruins_panel.gd" id="1_script"]
-[ext_resource type="PackedScene" path="res://view/ruins/sc_slot_card.tscn" id="2_slot_card"]
-[ext_resource type="PackedScene" path="res://view/ruins/sc_creature_card.tscn" id="3_creature_card"]
+[ext_resource type="PackedScene" path="res://view/ruins/sc_hero_expedition_card.tscn" id="2_hero_expedition_card"]
+[ext_resource type="PackedScene" path="res://view/ruins/sc_hero_card.tscn" id="3_hero_card"]
 [ext_resource type="PackedScene" path="res://view/ruins/sc_mission_boost_card.tscn" id="4_boost_card"]
 [ext_resource type="Script" path="res://view/base_views/gd_touch_scroll_container.gd" id="6_touch_scroll"]
 [ext_resource type="Script" path="res://view/base_views/gd_full_width_tab_container.gd" id="8_full_width_tabs"]
-[ext_resource type="PackedScene" path="res://view/ruins/sc_mission_choice_row.tscn" id="10_choice_row"]
-[ext_resource type="PackedScene" path="res://view/ruins/sc_mission_chooser.tscn" id="11_chooser"]
-[ext_resource type="Script" path="res://view/main/gd_popup_layer.gd" id="12_popup"]
+[ext_resource type="PackedScene" path="res://view/ruins/sc_farm_card.tscn" id="10_farm_card"]
 [ext_resource type="FontFile" uid="uid://bfcncplwx4kw5" path="res://fonts/Space_Grotesk/SpaceGrotesk-Bold.ttf" id="9_bold"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ruins"]
@@ -49,7 +47,7 @@ content_margin_top = 6.0
 content_margin_right = 2.0
 content_margin_bottom = 6.0
 
-[node name="ruins" type="PanelContainer" node_paths=PackedStringArray("tab_container", "missions_tab", "creatures_tab", "boosts_tab", "vbox_expeditions", "btn_send_expedition", "lbl_send_hint", "vbox_farms", "section_farms", "lbl_farm_board", "btn_ledger", "vbox_ledger", "chooser_layer", "vbox_creatures", "vbox_boosts", "lbl_current_tab", "lbl_board", "lbl_missions", "btn_collect_all")]
+[node name="ruins" type="PanelContainer" node_paths=PackedStringArray("tab_container", "missions_tab", "heroes_tab", "boosts_tab", "vbox_expeditions", "lbl_expeditions_hint", "section_workers", "lbl_worker_pool", "btn_hire_worker", "vbox_farms", "section_farms", "lbl_farm_board", "vbox_heroes", "vbox_boosts", "lbl_current_tab", "lbl_board", "lbl_missions", "btn_collect_all")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -59,27 +57,25 @@ theme_override_styles/panel = SubResource("StyleBoxEmpty_ruins")
 script = ExtResource("1_script")
 tab_container = NodePath("VBoxContainer/TabContainer")
 missions_tab = NodePath("VBoxContainer/TabContainer/Missions")
-creatures_tab = NodePath("VBoxContainer/TabContainer/Creatures")
+heroes_tab = NodePath("VBoxContainer/TabContainer/Heroes")
 boosts_tab = NodePath("VBoxContainer/TabContainer/Boosts")
 vbox_expeditions = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_expeditions/vbox_expeditions")
-btn_send_expedition = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_expeditions/btn_send_expedition")
-lbl_send_hint = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_expeditions/lbl_send_hint")
+lbl_expeditions_hint = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_expeditions/lbl_expeditions_hint")
+section_workers = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_workers")
+lbl_worker_pool = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_workers/heading/lbl_worker_pool")
+btn_hire_worker = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_workers/btn_hire_worker")
 vbox_farms = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_farms/vbox_farms")
 section_farms = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_farms")
 lbl_farm_board = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_farms/heading/lbl_farm_board")
-btn_ledger = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/btn_ledger")
-vbox_ledger = NodePath("VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/vbox_ledger")
-chooser_layer = NodePath("chooser_layer")
-vbox_creatures = NodePath("VBoxContainer/TabContainer/Creatures/MarginContainer/VBoxContainer/vbox_creatures")
+vbox_heroes = NodePath("VBoxContainer/TabContainer/Heroes/MarginContainer/VBoxContainer/vbox_heroes")
 vbox_boosts = NodePath("VBoxContainer/TabContainer/Boosts/MarginContainer/VBoxContainer/vbox_boosts")
 lbl_current_tab = NodePath("VBoxContainer/header/panel_current_tab/lbl_current_tab")
 lbl_board = NodePath("VBoxContainer/lbl_board")
 lbl_missions = NodePath("VBoxContainer/header/lbl_missions")
 btn_collect_all = NodePath("VBoxContainer/header/btn_collect_all")
-slot_card_scene = ExtResource("2_slot_card")
-choice_row_scene = ExtResource("10_choice_row")
-chooser_scene = ExtResource("11_chooser")
-creature_card_scene = ExtResource("3_creature_card")
+hero_expedition_card_scene = ExtResource("2_hero_expedition_card")
+farm_card_scene = ExtResource("10_farm_card")
+hero_card_scene = ExtResource("3_hero_card")
 boost_card_scene = ExtResource("4_boost_card")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
@@ -118,7 +114,7 @@ text = "Collect all"
 [node name="lbl_board" type="Label" parent="VBoxContainer"]
 modulate = Color(0.9647059, 0.8666667, 0.68235296, 1)
 layout_mode = 2
-text = "0 of 1 creatures out"
+text = "0 of 1 heroes out"
 autowrap_mode = 3
 
 [node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
@@ -153,7 +149,7 @@ theme_override_constants/separation = 10
 [node name="lbl_missions_hint" type="Label" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer"]
 modulate = Color(1, 1, 1, 0.5)
 layout_mode = 2
-text = "Expeditions run once each and leave something behind for good. Farms keep going on their own, paying while the game is closed. A creature marked * is suited to that mission and is both faster and worth more there."
+text = "Each hero walks a chain of twenty expeditions, run once each and leaving something behind for good. Farms are worked by hired workers instead, and keep going on their own while the game is closed - more workers on one divide its cycle."
 autowrap_mode = 3
 
 [node name="section_expeditions" type="VBoxContainer" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer"]
@@ -175,16 +171,37 @@ text = "EXPEDITIONS"
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="btn_send_expedition" type="Button" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_expeditions"]
-layout_mode = 2
-text = "Send an expedition"
-
-[node name="lbl_send_hint" type="Label" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_expeditions"]
+[node name="lbl_expeditions_hint" type="Label" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_expeditions"]
 visible = false
 modulate = Color(1, 1, 1, 0.5)
 layout_mode = 2
 text = ""
 autowrap_mode = 3
+
+[node name="section_workers" type="VBoxContainer" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="heading" type="HBoxContainer" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_workers"]
+layout_mode = 2
+
+[node name="lbl_heading" type="Label" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_workers/heading"]
+modulate = Color(0.7647059, 0.5137255, 0.30588236, 1)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("9_bold")
+theme_override_font_sizes/font_size = 13
+text = "WORKERS"
+
+[node name="lbl_worker_pool" type="Label" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_workers/heading"]
+modulate = Color(1, 1, 1, 0.5)
+layout_mode = 2
+text = "0 idle / 0 hired"
+
+[node name="btn_hire_worker" type="Button" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer/section_workers"]
+layout_mode = 2
+text = "Hire a worker"
 
 [node name="section_farms" type="VBoxContainer" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer"]
 visible = false
@@ -211,28 +228,13 @@ text = "0 of 1 running"
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="btn_ledger" type="Button" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer"]
-modulate = Color(1, 1, 1, 0.7)
-layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxEmpty_ledger")
-theme_override_styles/hover = SubResource("StyleBoxEmpty_ledger")
-theme_override_styles/pressed = SubResource("StyleBoxEmpty_ledger")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_ledger")
-text = "0 expeditions left"
-alignment = 0
-
-[node name="vbox_ledger" type="VBoxContainer" parent="VBoxContainer/TabContainer/Missions/MarginContainer/VBoxContainer"]
-visible = false
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="Creatures" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
+[node name="Heroes" type="ScrollContainer" parent="VBoxContainer/TabContainer"]
 script = ExtResource("6_touch_scroll")
 visible = false
 layout_mode = 2
 vertical_scroll_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/TabContainer/Creatures"]
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/TabContainer/Heroes"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -240,18 +242,18 @@ theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 118
 
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Creatures/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Heroes/MarginContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="lbl_creatures_hint" type="Label" parent="VBoxContainer/TabContainer/Creatures/MarginContainer/VBoxContainer"]
+[node name="lbl_heroes_hint" type="Label" parent="VBoxContainer/TabContainer/Heroes/MarginContainer/VBoxContainer"]
 modulate = Color(1, 1, 1, 0.5)
 layout_mode = 2
-text = "Taking a creature over is permanent - a sporation seals the ruins, but it does not free anything already held. A creature out on a mission cannot be ranked up."
+text = "Taking a hero over is permanent - a sporation seals the ruins, but it does not free anything already held. A hero out on an expedition cannot be levelled up, and every fifth step of its chain asks for one level more."
 autowrap_mode = 3
 
-[node name="vbox_creatures" type="VBoxContainer" parent="VBoxContainer/TabContainer/Creatures/MarginContainer/VBoxContainer"]
+[node name="vbox_heroes" type="VBoxContainer" parent="VBoxContainer/TabContainer/Heroes/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
@@ -284,7 +286,3 @@ autowrap_mode = 3
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="chooser_layer" type="MarginContainer" parent="."]
-layout_mode = 2
-mouse_filter = 2
-script = ExtResource("12_popup")

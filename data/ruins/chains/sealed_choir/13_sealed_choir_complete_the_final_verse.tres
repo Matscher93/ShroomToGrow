@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_relics_def.tres" id="3_cur_relics"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="4_cur_ichor"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="5_cur_glyphs"]
+
+[sub_resource type="Resource" id="payout_relics"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("3_cur_relics")
+gain_stat = &"relic_gain"
+_amount_mantissa = 1.007227
+_amount_exponent = 5
+
+[sub_resource type="Resource" id="payout_ichor"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("4_cur_ichor")
+gain_stat = &"ichor_gain"
+_amount_mantissa = 6.043361
+_amount_exponent = 4
+
+[sub_resource type="Resource" id="payout_glyphs"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("5_cur_glyphs")
+gain_stat = &"glyph_gain"
+_amount_mantissa = 4.028907
+_amount_exponent = 4
+
+[resource]
+script = ExtResource("1_script")
+id = &"sealed_choir_complete_the_final_verse"
+display_name = "Complete the Final Verse"
+description = "Complete the Final Verse. Step 13 of The Sealed Choir's chain."
+is_farm = false
+hero_id = &"sealed_choir"
+base_duration_seconds = 10369.8
+min_hero_level = 1
+min_missions_completed = 0
+unlock_perk_id = &""
+requires_mission_id = &""
+payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_relics"), SubResource("payout_ichor"), SubResource("payout_glyphs")])

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_ichor_def.tres" id="3_cur_ichor"]
+
+[sub_resource type="Resource" id="payout_ichor"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("3_cur_ichor")
+gain_stat = &"ichor_gain"
+_amount_mantissa = 9.747842
+_amount_exponent = 3
+
+[resource]
+script = ExtResource("1_script")
+id = &"pale_stalker_bleed_the_spawn_pools"
+display_name = "Bleed the Spawn Pools"
+description = "Bleed the Spawn Pools. Step 18 of Pale Stalker's chain."
+is_farm = false
+hero_id = &"pale_stalker"
+base_duration_seconds = 13510.8
+min_hero_level = 1
+min_missions_completed = 0
+unlock_perk_id = &""
+requires_mission_id = &""
+payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_ichor")])

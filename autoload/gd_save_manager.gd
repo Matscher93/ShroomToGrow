@@ -5,7 +5,7 @@ extends Node
 const SAVE_PATH   := "user://save.json"
 const BACKUP_PATH := "user://save.bak.json"
 const TMP_PATH    := "user://save.tmp.json"
-const SAVE_VERSION := 8
+const SAVE_VERSION := 9
 
 ## The three UpgradeSystem buckets in a save, for migrations that touch all of
 ## them. Order is irrelevant, each is keyed independently.
@@ -205,8 +205,53 @@ func _migrate(data: Dictionary) -> bool:
 		_migrate_geodes_to_boosts_v7(data)
 	if version < 8:
 		_migrate_mycelium_nodes_to_v8(data)
+	if version < 9:
+		_migrate_ruins_to_v9(data)
 	data["version"] = SAVE_VERSION
 	return true
+
+## Splits a pre-v9 save's one Ruins roster into heroes and workers.
+##
+## Before v9 the same units ran both boards: `creature_ranks` held them, and a
+## farm was a `creature_id` like an expedition. Heroes run expeditions only now,
+## and farms are worked by a pool of interchangeable workers.
+##
+## Every farm that was running keeps running, on one worker - and the player is
+## given that worker, so the pool accounts for it rather than the farm holding a
+## worker nobody paid for. The hero that was on it is handed back free.
+##
+## A save whose ruins block is missing or malformed is left alone: the loader
+## below defaults every field, and a half-written migration would be worse than
+## none.
+func _migrate_ruins_to_v9(data: Dictionary) -> void:
+	var game: Variant = data.get("game", {})
+	if not game is Dictionary:
+		return
+	var ruins: Variant = (game as Dictionary).get("ruins", {})
+	if not ruins is Dictionary:
+		return
+	var block: Dictionary = ruins
+	if block.has("creature_ranks"):
+		block["hero_levels"] = block["creature_ranks"]
+		block.erase("creature_ranks")
+
+	var freed := 0
+	var active: Variant = block.get("active", [])
+	if active is Array:
+		for raw: Variant in active:
+			if not raw is Dictionary:
+				continue
+			var entry: Dictionary = raw
+			entry["hero_id"] = String(entry.get("creature_id", ""))
+			entry.erase("creature_id")
+			if not bool(entry.get("is_farm", false)):
+				continue
+			# A farm is nobody's errand now: it keeps its cycle, on one worker,
+			# and gives its hero back.
+			entry["workers"] = 1
+			entry["hero_id"] = ""
+			freed += 1
+	block["workers_owned"] = int(block.get("workers_owned", 0)) + freed
 
 ## Rewrites the prestige upgrade keys of a pre-v2 save in place. Keys not in the
 ## table (a perk added since, or an id already migrated) are left alone.

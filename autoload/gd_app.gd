@@ -78,7 +78,8 @@ var player_level_system: PlayerLevelSystem
 var daily_reward_system: DailyRewardSystem
 var fertilizer_system: FertilizerSystem
 var event_system: EventSystem
-var creature_system: CreatureSystem
+var hero_system: HeroSystem
+var worker_system: WorkerSystem
 var mission_system: MissionSystem
 var mission_boost_system: MissionBoostSystem
 
@@ -118,16 +119,18 @@ var random_events := load("res://data/events/all_random_events.tres") as RandomE
 var events_data: EventsData
 var events_vm: EventsViewModel
 
-var creature_defs := load("res://data/ruins/all_creatures.tres") as CreatureList
+var hero_defs := load("res://data/ruins/all_heroes.tres") as HeroList
+var worker_cost := load("res://data/ruins/res_worker_cost.tres") as WorkerCostDef
 var mission_defs := load("res://data/ruins/all_missions.tres") as MissionList
 var mission_boosts := load("res://data/ruins/all_mission_boosts.tres") as MissionBoostList
 var ruins_data: RuinsData
-var creature_vms: Dictionary = {}       # StringName -> CreatureViewModel
+var hero_vms: Dictionary = {}       # StringName -> HeroViewModel
 var mission_vms: Dictionary = {}        # StringName -> MissionViewModel
-## String key -> MissionSlotViewModel, built on demand by mission_slot_vm().
-## Keyed rather than listed because the two boards grow: a perk widening the
-## board asks for a slot index that has never been drawn before.
-var mission_slot_vms: Dictionary = {}
+## StringName hero id -> HeroExpeditionViewModel, one per authored hero: the
+## expedition board is one row per hero now, not one per place.
+var hero_expedition_vms: Dictionary = {}
+## StringName mission id -> FarmViewModel, one per authored farm.
+var farm_vms: Dictionary = {}
 var mission_boost_vms: Dictionary = {}  # StringName -> MissionBoostViewModel
 var ruins_vm: RuinsViewModel
 
@@ -282,14 +285,15 @@ func _ready() -> void:
 
 	# The Ruins, in dependency order: the roster before the board that sends it
 	# out, and the board before nothing - the boost ladder only reads the tally.
-	# All three share one RuinsData, which is what lets CreatureSystem answer
-	# "is this creature out right now" without knowing about missions.
+	# All three share one RuinsData, which is what lets HeroSystem answer
+	# "is this hero out right now" without knowing about missions.
 	ruins_data = RuinsData.new()
-	creature_system = CreatureSystem.new(ruins_data, player_data, creature_defs,
+	hero_system = HeroSystem.new(ruins_data, player_data, hero_defs,
 		production_system)
+	worker_system = WorkerSystem.new(ruins_data, player_data, worker_cost, production_system)
 	mission_system = MissionSystem.new(ruins_data, player_data, biomes_data,
-		production_system, creature_system, mission_defs, prestige_upgrade_system,
-		expedition_upgrade_system)
+		production_system, hero_system, mission_defs, prestige_upgrade_system,
+		expedition_upgrade_system, worker_system)
 	# The reward track is a projection of which expeditions are finished, so a
 	# fresh game seeds it here and a loaded one re-seeds it in load_from_save().
 	mission_system.sync_expedition_rewards()
@@ -323,10 +327,13 @@ func _ready() -> void:
 		boost_vms[def.id] = BoostViewModel.new(def.id, def)
 	for def in projects.projects:
 		project_vms[def.id] = ProjectViewModel.new(def.id, def)
-	for def in creature_defs.creatures:
-		creature_vms[def.id] = CreatureViewModel.new(def.id, def)
+	for def in hero_defs.heroes:
+		hero_vms[def.id] = HeroViewModel.new(def.id, def)
+		hero_expedition_vms[def.id] = HeroExpeditionViewModel.new(def.id, def)
 	for def in mission_defs.missions:
 		mission_vms[def.id] = MissionViewModel.new(def.id, def)
+		if def.is_farm:
+			farm_vms[def.id] = FarmViewModel.new(def.id, def)
 	for def in mission_boosts.boosts:
 		mission_boost_vms[def.id] = MissionBoostViewModel.new(def.id, def)
 	# Ahead of the screen VMs below: they subscribe to it in their constructors.
@@ -1070,19 +1077,6 @@ func is_parasitic_control_active() -> bool:
 func expeditions_out() -> int:
 	return mission_system.expeditions_out()
 
-## The ViewModel for one place on one of the two boards, built the first time
-## that place is drawn and kept for the app's lifetime after.
-##
-## On demand rather than one per def in _ready() like mission_vms, because the
-## number of slots is not known then: it is whatever the upgrade tracks currently
-## add up to, and it goes up. Bounded by the widest the boards ever get, which is
-## a handful.
-func mission_slot_vm(index: int, is_farm: bool) -> MissionSlotViewModel:
-	var key := "%s%d" % ["f" if is_farm else "e", index]
-	if not mission_slot_vms.has(key):
-		mission_slot_vms[key] = MissionSlotViewModel.new(index, is_farm)
-	return mission_slot_vms[key]
-
 func farm_slots() -> int:
 	return mission_system.farm_slots()
 
@@ -1101,21 +1095,37 @@ func is_mission_unlocked(mission_id: StringName) -> bool:
 func is_mission_completed(mission_id: StringName) -> bool:
 	return mission_system.is_completed(mission_id)
 
-func best_creature_for_mission(mission_id: StringName) -> StringName:
-	return mission_system.best_creature_for(mission_id)
+func mission_chain(hero_id: StringName) -> Array[MissionDef]:
+	return mission_system.chain(hero_id)
+
+func chain_length(hero_id: StringName) -> int:
+	return mission_system.chain_length(hero_id)
+
+func chain_position(hero_id: StringName) -> int:
+	return mission_system.chain_position(hero_id)
+
+func next_chain_step(hero_id: StringName) -> MissionDef:
+	return mission_system.next_step(hero_id)
+
+func sendable_step(hero_id: StringName) -> StringName:
+	return mission_system.sendable_step(hero_id)
+
+func levels_until_mission_unlock(mission_id: StringName) -> int:
+	return mission_system.levels_until_unlock(mission_id)
 
 func missions_until_mission_unlock(mission_id: StringName) -> int:
 	return mission_system.missions_until_unlock(mission_id)
 
-func mission_duration(mission_id: StringName, creature_id: StringName) -> float:
-	return mission_system.duration_for(mission_id, creature_id)
+func mission_duration(mission_id: StringName, hero_id: StringName,
+		workers: int = 0) -> float:
+	return mission_system.duration_for(mission_id, hero_id, workers)
 
-func mission_payouts(mission_id: StringName, creature_id: StringName) -> Array[Dictionary]:
-	return mission_system.payouts_for(mission_id, creature_id)
+func mission_payouts(mission_id: StringName, hero_id: StringName) -> Array[Dictionary]:
+	return mission_system.payouts_for(mission_id, hero_id)
 
 ## The in-flight entry for this mission, or {} when none is out. One mission id
-## can only be out once at a time: a creature is busy while it carries one, and
-## the board sends one creature per errand.
+## can only be out once at a time: a hero is busy while it carries one, and
+## the board sends one hero per errand.
 func active_mission(mission_id: StringName) -> Dictionary:
 	for entry in mission_system.active():
 		if entry["mission_id"] == mission_id:
@@ -1143,20 +1153,23 @@ func active_farms() -> Array[Dictionary]:
 func farm_progress_ratio(entry: Dictionary) -> float:
 	return mission_system.farm_progress_ratio(entry)
 
-func can_start_farm(mission_id: StringName, creature_id: StringName) -> bool:
-	return mission_system.can_start_farm(mission_id, creature_id)
+func can_start_farm(mission_id: StringName, workers: int = 1) -> bool:
+	return mission_system.can_start_farm(mission_id, workers)
 
-func start_farm(mission_id: StringName, creature_id: StringName) -> int:
-	return mission_system.start_farm(mission_id, creature_id)
+func start_farm(mission_id: StringName, workers: int = 1) -> int:
+	return mission_system.start_farm(mission_id, workers)
+
+func set_farm_workers(instance_id: int, workers: int) -> bool:
+	return mission_system.set_farm_workers(instance_id, workers)
 
 func stop_farm(instance_id: int) -> bool:
 	return mission_system.stop_farm(instance_id)
 
-func can_send_mission(mission_id: StringName, creature_id: StringName) -> bool:
-	return mission_system.can_send(mission_id, creature_id)
+func can_send_mission(mission_id: StringName, hero_id: StringName) -> bool:
+	return mission_system.can_send(mission_id, hero_id)
 
-func send_mission(mission_id: StringName, creature_id: StringName) -> int:
-	return mission_system.send(mission_id, creature_id)
+func send_mission(mission_id: StringName, hero_id: StringName) -> int:
+	return mission_system.send(mission_id, hero_id)
 
 func collect_mission(instance_id: int) -> bool:
 	return mission_system.collect(instance_id)
@@ -1164,55 +1177,78 @@ func collect_mission(instance_id: int) -> bool:
 func collect_all_missions() -> int:
 	return mission_system.collect_all()
 
-# ---------------------------------------------------------------- creatures
+# ---------------------------------------------------------------- workers
 
-func creature_def(creature_id: StringName) -> CreatureDef:
-	return creature_system.creature_def(creature_id)
+func workers_owned() -> int:
+	return worker_system.owned()
 
-func creature_rank(creature_id: StringName) -> int:
-	return creature_system.rank(creature_id)
+func workers_idle() -> int:
+	return worker_system.idle()
 
-func creature_rank_cap(creature_id: StringName) -> int:
-	return creature_system.rank_cap(creature_id)
+func worker_prices() -> Array[Dictionary]:
+	return worker_system.prices()
 
-func is_creature_recruited(creature_id: StringName) -> bool:
-	return creature_system.is_recruited(creature_id)
+func can_hire_worker() -> bool:
+	return worker_system.can_hire()
 
-func is_creature_unlocked(creature_id: StringName) -> bool:
-	return creature_system.is_unlocked(creature_id)
+func hire_worker() -> bool:
+	return worker_system.hire()
 
-func missions_until_creature_unlock(creature_id: StringName) -> int:
-	return creature_system.missions_until_unlock(creature_id)
+func max_workers_per_farm(mission_id: StringName) -> int:
+	return worker_system.max_per_farm(mission_id)
 
-func is_creature_busy(creature_id: StringName) -> bool:
-	return creature_system.is_busy(creature_id)
+func most_workers_available_for(mission_id: StringName, already_here: int) -> int:
+	return worker_system.most_available_for(mission_id, already_here)
 
-func is_creature_maxed(creature_id: StringName) -> bool:
-	return creature_system.is_maxed(creature_id)
+# ---------------------------------------------------------------- heroes
 
-func creature_recruit_cost(creature_id: StringName) -> BigNumber:
-	return creature_system.recruit_cost(creature_id)
+func hero_def(hero_id: StringName) -> HeroDef:
+	return hero_system.hero_def(hero_id)
 
-func creature_rank_cost(creature_id: StringName) -> BigNumber:
-	return creature_system.rank_cost(creature_id)
+func hero_level(hero_id: StringName) -> int:
+	return hero_system.level(hero_id)
 
-func can_recruit_creature(creature_id: StringName) -> bool:
-	return creature_system.can_recruit(creature_id)
+func hero_level_cap(hero_id: StringName) -> int:
+	return hero_system.level_cap(hero_id)
 
-func recruit_creature(creature_id: StringName) -> bool:
-	return creature_system.recruit(creature_id)
+func is_hero_recruited(hero_id: StringName) -> bool:
+	return hero_system.is_recruited(hero_id)
 
-func can_rank_up_creature(creature_id: StringName) -> bool:
-	return creature_system.can_rank_up(creature_id)
+func is_hero_unlocked(hero_id: StringName) -> bool:
+	return hero_system.is_unlocked(hero_id)
 
-func rank_up_creature(creature_id: StringName) -> bool:
-	return creature_system.rank_up(creature_id)
+func missions_until_hero_unlock(hero_id: StringName) -> int:
+	return hero_system.missions_until_unlock(hero_id)
 
-func creatures_available_for(mission: MissionDef) -> Array[CreatureDef]:
-	return creature_system.available_for(mission)
+func is_hero_busy(hero_id: StringName) -> bool:
+	return hero_system.is_busy(hero_id)
 
-func creature_has_affinity(creature_id: StringName, mission_id: StringName) -> bool:
-	return creature_system.has_affinity(creature_id, mission_id)
+func is_hero_maxed(hero_id: StringName) -> bool:
+	return hero_system.is_maxed(hero_id)
+
+func hero_recruit_cost(hero_id: StringName) -> BigNumber:
+	return hero_system.recruit_cost(hero_id)
+
+func hero_recruit_prices(hero_id: StringName) -> Array[Dictionary]:
+	return hero_system.recruit_prices(hero_id)
+
+func hero_level_cost(hero_id: StringName) -> BigNumber:
+	return hero_system.level_cost(hero_id)
+
+func can_recruit_hero(hero_id: StringName) -> bool:
+	return hero_system.can_recruit(hero_id)
+
+func recruit_hero(hero_id: StringName) -> bool:
+	return hero_system.recruit(hero_id)
+
+func can_level_up_hero(hero_id: StringName) -> bool:
+	return hero_system.can_level_up(hero_id)
+
+func level_up_hero(hero_id: StringName) -> bool:
+	return hero_system.level_up(hero_id)
+
+func is_hero_available(hero_id: StringName) -> bool:
+	return hero_system.is_available(hero_id)
 
 # ---------------------------------------------------------------- ruins boosts
 

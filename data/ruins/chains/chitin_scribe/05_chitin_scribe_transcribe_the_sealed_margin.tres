@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://model/ruins/res_mission_def.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/ruins/res_mission_payout_def.gd" id="2_payout_script"]
+[ext_resource type="Resource" path="res://data/currencies/res_glyphs_def.tres" id="3_cur_glyphs"]
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="4_effect_script"]
+
+[sub_resource type="Resource" id="payout_glyphs"]
+script = ExtResource("2_payout_script")
+currency = ExtResource("3_cur_glyphs")
+gain_stat = &"glyph_gain"
+_amount_mantissa = 4.578857
+_amount_exponent = 1
+
+[sub_resource type="Resource" id="reward_0"]
+script = ExtResource("4_effect_script")
+stat = &"mission_reward"
+op = 2
+scope = 2
+target = &"farm_copy_the_frieze"
+per_level = 0.2
+level_scaling = 0
+
+[resource]
+script = ExtResource("1_script")
+id = &"chitin_scribe_transcribe_the_sealed_margin"
+display_name = "Transcribe the Sealed Margin"
+description = "Transcribe the Sealed Margin. Step 5 of Chitin Scribe's chain."
+is_farm = false
+hero_id = &"chitin_scribe"
+base_duration_seconds = 1026.0
+min_hero_level = 1
+min_missions_completed = 0
+unlock_perk_id = &""
+requires_mission_id = &""
+payouts = Array[ExtResource("2_payout_script")]([SubResource("payout_glyphs")])
+rewards = Array[ExtResource("4_effect_script")]([SubResource("reward_0")])
