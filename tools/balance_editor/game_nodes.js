@@ -26,12 +26,12 @@
   const {
     log10Of, formatBig, growthCurve, effectCurve, enumIs, chartBlock, engineSeries, engineCurve,
     rowsOf, findRow, cell, numberCell, field, fieldGroup, bigField, scopeTargetFields,
-    declaredGroups, tagsOfNode,
+    declaredGroups, tagsOfNode, dependencyField, dependencyFactor, dependencyAxis,
   } = window.GameKit;
 
   const BUY_LEVELS = 50;         // matches BalanceData.CURVE_OPEN_ENDED_LEVELS
   const TRACK_LEVELS = 50;       // both tracks are max_level 0, i.e. open ended
-  const DEPENDENCY_SIZE = 10;    // the biome size the scaled synergy line is drawn at
+  const DEPENDENCY_AT = 10;      // the dependency level the scaled line starts at
 
   /** The three stats that land on a tier's own output. potency and synergy
    * multiply into the symbiosis bonus, node_production multiplies over both -
@@ -135,27 +135,22 @@
       from, to);
   }
 
-  function trackEffectCurve(effect, from, to) {
-    const dependency = cell(effect, "dependency")
-      ? rowIndexOf(cell(effect, "dependency")) : null;
+  /** The track's magnitude at each level, and the same scaled by its
+   * ScalingSourceDef at the dependency level `at` - the biome size or node count
+   * the track is being previewed at, which the chart's own box sets. */
+  function trackEffectCurve(effect, from, to, at) {
     return effectCurve({
       perLevel: numberCell(effect, "per_level", 0),
       compound: cellIs(effect, "level_scaling", "COMPOUND"),
       cap: numberCell(effect, "max_magnitude", 0),
-      factor: dependency ? dependencyFactor(dependency, DEPENDENCY_SIZE) : null,
+      factor: dependencyFactor(dependencyOf(effect), at ?? DEPENDENCY_AT),
     }, from, to);
   }
 
-  /** ScalingSourceDef.evaluate() for a BIOME_SIZE source, where the context
-   * resolves a biome's size as purchased + 1 - so an unbought biome multiplies
-   * by one rather than by zero. */
-  function dependencyFactor(dependency, size) {
-    if (!cellIs(dependency, "kind", "BIOMESIZE")) return null;
-    const value = size + 1;
-    if (cellIs(dependency, "transform", "SQRT")) return Math.sqrt(value);
-    if (cellIs(dependency, "transform", "LOG10")) return Math.log10(Math.max(1, value));
-    return value;
-  }
+  const dependencyOf = (effect) => {
+    const path = cell(effect, "dependency");
+    return path ? rowIndexOf(path) : null;
+  };
 
   /** One tier's track curve, or an empty series when that tier has no such
    * track - a renumbered tier loses its upgrades silently, and a comparison
@@ -583,16 +578,19 @@
       const editor = field(track.effect, column);
       if (editor) effectFields.append(editor);
     }
-    effectFields.append(dependencyChip(track.effect));
+    const dependency = dependencyField(track.effect);
+    if (dependency) effectFields.append(dependency);
     effectSplit.append(effectFields);
 
+    const axis = dependencyAxis(dependencyOf(track.effect));
     let capped = false;
-    const effectBuild = (from, to) => {
-      const curves = trackEffectCurve(track.effect, from, to);
+    const effectBuild = (from, to, at) => {
+      const level = at ?? DEPENDENCY_AT;
+      const curves = trackEffectCurve(track.effect, from, to, level);
       capped = curves.capped;
       const series = [{ label: "magnitude", points: curves.raw, color: "var(--accent)" }];
       if (curves.scaled) {
-        series.push({ label: `× biome size ${DEPENDENCY_SIZE}`, points: curves.scaled,
+        series.push({ label: `× ${axis.short} ${level}`, points: curves.scaled,
           color: "var(--accent)", dashed: true });
       }
       // Keyed on the effect row, not the def: per_level lives on the effect,
@@ -605,7 +603,9 @@
     };
     const effectChart = chartBlock(`${track.kind} magnitude at level`, effectBuild,
       { zeroBased: true, xLabel: "level",
-        range: { key: "node-track-effect", from: 0, to: levels, label: "level" } });
+        range: { key: "node-track-effect", from: 0, to: levels, label: "level",
+          at: axis ? DEPENDENCY_AT : null,
+          atLabel: axis ? axis.short : null, atTitle: axis ? axis.long : null } });
     if (capped) {
       const note = document.createElement("p");
       note.className = "hint";
@@ -613,35 +613,6 @@
       effectFields.append(note);
     }
     effectSplit.append(effectChart);
-    return wrap;
-  }
-
-  function dependencyChip(effect) {
-    const wrap = document.createElement("div");
-    wrap.className = "field";
-    const label = document.createElement("label");
-    label.textContent = "dependency";
-    wrap.append(label);
-
-    const path = cell(effect, "dependency");
-    const dependency = path ? rowIndexOf(path) : null;
-    if (!dependency) {
-      const none = document.createElement("span");
-      none.className = "game-chip muted";
-      none.textContent = "none — this effect does not scale with anything";
-      wrap.append(none);
-      return wrap;
-    }
-    const chip = document.createElement("button");
-    chip.className = "game-chip";
-    const kind = cell(dependency, "kind") || "?";
-    const key = cell(dependency, "key");
-    const transform = cell(dependency, "transform");
-    chip.textContent = `${kind}${key ? ` · ${key}` : ""}`
-      + `${transform && !enumIs(transform, "NONE") ? ` · ${transform}` : ""}`;
-    chip.title = "Open this scaling source in the dependency graph";
-    chip.onclick = () => { setFocus(dependency.row[0]); setView("graph"); };
-    wrap.append(chip);
     return wrap;
   }
 

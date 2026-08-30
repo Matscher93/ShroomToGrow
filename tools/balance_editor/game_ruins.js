@@ -28,7 +28,7 @@
   const {
     formatBig, log10Of, growthCurve, hueOf, chartBlock, enumIs,
     engineCurve, engineSeries, rowsOf, cell, numberCell,
-    field, fieldGroup, bigField, scopeTargetFields,
+    field, fieldGroup, bigField, scopeTargetFields, dependencyField,
   } = window.GameKit;
 
   /* Constants the game holds in GDScript rather than in .tres, so this editor
@@ -620,10 +620,13 @@
     }
     // Paired, because the scope decides what the target may say.
     fields.append(scopeTargetFields(effect));
-    for (const column of ["per_level", "level_scaling", "max_magnitude", "dependency"]) {
+    for (const column of ["per_level", "level_scaling", "max_magnitude"]) {
       const editor = field(effect, column);
       if (editor) fields.append(editor);
     }
+    // A reference, so the reflection would hand it over as a res:// text box.
+    const dependency = dependencyField(effect);
+    if (dependency) fields.append(dependency);
     wrap.append(fields, deleteButton(path, "Removes this effect from the resource carrying it"));
 
     // A reward is granted at one level, so a COMPOUND scaling and a per_level

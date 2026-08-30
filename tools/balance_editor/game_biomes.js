@@ -23,13 +23,14 @@
   const {
     log10Of, growthCurve, effectCurve, enumIs, chartBlock, engineSeries, xpLadder,
     rowsOf, findRow, cell, numberCell,
-    field, fieldGroup, bigField, engineCurve, scopeTargetFields,
+    field, fieldGroup, bigField, engineCurve, scopeTargetFields, dependencyField,
+    dependencyFactor, dependencyAxis,
   } = window.GameKit;
 
   const SIZE_LEVELS = 50;        // matches BalanceData.CURVE_OPEN_ENDED_LEVELS
   const XP_LEVELS = 40;          // past this the XP needed is beyond any real run
   const SLOT_COLUMNS = 5;        // UpgradeSlotGrid.COLUMNS
-  const DEPENDENCY_SIZE = 10;    // the size the "scaled" effect line is drawn at
+  const DEPENDENCY_AT = 10;      // the dependency level the scaled line starts at
 
   const screen = {
     label: "Biomes",
@@ -70,26 +71,16 @@
 
 
   /** UpgradeEffectDef.magnitude() at each level, and the same scaled by the
-   * effect's ScalingSourceDef at a representative biome size. */
-  function effectCurves(effectEntry, from, to) {
+   * effect's ScalingSourceDef at the dependency level `at` - the size the biome
+   * is being previewed at, which the chart's own box sets. */
+  function effectCurves(effectEntry, from, to, at) {
     const dependency = dependencyOf(effectEntry);
     return effectCurve({
       perLevel: numberCell(effectEntry, "per_level", 0),
       compound: cellIs(effectEntry, "level_scaling", "COMPOUND"),
       cap: numberCell(effectEntry, "max_magnitude", 0),
-      factor: dependency ? dependencyFactor(dependency, DEPENDENCY_SIZE) : null,
+      factor: dependencyFactor(dependency, at ?? DEPENDENCY_AT),
     }, from, to);
-  }
-
-  /** ScalingSourceDef.evaluate() for a BIOME_SIZE source, where the context
-   * resolves a biome's size as purchased + 1 - so an unbought biome multiplies
-   * by one rather than by zero. */
-  function dependencyFactor(dependency, size) {
-    if (!cellIs(dependency, "kind", "BIOMESIZE")) return null;
-    const value = size + 1;
-    if (cellIs(dependency, "transform", "SQRT")) return Math.sqrt(value);
-    if (cellIs(dependency, "transform", "LOG10")) return Math.log10(Math.max(1, value));
-    return value;
   }
 
   const dependencyOf = (effectEntry) => {
@@ -449,16 +440,19 @@
       const editor = field(slot.effect, column);
       if (editor) left.append(editor);
     }
-    left.append(dependencyChip(slot.dependency));
+    const dependency = dependencyField(slot.effect);
+    if (dependency) left.append(dependency);
 
     const maxLevel = Math.round(numberCell(slot.def, "max_level", 0));
+    const axis = dependencyAxis(slot.dependency);
     let capped = false;
-    const build = (from, to) => {
-      const curves = effectCurves(slot.effect, from, to);
+    const build = (from, to, at) => {
+      const level = at ?? DEPENDENCY_AT;
+      const curves = effectCurves(slot.effect, from, to, level);
       capped = curves.capped;
       const series = [{ label: "magnitude", points: curves.raw, color: "var(--accent)" }];
       if (curves.scaled) {
-        series.push({ label: `× size ${DEPENDENCY_SIZE}`, points: curves.scaled,
+        series.push({ label: `× ${axis.short} ${level}`, points: curves.scaled,
           color: "var(--accent)", dashed: true });
       }
       // Keyed on the effect row: per_level is what moves this curve.
@@ -471,11 +465,14 @@
 
     // An upgrade's natural end is its own max_level, so the default differs per
     // slot; the range still shares one key, so a window set on one upgrade holds
-    // while clicking along the track.
+    // while clicking along the track. The dependency level rides on the same key
+    // for the same reason, and is only offered where there is a curve it moves.
     const block = chartBlock("Total magnitude at level", build,
       { zeroBased: true, xLabel: "level",
         range: { key: "biome-effect", from: 0, to: maxLevel > 0 ? maxLevel : SIZE_LEVELS,
-          label: "level" } });
+          label: "level",
+          at: axis ? DEPENDENCY_AT : null,
+          atLabel: axis ? axis.short : null, atTitle: axis ? axis.long : null } });
 
     if (capped) {
       const note = document.createElement("p");
@@ -485,33 +482,6 @@
     }
 
     wrap.append(left, block);
-    return wrap;
-  }
-
-  function dependencyChip(dependency) {
-    const wrap = document.createElement("div");
-    wrap.className = "field";
-    const label = document.createElement("label");
-    label.textContent = "dependency";
-    wrap.append(label);
-
-    if (!dependency) {
-      const none = document.createElement("span");
-      none.className = "game-chip muted";
-      none.textContent = "none — this effect does not scale with anything";
-      wrap.append(none);
-      return wrap;
-    }
-    const chip = document.createElement("button");
-    chip.className = "game-chip";
-    const kind = cell(dependency, "kind") || "?";
-    const key = cell(dependency, "key");
-    const transform = cell(dependency, "transform");
-    chip.textContent = `${kind}${key ? ` · ${key}` : ""}`
-      + `${transform && transform.toUpperCase() !== "NONE" ? ` · ${transform}` : ""}`;
-    chip.title = "Open this scaling source in the dependency graph";
-    chip.onclick = () => { setFocus(dependency.row[0]); setView("graph"); };
-    wrap.append(chip);
     return wrap;
   }
 

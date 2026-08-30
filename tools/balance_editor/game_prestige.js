@@ -18,7 +18,7 @@
   const {
     growthCurve, effectCurve, chartBlock, engineCurve, engineSeries, cell, numberCell, enumIs,
     log10Of: bigLog10,   // the local log10Of below takes a pair, this one a pair's halves
-    scopeTargetFields, rowsOf, fieldGroup, bigField, hueOf,
+    scopeTargetFields, rowsOf, fieldGroup, bigField, hueOf, dependencyField,
   } = window.GameKit;
 
   /* The one resource pricing a finished run: PrestigeCurveDef, authored as
@@ -586,8 +586,8 @@
   }
 
   /** One of the picked perk's effects, with its own value fields. Reference
-   * columns are left out: a dependency is followed through the chips above, and
-   * what belongs here are the numbers being tuned. */
+   * columns are left out, except the scaling source: that one is a closed set of
+   * authored rows, so it is picked here rather than through the chips above. */
   function effectEditor(perk, path) {
     const entry = rowIndexOf(path);
     const block = document.createElement("div");
@@ -620,6 +620,13 @@
       // screen shows, tier picker included.
       if (column === "scope") {
         block.append(scopeTargetFields(entry));
+        return;
+      }
+      // Also a reference the generic loop would skip, and the one every other
+      // screen now picks in place.
+      if (column === "dependency") {
+        const dependency = dependencyField(entry);
+        if (dependency) block.append(dependency);
         return;
       }
       if (columnIndex === 0 || column === "target" || references.has(column)) return;

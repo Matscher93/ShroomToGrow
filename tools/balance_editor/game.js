@@ -431,15 +431,23 @@
   /** The window in effect for one chart kind. `spec` carries the defaults the
    * screen would use on its own, so an unset `to` means "whatever this
    * particular chart's natural end is" - an upgrade's max_level, say, which
-   * differs per upgrade and so cannot be a stored number. */
+   * differs per upgrade and so cannot be a stored number.
+   *
+   * `at` is the second axis a scaled curve has: the level of the effect's
+   * dependency it is previewed at. Only charts drawing one carry it, and it is
+   * stored beside the window because it is the same kind of question - what is
+   * being looked at, not what is authored. */
   function rangeOf(spec) {
     const from = stored(spec.key, "from") ?? spec.from;
     const to = stored(spec.key, "to") ?? spec.to;
     // A backwards or empty window would draw nothing and read as a broken chart.
-    return { from, to: Math.max(from + 1, to) };
+    const window_ = { from, to: Math.max(from + 1, to) };
+    if (spec.at != null) window_.at = stored(spec.key, "at") ?? spec.at;
+    return window_;
   }
 
-  const isCustom = (key) => stored(key, "from") !== null || stored(key, "to") !== null;
+  const isCustom = (key) => stored(key, "from") !== null || stored(key, "to") !== null
+    || stored(key, "at") !== null;
 
   /** key -> the draw() of every chart currently showing that key, so moving one
    * range moves all the charts it governs. Rebuilt on each full render, since
@@ -459,25 +467,48 @@
     wrap.className = "game-range";
     const current = rangeOf(spec);
 
-    const box = (part, value) => {
+    const box = (part, value, title, min) => {
       const input = document.createElement("input");
       input.type = "number";
       input.step = "1";
+      if (min != null) input.min = String(min);
       input.value = String(value);
-      input.title = `${part === "from" ? "First" : "Last"} ${spec.label || "level"} drawn`;
+      input.title = title;
       input.addEventListener("change", () => {
         const parsed = Math.round(Number(input.value));
         // An empty or unparseable box would silently become 0 and move the chart
         // somewhere nobody asked for; put the value back instead.
         if (!Number.isFinite(parsed)) { input.value = String(value); return; }
-        ranges[spec.key] = { ...(ranges[spec.key] || {}), [part]: parsed };
+        const clamped = min != null ? Math.max(min, parsed) : parsed;
+        input.value = String(clamped);
+        ranges[spec.key] = { ...(ranges[spec.key] || {}), [part]: clamped };
         saveRanges();
         redrawShared(spec.key);
       });
       return input;
     };
 
-    wrap.append(box("from", current.from), document.createTextNode("–"), box("to", current.to));
+    const unit = spec.label || "level";
+    // Never negative: no axis here counts below zero, and a negative `from`
+    // reads the engine's sample array from behind its start.
+    wrap.append(box("from", current.from, `First ${unit} drawn`, 0),
+      document.createTextNode("–"),
+      box("to", current.to, `Last ${unit} drawn`, 0));
+
+    // The dependency level sits apart from the window: it moves the scaled
+    // curve up and down rather than moving along it.
+    if (current.at != null) {
+      const at = document.createElement("span");
+      at.className = "game-range-at";
+      const label = document.createElement("i");
+      label.textContent = `× ${spec.atLabel || "dependency"}`;
+      // Never negative: no biome is smaller than unbought and no tier is bought
+      // a negative number of times.
+      at.append(label, box("at", current.at,
+        `The ${spec.atTitle || spec.atLabel || "dependency level"} `
+        + "the scaled curve is previewed at", 0));
+      wrap.append(at);
+    }
 
     if (isCustom(spec.key)) {
       const reset = document.createElement("button");
@@ -494,9 +525,10 @@
   /** A chart under a caption, which is how every chart on a screen is placed.
    *
    * `seriesOrBuild` is either the series themselves or, when `options.range` is
-   * given, a `build(from, to)` that produces them for a window - so moving the
-   * range recomputes the curve over the levels asked for rather than cropping a
-   * fixed one. */
+   * given, a `build(from, to, at)` that produces them for a window - so moving
+   * the range recomputes the curve over the levels asked for rather than
+   * cropping a fixed one. `at` is the dependency level, and is null on a chart
+   * whose range spec does not ask for one. */
   function chartBlock(title, seriesOrBuild, options = {}) {
     const wrap = document.createElement("div");
     wrap.className = "game-chart-block";
@@ -508,7 +540,8 @@
     const draw = () => {
       const window_ = options.range ? rangeOf(options.range) : null;
       const series = typeof seriesOrBuild === "function"
-        ? seriesOrBuild(window_ ? window_.from : 0, window_ ? window_.to : 0)
+        ? seriesOrBuild(window_ ? window_.from : 0, window_ ? window_.to : 0,
+          window_ ? window_.at : null)
         : seriesOrBuild;
       const drawOptions = window_ ? { ...options, xOffset: window_.from } : options;
 
@@ -596,6 +629,139 @@
    * KEY_REFS rules already say which table a target names under which scope. */
   function targetOptionsFor(effect) {
     return candidatesFor(liveRow(effect), "target");
+  }
+
+  /* ------------------------------------------------------- scaling sources */
+
+  const SOURCE_FILE = "ScalingSourceDef";
+
+  /** ScalingSourceDef.evaluate() for a source at a given level.
+   *
+   * Mirrors res_scaling_source_def.gd, including the asymmetry between the two
+   * kinds: ResolveContext.biome_size() answers purchased + 1, so an unbought
+   * biome multiplies by one rather than by zero, while node_count() answers the
+   * hand-bought count as it stands. null for a source that scales nothing, which
+   * is what keeps a scaled curve off a chart that has no second axis. */
+  function dependencyFactor(dependency, at) {
+    if (!dependency) return null;
+    const kind = cell(dependency, "kind");
+    let value;
+    if (enumIs(kind, "BIOMESIZE")) value = at + 1;
+    else if (enumIs(kind, "NODECOUNT")) value = at;
+    else return null;
+    const transform = cell(dependency, "transform");
+    if (enumIs(transform, "SQRT")) return Math.sqrt(Math.max(0, value));
+    if (enumIs(transform, "LOG10")) return Math.log10(Math.max(1, value));
+    return value;
+  }
+
+  /** What a source's level is counted in: `short` for the box and the legend,
+   * which share a line with a chart title, and `long` for the tooltip that has
+   * room to say it properly. null when the source scales nothing. */
+  function dependencyAxis(dependency) {
+    if (!dependency) return null;
+    const kind = cell(dependency, "kind");
+    const key = cell(dependency, "key");
+    if (enumIs(kind, "BIOMESIZE")) {
+      return { short: "size", long: `${key || "biome"} size` };
+    }
+    if (enumIs(kind, "NODECOUNT")) {
+      return { short: "nodes", long: `hand-bought tier ${key || "?"} nodes` };
+    }
+    return null;
+  }
+
+  /** How a source reads on a chip: what it counts, of what, through which curve.
+   * The path tail is the fallback, because a source with no kind is a row that
+   * has not been authored yet and its filename is the only thing naming it. */
+  function sourceLabel(source) {
+    const kind = cell(source, "kind");
+    if (!kind) return source.path.split("/").pop();
+    const key = cell(source, "key");
+    const transform = cell(source, "transform");
+    return `${kind}${key ? ` · ${key}` : ""}`
+      + `${transform && !enumIs(transform, "NONE") ? ` · ${transform}` : ""}`;
+  }
+
+  /** An effect's `dependency` as a picker rather than a chip.
+   *
+   * The scaling source is a reference column, so the generic reflection leaves it
+   * to the graph's side panel - which meant leaving the screen being tuned to
+   * attach or drop one. The sources are a closed set of sixteen authored rows, so
+   * a select over them says everything the graph's chip picker would, in place.
+   *
+   * Retuning a source is still the graph's job: one BIOMESIZE source is shared by
+   * every upgrade in its biome, so its kind and key are not this field's to edit.
+   */
+  function dependencyField(effect) {
+    const columnIndex = effect.header.indexOf("dependency");
+    if (columnIndex <= 0) return null;
+    const saved = state.loaded.get(effect.file).rows[effect.rowIndex][columnIndex];
+    const current = dataOf(effect.file).rows[effect.rowIndex][columnIndex];
+
+    const wrap = document.createElement("div");
+    wrap.className = "field";
+    const label = document.createElement("label");
+    label.append("dependency");
+
+    const select = document.createElement("select");
+    select.append(new Option("none — this effect does not scale with anything", ""));
+    const sources = rowsOf(SOURCE_FILE);
+    for (const source of sources) select.append(new Option(sourceLabel(source), source.path));
+    // A path pointing at no row would otherwise silently read as "none" and be
+    // cleared by the first change made anywhere else on the card.
+    if (current && !sources.some((source) => source.path === current)) {
+      select.append(new Option(`${current} (unresolved)`, current));
+    }
+    select.value = current;
+
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "game-card-open";
+    open.textContent = "Graph";
+    open.title = "Open this scaling source in the dependency graph, to retune it";
+    open.onclick = () => { setFocus(select.value); setView("graph"); };
+
+    const shared = document.createElement("p");
+    shared.className = "hint";
+
+    const revert = makeRevert("reset this field", () => {
+      select.value = saved;
+      select.dispatchEvent(new Event("change"));
+    });
+    const sync = () => {
+      const changed = select.value !== saved;
+      wrap.classList.toggle("changed", changed);
+      revert.hidden = !changed;
+      open.hidden = !select.value;
+      const users = select.value
+        ? rowsOf(effect.file).filter((row) => cell(row, "dependency") === select.value).length
+        : 0;
+      shared.hidden = users < 2;
+      shared.textContent = `Shared by ${users} effects — retuning this source in the graph `
+        + "changes all of them.";
+    };
+
+    select.addEventListener("change", () => {
+      writeCell(effect.file, effect.rowIndex, columnIndex, select.value);
+      renderFileList();
+      // applyRef never rebuilds these, so the graph would keep drawing the edge
+      // this field just moved.
+      buildEdges();
+      sync();
+      setStatus(`${effect.file}${isDirty(effect.file) ? " - unsaved" : " - no changes"}`);
+      // The source is a multiplier on the effect, so the card's curve is drawn
+      // from it: the whole view redraws rather than this one control.
+      renderActiveView();
+    });
+
+    label.append(revert);
+    const picker = document.createElement("div");
+    picker.className = "dep-picker";
+    picker.append(select, open);
+    sync();
+    wrap.append(label, picker, shared);
+    return wrap;
   }
 
   /* ------------------------------------------------------------ node groups */
@@ -895,6 +1061,7 @@
     rowsOf, findRow, cell, numberCell,
     field, fieldGroup, bigField, engineCurve, engineWindow, engineSeries, rowHasChanges,
     targetOptionsFor, scopeTargetFields, liveRow, tierPicker, declaredGroups, tagsOfNode,
+    dependencyField, sourceLabel, dependencyFactor, dependencyAxis,
   };
 
   /* ------------------------------------------------------------------- wiring */

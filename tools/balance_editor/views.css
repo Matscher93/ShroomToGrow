@@ -428,6 +428,17 @@
 }
 .game-range input:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
 .game-range .revert { position: static; transform: none; opacity: 1; background: none; width: auto; }
+/* The dependency level is a second axis, not a second end of the window, so it
+   is set off from the from-to pair rather than reading as a third bound. */
+.game-range-at {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding-left: 7px;
+  border-left: 1px solid var(--line);
+}
+.game-range-at i { font-style: normal; color: var(--muted); white-space: nowrap; }
 .game-chart { max-width: 100%; height: auto; overflow: visible; }
 .game-chart .grid { stroke: var(--line); stroke-width: 1; }
 .game-chart .axis { fill: var(--muted); font: 9px ui-monospace, monospace; }
@@ -564,6 +575,12 @@
 }
 .game-chip:disabled { opacity: 0.45; cursor: not-allowed; }
 .game-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+
+/* An effect's scaling source: the picker takes the width, the Graph button that
+   opens the picked source for retuning sits beside it rather than under it. */
+.dep-picker { display: flex; gap: 6px; align-items: center; }
+.dep-picker select { flex: 1; min-width: 0; }
+.dep-picker + .hint { margin: 4px 0 0; font-size: 11px; }
 /* The picker spans the field grid: ten tier chips do not fit in half a card. */
 .game-fields > .game-tiers, .game-target > .game-tiers { grid-column: 1 / -1; }
 
