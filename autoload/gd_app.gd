@@ -281,8 +281,11 @@ func _ready() -> void:
 	fertilizer_system = FertilizerSystem.new(player_data, fertilizer_upgrade_system,
 		fertilizer_upgrades)
 	events_data = EventsData.new()
+	# The two registries at the end are what lets it work out which biome owns the
+	# screen a currency is shown on, so an event never offers a resource the
+	# player has no home for yet.
 	event_system = EventSystem.new(events_data, player_data, biomes_data,
-		fertilizer_system, random_events)
+		fertilizer_system, random_events, screens, biomes)
 
 	# The Ruins, in dependency order: the roster before the board that sends it
 	# out, and the board before nothing - the boost ladder only reads the tally.

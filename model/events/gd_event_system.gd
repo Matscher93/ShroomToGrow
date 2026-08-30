@@ -36,9 +36,17 @@ var _biomes_data: BiomesData
 var _fertilizer: FertilizerSystem
 var _defs: Dictionary = {}      # StringName -> RandomEventDef
 var _pool: Array[RandomEventDef] = []
+## CurrencyTypes.Types -> StringName, the biome whose screen is where that
+## currency is shown and spent. Derived rather than authored: a screen already
+## lists its currencies and a biome already names its screen, so an event never
+## has to repeat the mapping and a new one cannot forget it. Currencies whose
+## screen has no owning biome (nutrients) are absent, which reads as "always
+## reachable".
+var _currency_biome: Dictionary = {}
 
 func _init(data: EventsData, player_data: PlayerData, biomes_data: BiomesData,
-		fertilizer: FertilizerSystem, list: RandomEventList) -> void:
+		fertilizer: FertilizerSystem, list: RandomEventList, screens: Screens = null,
+		biomes: BiomeList = null) -> void:
 	_data = data
 	_player_data = player_data
 	_biomes_data = biomes_data
@@ -49,6 +57,29 @@ func _init(data: EventsData, player_data: PlayerData, biomes_data: BiomesData,
 				continue
 			_defs[def.id] = def
 			_pool.append(def)
+	_build_currency_biomes(screens, biomes)
+
+## Both registries are static and optional: without them the map stays empty and
+## every event is currency-reachable, which is what a test building the system
+## from two hand-made defs wants.
+func _build_currency_biomes(screens: Screens, biomes: BiomeList) -> void:
+	if screens == null or biomes == null:
+		return
+	var biome_for_screen: Dictionary = {}
+	for biome_def in biomes.biomes:
+		if biome_def == null:
+			continue
+		biome_for_screen[biome_def.screen_type] = biome_def.key
+	for screen_type: ScreenTypes.Types in screens.screens:
+		if not biome_for_screen.has(screen_type):
+			continue
+		var screen_def: ScreenDefinition = screens.screens[screen_type]
+		if screen_def == null:
+			continue
+		for currency in screen_def.currencies:
+			if currency == null:
+				continue
+			_currency_biome[currency.currency_type] = biome_for_screen[screen_type]
 
 # ---------------------------------------------------------------- spawning
 
@@ -68,15 +99,35 @@ func try_spawn() -> bool:
 	_data.add(def.id, _roll_fertilizer(def))
 	return true
 
-## The defs whose biome gate is open. Read off the run's own unlocked set rather
-## than is_ever_unlocked, matching WaterSystem.is_pumping(): an offer of crystals
-## has nothing to give a run that has not bought the caves back.
+## The defs both of whose gates are open.
+##
+## The two are deliberately asymmetric. requires_biome is per-run, read off the
+## run's own unlocked set the way WaterSystem.is_pumping() is: an offer of
+## crystals has nothing to give a run that has not bought the caves back. The
+## currency gate below is permanent, because it answers a different question -
+## whether the player has ever seen this resource at all. An offer of water to
+## someone who has never reached the Well is not a weak offer, it is an offer in
+## a currency they have no screen for.
 func _eligible() -> Array[RandomEventDef]:
 	var eligible: Array[RandomEventDef] = []
 	for def in _pool:
-		if def.requires_biome.is_empty() or _biomes_data.is_unlocked(def.requires_biome):
-			eligible.append(def)
+		if not def.requires_biome.is_empty() and not _biomes_data.is_unlocked(def.requires_biome):
+			continue
+		if not _currency_reachable(def):
+			continue
+		eligible.append(def)
 	return eligible
+
+## Whether the resource this event pays or asks for has a home yet. True for the
+## events that name no currency at all - the fertilizer BOON and every PROGRESS
+## quest - since fertilizer is deliberately not a CurrencyDef and is spendable
+## from the first minute.
+func _currency_reachable(def: RandomEventDef) -> bool:
+	if def.currency == null:
+		return true
+	if not _currency_biome.has(def.currency.currency_type):
+		return true
+	return _biomes_data.is_ever_unlocked(_currency_biome[def.currency.currency_type])
 
 func _roll_fertilizer(def: RandomEventDef) -> int:
 	var low := int(def.fertilizer_min)

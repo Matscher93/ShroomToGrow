@@ -27,11 +27,11 @@ const MAX_FIRST_PRESTIGE_TICK := 1500
 ## Underground Lake are not on the list: the run stops at its prestige target,
 ## which comes first.
 ##
-## Meadow is not on it either, and cannot be: it is always_unlocked, so the
-## simulator seeds it into the already-open set before the first tick and never
-## emits a milestone for it (see BalanceSim.run). A starter biome is reached by
-## definition; what this guards is the ones a run has to earn.
-const REQUIRED_BIOMES: Array[String] = ["forest", "permafrost"]
+## Meadow is on it now. It used to be always_unlocked, seeded into the open set
+## before the first tick and never worth a milestone; it is a bought biome like
+## the rest since, and a run that cannot afford its one nutrient is a run that
+## produces nothing at all.
+const REQUIRED_BIOMES: Array[String] = ["meadow", "forest", "permafrost"]
 
 ## A cost curve that does not rise makes an upgrade free to max out.
 const MIN_COST_GROWTH := 1.0

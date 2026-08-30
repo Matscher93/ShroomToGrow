@@ -7,6 +7,7 @@ extends GdUnitTestSuite
 
 const EPS := 0.000001
 const CAVES := &"crystal_caves"
+const LAKE := &"underground_lake"
 
 var _player: PlayerData
 var _biomes_data: BiomesData
@@ -65,11 +66,32 @@ func _progress(id: StringName, goal: int, reward: float) -> RandomEventDef:
 	def.fertilizer_max = reward
 	return def
 
+## No screen/biome registries, so the currency-reachability gate maps nothing and
+## every def is reachable. The suite that cares builds its own pair below.
 func _build(defs: Array[RandomEventDef]) -> void:
+	_build_with_registries(defs, null, null)
+
+func _build_with_registries(defs: Array[RandomEventDef], screens: Screens,
+		biomes: BiomeList) -> void:
 	var list := RandomEventList.new()
 	list.events = defs
-	_system = EventSystem.new(_data, _player, _biomes_data, _fertilizer, list)
+	_system = EventSystem.new(_data, _player, _biomes_data, _fertilizer, list, screens, biomes)
 	_system.rng.seed = 1234
+
+## The smallest registry pair the currency gate needs: one screen listing one
+## currency, and one biome naming that screen.
+func _registries(type: CurrencyTypes.Types, screen_type: ScreenTypes.Types,
+		biome_key: StringName) -> Array:
+	var screen_def := ScreenDefinition.new()
+	screen_def.currencies = [_currency(type)] as Array[CurrencyDef]
+	var screens := Screens.new()
+	screens.screens = {screen_type: screen_def} as Dictionary[ScreenTypes.Types, ScreenDefinition]
+	var biome_def := BiomeDef.new()
+	biome_def.key = biome_key
+	biome_def.screen_type = screen_type
+	var biomes := BiomeList.new()
+	biomes.biomes = [biome_def] as Array[BiomeDef]
+	return [screens, biomes]
 
 # ---------------------------------------------------------------- spawning
 
@@ -96,6 +118,41 @@ func test_a_biome_gated_event_stays_out_of_the_pool_while_locked() -> void:
 	assert_bool(_system.try_spawn()).is_false()
 	assert_int(_data.count()).is_equal(0)
 	_biomes_data.unlock(CAVES)
+	assert_bool(_system.try_spawn()).is_true()
+
+## The permanent half of the gate: an offer of water is an offer in a currency
+## the player has no screen for until they have reached the Well at least once.
+func test_an_event_stays_out_of_the_pool_while_its_currency_has_no_home() -> void:
+	var registries := _registries(CurrencyTypes.Types.WATER, ScreenTypes.Types.WELL, LAKE)
+	_build_with_registries([_boon(&"dew", CurrencyTypes.Types.WATER, 0.0, 5.0, 5.0)],
+		registries[0], registries[1])
+	assert_bool(_system.try_spawn()).is_false()
+	_biomes_data.unlock(LAKE)
+	assert_bool(_system.try_spawn()).is_true()
+
+## ever_unlocked, not the run's own set: a prestige relocks the lake but the
+## player still knows what water is and still has the screen.
+func test_the_currency_gate_survives_a_prestige_reset() -> void:
+	var registries := _registries(CurrencyTypes.Types.WATER, ScreenTypes.Types.WELL, LAKE)
+	_build_with_registries([_boon(&"dew", CurrencyTypes.Types.WATER, 0.0, 5.0, 5.0)],
+		registries[0], registries[1])
+	_biomes_data.unlock(LAKE)
+	_biomes_data.reset()
+	assert_bool(_system.try_spawn()).is_true()
+
+## A currency no screen claims - nutrients, shown on the two screens no biome
+## owns - is reachable from the first minute.
+func test_an_unmapped_currency_is_always_reachable() -> void:
+	var registries := _registries(CurrencyTypes.Types.WATER, ScreenTypes.Types.WELL, LAKE)
+	_build_with_registries([_boon(&"b", CurrencyTypes.Types.NUTRIENTS, 0.0, 10.0, 10.0)],
+		registries[0], registries[1])
+	assert_bool(_system.try_spawn()).is_true()
+
+## Fertilizer is deliberately not a CurrencyDef, so these defs name no currency
+## at all and must not be caught by a gate that reads one.
+func test_a_currency_less_event_is_always_reachable() -> void:
+	var registries := _registries(CurrencyTypes.Types.WATER, ScreenTypes.Types.WELL, LAKE)
+	_build_with_registries([_fert_boon(&"windfall", 3.0, 3.0)], registries[0], registries[1])
 	assert_bool(_system.try_spawn()).is_true()
 
 func test_an_empty_pool_spawns_nothing() -> void:

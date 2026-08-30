@@ -25,6 +25,7 @@ script = ExtResource("10_subdef")
 display_name = "Sequences"
 tab_index = 2
 badge_source = 0
+visible_when = 3
 
 [resource]
 script = ExtResource("2_script")

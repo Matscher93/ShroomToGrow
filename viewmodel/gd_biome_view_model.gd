@@ -27,6 +27,15 @@ const PROP_SLOTS_CHANGED := &"slots_changed"
 var _key: StringName
 var _def: BiomeDef
 
+# --- View state ---
+## Whether the card's upgrade body is open. Parked here because App owns this VM
+## for the app's lifetime while the Biomes screen is freed on every nav switch
+## (see GameScreens), so a flag on the card itself would spring back open on
+## every visit. Same reasoning as BiomeSequenceViewModel.expanded.
+## Defaults open: the upgrades are the card's whole point. Not saved - view
+## state, not progress.
+var expanded := true
+
 # --- Static display properties (fixed for this biome's lifetime) ---
 var display_name: String:
 	get: return _def.display_name

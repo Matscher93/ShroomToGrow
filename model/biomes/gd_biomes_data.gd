@@ -4,6 +4,12 @@ extends RefCounted
 ## spent in each. Knows nothing about cost, XP or UI.
 
 signal biome_unlocked(key: StringName)
+## Raised the *first* time a biome is opened, ever, and never again. Its own
+## signal rather than a flag read back off biome_unlocked, which fires again on
+## every post-prestige re-unlock: "the player has just seen this for the first
+## time" is a one-shot, and a listener that reveals something cannot tell the two
+## apart after the fact.
+signal biome_first_unlocked(key: StringName)
 ## Raised when a biome's auto-unlock is bought or switched on/off. Its own signal
 ## rather than leaning on the crystal deduction: a large enough balance swallows
 ## the cost whole (BigNumber normalises to a mantissa and exponent, so 1.5e25
@@ -42,9 +48,12 @@ func is_ever_unlocked(key: StringName) -> bool:
 func unlock(key: StringName) -> void:
 	if is_unlocked(key):
 		return
+	var is_first := not is_ever_unlocked(key)
 	unlocked[key] = true
 	ever_unlocked[key] = true
 	biome_unlocked.emit(key)
+	if is_first:
+		biome_first_unlocked.emit(key)
 
 ## True once the crystal purchase that re-opens this biome every run is owned.
 func is_auto_unlock(key: StringName) -> bool:

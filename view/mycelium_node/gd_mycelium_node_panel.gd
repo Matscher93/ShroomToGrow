@@ -60,6 +60,7 @@ func bind(vm: MyceliumNodeViewModel) -> void:
 	_vm = vm
 	_vm.property_changed.connect(_on_property_changed)
 	_refresh_all()
+	_apply_expanded()
 
 func _exit_tree() -> void:
 	if _vm:
@@ -169,9 +170,15 @@ func _gui_input(event: InputEvent) -> void:
 func _is_in_synergy(global_pos: Vector2) -> bool:
 	return vbox_synergy.visible and vbox_synergy.get_global_rect().has_point(global_pos)
 
+## The flag lives on the ViewModel, not here: this card is freed and rebuilt on
+## every nav switch, and a local one would collapse every tier again each visit.
 func _toggle_synergy() -> void:
 	if _vm == null: return
-	vbox_buy.visible = not vbox_buy.visible
+	_vm.expanded = not _vm.expanded
+	_apply_expanded()
+
+func _apply_expanded() -> void:
+	vbox_buy.visible = _vm.expanded
 	expansion_arrow.offset_transform_rotation = PI if vbox_buy.visible else 0.0
 	if _vm.synergy_track_unlocked:
 		vbox_synergy.visible = vbox_buy.visible

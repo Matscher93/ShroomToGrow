@@ -236,12 +236,18 @@ func test_well_project_levels_survive_the_reset() -> void:
 
 func test_biomes_are_relocked_but_stay_reachable() -> void:
 	_make_prestige_available()
+	# Bought like any other biome now, so it has to be opened before a test about
+	# relocking can say anything about it.
+	_biomes_data.unlock(&"meadow")
 
 	_system.prestige()
 
 	assert_bool(_biomes_data.is_unlocked(PrestigeSystem.GATE_BIOME)).is_false()
 	assert_bool(_biomes_data.is_ever_unlocked(PrestigeSystem.GATE_BIOME)).is_true()
-	assert_bool(_biomes_data.is_unlocked(&"meadow")).is_true()   # always_unlocked
+	# The Meadow relocks with the rest of them - it is a bought biome too, and a
+	# single nutrient is not a run's worth of progress to hand back.
+	assert_bool(_biomes_data.is_unlocked(&"meadow")).is_false()
+	assert_bool(_biomes_data.is_ever_unlocked(&"meadow")).is_true()
 
 func test_a_second_prestige_starts_from_the_reset_run() -> void:
 	# tick_count and nutrients both feed the gain, so a reset that missed either

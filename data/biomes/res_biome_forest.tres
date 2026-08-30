@@ -8,6 +8,7 @@ script = ExtResource("1_script")
 key = &"forest"
 display_name = "Forest"
 description = "Boost your nodes"
+reveal_screen = 1
 xp_source = 1
 xp_label = "symbioses formed"
 biome_color = Color(0.56078434, 0.8392157, 0.627451, 1)

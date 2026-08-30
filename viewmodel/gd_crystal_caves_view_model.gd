@@ -12,6 +12,7 @@ extends ViewModel
 ## from the screen definition's currencies - this screen does not repeat it.
 
 const PROP_BOOSTS_VISIBLE := &"boosts_visible"
+const PROP_SEQUENCES_VISIBLE := &"sequences_visible"
 const PROP_SECTIONS_CHANGED := &"sections_changed"
 ## The nav menu asked for one of this screen's tabs by name. Only needed when the
 ## screen is already up: arriving from another screen respawns it, and _ready()
@@ -44,6 +45,13 @@ var boosts_visible: bool:
 			if App.is_boost_unlocked(def.id):
 				return true
 		return false
+
+## Whether the Sequences tab belongs on screen at all. The plans it edits are
+## replayed by one automation and nothing else, so before that automation is
+## unlocked the tab is a point plan no one follows - the same argument that hides
+## the Boosts tab before the first boost perk.
+var sequences_visible: bool:
+	get: return App.is_automation_unlocked(AutomationSystem.SEQUENCE_AUTOMATION_ID)
 
 var automation_vms_ordered: Array[AutomationViewModel]:
 	get:
@@ -89,8 +97,9 @@ func sequence_vms() -> Array[BiomeSequenceViewModel]:
 # --- Lifecycle ---
 
 func _init() -> void:
-	# Buying the first boost unlock perk is what brings the tab in, and that can
-	# happen while this screen is open - the perk web is a screen away.
+	# Buying the first boost unlock perk, or the steward that replays a sequence,
+	# is what brings those tabs in, and either can happen while this screen is
+	# open - the perk web is a screen away.
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_perks_changed)
 	# Reaching a biome adds its section. The screen used to be rebuilt on every
 	# nav switch, which hid the need for this; now that it keeps its state, a
@@ -105,8 +114,11 @@ func dispose() -> void:
 
 # --- Model -> notification plumbing ---
 
+## One perk purchase can move either tab - the boost unlocks and the steward both
+## sit on the perk web - and neither is worth its own signal to tell apart.
 func _on_perks_changed() -> void:
 	_notify(PROP_BOOSTS_VISIBLE)
+	_notify(PROP_SEQUENCES_VISIBLE)
 
 func _on_sections_changed() -> void:
 	_notify(PROP_SECTIONS_CHANGED)

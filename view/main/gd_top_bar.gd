@@ -19,6 +19,10 @@ signal events_pressed
 signal statistics_pressed
 
 @export var btn_achievements: Button
+## The whole chip, not just its Button: the icon and the notification dot are
+## siblings of the button inside it, so hiding the button alone would leave a
+## dead chip behind.
+@export var panel_achievements: PanelContainer
 @export var image_achievements_notification: ColorRect
 @export var btn_growth: Button
 @export var lbl_growth_level: Label
@@ -77,7 +81,8 @@ func _exit_tree() -> void:
 		_events_vm = null
 
 func _on_property_changed(property: StringName) -> void:
-	if property == AchievementsViewModel.PROP_HAS_CLAIMS:
+	if property == AchievementsViewModel.PROP_HAS_CLAIMS \
+			or property == AchievementsViewModel.PROP_VISIBLE:
 		_refresh()
 
 ## Every notification repaints the chip: the level number and the dot come from
@@ -90,7 +95,11 @@ func _on_events_property_changed(property: StringName) -> void:
 	if property == EventsViewModel.PROP_QUEUE_CHANGED:
 		_refresh_events()
 
+## Hidden outright before the Crystal Caves rather than left dead: the archive
+## pays crystals, and until that screen exists there is nowhere to spend them.
+## The row is an HBox, so the other three simply repack.
 func _refresh() -> void:
+	panel_achievements.visible = _vm.is_visible
 	image_achievements_notification.visible = _vm.has_claims
 
 func _refresh_growth() -> void:

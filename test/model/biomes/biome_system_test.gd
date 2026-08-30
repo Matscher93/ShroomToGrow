@@ -62,8 +62,11 @@ func test_unknown_key_yields_no_upgrade_ids() -> void:
 
 # ─── Unlocking ───────────────────────────────────────────────────────────────
 
-func test_starting_biomes_are_unlocked() -> void:
-	assert_bool(_data.is_unlocked(&"meadow")).is_true()
+## Nothing is open on a fresh save. The Meadow is a bought biome like every other
+## one now - it just costs a single nutrient, which the starting node pays for in
+## the first few ticks.
+func test_no_biome_is_unlocked_on_a_fresh_save() -> void:
+	assert_bool(_data.is_unlocked(&"meadow")).is_false()
 	assert_bool(_data.is_unlocked(&"forest")).is_false()
 
 func test_unlock_requires_and_deducts_the_cost() -> void:
@@ -209,11 +212,19 @@ func test_auto_unlock_cannot_be_bought_twice() -> void:
 	assert_bool(_system.buy_auto_unlock(&"forest")).is_false()
 	assert_float(_player.crystals.to_float()).is_equal_approx(cost.scale(2.0).to_float(), EPS)
 
-func test_a_starter_biome_has_nothing_to_auto_unlock() -> void:
-	# meadow is always_unlocked, so it never relocks and the purchase would buy
-	# the player nothing.
+func test_a_biome_that_never_relocks_has_nothing_to_auto_unlock() -> void:
+	# always_unlocked is what the rule reads, not any particular biome: nothing
+	# ships with it set today, so the case is built rather than named.
+	var starter := BiomeDef.new()
+	starter.key = &"starter"
+	starter.always_unlocked = true
+	var biomes := BiomeList.new()
+	biomes.biomes = [starter] as Array[BiomeDef]
+	var production := ProductionSystem.new(_symbiosis, _biome_upgrades, _prestige, _ctx)
+	var system := BiomeSystem.new(biomes, _data, _player, [] as Array[MyceliumNode],
+		production, _symbiosis, _biome_upgrades, _prestige, _ctx)
 	_player.crystals = BigNumber.from_value(1e9)
-	assert_bool(_system.can_buy_auto_unlock(&"meadow")).is_false()
+	assert_bool(system.can_buy_auto_unlock(&"starter")).is_false()
 
 func test_an_auto_unlock_is_on_the_moment_it_is_bought() -> void:
 	_player.crystals = _system.biome_def(&"forest").auto_unlock_cost.scale(2.0)
@@ -398,6 +409,7 @@ func test_unknown_biome_has_no_size_cost() -> void:
 
 func test_reset_relocks_the_run_but_keeps_ever_unlocked() -> void:
 	_player.nutrients = BigNumber.from_value(1e9)   # enough for anything on offer
+	_system.unlock(&"meadow")
 	_system.unlock(&"forest")
 	_system.buy_size(&"meadow")
 
@@ -405,7 +417,8 @@ func test_reset_relocks_the_run_but_keeps_ever_unlocked() -> void:
 
 	assert_bool(_data.is_unlocked(&"forest")).is_false()
 	assert_bool(_data.is_ever_unlocked(&"forest")).is_true()   # tab stays reachable
-	assert_bool(_data.is_unlocked(&"meadow")).is_true()        # always_unlocked
+	assert_bool(_data.is_unlocked(&"meadow")).is_false()
+	assert_bool(_data.is_ever_unlocked(&"meadow")).is_true()
 	assert_bool(_ctx.biome_sizes.is_empty()).is_true()
 
 func test_biomes_hub_screen_is_always_reachable() -> void:

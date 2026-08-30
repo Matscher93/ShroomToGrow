@@ -114,6 +114,11 @@ func _init() -> void:
 	# Reaching a biome reveals its screen, which is the only thing that changes
 	# the row list after startup.
 	App.biomes_data.biome_unlocked.connect(_on_destinations_changed.unbind(1))
+	# ...and the first time, it also walks the player there. Deferred on purpose:
+	# the unlock arrives from a press handler on a button that lives inside the
+	# screen GameScreens is about to free, and swapping screens inside that
+	# button's own emission tears the node down mid-signal.
+	App.biomes_data.biome_first_unlocked.connect(_on_biome_first_unlocked, CONNECT_DEFERRED)
 	# A perk purchase is what brings the Boosts sub-row in, and the perk web is a
 	# screen away rather than behind this menu.
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_destinations_changed)
@@ -136,6 +141,7 @@ func dispose() -> void:
 	App.screens_data.screen_changed.disconnect(_on_destinations_changed.unbind(1))
 	App.screens_data.sub_screen_requested.disconnect(_on_destinations_changed.unbind(2))
 	App.biomes_data.biome_unlocked.disconnect(_on_destinations_changed.unbind(1))
+	App.biomes_data.biome_first_unlocked.disconnect(_on_biome_first_unlocked)
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_destinations_changed)
 	App.player_data.crystals_changed.disconnect(_on_badges_changed.unbind(1))
 	App.boost_upgrade_system.upgrades_changed.disconnect(_on_badges_changed)
@@ -154,6 +160,24 @@ func _on_destinations_changed() -> void:
 
 func _on_badges_changed() -> void:
 	_notify(PROP_BADGES_CHANGED)
+
+## A biome opened for the very first time takes the player to the screen it
+## brings with it - or, where it brings none, to the screen its purchase is spent
+## on (BiomeDef.reveal_screen). The row it adds to the menu is otherwise the only
+## announcement a whole new screen ever gets, and that is behind the disc.
+##
+## A biome that names neither reaches nothing here, and neither does one whose
+## screen is already up.
+func _on_biome_first_unlocked(key: StringName) -> void:
+	var definition := App.biome_def(key)
+	if definition == null:
+		return
+	var target := definition.reveal_screen
+	if target == ScreenTypes.Types.BIOMES:
+		target = definition.screen_type
+	if target == ScreenTypes.Types.BIOMES or App.screens_data.current_screen == target:
+		return
+	go_to(target)
 
 # --- Building ---
 
@@ -183,15 +207,18 @@ func _sub_rows(type: ScreenTypes.Types, definition: ScreenDefinition,
 	return rows
 
 ## The same gate the screen puts on the tab itself - see
-## CrystalCavesPanel._refresh_boosts_tab(). Before the first boost perk the
-## Boosts tab is a page of locked cards and is hidden there, so a row leading to
-## it would lead somewhere that is not on screen.
+## CrystalCavesPanel._refresh_optional_tabs(). Before the first boost perk the
+## Boosts tab is a page of locked cards and is hidden there, and the Sequences
+## tab is a point plan nothing replays until the steward is bought, so a row
+## leading to either would lead somewhere that is not on screen.
 func _is_sub_visible(sub: SubScreenDefinition) -> bool:
 	match sub.visible_when:
 		SubScreenDefinition.VisibleWhen.BOOSTS_UNLOCKED:
 			return App.crystal_caves_vm.boosts_visible
 		SubScreenDefinition.VisibleWhen.HEROES_UNLOCKED:
 			return App.ruins_vm.heroes_visible
+		SubScreenDefinition.VisibleWhen.SEQUENCES_UNLOCKED:
+			return App.crystal_caves_vm.sequences_visible
 	return true
 
 ## Which sub-view the given screen is showing, or -1 for a screen that has none.

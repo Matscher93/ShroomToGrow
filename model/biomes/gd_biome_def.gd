@@ -10,6 +10,13 @@ enum XpSource { TOTAL_NODES, SYMBIOSIS_LEVELS, PRESTIGE_COUNT, ACHIEVEMENT_TIERS
 @export var display_name: String
 @export_multiline var description: String
 @export var screen_type: ScreenTypes.Types
+
+## The screen a *first* unlock walks the player to, when that is not the screen
+## this biome owns. Defaults to screen_type, and BIOMES reads as "unset" - that
+## is the screen a biome is bought from, so landing back on it is never a move
+## worth making. Authored only where the two differ: the Forest brings no screen
+## of its own, but everything it buys is spent on the Nodes screen.
+@export var reveal_screen: ScreenTypes.Types
 @export var xp_source: XpSource
 @export var xp_label: String  ## e.g. "nodes grown", shown in the level-progress display
 

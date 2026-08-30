@@ -4,6 +4,9 @@ extends PanelContainer
 ## crystal-bought automations, and the per-biome sequences the point-spending
 ## automation replays.
 ##
+## Boosts and Sequences are each behind a prestige perk and hidden until it is
+## bought; Automations is always there, so the screen always has a tab.
+##
 ## The tab bar is hidden - the nav menu lists these three as sub-rows under
 ## Crystals, reachable in one tap from any screen, and a second row of tabs at
 ## the bottom of the screen was competing with the menu disc for the same thumb.
@@ -61,7 +64,7 @@ func _ready() -> void:
 	bind(App.crystal_caves_vm)
 	_build_automations()
 	_build_sequences()
-	_refresh_boosts_tab()
+	_refresh_optional_tabs()
 	await _restore_view_state()
 
 func bind(vm: CrystalCavesViewModel) -> void:
@@ -77,28 +80,31 @@ func _exit_tree() -> void:
 
 func _on_property_changed(property: StringName) -> void:
 	match property:
-		CrystalCavesViewModel.PROP_BOOSTS_VISIBLE:
-			_guard.run_when_free(&"boosts_tab", _refresh_boosts_tab)
+		CrystalCavesViewModel.PROP_BOOSTS_VISIBLE, CrystalCavesViewModel.PROP_SEQUENCES_VISIBLE:
+			_guard.run_when_free(&"optional_tabs", _refresh_optional_tabs)
 		CrystalCavesViewModel.PROP_SECTIONS_CHANGED:
 			_guard.run_when_free(&"sequences", _build_sequences)
 		CrystalCavesViewModel.PROP_TAB_REQUESTED:
 			_apply_requested_tab()
 
-## Boosts leads the tabs, so it is also the one the screen opens on. Hiding the
-## current tab leaves TabContainer pointing at a tab that is no longer there, so
-## the selection is moved to the first one still showing.
-func _refresh_boosts_tab() -> void:
-	var index := boosts_tab.get_index()
-	tab_container.set_tab_hidden(index, not _vm.boosts_visible)
-	_refresh_tab_chip()
+## Two of the three tabs are behind a perk: Boosts until the first boost unlock,
+## Sequences until the steward that replays a plan. Automations is always there,
+## which is what guarantees the fallback below finds a tab to land on.
+##
+## Hiding the current tab leaves TabContainer pointing at a tab that is no longer
+## there, so the selection is moved to the first one still showing.
+func _refresh_optional_tabs() -> void:
+	tab_container.set_tab_hidden(boosts_tab.get_index(), not _vm.boosts_visible)
+	tab_container.set_tab_hidden(sequences_tab.get_index(), not _vm.sequences_visible)
 	# One fewer tab to share the bar, so what is left has to be repadded.
 	tab_container.spread_tabs()
-	if _vm.boosts_visible or tab_container.current_tab != index:
-		return
-	for i in range(tab_container.get_tab_count()):
-		if not tab_container.is_tab_hidden(i):
-			tab_container.current_tab = i
-			return
+	if tab_container.is_tab_hidden(tab_container.current_tab):
+		for i in range(tab_container.get_tab_count()):
+			if not tab_container.is_tab_hidden(i):
+				tab_container.current_tab = i
+				break
+	# Last, so the chip names where the selection actually ended up.
+	_refresh_tab_chip()
 
 ## The nav menu asked for one of these tabs while the screen was already up.
 ## Arriving from another screen respawns the screen instead, and _ready() reads

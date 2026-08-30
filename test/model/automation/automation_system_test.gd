@@ -459,6 +459,7 @@ func test_buying_nodes_reports_nothing_bought_when_broke() -> void:
 func test_buying_biome_size_picks_the_cheapest_unlocked_biome() -> void:
 	var system := _system(_def(AutomationDef.Kind.BUY_BIOME_SIZE))
 	_data.add_level(&"test_automation")
+	_biomes_data.unlock(&"meadow")
 	_biomes_data.unlock(&"forest")
 	_player.nutrients = BigNumber.from_value(1e12)
 
@@ -471,6 +472,7 @@ func test_buying_biome_size_announces_the_change() -> void:
 	# Every size display binds to App's signal, which is re-emitted off this one.
 	var system := _system(_def(AutomationDef.Kind.BUY_BIOME_SIZE))
 	_data.add_level(&"test_automation")
+	_biomes_data.unlock(&"meadow")
 	_player.nutrients = BigNumber.from_value(1e12)
 	var announced: Array[StringName] = []
 	system.biome_size_bought.connect(func(key: StringName) -> void: announced.append(key))
@@ -482,6 +484,9 @@ func test_buying_biome_size_announces_the_change() -> void:
 func test_buying_biome_size_skips_locked_biomes() -> void:
 	var system := _system(_def(AutomationDef.Kind.BUY_BIOME_SIZE))
 	_data.add_level(&"test_automation")
+	# One biome open, so the run has somewhere to go and passing over the shut one
+	# is a choice rather than the only thing left to do.
+	_biomes_data.unlock(&"meadow")
 	_player.nutrients = BigNumber.from_value(1e12)
 	system.run(&"test_automation")
 	assert_int(_biome_system.size(&"forest")).is_zero()
@@ -526,6 +531,9 @@ func _register_biome_upgrades() -> void:
 ## Enough biome level for `points` upgrade points, granted through the
 ## &"biome_points" stat rather than by faking XP.
 func _grant_points(biome_key: StringName, points: int) -> void:
+	# Points are only spendable in an open biome, and every caller of this is
+	# about what the spending does rather than about the gate in front of it.
+	_biomes_data.unlock(biome_key)
 	var upgrade := UpgradeDef.new()
 	upgrade.id = &"PointGrant"
 	var effect := UpgradeEffectDef.new()
@@ -797,8 +805,12 @@ func _repeat(id: StringName, count: int) -> Array[StringName]:
 
 ## Enough nutrients that price is never what stops a run. Node costs grow
 ## super-exponentially, so the pile has to be absurd rather than merely large.
+## Money and an open biome to spend it in. The size and point automations both
+## pass over shut biomes, so a run with nothing unlocked does nothing at all and
+## a test about how much a tick buys would read zero for the wrong reason.
 func _fund_everything() -> void:
 	_player.nutrients = BigNumber.new(1.0, 900)
+	_biomes_data.unlock(&"meadow")
 
 ## What the cheapest tier costs to take `count` levels up from where it stands,
 ## without moving it.

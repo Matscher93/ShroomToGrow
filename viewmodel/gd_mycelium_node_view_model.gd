@@ -27,6 +27,14 @@ const PROP_SYNERGY_CAN_BUY := &"synergy_can_buy"
 ## against MyceliumNode directly.
 const PROP_HAS_NODES := &"has_nodes"
 
+# --- View state ---
+## Whether the card's buy body is open. Parked here for the same reason as
+## BiomeViewModel.expanded: App owns this VM for the app's lifetime, the Nodes
+## screen is freed on every nav switch, and a flag on the card would collapse
+## every tier again on every visit. Defaults shut - the list is long and only one
+## tier is usually being worked on. Not saved.
+var expanded := false
+
 var _player_data: PlayerData
 var _mycelium_data: MyceliumNodeData
 var _potency_id: StringName

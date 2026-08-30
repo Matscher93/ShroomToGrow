@@ -16,6 +16,7 @@ extends ViewModel
 const PROP_TIERS_TEXT := &"tiers_text"
 const PROP_CLAIM_ALL := &"claim_all_text"
 const PROP_HAS_CLAIMS := &"has_claims"
+const PROP_VISIBLE := &"visible"
 
 # --- Read-only display properties bound by the View ---
 var tiers_text: String:
@@ -26,6 +27,15 @@ var tiers_text: String:
 ## Drives both the claim-all button's enabled state and the top-bar dot.
 var has_claims: bool:
 	get: return App.has_achievement_claims()
+
+## Whether the top-bar button that opens this overlay belongs on screen at all.
+## Tiers pay crystals and nothing else, and crystals have nowhere to be spent or
+## even shown until the Crystal Caves screen exists - so before that the archive
+## is an entry point to a currency the player cannot use. Read off the permanent
+## record rather than the run's own set: the caves stay claimed across a prestige
+## reset, and so does the button.
+var is_visible: bool:
+	get: return App.is_screen_unlocked(ScreenTypes.Types.CRYSTAL_CAVES)
 
 var claim_all_text: String:
 	get:
@@ -51,9 +61,13 @@ func claim_all() -> BigNumber:
 
 func _init() -> void:
 	App.achievement_system.progress_changed.connect(_on_progress_changed)
+	# Reaching the Crystal Caves is what reveals the button, and it is bought from
+	# a biome card rather than from anywhere this overlay can see.
+	App.biomes_data.biome_unlocked.connect(_on_biome_unlocked.unbind(1))
 
 func dispose() -> void:
 	App.achievement_system.progress_changed.disconnect(_on_progress_changed)
+	App.biomes_data.biome_unlocked.disconnect(_on_biome_unlocked.unbind(1))
 
 # --- Model -> notification plumbing ---
 
@@ -61,3 +75,6 @@ func _on_progress_changed() -> void:
 	_notify(PROP_TIERS_TEXT)
 	_notify(PROP_CLAIM_ALL)
 	_notify(PROP_HAS_CLAIMS)
+
+func _on_biome_unlocked() -> void:
+	_notify(PROP_VISIBLE)

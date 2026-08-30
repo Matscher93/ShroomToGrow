@@ -48,7 +48,6 @@ var _slot_ids: Array[StringName] = []
 @export var upgrade_detail: BiomeUpgradeCard
 
 var _vm: BiomeViewModel
-var _expanded := true
 
 const TAP_CANCEL_DISTANCE := 10.0  # px, beyond this a press is a scroll drag, not a tap
 var _press_active := false
@@ -140,12 +139,17 @@ func _gui_input(event: InputEvent) -> void:
 func _is_in_body(global_pos: Vector2) -> bool:
 	return vbox_upgrades.visible and vbox_upgrades.get_global_rect().has_point(global_pos)
 
+## The flag lives on the ViewModel, not here: this card is freed and rebuilt on
+## every nav switch, and a local one would spring the body back open each visit.
 func _toggle_upgrades() -> void:
 	if not _vm or not _vm.unlocked:
 		return
-	_expanded = not _expanded
-	vbox_upgrades.visible = _expanded
-	expansion_arrow.offset_transform_rotation = PI if _expanded else 0.0
+	_vm.expanded = not _vm.expanded
+	_apply_expanded()
+
+func _apply_expanded() -> void:
+	vbox_upgrades.visible = _vm.unlocked and _vm.expanded
+	expansion_arrow.offset_transform_rotation = PI if vbox_upgrades.visible else 0.0
 
 func bind(vm: BiomeViewModel) -> void:
 	if _vm:
@@ -192,7 +196,7 @@ func _on_property_changed(property: StringName) -> void:
 
 func _refresh_unlock_section() -> void:
 	vbox_buy.visible = not _vm.unlocked
-	vbox_upgrades.visible = _vm.unlocked and _expanded
+	_apply_expanded()
 	if not _vm.unlocked:
 		lbl_unlock_info.text = _vm.unlock_info_text
 		lbl_unlock_cost.text = _vm.unlock_cost_text

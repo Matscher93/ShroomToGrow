@@ -132,7 +132,7 @@ font_color = Color(0.91764706, 0.98039216, 0.9529412, 1)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_focus"]
 
-[node name="top_bar" type="PanelContainer" node_paths=PackedStringArray("btn_achievements", "image_achievements_notification", "btn_growth", "lbl_growth_level", "image_growth_notification", "btn_events", "lbl_events_badge", "panel_events_badge", "btn_statistics")]
+[node name="top_bar" type="PanelContainer" node_paths=PackedStringArray("btn_achievements", "image_achievements_notification", "btn_growth", "lbl_growth_level", "image_growth_notification", "btn_events", "lbl_events_badge", "panel_events_badge", "btn_statistics", "panel_achievements")]
 theme_override_styles/panel = SubResource("StyleBoxEmpty_top_bar")
 script = ExtResource("1_script")
 btn_achievements = NodePath("HBoxContainer/panel_achievements/btn_achievements")
@@ -144,6 +144,7 @@ image_growth_notification = NodePath("HBoxContainer/panel_growth/image_notificat
 btn_events = NodePath("HBoxContainer/panel_events/btn_events")
 lbl_events_badge = NodePath("HBoxContainer/panel_events/panel_badge/lbl_events_badge")
 panel_events_badge = NodePath("HBoxContainer/panel_events/panel_badge")
+panel_achievements = NodePath("HBoxContainer/panel_achievements")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 2

@@ -50,6 +50,13 @@ func _ready() -> void:
 func spread_tabs() -> void:
 	if _styles.is_empty():
 		return
+	# Nothing to spread across yet. A screen MenuWarmup preloads is laid out
+	# before it is ever shown, so this container has no width and the bar falls
+	# back to its own minimum - which is a width the padding below sets, not one
+	# it can be measured against. The real `resized` lands once the screen is on
+	# screen and repads it then.
+	if size.x <= 0.0:
+		return
 	var font := _tab_bar.get_theme_font(&"font")
 	if font == null:
 		return
@@ -65,7 +72,13 @@ func spread_tabs() -> void:
 	if shown == 0:
 		return
 	var gaps := float(_tab_bar.get_theme_constant(&"tab_separation") * (shown - 1))
-	var spare := _tab_bar.size.x - titles_width - gaps - _SAFETY_MARGIN
+	# Never wider than this container. A padded tab raises the bar's own minimum
+	# width, so measuring the bar against itself feeds the last padding back in
+	# and the margin climbs on every pass - which it can do without bound once
+	# there is spare room to hand out, i.e. as soon as a tab is hidden. The
+	# container's width is the one input the padding cannot move.
+	var bar_width := minf(_tab_bar.size.x, size.x)
+	var spare := bar_width - titles_width - gaps - _SAFETY_MARGIN
 	# Halved because the padding sits on both sides of every title. Floored so the
 	# row can only ever come up short of the bar, never overrun it.
 	var margin := floorf(maxf(0.0, spare) / float(shown * 2))
