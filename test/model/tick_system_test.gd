@@ -198,6 +198,7 @@ func _strided_against_looped(manual: Array[int], bonuses: Array[BigNumber],
 		_player = PlayerData.new()
 		_player.nutrients = BigNumber.from_value(0.0)
 		_player.lifetime_nutrients = BigNumber.from_value(0.0)
+		_player.run_nutrients = BigNumber.from_value(0.0)
 		var nodes := _chain(manual)
 		var system := _system(nodes)
 		if strided:
@@ -212,6 +213,7 @@ func _strided_against_looped(manual: Array[int], bonuses: Array[BigNumber],
 			"tiers": tiers,
 			"nutrients": _player.nutrients.to_float(),
 			"lifetime": _player.lifetime_nutrients.to_float(),
+			"run": _player.run_nutrients.to_float(),
 			"ticks": _player.tick_count,
 		})
 	return out
@@ -225,6 +227,10 @@ func _assert_stride_matches(manual: Array[int], bonuses: Array[BigNumber], count
 		maxf(EPS, absf(looped["nutrients"]) * 1e-9))
 	assert_float(strided["lifetime"]).is_equal_approx(looped["lifetime"],
 		maxf(EPS, absf(looped["lifetime"]) * 1e-9))
+	# The prestige payout is priced off run_nutrients, so a jumped span that
+	# missed it would pay an offline player less than an online one.
+	assert_float(strided["run"]).is_equal_approx(looped["run"],
+		maxf(EPS, absf(looped["run"]) * 1e-9))
 	for i in looped["tiers"].size():
 		assert_float(strided["tiers"][i]).is_equal_approx(looped["tiers"][i],
 			maxf(EPS, absf(looped["tiers"][i]) * 1e-9))

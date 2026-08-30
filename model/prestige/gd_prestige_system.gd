@@ -20,6 +20,7 @@ const GATE_BIOME := &"permafrost"
 
 var _player_data: PlayerData
 var _biomes_data: BiomesData
+var _curve: PrestigeCurveDef
 var _nodes: Array[MyceliumNode]
 var _production: ProductionSystem
 var _symbiosis: UpgradeSystem
@@ -28,9 +29,11 @@ var _biome_system: BiomeSystem
 
 func _init(player_data: PlayerData, biomes_data: BiomesData, nodes: Array[MyceliumNode],
 		production: ProductionSystem, symbiosis: UpgradeSystem,
-		biome_upgrades: UpgradeSystem, biome_system: BiomeSystem) -> void:
+		biome_upgrades: UpgradeSystem, biome_system: BiomeSystem,
+		curve: PrestigeCurveDef) -> void:
 	_player_data = player_data
 	_biomes_data = biomes_data
+	_curve = curve
 	_nodes = nodes
 	_production = production
 	_symbiosis = symbiosis
@@ -41,13 +44,39 @@ func _init(player_data: PlayerData, biomes_data: BiomesData, nodes: Array[Myceli
 ## symbiosis (see ProductionSystem.modify_biomass_gain).
 func preview_biomass_gain() -> BigNumber:
 	var base := PrestigeCalculator.calculate_biomass_gain(
-		_player_data.tick_count, _player_data.nutrients)
+		_player_data.tick_count, _player_data.run_nutrients, _curve)
 	return _production.modify_biomass_gain(base)
 
+## Prestige is offered only for a run worth more than the best one ever taken.
+##
+## A strict improvement rather than any gain at all: the payout is a step
+## function over filled storage areas, so without this a player could sporate
+## every time one area refilled and trade a whole run for less biomass than the
+## last one paid. best_biomass_gain starts at zero, so the first prestige is
+## still gated on nothing more than a gain above nothing.
 func can_prestige() -> bool:
 	if not _biomes_data.is_unlocked(GATE_BIOME):
 		return false
-	return preview_biomass_gain().gt(BigNumber.new(0.0, 0))
+	return preview_biomass_gain().gt(_player_data.best_biomass_gain)
+
+## What the two storage ladders currently look like, for the prestige screen's
+## bars. One call rather than a property per number, so the View never re-derives
+## a ladder the model already knows how to read.
+func storage_report() -> Dictionary:
+	var nutrient_areas := PrestigeCalculator.nutrient_areas(_player_data.run_nutrients, _curve)
+	var tick_areas := PrestigeCalculator.tick_areas(_player_data.tick_count, _curve)
+	return {
+		"nutrient_areas": nutrient_areas,
+		"nutrient_fill": PrestigeCalculator.fill_fraction(
+			_player_data.run_nutrients, _curve.nutrient_base(), _curve.nutrient_growth),
+		"tick_areas": tick_areas,
+		"tick_fill": PrestigeCalculator.fill_fraction(
+			BigNumber.from_value(float(maxi(_player_data.tick_count, 0))),
+			_curve.tick_base(), _curve.tick_growth),
+		"total_areas": nutrient_areas + tick_areas,
+		"gain": preview_biomass_gain(),
+		"best": _player_data.best_biomass_gain,
+	}
 
 ## Resets the current run (nutrients, water, tick_count, node purchases,
 ## symbiosis upgrades, biome unlocks) and converts it into biomass. Perks are
@@ -56,7 +85,12 @@ func prestige() -> void:
 	var gain := preview_biomass_gain()
 	prestiging.emit(gain)
 	_player_data.biomass = _player_data.biomass.add(gain)
+	# The bar to clear next time. Raised rather than assigned: a run taken while
+	# a temporary boost was up must not lower the mark once it expires.
+	if gain.gt(_player_data.best_biomass_gain):
+		_player_data.best_biomass_gain = gain
 	_player_data.nutrients = BigNumber.from_value(1.0)
+	_player_data.run_nutrients = BigNumber.new(0.0, 0)
 	_player_data.water = BigNumber.from_value(0.0)
 	_player_data.tick_count = 0
 	_player_data.prestige_count += 1

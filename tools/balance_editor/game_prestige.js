@@ -18,8 +18,13 @@
   const {
     growthCurve, effectCurve, chartBlock, engineCurve, engineSeries, cell, numberCell, enumIs,
     log10Of: bigLog10,   // the local log10Of below takes a pair, this one a pair's halves
-    scopeTargetFields,
+    scopeTargetFields, rowsOf, fieldGroup, bigField, hueOf,
   } = window.GameKit;
+
+  /* The one resource pricing a finished run: PrestigeCurveDef, authored as
+   * data/prestige/res_prestige_curve.tres. One row, so it is read by table
+   * rather than looked up by path. */
+  const PAYOUT_FILE = "PrestigeCurveDef";
 
   /* Each scale is a span, not a number: `from` is what the perk is worth at its
    * first level, `to` at its last. A perk is drawn as the gradient between the
@@ -226,6 +231,107 @@
     return svg;
   }
 
+  /* ------------------------------------------------------------------ payout */
+
+  /** The row pricing the prestige payout, or null before its table is loaded. */
+  const payoutRow = () => rowsOf(PAYOUT_FILE)[0] || null;
+
+  /** What a run is worth, which is the other half of this screen: the web says
+   * what biomass buys, and this says where the biomass comes from.
+   *
+   * Two ladders of storage areas - one filled by the nutrients a run produced,
+   * one by the ticks it survived - each area a fixed factor more than the one
+   * below it, and the payout an exponential of the two counts summed. Every
+   * number here is an @export on PrestigeCurveDef, so all of it is editable
+   * rather than described.
+   */
+  function payoutSection(open) {
+    const entry = payoutRow();
+    const wrap = document.createElement("details");
+    wrap.className = "web-payout";
+    wrap.open = open;
+    const summary = document.createElement("summary");
+    summary.textContent = "Run payout - storage areas";
+    wrap.append(summary);
+
+    if (!entry) {
+      const missing = document.createElement("p");
+      missing.className = "hint";
+      missing.textContent = `No ${PAYOUT_FILE} row loaded.`;
+      wrap.append(missing);
+      return wrap;
+    }
+
+    const note = document.createElement("div");
+    note.className = "hint";
+    note.textContent = "A run fills whole areas on both ladders; the payout is "
+      + "payout base x payout growth ^ (areas - 1).";
+    wrap.append(note);
+
+    const nutrients = fieldGroup("Nutrient storage", entry, ["nutrient_growth"]);
+    nutrients.prepend(bigField(entry, "First area at", "_nutrient_base"));
+    const ticks = fieldGroup("Time storage", entry, ["tick_growth"]);
+    ticks.prepend(bigField(entry, "First area at", "_tick_base"));
+    const payout = fieldGroup("Payout", entry, ["payout_growth", "max_areas"]);
+    payout.prepend(bigField(entry, "One area pays", "_payout_base"));
+    wrap.append(nutrients, ticks, payout, ladderChart(entry), payoutChart(entry));
+    return wrap;
+  }
+
+  /** growthCurve() over area indices. The ladder is `base * growth^(area - 1)`,
+   * which is the shared curve at growth exponent 1 shifted one place: area 1 is
+   * the base itself, so the sampled window starts one below where it is drawn. */
+  const ladderCurve = (entry, prefix, growthColumn, from, to) => growthCurve(
+    bigLog10(numberCell(entry, `${prefix}_mantissa`, 0),
+      numberCell(entry, `${prefix}_exponent`, 0)),
+    numberCell(entry, growthColumn, 10), 1, Math.max(from - 1, 0), to - 1);
+
+  /** What each area on either ladder costs the run, area by area. */
+  function ladderChart(entry) {
+    const build = (from, to) => {
+      const start = Math.max(from, 1);
+      const pad = new Array(start - from).fill(null);
+      const series = [
+        { label: "run nutrients", color: "var(--accent)",
+          points: pad.concat(ladderCurve(entry, "_nutrient_base", "nutrient_growth", start, to)) },
+        { label: "ticks survived", color: hueOf(3),
+          points: pad.concat(ladderCurve(entry, "_tick_base", "tick_growth", start, to)) },
+      ];
+      const sampled = engineCurve(entry.row[0]);
+      const nutrientDots = engineSeries(entry, sampled && sampled.nutrient_threshold,
+        from, to, log10Of);
+      const tickDots = engineSeries(entry, sampled && sampled.tick_threshold, from, to, log10Of);
+      if (nutrientDots) series.push(nutrientDots);
+      if (tickDots) series.push(tickDots);
+      return series;
+    };
+    return chartBlock("What an area costs", build, {
+      log: true, xLabel: "area", width: 320, height: 200,
+      range: { key: "prestige-area", from: 0, to: 20, label: "area" },
+    });
+  }
+
+  /** Biomass a run standing on N total areas converts into, before the
+   * &"biomass_gain" stacks the perks themselves add. */
+  function payoutChart(entry) {
+    const build = (from, to) => {
+      const start = Math.max(from, 1);
+      const pad = new Array(start - from).fill(null);
+      const series = [{
+        label: "biomass at N areas", color: "var(--accent)",
+        points: pad.concat(ladderCurve(entry, "_payout_base", "payout_growth", start, to)),
+      }];
+      const sampled = engineCurve(entry.row[0]);
+      const dots = engineSeries(entry, sampled && sampled.payout, from, to, log10Of);
+      if (dots) series.push(dots);
+      return series;
+    };
+    return chartBlock("What a run pays", build, {
+      log: true, xLabel: "areas filled, both ladders", width: 320, height: 200,
+      range: { key: "prestige-area", from: 0, to: 20, label: "area" },
+    });
+  }
+
   /* -------------------------------------------------------------------- panel */
 
   function renderPanel(panel) {
@@ -248,10 +354,16 @@
     note.textContent = SCALES[view.scale].note;
     panel.append(note);
 
+    // Folded away while a perk is being edited - the payout is what the whole
+    // web is priced against, but the panel is 340px and the perk's own fields
+    // are what a click asked for.
+    const focused = focusedRow();
+    panel.append(payoutSection(!focused));
+
     const editor = document.createElement("div");
     editor.className = "web-editor";
     panel.append(editor);
-    if (focusedRow()) {
+    if (focused) {
       renderEditor(editor);
     } else {
       panel.append(branchTable());

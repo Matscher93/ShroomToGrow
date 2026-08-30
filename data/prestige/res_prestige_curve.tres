@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PrestigeCurveDef" format=3]
+
+[ext_resource type="Script" path="res://model/prestige/res_prestige_curve_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+_nutrient_base_mantissa = 1.0
+_nutrient_base_exponent = 3
+nutrient_growth = 10.0
+_tick_base_mantissa = 6.0
+_tick_base_exponent = 1
+tick_growth = 2.0
+_payout_base_mantissa = 1.0
+_payout_base_exponent = 0
+payout_growth = 1.6
+max_areas = 200

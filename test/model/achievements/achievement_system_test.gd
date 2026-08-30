@@ -518,7 +518,8 @@ func test_tiers_and_crystals_survive_a_prestige() -> void:
 	var biome_system := BiomeSystem.new(biomes, _biomes_data, _player, nodes, production,
 		_symbiosis, biome_upgrades, prestige_upgrades, ctx)
 	PrestigeSystem.new(_player, _biomes_data, nodes, production, _symbiosis, biome_upgrades,
-		biome_system).prestige()
+		biome_system,
+		load("res://data/prestige/res_prestige_curve.tres") as PrestigeCurveDef).prestige()
 
 	assert_float(_player.crystals.to_float()).is_equal_approx(earned, EPS)
 	assert_int(system.tier(def.id)).is_equal(2)

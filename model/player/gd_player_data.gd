@@ -216,12 +216,23 @@ var lifetime_biome_size: int = 0
 ## ladder measures offers taken, not offers seen.
 var events_resolved: int = 0
 
+## Nutrients *produced* since the last prestige, which is what fills the prestige
+## nutrient storage. Deliberately not the `nutrients` balance above: spending a
+## run's output on nodes is how a run is played, and pricing the prestige off the
+## balance paid the player for hoarding instead. Reset by PrestigeSystem.
+var run_nutrients: BigNumber = BigNumber.from_value(0.0)
+
+## The largest prestige payout ever taken. Permanent, and the bar can_prestige()
+## measures the current run against: a prestige has to beat every earlier one.
+var best_biomass_gain: BigNumber = BigNumber.from_value(0.0)
+
 ## Single source of truth for which fields round-trip through a save file.
 ## Add a new field here, and nowhere else, to have it saved and loaded.
 const _BIG_NUMBER_FIELDS: Array[String] = ["nutrients", "biomass", "water", "crystals",
 	"fertilizer", "relics", "ichor", "glyphs",
 	"lifetime_nutrients", "lifetime_crystals", "lifetime_fertilizer",
-	"lifetime_relics", "lifetime_ichor", "lifetime_glyphs"]
+	"lifetime_relics", "lifetime_ichor", "lifetime_glyphs",
+	"run_nutrients", "best_biomass_gain"]
 const _PLAIN_FIELDS: Array[String] = ["tick_count", "prestige_count",
 	"lifetime_ticks", "lifetime_manual_nodes", "lifetime_biome_size", "events_resolved"]
 

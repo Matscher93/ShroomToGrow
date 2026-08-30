@@ -31,6 +31,8 @@ func test_player_data_round_trip() -> void:
 	original.lifetime_manual_nodes = 512
 	original.lifetime_biome_size = 64
 	original.events_resolved = 26
+	original.run_nutrients = BigNumber.from_value(5e7)
+	original.best_biomass_gain = BigNumber.from_value(64.0)
 
 	var restored := PlayerData.from_save(original.to_save())
 
@@ -45,6 +47,8 @@ func test_player_data_round_trip() -> void:
 	assert_int(restored.tick_count).is_equal(9439)
 	assert_int(restored.prestige_count).is_equal(3)
 	assert_float(restored.lifetime_nutrients.to_float()).is_equal_approx(1e9, EPS)
+	assert_float(restored.run_nutrients.to_float()).is_equal_approx(5e7, EPS)
+	assert_float(restored.best_biomass_gain.to_float()).is_equal_approx(64.0, EPS)
 	assert_float(restored.lifetime_crystals.to_float()).is_equal_approx(150.0, EPS)
 	assert_float(restored.lifetime_fertilizer.to_float()).is_equal_approx(37.0, EPS)
 	assert_float(restored.lifetime_relics.to_float()).is_equal_approx(980.0, EPS)

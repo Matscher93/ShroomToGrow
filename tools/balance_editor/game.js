@@ -837,7 +837,8 @@
    * than bought and so carry an effect and no cost, and `heroes` and `workers`
    * are ladders priced per creature rather than per upgrade. Callers want "the
    * samples for this path" either way. */
-  const REPORT_KEYS = ["curves", "boons", "achievements", "boosts", "heroes", "workers"];
+  const REPORT_KEYS = ["curves", "boons", "achievements", "boosts", "heroes", "workers",
+    "prestige"];
 
   const engineCurve = (path) => {
     const report = view.curves || {};

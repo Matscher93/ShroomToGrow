@@ -171,6 +171,13 @@
 #web-chart .selected .perk { stroke: var(--accent); stroke-width: 4; }
 #web-chart .selected .perk-label { fill: var(--accent); font-weight: 600; }
 
+/* The run payout, folded into the top of the perk panel. A details rather than a
+ * section: it is the default reading while nothing is selected, and in the way
+ * the moment a perk is. */
+.web-payout { border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 8px; }
+.web-payout > summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.web-payout .game-chart-block { margin-top: 8px; }
+
 .web-editor { display: flex; flex-direction: column; }
 .web-effect { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 4px; }
 .web-editor-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }

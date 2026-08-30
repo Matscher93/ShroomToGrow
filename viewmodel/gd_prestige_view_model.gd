@@ -20,6 +20,40 @@ var sporate_text: String:
 var sporate_enabled: bool:
 	get: return App.can_prestige()
 
+## The two storage bars. Read once per refresh through the model's own report, so
+## the View never re-derives a ladder - see PrestigeSystem.storage_report().
+var nutrient_storage_text: String:
+	get:
+		var report := App.prestige_system.storage_report()
+		return _storage_text("Nutrient storage", report["nutrient_areas"], report["nutrient_fill"])
+
+var nutrient_storage_fill: float:
+	get: return App.prestige_system.storage_report()["nutrient_fill"]
+
+var tick_storage_text: String:
+	get:
+		var report := App.prestige_system.storage_report()
+		return _storage_text("Time storage", report["tick_areas"], report["tick_fill"])
+
+var tick_storage_fill: float:
+	get: return App.prestige_system.storage_report()["tick_fill"]
+
+## Why the button is off, when it is off. Empty while a sporate is available, so
+## the View can hide the line rather than show an inert sentence.
+var gate_text: String:
+	get:
+		if sporate_enabled:
+			return ""
+		if not App.biomes_data.is_unlocked(PrestigeSystem.GATE_BIOME):
+			return "Reach permafrost to sporate."
+		var report := App.prestige_system.storage_report()
+		var best: BigNumber = report["best"]
+		return "Fill more storage: this run pays %s, your best was %s." % [
+			(report["gain"] as BigNumber).to_display(), best.to_display()]
+
+func _storage_text(label: String, areas: int, fill: float) -> String:
+	return "%s · %d filled · %d%% to #%d" % [label, areas, roundi(fill * 100.0), areas + 1]
+
 ## Short form for the resource bar's biomass chip, where the full sporate
 ## sentence does not fit.
 var pending_biomass_text: String:
@@ -33,6 +67,9 @@ func _init() -> void:
 	# stays parameterless.
 	App.player_data.biomass_changed.connect(_on_changed.unbind(1))
 	App.player_data.nutrients_changed.connect(_on_changed.unbind(1))
+	# Ticks fill the time storage on their own, so the bars and the payout move
+	# on a tick that produced nothing.
+	App.player_data.tick_count_changed.connect(_on_changed.unbind(1))
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_changed)
 	# Biome upgrades feed &"biomass_gain" too (PermafrostUpgrade2/10), and their
 	# Biome Size dependency re-emits this on invalidate().
@@ -41,6 +78,7 @@ func _init() -> void:
 func dispose() -> void:
 	App.player_data.biomass_changed.disconnect(_on_changed.unbind(1))
 	App.player_data.nutrients_changed.disconnect(_on_changed.unbind(1))
+	App.player_data.tick_count_changed.disconnect(_on_changed.unbind(1))
 	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
 	App.biome_upgrade_system.upgrades_changed.disconnect(_on_changed)
 

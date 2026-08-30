@@ -11,6 +11,11 @@ extends PanelContainer
 @export var detail_description: Label
 @export var detail_level: Label
 @export var buy_button: PanelContainer
+@export var nutrient_storage_label: Label
+@export var nutrient_storage_bar: ProgressBar
+@export var tick_storage_label: Label
+@export var tick_storage_bar: ProgressBar
+@export var gate_label: Label
 
 var _vm: PrestigeViewModel
 var _detail_vm: PerkViewModel
@@ -69,6 +74,14 @@ func _on_buy_pressed() -> void:
 func _refresh_sporate() -> void:
 	sporate_button.set_button_text(_vm.sporate_text)
 	sporate_button.set_disabled(not _vm.sporate_enabled)
+	nutrient_storage_label.text = _vm.nutrient_storage_text
+	nutrient_storage_bar.value = _vm.nutrient_storage_fill
+	tick_storage_label.text = _vm.tick_storage_text
+	tick_storage_bar.value = _vm.tick_storage_fill
+	# Empty while a sporate is available: an inert "why not" line under an
+	# enabled button reads as a warning about the button.
+	gate_label.text = _vm.gate_text
+	gate_label.visible = not gate_label.text.is_empty()
 
 func _refresh_detail() -> void:
 	if _detail_vm == null:

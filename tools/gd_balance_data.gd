@@ -133,6 +133,7 @@ static func curves(data_dir: String) -> Dictionary:
 	var boosts := {}
 	var heroes := {}
 	var workers := {}
+	var prestige := {}
 	var errors: Array = []
 	_open_files.clear()
 	_subresources.clear()
@@ -168,6 +169,8 @@ static func curves(data_dir: String) -> Dictionary:
 				heroes[row.resource_path] = hero_curve_for(row)
 			elif _is_worker_priced(row):
 				workers[row.resource_path] = worker_curve_for(row)
+			elif _is_prestige_curved(row):
+				prestige[row.resource_path] = prestige_curve_for(row)
 	return {
 		"curves": out,
 		"boons": boons,
@@ -175,6 +178,7 @@ static func curves(data_dir: String) -> Dictionary:
 		"boosts": boosts,
 		"heroes": heroes,
 		"workers": workers,
+		"prestige": prestige,
 		"errors": errors,
 	}
 
@@ -323,6 +327,63 @@ static func achievement_curve_for(res: Resource) -> Dictionary:
 		"stat": _enum_key(AchievementDef.Stat, def.stat),
 		"kind": "achievement",
 	}
+
+
+## True for a PrestigeCurveDef: it prices a finished run rather than a purchase,
+## so none of the cost checks see it. Named by shape, like the rest.
+static func _is_prestige_curved(res: Resource) -> bool:
+	var properties := _properties_by_name(res)
+	return properties.has(&"nutrient_growth") and properties.has(&"_payout_base_mantissa")
+
+
+## The prestige payout, sampled through the real PrestigeCalculator: what each
+## storage area on either ladder costs, and what a run standing on N total areas
+## converts into.
+##
+## Indexed by area, not by level, so a chart drawn against it reads "area 4" on
+## the x axis. Index 0 is the empty ladder - no threshold, no payout - which is
+## what makes a fresh run's zero visible rather than implied.
+static func prestige_curve_for(res: Resource) -> Dictionary:
+	var def := res as PrestigeCurveDef
+	var samples := mini(def.max_areas, CURVE_OPEN_ENDED_LEVELS)
+	var nutrient_thresholds: Array = []
+	var tick_thresholds: Array = []
+	var payouts: Array = []
+	for area in range(samples + 1):
+		if area == 0:
+			nutrient_thresholds.append(_big_pair(BigNumber.new(0.0, 0)))
+			tick_thresholds.append(_big_pair(BigNumber.new(0.0, 0)))
+			payouts.append(_big_pair(BigNumber.new(0.0, 0)))
+			continue
+		nutrient_thresholds.append(_big_pair(def.nutrient_base().mul(
+			BigNumber.from_value(def.nutrient_growth).pow_float(float(area - 1)))))
+		tick_thresholds.append(_big_pair(def.tick_base().mul(
+			BigNumber.from_value(def.tick_growth).pow_float(float(area - 1)))))
+		# Through the calculator rather than off the fields: the payout is
+		# floored while it stays inside float range, and a mirror that skipped
+		# that would report fractions the game never pays.
+		payouts.append(_big_pair(_prestige_payout(def, area)))
+
+	return {
+		"max_level": def.max_areas,
+		"samples": samples,
+		"nutrient_threshold": nutrient_thresholds,
+		"tick_threshold": tick_thresholds,
+		"payout": payouts,
+		"nutrient_growth": def.nutrient_growth,
+		"tick_growth": def.tick_growth,
+		"payout_growth": def.payout_growth,
+		"kind": "prestige",
+	}
+
+
+## What a run standing on `areas` total areas pays. Driven through the real
+## calculator by handing it a nutrient total that fills exactly that many areas
+## and no ticks at all.
+static func _prestige_payout(def: PrestigeCurveDef, areas: int) -> BigNumber:
+	var nutrients := def.nutrient_base().mul(
+		BigNumber.from_value(def.nutrient_growth).pow_float(float(areas - 1)))
+	return PrestigeCalculator.calculate_biomass_gain(0, nutrients, def)
 
 
 ## True for a BoostDef: its price restarts once per tier, so it carries a

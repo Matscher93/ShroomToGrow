@@ -86,6 +86,7 @@ func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
 		else:
 			_player_data.nutrients = _player_data.nutrients.add(node_change)
 			_player_data.lifetime_nutrients = _player_data.lifetime_nutrients.add(node_change)
+			_player_data.run_nutrients = _player_data.run_nutrients.add(node_change)
 			last_tick_gain = node_change
 
 ## Advances `count` ticks in one step, landing on exactly the state `count`
@@ -163,6 +164,7 @@ func advance_by(count: int, kernel: Array) -> void:
 	var gained: BigNumber = totals[_nodes.size()].sub(_player_data.nutrients)
 	_player_data.nutrients = totals[_nodes.size()]
 	_player_data.lifetime_nutrients = _player_data.lifetime_nutrients.add(gained)
+	_player_data.run_nutrients = _player_data.run_nutrients.add(gained)
 
 ## The live state as the flat vector the jump works on: one auto-node count per
 ## tier, then nutrients.

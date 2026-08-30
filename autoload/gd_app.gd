@@ -88,6 +88,7 @@ var biomes_data: BiomesData
 var biome_vms: Dictionary = {}  # StringName -> BiomeViewModel
 
 var perk_branches := load("res://data/prestige/all_branches.tres") as PerkBranchList
+var prestige_curve := load("res://data/prestige/res_prestige_curve.tres") as PrestigeCurveDef
 var perk_defs: Dictionary = {}  # StringName -> PerkDef
 var perk_vms: Dictionary = {}  # StringName -> PerkViewModel
 var prestige_vm: PrestigeViewModel
@@ -242,7 +243,7 @@ func _ready() -> void:
 		biome_vms[def.key] = BiomeViewModel.new(def.key, def)
 
 	prestige_system = PrestigeSystem.new(player_data, biomes_data, nodes.mycelium_nodes,
-		production_system, upgrade_system, biome_upgrade_system, biome_system)
+		production_system, upgrade_system, biome_upgrade_system, biome_system, prestige_curve)
 
 	for node in nodes.mycelium_nodes:
 		var mycelium_data := MyceliumNodeData.new(player_data, node, prestige_upgrade_system)

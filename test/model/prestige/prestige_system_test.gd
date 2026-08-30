@@ -34,7 +34,8 @@ func before_test() -> void:
 	_biome_system.unlock_free_biomes()
 
 	_system = PrestigeSystem.new(_player, _biomes_data, _nodes, _production,
-		_symbiosis, _biome_upgrades, _biome_system)
+		_symbiosis, _biome_upgrades, _biome_system,
+		load("res://data/prestige/res_prestige_curve.tres") as PrestigeCurveDef)
 
 func _chain(tiers: int) -> Array[MyceliumNode]:
 	var nodes: Array[MyceliumNode] = []
@@ -62,27 +63,61 @@ func _biomass_effect(per_level: float) -> Array[UpgradeEffectDef]:
 	e.scope = UpgradeEffectDef.Scope.GLOBAL
 	return [e]
 
-## Puts the run in a state a prestige is actually offered for.
+## Puts the run in a state a prestige is actually offered for. The payout is
+## priced off what the run *produced*, so that is what this fills.
 func _make_prestige_available() -> void:
 	_biomes_data.unlock(PrestigeSystem.GATE_BIOME)
-	_player.nutrients = BigNumber.from_value(1e6)
+	_player.run_nutrients = BigNumber.from_value(1e6)
 
 # ─── Gating ──────────────────────────────────────────────────────────────────
 
 func test_prestige_is_gated_on_the_biome_however_rich_the_run_is() -> void:
-	_player.nutrients = BigNumber.from_value(1e30)
+	_player.run_nutrients = BigNumber.from_value(1e30)
 	assert_bool(_biomes_data.is_unlocked(PrestigeSystem.GATE_BIOME)).is_false()
 	assert_bool(_system.can_prestige()).is_false()
 
 func test_prestige_is_refused_when_the_run_is_worth_nothing() -> void:
 	_biomes_data.unlock(PrestigeSystem.GATE_BIOME)
-	_player.nutrients = BigNumber.from_value(1.0)
+	_player.run_nutrients = BigNumber.from_value(1.0)
 	assert_float(_system.preview_biomass_gain().to_float()).is_zero()
 	assert_bool(_system.can_prestige()).is_false()
 
 func test_prestige_is_offered_once_gated_and_worth_something() -> void:
 	_make_prestige_available()
 	assert_bool(_system.can_prestige()).is_true()
+
+func test_a_run_that_only_ties_the_best_is_refused() -> void:
+	# The payout is a step function, so a run can sit on the same filled-area
+	# count for a long time. Trading it again pays what the last one paid and
+	# costs a whole run - which is the trade this gate exists to refuse.
+	_make_prestige_available()
+	_player.best_biomass_gain = _system.preview_biomass_gain()
+
+	assert_bool(_system.can_prestige()).is_false()
+
+func test_a_run_that_beats_the_best_is_offered() -> void:
+	_make_prestige_available()
+	_player.best_biomass_gain = _system.preview_biomass_gain()
+	# One more filled nutrient area than the mark was set at.
+	_player.run_nutrients = BigNumber.from_value(1e9)
+
+	assert_bool(_system.can_prestige()).is_true()
+
+func test_prestiging_raises_the_bar_for_the_next_run() -> void:
+	_make_prestige_available()
+	var gain := _system.preview_biomass_gain()
+
+	_system.prestige()
+
+	assert_float(_player.best_biomass_gain.to_float()).is_equal_approx(gain.to_float(), EPS)
+
+func test_a_weaker_run_never_lowers_the_bar() -> void:
+	_make_prestige_available()
+	_player.best_biomass_gain = BigNumber.from_value(1e6)
+
+	_system.prestige()
+
+	assert_float(_player.best_biomass_gain.to_float()).is_equal_approx(1e6, EPS)
 
 func test_the_gate_biome_is_one_the_authored_data_defines() -> void:
 	# The key is a plain StringName, so a biome rename would silently make the
@@ -136,6 +171,7 @@ func test_currencies_and_counters_are_reset() -> void:
 	_system.prestige()
 
 	assert_float(_player.nutrients.to_float()).is_equal_approx(1.0, EPS)
+	assert_float(_player.run_nutrients.to_float()).is_zero()
 	assert_float(_player.water.to_float()).is_zero()
 	assert_int(_player.tick_count).is_zero()
 	assert_int(_player.prestige_count).is_equal(1)
