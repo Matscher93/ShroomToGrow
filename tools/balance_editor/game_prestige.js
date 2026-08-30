@@ -46,9 +46,18 @@
     },
   };
 
+  /* What "highlight these" is asking, empty until something is asked. Text
+   * matches a name or an id, `stat` picks one effect stat (biome points are
+   * level_points), and from/to bound the perk on whichever scale is showing -
+   * in log10, the units the legend already speaks, because a deep perk's path
+   * cost runs past what a float holds. */
+  const NO_EFFECT = "\u0000none";   // cannot collide with a stat name
+
   const view = {
     label: "Prestige",
     scale: "path_cost",
+    filter: { text: "", stat: "", from: null, to: null },
+    matched: null,     // how many perks the filter caught, null when it is off
     report: null,
     warnings: [],      // what PerkTree would push_error about the staged shape
     widest: new Map(), // branch key -> its widest sibling offset, from webLayout
@@ -73,6 +82,35 @@
     if (exponent >= -2 && exponent < 4) return (mantissa * Math.pow(10, exponent)).toPrecision(3);
     return `${mantissa.toFixed(2)}e${exponent}`;
   };
+
+  const filterActive = () => {
+    const f = view.filter;
+    return !!(f.text || f.stat || f.from !== null || f.to !== null);
+  };
+
+  /** Whether one perk is what the filter is asking for. Every clause is an AND:
+   * "biome point upgrades costing between 1e4 and 1e6" is the question worth
+   * asking, and either half alone answers a different one. */
+  function matchesFilter(perk) {
+    const f = view.filter;
+    if (f.text && !`${perk.id} ${perk.display_name}`.toLowerCase()
+        .includes(f.text.toLowerCase())) {
+      return false;
+    }
+    if (f.stat) {
+      const stat = perk.stat || "";
+      if (f.stat === NO_EFFECT ? stat !== "" : stat !== f.stat) return false;
+    }
+    if (f.from !== null || f.to !== null) {
+      const value = valueOf(perk);
+      // A perk with nothing on this scale is not "cheap", it is unanswerable -
+      // and a bound it silently passed would be read as an answer.
+      if (value === null) return false;
+      if (f.from !== null && value < f.from) return false;
+      if (f.to !== null && value > f.to) return false;
+    }
+    return true;
+  }
 
   const scaleOf = () => SCALES[view.scale];
   /** What the perk is worth on the current scale once maxed, and at its first
@@ -347,16 +385,37 @@
     const defs = svgEl("defs");
     svg.append(defs);
 
+    // Highlighting is a property of the whole drawing rather than of one node,
+    // so it is decided once here: what matches stays lit and everything else
+    // recedes, which reads as "these ones" far faster than a marker per hit.
+    const filtering = filterActive();
+    const matched = filtering ? new Set(perks.filter(matchesFilter).map((p) => p.id)) : null;
+    view.matched = matched ? matched.size : null;
+
     for (const perk of perks) {
       const parent = positions.get(perk.parent_id);
       if (!parent) continue;
-      svg.append(svgEl("line", { class: "link", x1: parent.world_x, y1: parent.world_y,
+      // A link is only as lit as the two ends it joins, or the highlighted nodes
+      // would sit in a cobweb of full-strength lines.
+      const lit = !filtering || (matched.has(perk.id) && matched.has(parent.id));
+      svg.append(svgEl("line", { class: lit ? "link" : "link dim",
+        x1: parent.world_x, y1: parent.world_y,
         x2: perk.world_x, y2: perk.world_y, stroke: `hsl(${perk.hue} 60% 55%)` }));
     }
 
     for (const perk of perks) {
       const group = svgEl("g");
-      if (perk.res_path && perk.res_path === state.focus) group.setAttribute("class", "selected");
+      const classes = [];
+      const selected = perk.res_path && perk.res_path === state.focus;
+      if (selected) classes.push("selected");
+      // The perk being edited is never dimmed, whether or not it matches: the
+      // panel beside it is showing its fields, and fading the node they belong
+      // to leaves that panel pointing at nothing on screen.
+      if (filtering) {
+        if (matched.has(perk.id)) classes.push("match");
+        else if (!selected) classes.push("dim");
+      }
+      if (classes.length) group.setAttribute("class", classes.join(" "));
       const circle = svgEl("circle", { class: "perk", cx: perk.world_x, cy: perk.world_y,
         r: perk.parent_id ? 15 : 20, fill: paint(perk, min, max, defs),
         stroke: `hsl(${perk.hue} 60% 55%)` });
@@ -673,6 +732,121 @@
       });
   }
 
+  /* ------------------------------------------------------------- highlighting */
+
+  /** Every effect stat any perk carries, for the picker. Read off the report
+   * rather than listed here: whichever stat a branch is retuned onto next is
+   * offered without this screen being told about it. */
+  function statVocabulary() {
+    const counts = new Map();
+    for (const perk of view.report.perks) {
+      const stat = perk.stat || NO_EFFECT;
+      counts.set(stat, (counts.get(stat) || 0) + 1);
+    }
+    return [...counts].sort((a, b) => (a[0] === NO_EFFECT ? 1 : b[0] === NO_EFFECT ? -1
+      : a[0].localeCompare(b[0])));
+  }
+
+  /** The controls that pick out part of the web.
+   *
+   * They redraw the canvas alone rather than going through view.render: the
+   * panel rebuilds its children on every render, and a text box that is replaced
+   * between keystrokes loses the caret on each one.
+   */
+  function filterBar() {
+    const wrap = document.createElement("div");
+    wrap.className = "web-filter";
+
+    const head = document.createElement("div");
+    head.className = "web-filter-head";
+    const title = document.createElement("span");
+    title.textContent = "Highlight";
+    const count = document.createElement("span");
+    count.className = "web-filter-count";
+    head.append(title, count);
+
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.className = "revert";
+    clear.textContent = "↺";
+    clear.title = "Show every perk again";
+    head.append(clear);
+    wrap.append(head);
+
+    const canvas = () => view.element && view.element.querySelector(".web-canvas");
+    const apply = () => {
+      const where = canvas();
+      if (!where) return;
+      const left = where.scrollLeft;
+      const top = where.scrollTop;
+      where.replaceChildren(drawWeb());
+      // drawWeb rebuilds the svg, and a fresh one starts at its own top-left.
+      where.scrollLeft = left;
+      where.scrollTop = top;
+      sync();
+    };
+
+    const text = document.createElement("input");
+    text.type = "search";
+    text.placeholder = "name or id";
+    text.value = view.filter.text;
+    text.oninput = () => { view.filter.text = text.value.trim(); apply(); };
+
+    const stat = document.createElement("select");
+    stat.append(new Option("any effect", ""));
+    for (const [name, howMany] of statVocabulary()) {
+      stat.append(new Option(
+        `${name === NO_EFFECT ? "no effect" : name} · ${howMany}`, name));
+    }
+    stat.value = view.filter.stat;
+    stat.onchange = () => { view.filter.stat = stat.value; apply(); };
+
+    const range = document.createElement("div");
+    range.className = "web-filter-range";
+    const bound = (part, tip) => {
+      const box = document.createElement("input");
+      box.type = "number";
+      box.step = "0.5";
+      box.placeholder = "any";
+      box.title = tip;
+      box.value = view.filter[part] === null ? "" : String(view.filter[part]);
+      box.oninput = () => {
+        const parsed = Number(box.value);
+        view.filter[part] = box.value.trim() === "" || !Number.isFinite(parsed)
+          ? null : parsed;
+        apply();
+      };
+      return box;
+    };
+    // Exponents, not values: this is the space the colouring and the legend
+    // already work in, and 1e6 is a number the panel has room for.
+    range.append(Object.assign(document.createElement("i"), { textContent: "1e" }),
+      bound("from", `Lowest ${scaleOf().label.toLowerCase()} to highlight, as a power of ten`),
+      Object.assign(document.createElement("i"), { textContent: "– 1e" }),
+      bound("to", `Highest ${scaleOf().label.toLowerCase()} to highlight, as a power of ten`));
+
+    wrap.append(text, stat, range);
+
+    clear.onclick = () => {
+      view.filter = { text: "", stat: "", from: null, to: null };
+      text.value = "";
+      stat.value = "";
+      for (const box of range.querySelectorAll("input")) box.value = "";
+      apply();
+    };
+
+    function sync() {
+      const on = filterActive();
+      clear.hidden = !on;
+      count.textContent = on
+        ? `${view.matched} of ${view.report.perks.length}`
+        : `${scaleOf().label.toLowerCase()}, or a name`;
+      wrap.classList.toggle("on", on);
+    }
+    sync();
+    return wrap;
+  }
+
   /* ------------------------------------------------------------------ payout */
 
   /** The row pricing the prestige payout, or null before its table is loaded. */
@@ -795,6 +969,8 @@
     note.className = "hint";
     note.textContent = SCALES[view.scale].note;
     panel.append(note);
+
+    panel.append(filterBar());
 
     // PerkTree skips a repeated id and everything under it. Silently, in the
     // engine - here it is the difference between a subtree that is missing and

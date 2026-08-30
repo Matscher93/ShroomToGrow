@@ -197,6 +197,11 @@
 #web-chart g.dragging { opacity: 0.35; }
 #web-chart g.drop-ok circle.perk { stroke: var(--accent); stroke-width: 4; }
 #web-chart g.drop-bad circle.perk { stroke: var(--danger); stroke-width: 4; }
+/* Highlighting: what matches keeps its branch colour and gains a halo, what
+   does not recedes far enough to read as background. */
+#web-chart g.dim { opacity: 0.12; }
+#web-chart .link.dim { opacity: 0.08; }
+#web-chart g.match circle.perk { filter: drop-shadow(0 0 5px var(--accent)); }
 #web-chart .drag-ghost {
   stroke: var(--accent);
   stroke-width: 2;
@@ -205,6 +210,35 @@
 }
 /* Same red the other screens give a warning; the panel is its own scope. */
 .web-panel .warn { color: var(--danger); }
+
+.web-filter { display: flex; flex-direction: column; gap: 4px; }
+.web-filter-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 11px ui-monospace, monospace;
+  color: var(--muted);
+}
+.web-filter-count { margin-left: auto; }
+.web-filter.on .web-filter-count { color: var(--accent); }
+.web-filter-head .revert { position: static; transform: none; opacity: 1;
+  background: none; width: auto; }
+.web-filter input, .web-filter select {
+  font: inherit;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  padding: 3px 6px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  min-width: 0;
+}
+.web-filter.on input, .web-filter.on select { border-color: var(--accent); }
+.web-filter-range { display: flex; align-items: center; gap: 4px; }
+.web-filter-range i { font-style: normal; color: var(--muted);
+  font: 11px ui-monospace, monospace; }
+.web-filter-range input { flex: 1; }
 
 .web-table { border-collapse: collapse; font-size: 12px; width: 100%; }
 .web-table th {
