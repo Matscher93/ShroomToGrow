@@ -50,6 +50,8 @@
     label: "Prestige",
     scale: "path_cost",
     report: null,
+    warnings: [],      // what PerkTree would push_error about the staged shape
+    widest: new Map(), // branch key -> its widest sibling offset, from webLayout
     hovered: null,
     element: null,   // this screen's own root, kept across renders
   };
@@ -150,9 +152,181 @@
     return `url(#${id})`;
   }
 
+  /* ------------------------------------------------------------------ layout */
+
+  /* PerkTree's placement, mirrored.
+   *
+   * The report carries positions, but it is PerkTree run over what is on disk -
+   * so until this existed, dragging a perk into a different place among its
+   * siblings moved nothing until the file was saved, which is precisely the edit
+   * whose result has to be seen to be judged. Sibling index is the angle and
+   * nesting is the radius, so the web is the only readout order has.
+   *
+   * Mirrored rather than fetched, the way the biome and node charts mirror the
+   * game's own formulas. Constants and maths from model/prestige/gd_perk_tree.gd;
+   * if that file's layout changes, this follows.
+   */
+  const CANVAS_CENTER = 520;
+  const ROOT_RADIUS = 150;
+  const DEPTH_RADIUS_STEP = 170;
+  const SIBLING_SPREAD_DEG = 26;
+  const BRANCH_START_DEG = -90;   // the first branch points straight up
+  const BRANCH_SLICE_FILL = 0.8;  // the rest of a branch's slice is gutter
+
+  const LIST_FILE = "PerkBranchList";
+  const BRANCH_FILE = "PerkBranchDef";
+
+  const paths = (value) => (value || "").split("|").filter(Boolean);
+
+  /** The rows one list column points at, each carrying where it sits in that
+   * cell. The position is kept from before the unresolved ones are dropped: it
+   * is what a reorder rewrites, and an index counted after a gap would move the
+   * wrong entry. */
+  function nodesOf(entry, column) {
+    const list = paths(cell(entry, column));
+    return list
+      .map((path, cellIndex) => {
+        const row = rowIndexOf(path);
+        return row && { ...row, cellIndex, cellCount: list.length };
+      })
+      .filter(Boolean);
+  }
+
+  /** PerkTree._widest_offset: how far from its branch's centre line the branch
+   * reaches, in sibling steps. Offsets accumulate down a chain, so this is what
+   * decides the spacing the whole branch gets - and past 1.5 the branch stops
+   * fitting its slice, which perk_tree_test asserts. */
+  function widestOffset(siblings, parentOffset, seen) {
+    let widest = Math.abs(parentOffset);
+    siblings.forEach((node, index) => {
+      const id = cell(node, "id");
+      if (seen.has(id)) return;
+      seen.add(id);
+      const offset = parentOffset + index - (siblings.length - 1) / 2;
+      widest = Math.max(widest, widestOffset(nodesOf(node, "children"), offset, seen));
+    });
+    return widest;
+  }
+
+  /** The whole web from the staged rows: every perk with the position PerkTree
+   * would give it, plus the warnings PerkTree would push_error about. */
+  function webLayout() {
+    const listRow = rowsOf(LIST_FILE)[0];
+    if (!listRow) return null;
+    const coreRow = rowIndexOf(cell(listRow, "core"));
+    if (!coreRow) return null;
+
+    const perks = [];
+    const warnings = [];
+    const widest = new Map();
+    const seen = new Set([cell(coreRow, "id")]);
+
+    perks.push({
+      ...authoredFields(coreRow),
+      parent_id: "", branch_key: "", branch_label: "core", hue: 0, depth: 0,
+      world_x: CANVAS_CENTER, world_y: CANVAS_CENTER,
+    });
+
+    const branches = paths(cell(listRow, "branches")).map(rowIndexOf).filter(Boolean);
+    const step = 360 / Math.max(1, branches.length);
+    const halfSlice = toRadians(step * 0.5 * BRANCH_SLICE_FILL);
+
+    branches.forEach((branch, index) => {
+      const roots = nodesOf(branch, "roots");
+      // A branch whose last root was dragged away still takes its slice of the
+      // circle and draws nothing in it, which reads as a rendering fault rather
+      // than as an edit. perk_tree_test asserts exactly one root per branch.
+      if (roots.length !== 1) {
+        warnings.push(`${cell(branch, "label") || cell(branch, "key")} has `
+          + `${roots.length} roots - every branch is authored with exactly one.`);
+      }
+      // Measured on its own copy of `seen`: the duplicate-id skip below decides
+      // what is drawn, while the spread PerkTree picks is measured over the
+      // authored shape before any of that.
+      const reach = widestOffset(roots, 0, new Set());
+      widest.set(cell(branch, "key"), reach);
+      const spread = reach <= 0
+        ? toRadians(SIBLING_SPREAD_DEG)
+        : Math.min(toRadians(SIBLING_SPREAD_DEG), halfSlice / reach);
+      place(branch, roots, cell(coreRow, "id"),
+        toRadians(BRANCH_START_DEG + step * index), 0, spread, branch, "roots");
+    });
+
+    return { perks, warnings, widest };
+
+    /** PerkTree._place_children, one branch deep at a time. `ownerRow` and
+     * `ownerColumn` are the cell these siblings are listed in - the branch's
+     * `roots` at the top, a parent's `children` below it - which is what a perk
+     * dragged or nudged into a different place among them rewrites. */
+    function place(branch, siblings, parentId, parentAngle, depth, spread,
+        ownerRow, ownerColumn) {
+      siblings.forEach((node, index) => {
+        const id = cell(node, "id");
+        // The engine skips a repeated id and everything under it rather than
+        // building two perks that would collapse into one save key.
+        if (seen.has(id)) {
+          warnings.push(`${cell(branch, "label") || cell(branch, "key")} reuses the id `
+            + `"${id}" - that perk and everything under it is not drawn.`);
+          return;
+        }
+        seen.add(id);
+        const angle = parentAngle + spread * (index - (siblings.length - 1) / 2);
+        const radius = ROOT_RADIUS + DEPTH_RADIUS_STEP * depth;
+        perks.push({
+          ...authoredFields(node),
+          parent_id: parentId,
+          branch_key: cell(branch, "key"),
+          branch_label: cell(branch, "label") || cell(branch, "key"),
+          hue: numberCell(branch, "hue", 0),
+          // The report counts a perk's ancestors, so its roots are depth 1 while
+          // PerkTree places them at depth 0. Report's convention wins - the
+          // tooltip has always shown that number.
+          depth: depth + 1,
+          world_x: CANVAS_CENTER + Math.cos(angle) * radius,
+          world_y: CANVAS_CENTER + Math.sin(angle) * radius,
+          // Where this perk sits, and in which cell - the web is radial, so a
+          // control that moves it has to know which way along the arc that is.
+          angle,
+          order: { path: ownerRow.row[0], column: ownerColumn,
+            index: node.cellIndex, count: node.cellCount },
+        });
+        place(branch, nodesOf(node, "children"), id, angle, depth + 1, spread,
+          node, "children");
+      });
+    }
+  }
+
+  const toRadians = (degrees) => (degrees * Math.PI) / 180;
+
+  /** What the authored row says about a perk, as the report names those fields.
+   * Read from the staged cells so a renamed perk is renamed on the web too. */
+  const authoredFields = (node) => ({
+    id: cell(node, "id"),
+    // row[0], not node.path: rowIndexOf's entries carry no `path` the way
+    // GameKit.rowsOf's do, and a res_path of undefined is a perk that cannot be
+    // selected, cannot be clicked and never grows its ⊕.
+    res_path: node.row[0],
+    display_name: cell(node, "display_name") || cell(node, "id"),
+    max_level: numberCell(node, "max_level", 0),
+    cost_growth: numberCell(node, "cost_growth", 0),
+    cost_growth_exponent: numberCell(node, "cost_growth_exponent", 0),
+  });
+
   function drawWeb() {
-    const perks = view.report.perks;
+    // Positions and shape come from the staged rows so a reorder shows at once;
+    // the costs they are coloured by come from the report, which is PerkTree run
+    // over what is on disk and so only moves on Save.
+    const layout = webLayout();
+    const priced = new Map(view.report.perks.map((perk) => [perk.id, perk]));
+    const perks = layout
+      ? layout.perks.map((perk) => ({ ...(priced.get(perk.id) || {}), ...perk }))
+      : view.report.perks;
+    view.warnings = layout ? layout.warnings : [];
+    view.widest = layout ? layout.widest : new Map();
     const positions = new Map(perks.map((perk) => [perk.id, perk]));
+    // Keyed by id rather than path, because parentage is expressed in ids: the
+    // ancestor walk a reparent has to refuse a cycle on runs through this.
+    const byId = positions;
     // Both ends of every perk's span set the ramp, so the cheap end of the
     // cheapest perk and the dear end of the dearest are the colours at the far
     // ends of the legend.
@@ -212,7 +386,21 @@
         `${scaleOf().label}: ${format(scaleOf().from(perk))} → ${format(scaleOf().to(perk))}`,
       ].join("\n"));
 
-      if (perk.res_path) group.onclick = () => edit(perk.res_path);
+      if (perk.res_path) {
+        group.setAttribute("data-path", perk.res_path);
+        // A drag that reparents ends in a pointerup over some node, and the
+        // click that follows would otherwise re-focus whichever one that was.
+        group.onclick = () => { if (!dragSuppressedClick()) edit(perk.res_path); };
+        // The core is nobody's child, so there is nothing to move it out of.
+        if (perk.order) enableReparentDrag(group, perk, byId);
+      }
+      // Growing the tree where it is being read. Only on the perk being edited,
+      // so the web is not a field of buttons, and never on the core: its
+      // `children` is not walked - a branch's first perks hang off the branch's
+      // own `roots`, and a new branch is a different operation entirely.
+      if (perk.res_path && perk.res_path === state.focus && perk.parent_id) {
+        group.append(addChildBadge(perk), orderBadges(perk));
+      }
       svg.append(group);
     }
 
@@ -229,6 +417,260 @@
       svg.append(ticks);
     }
     return svg;
+  }
+
+  /* ------------------------------------------------------------ reparenting */
+
+  /* Dragging one perk onto another moves it there: out of whatever list holds it
+   * now, onto the end of the new parent's `children`. Both halves are staged
+   * cell edits, so the web re-lays-out under the cursor and Revert undoes the
+   * whole move.
+   *
+   * Pointer events rather than HTML5 drag-and-drop: SVG elements do not answer
+   * to the `draggable` attribute, and the panel's chips - which do - are lists,
+   * where the drop target is a slot. Here it is a node, found by hit-testing.
+   */
+  const DRAG_THRESHOLD = 5;   // below this the gesture was a click, not a drag
+
+  let drag = null;
+  /* A drag ends with a pointerup over a node, and the browser follows that with
+   * a click on whatever is under it. Without this the drop would also re-focus
+   * the node that was dropped on. */
+  let suppressClick = false;
+  const dragSuppressedClick = () => suppressClick;
+
+  /** Swallows the one click a finished drag leaves behind. The timeout is what
+   * bounds it: a drag released over empty canvas is followed by no click at all,
+   * and a flag left standing would eat the next real one instead. That click
+   * arrives in the same task as the pointerup, so a zero timeout lands after
+   * it - the same ordering index.html relies on for its deferred redraws. */
+  function swallowNextClick() {
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 0);
+  }
+
+  /** Client coordinates in the SVG's own units, so the ghost line lands under
+   * the cursor at any zoom or scroll offset. */
+  function toUserSpace(svg, event) {
+    const matrix = svg.getScreenCTM();
+    if (!matrix) return { x: 0, y: 0 };
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+    return { x: point.x, y: point.y };
+  }
+
+  /** Whether `perk` may hang off `target`, and why not when it may not.
+   *
+   * Three refusals, each of them something the data cannot express rather than
+   * something merely unwise: a perk is a sub-resource of one branch file and
+   * cannot be written into another; a node containing one of its own ancestors
+   * has no serialisation; and the core's `children` is never walked, so a perk
+   * dropped there would vanish from the web rather than become a root. */
+  function reparentCheck(perk, target, byId) {
+    if (!target || !target.res_path || target.res_path === perk.res_path) return null;
+    if (!target.parent_id) {
+      return "the core is not a parent - a branch's first perk is authored in its roots";
+    }
+    if (fileOfPath(target.res_path) !== fileOfPath(perk.res_path)) {
+      return `${target.branch_label} is a different branch file - a perk cannot move between them here`;
+    }
+    for (let walk = target; walk; walk = byId.get(walk.parent_id)) {
+      if (walk.id === perk.id) return "that perk already hangs off this one";
+    }
+    return "";
+  }
+
+  /** Moves `perk` out of the list holding it and onto the end of `target`'s
+   * children. Two staged writes, one redraw. */
+  function reparent(perk, target) {
+    const owner = rowIndexOf(perk.order.path);
+    const parent = rowIndexOf(target.res_path);
+    if (!owner || !parent) return;
+    const fromColumn = owner.header.indexOf(perk.order.column);
+    const toColumn = parent.header.indexOf("children");
+    if (fromColumn <= 0 || toColumn <= 0) return;
+
+    if (owner.file === parent.file && owner.rowIndex === parent.rowIndex
+        && fromColumn === toColumn) {
+      // Already this parent's child: the only thing left to change is where in
+      // the order it sits, which is the same move the chevrons make.
+      moveRef({ file: owner.file, rowIndex: owner.rowIndex, columnIndex: fromColumn,
+        list: true, partIndex: perk.order.index }, perk.order.count - 1);
+    } else {
+      const without = dataOf(owner.file).rows[owner.rowIndex][fromColumn]
+        .split("|").filter(Boolean);
+      without.splice(perk.order.index, 1);
+      writeCell(owner.file, owner.rowIndex, fromColumn, without.join("|"));
+      // Read after that write, not before: when both rows live in the same table
+      // the first edit has already cloned it, and the stale copy would put the
+      // removed entry back.
+      const raw = dataOf(parent.file).rows[parent.rowIndex][toColumn];
+      writeCell(parent.file, parent.rowIndex, toColumn,
+        raw ? `${raw}|${perk.res_path}` : perk.res_path);
+      renderFileList();
+      buildEdges();
+    }
+
+    // Focus follows what moved, and not only to show it: the header's Save and
+    // Revert act on the file `state.focus` lives in, so a perk dragged without
+    // being selected first would stage an edit neither button could reach.
+    if (state.focus === perk.res_path) renderActiveView();
+    else setFocus(perk.res_path);
+    log(`${perk.display_name} now hangs off ${target.display_name} (unsaved)`);
+  }
+
+  /** Arms one node for dragging. Nothing is written until the pointer comes up
+   * over a legal target; until then this only draws. */
+  function enableReparentDrag(group, perk, byId) {
+    group.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      const svg = group.ownerSVGElement;
+      if (!svg) return;
+      drag = { perk, svg, byId, from: { x: event.clientX, y: event.clientY },
+        group, ghost: null, target: null, moved: false };
+      // Listened for on the window: the pointer leaves this node immediately,
+      // and a node that is redrawn mid-gesture would take its listeners with it.
+      window.addEventListener("pointermove", onDragMove);
+      window.addEventListener("pointerup", onDragUp, { once: true });
+    });
+  }
+
+  function onDragMove(event) {
+    if (!drag) return;
+    if (!drag.moved) {
+      const far = Math.hypot(event.clientX - drag.from.x, event.clientY - drag.from.y);
+      if (far < DRAG_THRESHOLD) return;
+      drag.moved = true;
+      drag.group.classList.add("dragging");
+      drag.ghost = svgEl("line", { class: "drag-ghost",
+        x1: drag.perk.world_x, y1: drag.perk.world_y,
+        x2: drag.perk.world_x, y2: drag.perk.world_y });
+      drag.svg.append(drag.ghost);
+    }
+    const at = toUserSpace(drag.svg, event);
+    drag.ghost.setAttribute("x2", at.x);
+    drag.ghost.setAttribute("y2", at.y);
+
+    // The ghost is pointer-events: none, so what is under the cursor is a node.
+    const over = document.elementFromPoint(event.clientX, event.clientY);
+    const hit = over && over.closest("#web-chart g[data-path]");
+    const target = hit ? drag.byId.get(idOfPath(hit.getAttribute("data-path"))) : null;
+    const why = target ? reparentCheck(drag.perk, target, drag.byId) : null;
+
+    if (drag.target !== hit) {
+      if (drag.target) drag.target.classList.remove("drop-ok", "drop-bad");
+      drag.target = hit && why !== null ? hit : null;
+      if (drag.target) drag.target.classList.add(why === "" ? "drop-ok" : "drop-bad");
+    }
+    drag.onto = why === "" ? target : null;
+    drag.why = why;
+  }
+
+  function onDragUp() {
+    window.removeEventListener("pointermove", onDragMove);
+    const held = drag;
+    drag = null;
+    if (!held) return;
+    if (held.ghost) held.ghost.remove();
+    held.group.classList.remove("dragging");
+    if (held.target) held.target.classList.remove("drop-ok", "drop-bad");
+    if (!held.moved) return;
+    swallowNextClick();
+    if (held.onto) reparent(held.perk, held.onto);
+    else if (held.why) log(`${held.perk.display_name} cannot go there - ${held.why}`, true);
+  }
+
+  const idOfPath = (path) => {
+    const row = rowIndexOf(path);
+    return row ? cell(row, "id") : "";
+  };
+
+  /* --------------------------------------------------------------- badges */
+
+  const BADGE_RADIUS = 8;
+  /* Far enough off a 15px node that the badge clears its outline, close enough
+   * that it reads as belonging to that node rather than to its neighbour. */
+  const BADGE_OFFSET = 24;
+
+  /** One round button hanging off a perk. `spin` turns the glyph so a chevron
+   * points along the arc rather than along the screen - on a radial web "left"
+   * is only left at the top of the circle. */
+  function perkBadge(x, y, glyph, tip, onClick, spin) {
+    const badge = svgEl("g", { class: "perk-badge" });
+    badge.append(svgEl("circle", { cx: x, cy: y, r: BADGE_RADIUS }));
+    const text = svgEl("text", { x, y: y + 3.5 });
+    text.setAttribute("text-anchor", "middle");
+    if (spin !== undefined) text.setAttribute("transform", `rotate(${spin} ${x} ${y})`);
+    text.textContent = glyph;
+    badge.append(text);
+    attachTip(badge, tip);
+    badge.onclick = (event) => {
+      // The group under it opens the editor; both firing would fight over focus.
+      event.stopPropagation();
+      onClick();
+    };
+    return badge;
+  }
+
+  /** The two chevrons that move a perk among its siblings.
+   *
+   * Placed on the arc the perk would travel along and rotated to point that way,
+   * because sibling order *is* the angle: the perk moves towards whichever badge
+   * is pressed. Nothing is drawn at the ends of the list - a first child has
+   * nowhere earlier to go - so the pair says how much room is left as well.
+   */
+  function orderBadges(perk) {
+    const group = svgEl("g");
+    if (!perk.order || perk.order.count < 2) return group;
+    // Tangent of the circle the perk sits on, pointing the way the index grows.
+    const tx = -Math.sin(perk.angle);
+    const ty = Math.cos(perk.angle);
+    const spin = (perk.angle * 180) / Math.PI + 90;
+    const siblings = perk.order.count;
+
+    for (const step of [-1, 1]) {
+      const to = perk.order.index + step;
+      if (to < 0 || to >= siblings) continue;
+      group.append(perkBadge(
+        perk.world_x + tx * BADGE_OFFSET * step,
+        perk.world_y + ty * BADGE_OFFSET * step,
+        step < 0 ? "‹" : "›",
+        `Move ${perk.display_name} to place ${to + 1} of ${siblings} among its siblings`,
+        () => moveInOrder(perk, to),
+        spin));
+    }
+    return group;
+  }
+
+  /** Rewrites the owning cell so this perk sits at `to`. The same moveRef the
+   * panel's chips drag through, handed the position the arc names. */
+  function moveInOrder(perk, to) {
+    const owner = rowIndexOf(perk.order.path);
+    if (!owner) return;
+    const columnIndex = owner.header.indexOf(perk.order.column);
+    if (columnIndex <= 0) return;
+    moveRef({ file: owner.file, rowIndex: owner.rowIndex, columnIndex,
+      list: true, partIndex: perk.order.index }, to);
+  }
+
+  /** The ⊕ that hangs a new perk off the one being edited.
+   *
+   * The id is asked for rather than derived: it is the runtime key AND the save
+   * key, so a generated one would have to be renamed straight away, and renaming
+   * a perk orphans whatever level players had banked against the old name. */
+  function addChildBadge(perk) {
+    return perkBadge(perk.world_x + 17, perk.world_y - 17, "+",
+      "Add a perk under this one", () => {
+        const row = rowIndexOf(perk.res_path);
+        const rule = pathRefFor("PerkNodeDef", "children");
+        if (!row || !rule) return;
+        const id = prompt(`New perk under ${perk.display_name}.\n\n`
+          + "Its id is the runtime key and the save key, so pick the one it keeps.", "");
+        if (id === null || !id.trim()) return;
+        // createChild does the rest: POST /api/create, re-read every table,
+        // focus the new node. It refuses while anything is unsaved, since
+        // creating re-reads the tables and would throw staged edits away.
+        createChild(row, "children", rule, id.trim(), "");
+      });
   }
 
   /* ------------------------------------------------------------------ payout */
@@ -354,6 +796,16 @@
     note.textContent = SCALES[view.scale].note;
     panel.append(note);
 
+    // PerkTree skips a repeated id and everything under it. Silently, in the
+    // engine - here it is the difference between a subtree that is missing and
+    // one that was never authored, so it is said out loud.
+    for (const warning of view.warnings) {
+      const warn = document.createElement("p");
+      warn.className = "hint warn";
+      warn.textContent = warning;
+      panel.append(warn);
+    }
+
     // Folded away while a perk is being edited - the payout is what the whole
     // web is priced against, but the panel is 340px and the perk's own fields
     // are what a click asked for.
@@ -397,12 +849,12 @@
     back.onclick = () => { setFocus(null); };
     heading.append(back);
 
-    // The colouring comes from PerkTree run over what is on disk, so an unsaved
-    // change moves the fields but not the web until it is saved.
+    // Shape is mirrored here, so a reorder moves the web at once; the colouring
+    // is PerkTree run over what is on disk, and that still waits for a save.
     if (fileHasChanges(row.file)) {
       const dirty = document.createElement("span");
       dirty.className = "hint";
-      dirty.textContent = "unsaved - the web recolours after Save";
+      dirty.textContent = "unsaved - positions preview live, costs recolour after Save";
       heading.append(dirty);
     } else {
       const reload = document.createElement("button");
@@ -421,6 +873,21 @@
     }
     target.append(heading);
 
+    const gates = perkIdReferences(row);
+    if (gates.length) {
+      // /api/delete only follows res:// references, and these are StringNames -
+      // so its preview neither reports nor unlinks them. Deleting reach_5 leaves
+      // node tier 4 gated on a perk no branch authors, which is a gate that can
+      // never open, and fails authored_data_test.
+      const warn = document.createElement("p");
+      warn.className = "hint warn";
+      warn.textContent = `${gates.length} other resource(s) name this perk by id: `
+        + `${gates.join(", ")}. Deleting or renaming it leaves those gated on a perk `
+        + "nothing authors - and the id is the save key, so players lose the levels "
+        + "they banked against it.";
+      target.append(warn);
+    }
+
     // Only a perk has costs to report; a followed chip is some other resource.
     if (perk) {
       const costs = document.createElement("div");
@@ -428,6 +895,21 @@
       costs.textContent = `${format(perk.cost_to_max)} to max · ${format(perk.path_cost)} to reach `
         + `· depth ${perk.depth} · ${perk.branch_label}`;
       target.append(costs);
+
+      // What a reorder actually costs the branch. Sibling offsets accumulate
+      // down a chain, and the widest one is what caps the spacing every node in
+      // the branch gets; past 1.5 the branch spills out of its slice, which is
+      // where perk_tree_test stops it. Reach alternates its two children side to
+      // side for exactly this reason.
+      const reach = view.widest.get(perk.branch_key);
+      if (reach !== undefined) {
+        const spread = document.createElement("div");
+        const tight = reach > 1.5;
+        spread.className = tight ? "web-stats warn" : "web-stats";
+        spread.textContent = `widest sibling offset ${reach.toFixed(2)} of 1.5`
+          + (tight ? " - this branch no longer fits its slice" : "");
+        target.append(spread);
+      }
     }
 
 
@@ -460,6 +942,28 @@
     fields.className = "deps-panel";   // the styling the graph's own panel carries
     target.append(fields);
     renderDeps(row.row[0], fields);
+  }
+
+  /** Everything outside the perk tree that names this perk by id.
+   *
+   * unlock_perk_id and max_level_perk_id are StringNames, not paths, so nothing
+   * in the reference machinery sees them. Found by column name rather than by a
+   * list of tables: whichever resource grows one next is covered without this
+   * screen being told about it. */
+  function perkIdReferences(node) {
+    const id = node && cell(node, "id");
+    if (!id || node.file !== "PerkNodeDef") return [];
+    const out = [];
+    for (const file of state.files) {
+      if (file === "PerkNodeDef") continue;
+      for (const entry of rowsOf(file)) {
+        for (const column of entry.header) {
+          if (!column.endsWith("perk_id") || cell(entry, column) !== id) continue;
+          out.push(`${labelOf(entry)} (${file}.${column})`);
+        }
+      }
+    }
+    return out;
   }
 
   /** True for a row the cost formula applies to. A chip followed out of the web

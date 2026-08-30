@@ -183,6 +183,28 @@
 .web-editor-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
 #web-chart .perk-label { fill: var(--text); font: 9px ui-sans-serif, system-ui, sans-serif; pointer-events: none; }
 #web-chart .scale-tick { fill: var(--muted); font: 10px ui-monospace, monospace; }
+/* The buttons around the perk being edited: ⊕ to hang a new one off it, and a
+   chevron on each side to move it along the arc its siblings share. Drawn on the
+   selected node only, so they never compete with the web itself for the eye. */
+#web-chart .perk-badge { cursor: pointer; }
+#web-chart .perk-badge circle { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; }
+#web-chart .perk-badge text { fill: var(--accent); font: 700 11px ui-sans-serif, system-ui, sans-serif;
+  pointer-events: none; }
+#web-chart .perk-badge:hover circle { fill: var(--accent); }
+#web-chart .perk-badge:hover text { fill: var(--bg); }
+/* Dragging a perk onto another one moves it there. The node being carried fades,
+   the node under the cursor says whether it will take it. */
+#web-chart g.dragging { opacity: 0.35; }
+#web-chart g.drop-ok circle.perk { stroke: var(--accent); stroke-width: 4; }
+#web-chart g.drop-bad circle.perk { stroke: var(--danger); stroke-width: 4; }
+#web-chart .drag-ghost {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  pointer-events: none;   /* or it would be what the cursor is over */
+}
+/* Same red the other screens give a warning; the panel is its own scope. */
+.web-panel .warn { color: var(--danger); }
 
 .web-table { border-collapse: collapse; font-size: 12px; width: 100%; }
 .web-table th {

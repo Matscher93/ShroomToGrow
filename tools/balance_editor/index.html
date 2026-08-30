@@ -162,6 +162,13 @@
     padding: 0 3px;
   }
   .chip button:hover { color: var(--danger); }
+  /* Order carries meaning in some of these lists - a perk's place among its
+     siblings is the angle the web gives it - so those chips can be dragged. */
+  .chip[draggable="true"] { cursor: grab; }
+  .chip[draggable="true"]:active { cursor: grabbing; }
+  .chip.dragging { opacity: 0.4; }
+  .chip.drop-before { box-shadow: 0 -2px 0 0 var(--accent); }
+  .chip.drop-after { box-shadow: 0 2px 0 0 var(--accent); }
   .actions { display: flex; gap: 6px; margin-top: 6px; }
   .create { display: flex; gap: 5px; margin-top: 5px; }
   .create input { flex: 1; min-width: 0; font: inherit; font-family: ui-monospace, monospace;
@@ -1134,15 +1141,41 @@ function applyRef(edge, replacement) {
     next = replacement === null ? "" : replacement;
   }
   writeCell(edge.file, edge.rowIndex, edge.columnIndex, next);
-  renderFileList();
-  renderGraph();
+  refreshRefs();
 }
 
 function addRef(file, rowIndex, columnIndex, value, list) {
   const raw = dataOf(file).rows[rowIndex][columnIndex];
   writeCell(file, rowIndex, columnIndex, list && raw ? `${raw}|${value}` : value);
+  refreshRefs();
+}
+
+/** Moves one entry of a list column to another position in the same list.
+ *
+ * Order is not decoration everywhere: a perk's place among its siblings is the
+ * angle PerkTree gives it, and a biome's upgrade_ids are the slots in the order
+ * the game lays them out. Until this existed the only way to change one was
+ * retyping the pipe-separated cell in the table view. */
+function moveRef(edge, toIndex) {
+  if (!edge.list) return;
+  const parts = dataOf(edge.file).rows[edge.rowIndex][edge.columnIndex]
+    .split("|").filter(Boolean);
+  const to = Math.max(0, Math.min(parts.length - 1, toIndex));
+  if (to === edge.partIndex) return;
+  const [moved] = parts.splice(edge.partIndex, 1);
+  parts.splice(to, 0, moved);
+  writeCell(edge.file, edge.rowIndex, edge.columnIndex, parts.join("|"));
+  refreshRefs();
+}
+
+/** What every reference edit redraws. renderActiveView() rather than
+ * renderGraph(): the graph is not the only view holding a deps panel - the perk
+ * web embeds one too, and redrawing the graph's left that panel showing the
+ * child it had just unlinked. */
+function refreshRefs() {
   renderFileList();
-  renderGraph();
+  buildEdges();
+  renderActiveView();
 }
 
 const savedRows = () => state.loaded.get(state.current).rows;
@@ -1207,8 +1240,10 @@ function revertRow(tr, rowIndex) {
 function revertFile() {
   if (!state.current || !isDirty(state.current)) return;
   state.edits.delete(state.current);
-  renderFileList();
-  renderGrid();
+  // renderActiveView rather than renderGrid: the table is not the only view a
+  // revert undoes something in. Dropping a reorder made on the perk web left
+  // that web still showing the order it had just thrown away.
+  refreshRefs();
   log(`reverted unsaved edits in ${state.current}`);
 }
 
@@ -1389,7 +1424,14 @@ const truncate = (text, max) => (text.length > max ? `${text.slice(0, max - 1)}â
 
 /* -------------------------------------------------------- dependency panel */
 
-function chip(label, missing, onOpen, onRemove) {
+/** One reference, as the panel shows it. `drag` is `{ index, onDrop }` for a
+ * chip in a list whose order means something - the chip becomes draggable and
+ * `onDrop(fromIndex)` is called with the position the dragged chip came from.
+ *
+ * The move is committed on drop and never on dragover: every reference edit
+ * redraws the panel, and redrawing it mid-drag destroys the element the pointer
+ * is holding. The insertion point is shown with a class instead. */
+function chip(label, missing, onOpen, onRemove, drag) {
   const row = document.createElement("div");
   row.className = `chip${missing ? " missing" : ""}`;
   const text = document.createElement("span");
@@ -1405,7 +1447,62 @@ function chip(label, missing, onOpen, onRemove) {
     button.onclick = onRemove;
     row.append(button);
   }
+  if (drag) {
+    row.draggable = true;
+    row.dataset.index = String(drag.index);
+    row.title = "drag to reorder";
+    row.addEventListener("dragstart", (event) => {
+      // text/plain so a chip dragged out of the page lands as its own index
+      // rather than as nothing; dropEffect keeps the cursor honest.
+      event.dataTransfer.setData("text/plain", String(drag.index));
+      event.dataTransfer.effectAllowed = "move";
+      dragIndexInFlight = drag.index;
+      row.classList.add("dragging");
+    });
+    row.addEventListener("dragend", () => {
+      dragIndexInFlight = null;
+      row.classList.remove("dragging");
+      clearDropMarks(row.parentElement);
+    });
+    row.addEventListener("dragover", (event) => {
+      const from = draggedIndex(event);
+      if (from === null || from === drag.index) return;
+      event.preventDefault();   // without this the drop never fires
+      event.dataTransfer.dropEffect = "move";
+      clearDropMarks(row.parentElement);
+      row.classList.add(from < drag.index ? "drop-after" : "drop-before");
+    });
+    row.addEventListener("dragleave", () => {
+      row.classList.remove("drop-before", "drop-after");
+    });
+    row.addEventListener("drop", (event) => {
+      event.preventDefault();
+      const from = draggedIndex(event);
+      clearDropMarks(row.parentElement);
+      if (from === null || from === drag.index) return;
+      drag.onDrop(from);
+    });
+  }
   return row;
+}
+
+/** The index a drag is carrying, or null when it is not one of ours. Read from
+ * dataTransfer so two panels' lists can never move each other's entries. */
+function draggedIndex(event) {
+  const raw = event.dataTransfer.getData("text/plain");
+  // Chrome hides the payload during dragover, so fall back to the chip that is
+  // marked as in flight - the marker is per-panel, which is the same guarantee.
+  const value = raw === "" ? dragIndexInFlight : Number(raw);
+  return Number.isInteger(value) ? value : null;
+}
+
+let dragIndexInFlight = null;
+
+function clearDropMarks(container) {
+  if (!container) return;
+  for (const each of container.querySelectorAll(".drop-before, .drop-after")) {
+    each.classList.remove("drop-before", "drop-after");
+  }
 }
 
 /** The row itself plus everything that reaches it through `column`, directly or
@@ -1643,6 +1740,9 @@ function renderDeps(focus, target = el.deps) {
     const columnIndex = entry.header.indexOf(column);
     target.append(Object.assign(document.createElement("div"),
       { className: "col", textContent: column }));
+    // One entry cannot be reordered, and a scalar column has no order to speak
+    // of, so the chips are only draggable where dragging means something.
+    const orderable = edges.length > 1 && edges.every((edge) => edge.list);
     for (const edge of edges) {
       // Named for what it is - the row this edge points at. Calling it `target`
       // shadowed the panel being built, so the chip was appended to a row entry
@@ -1654,7 +1754,9 @@ function renderDeps(focus, target = el.deps) {
           : (asset ? edge.part.split("/").pop() : `${edge.part} (unresolved)`),
         !targetRow && !asset,
         targetRow ? () => setFocus(edge.to) : null,
-        () => applyRef(edge, null));
+        () => applyRef(edge, null),
+        orderable ? { index: edge.partIndex, onDrop: (from) =>
+          moveRef({ ...edge, partIndex: from }, edge.partIndex) } : null);
       if (asset) chipEl.classList.add("asset");
       target.append(chipEl);
     }
