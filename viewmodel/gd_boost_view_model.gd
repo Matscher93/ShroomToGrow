@@ -26,10 +26,15 @@ var display_name: String:
 var description: String:
 	get: return _def.description
 
-## Against the ceiling the prestige perks have opened so far, not the ladder's
+## Against the ceiling the prestige perks have opened so far, not some ladder's
 ## far end: a boost capped at 100 showing "/ 500" reads as buyable when it isn't.
+## A boost nothing caps has no second number to show at all.
 var level_text: String:
-	get: return "Lv %d / %d" % [App.boost_level(_id), App.boost_max_level(_id)]
+	get:
+		var ceiling := App.boost_max_level(_id)
+		if ceiling == BoostSystem.UNLIMITED:
+			return "Lv %d" % App.boost_level(_id)
+		return "Lv %d / %d" % [App.boost_level(_id), ceiling]
 
 ## The tier the next level lands in and how far into it the ladder already is -
 ## the two numbers that explain both the price jump and the rate jump at a
@@ -37,9 +42,9 @@ var level_text: String:
 var tier_text: String:
 	get:
 		if is_maxed:
-			# "Maxed" is only true at the ladder's end. Short of it the boost is
-			# waiting on a perk, and saying so is what points the player at it.
-			if App.boost_max_level(_id) < BoostTiers.max_level():
+			# The ladder has no end to be at, so being stopped means a cap perk is
+			# what would move it. Saying so is what points the player at it.
+			if not _def.max_level_perk_id.is_empty():
 				return "Capped - needs %s" % [_perk_name(_def.max_level_perk_id)]
 			return "Maxed"
 		var tier := App.boost_tier(_id)

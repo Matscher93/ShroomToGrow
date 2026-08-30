@@ -89,6 +89,12 @@ static func snapshot(data_dir: String) -> Dictionary:
 ## Levels sampled for a def with no max_level of its own (0 = infinite).
 const CURVE_OPEN_ENDED_LEVELS := 50
 
+## Tiers of a boost ladder to chart. The ladder itself has no last tier - it keeps
+## going for as long as a boost's ceiling is raised - so this is a window on it,
+## not a limit. Five is what the ladder used to stop at, which keeps the charts
+## reading the way they did.
+const CURVE_BOOST_TIERS := 5
+
 ## Workers sampled for the hire curve. The crew has no authored ceiling - it is
 ## bounded by what farms are open and what the player can pay - so this is a
 ## span wide enough to read the growth off, not a limit.
@@ -386,7 +392,7 @@ static func _prestige_payout(def: PrestigeCurveDef, areas: int) -> BigNumber:
 	return PrestigeCalculator.calculate_biomass_gain(0, nutrients, def)
 
 
-## True for a BoostDef: its price restarts once per tier, so it carries a
+## True for a BoostDef: it steps its price at every tier boundary, so it carries a
 ## tier_cost_growth that no plain priced def has.
 static func _is_boost_curved(res: Resource) -> bool:
 	var properties := _properties_by_name(res)
@@ -396,46 +402,38 @@ static func _is_boost_curved(res: Resource) -> bool:
 ## One boost's crystal price and total multiplier across the whole authored
 ## ladder - every tier, every level of each.
 ##
-## Walked through the UpgradeDefs BoostTree generates rather than off the fields,
-## since those defs are what the game actually prices: each tier opens at
-## tier_base_cost(tier) and climbs by cost_growth over the levels bought *within*
-## that tier, which is why the ladder is a staircase rather than one curve.
+## Priced straight off BoostDef.cost_at(), which is what BoostSystem charges. The
+## UpgradeDefs BoostTree generates carry no price to walk: a per-tier price cannot
+## see the levels below it, which is exactly why the ladder is priced off the
+## total level instead.
 ##
-## Sampled against the authored ladder, not the perk-gated ceiling. A boost opens
-## at base_max_level 100 and only the cap perk lifts it to the full 500, and a
-## chart stopping at 100 would hide four fifths of what is being tuned.
+## Sampled across CURVE_BOOST_TIERS tiers rather than to a ladder end, since the
+## ladder has none: a boost opens at base_max_level 100 and its cap perk lifts it
+## as far as the perk goes. A chart stopping at 100 would hide most of what is
+## being tuned, so this shows the shape and the editor's range control moves it.
 static func boost_curve_for(res: Resource) -> Dictionary:
 	var def := res as BoostDef
-	var list := BoostList.new()
-	var defs: Array[BoostDef] = [def]
-	list.boosts = defs
-
-	var system := UpgradeSystem.new()
-	for tier_def: UpgradeDef in BoostTree.build(list):
-		system.register(tier_def)
 
 	var costs: Array = []
 	var multipliers: Array = []
 	var total := BigNumber.from_value(1.0)
-	for level in range(BoostTiers.max_level() + 1):
-		var tier := BoostTiers.tier_for_level(level)
-		var id := BoostTiers.upgrade_id(def.id, tier)
-		@warning_ignore("integer_division")
-		var within := level - (tier - 1) * BoostTiers.LEVELS_PER_TIER
-		system.from_save({String(id): within})
-		costs.append(_big_pair(system.cost(id)))
+	var charted := CURVE_BOOST_TIERS * BoostTiers.LEVELS_PER_TIER
+	for level in range(charted + 1):
+		costs.append(_big_pair(def.cost_at(level)))
 		multipliers.append(_big_pair(total))
 		# The level about to be bought is priced above; the multiplier it buys
 		# lands on the next sample, which is what makes level 0 read as x1.
-		total = total.mul(BigNumber.from_value(1.0 + def.per_level(tier)))
+		total = total.mul(BigNumber.from_value(
+			1.0 + def.per_level(BoostTiers.tier_for_level(level))))
 
 	return {
-		"max_level": BoostTiers.max_level(),
-		"samples": BoostTiers.max_level(),
+		"max_level": charted,
+		"samples": charted,
 		"levels_per_tier": BoostTiers.LEVELS_PER_TIER,
 		"cost": costs,
 		"multiplier": multipliers,
 		"cost_growth": def.cost_growth,
+		"cost_growth_exponent": def.cost_growth_exponent,
 		"tier_cost_growth": def.tier_cost_growth,
 		"kind": "boost",
 	}

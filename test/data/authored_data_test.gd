@@ -861,10 +861,14 @@ func test_every_capped_boost_can_be_opened_all_the_way() -> void:
 		assert_object(cap_perk) \
 			.override_failure_message("Boost '%s' is capped at %d with no perk to raise it." \
 				% [def.id, def.base_max_level]).is_not_null()
+		# The ladder has no end to reach any more, so what matters is that the perk
+		# is worth owning: it must open at least one whole tier past where the
+		# boost starts, or maxing it moves the rate not at all.
 		var reachable := def.base_max_level + def.max_level_per_perk_level * cap_perk.max_level
+		var wanted := def.base_max_level + BoostTiers.LEVELS_PER_TIER
 		assert_int(reachable) \
-			.override_failure_message("Boost '%s' tops out at %d, short of the ladder's %d." \
-				% [def.id, reachable, BoostTiers.max_level()]).is_greater_equal(BoostTiers.max_level())
+			.override_failure_message("Boost '%s' tops out at %d, not even one tier past the %d it opens at." \
+				% [def.id, reachable, def.base_max_level]).is_greater_equal(wanted)
 
 func test_boost_ids_are_unique() -> void:
 	var seen := {}
@@ -902,21 +906,33 @@ func test_every_boost_gets_more_expensive() -> void:
 			.override_failure_message("Boost '%s' has cost growth %f, so it never gets more expensive." \
 				% [def.id, def.cost_growth]).is_greater(1.0)
 
-## The within-tier curve restarts at every boundary. Without a tier growth above
-## 1.0 it restarts at the *same* opening price, so a tier worth orders of
-## magnitude more per level costs exactly what the first one did.
-func test_every_boost_opens_each_tier_dearer_than_the_last() -> void:
+## Measured against where the tier below *closed*, not where it opened.
+##
+## Every opening was already dearer than the last while the boundary was still a
+## 12x discount - the openings climbed by tier_cost_growth while the prices a
+## player actually pays climbed by cost_growth over a hundred levels in between.
+## Comparing openings to each other cannot see that, and did not.
+##
+## A boundary is also where the payout jumps by per_level_growth, so a boundary
+## that is cheaper than the level before it is a discount on the upgrade.
+func test_every_boost_opens_each_tier_above_where_the_last_one_closed() -> void:
 	for def in _boosts:
 		assert_float(def.tier_cost_growth) \
-			.override_failure_message("Boost '%s' has tier cost growth %f, so its tiers all open at the same price." \
-				% [def.id, def.tier_cost_growth]).is_greater(1.0)
-		var previous := 0.0
-		for tier in range(1, BoostTiers.MAX_TIER + 1):
-			var opening := def.tier_base_cost(tier)
-			assert_float(opening) \
-				.override_failure_message("Boost '%s' opens tier %d at %f, no dearer than the tier below." \
-					% [def.id, tier, opening]).is_greater(previous)
-			previous = opening
+			.override_failure_message("Boost '%s' has tier cost growth %f, which makes crossing a boundary a discount." \
+				% [def.id, def.tier_cost_growth]).is_greater_equal(1.0)
+		assert_float(def.cost_growth_exponent) \
+			.override_failure_message("Boost '%s' has cost growth exponent %f, which bends its price curve downwards." \
+				% [def.id, def.cost_growth_exponent]).is_greater_equal(1.0)
+		# Five tiers is a sample of an open-ended ladder, not the whole of it: the
+		# invariant has to hold at every boundary, and the first few are where the
+		# authored numbers are actually aimed.
+		for tier in range(2, 6):
+			var opens_at := (tier - 1) * BoostTiers.LEVELS_PER_TIER
+			var opening := def.cost_at(opens_at)
+			var closing := def.cost_at(opens_at - 1)
+			assert_bool(opening.gt(closing)) \
+				.override_failure_message("Boost '%s' opens tier %d at %s, under the %s the tier below closed at." \
+					% [def.id, tier, opening.to_display(), closing.to_display()]).is_true()
 
 ## A tier that pays less per level than the one under it makes crossing a
 ## boundary a downgrade the player just paid for.
@@ -929,11 +945,13 @@ func test_every_boost_pays_more_per_level_each_tier() -> void:
 			.override_failure_message("Boost '%s' has per-level growth %f, so a higher tier is worth no more than a lower one." \
 				% [def.id, def.per_level_growth]).is_greater_equal(1.0)
 
-## Every tier the ladder can reach has to produce a registerable def, or the
-## levels above that boundary are unbuyable with no error to say why.
-func test_the_generated_tier_defs_cover_the_whole_ladder() -> void:
-	var defs := BoostTree.build(load("res://data/boosts/all_boosts.tres") as BoostList)
-	assert_int(defs.size()).is_equal(_boosts.size() * BoostTiers.MAX_TIER)
+## Every tier the ladder reaches has to produce a registerable def, or the levels
+## above that boundary are unbuyable with no error to say why. The ladder has no
+## last tier, so this asks for an arbitrary depth and expects it to be built.
+func test_the_generated_tier_defs_cover_however_many_tiers_are_asked_for() -> void:
+	var tiers := 9
+	var defs := BoostTree.build(load("res://data/boosts/all_boosts.tres") as BoostList, tiers)
+	assert_int(defs.size()).is_equal(_boosts.size() * tiers)
 	for def in defs:
 		# Uncapped on purpose: BoostSystem owns the ceiling now, because a
 		# &"boost_max_level" upgrade can move it past the last authored tier and a

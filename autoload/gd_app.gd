@@ -188,8 +188,11 @@ func _ready() -> void:
 		biome_upgrade_system.register(def)
 
 	boost_upgrade_system = UpgradeSystem.new()
-	for def in BoostTree.build(boosts):
-		boost_upgrade_system.register(def)
+	# Seeded before BoostSystem is built: LEVELS_PER_TIER decides where the tier
+	# boundaries fall, and the first tier def is registered off the back of it.
+	# The rest are grown by BoostSystem as the ladder climbs - there is no last
+	# tier to register up front.
+	BoostTiers.configure(boosts)
 
 	project_upgrade_system = UpgradeSystem.new()
 	for def in ProjectTree.build(projects):
@@ -556,7 +559,11 @@ func load_from_save(game: Dictionary) -> void:
 	# not a saved field, so it has to be rebuilt here.
 	achievement_system.sync_tier_count()
 	automation_data.load_from_save(game.get("automation", {}))
-	boost_upgrade_system.from_save(game.get("boost_upgrades", {}))
+	# Before the levels, not after: from_save() drops any id it has no def for, and
+	# a save written past tier one has ids this boot has not grown to yet.
+	var saved_boosts: Dictionary = game.get("boost_upgrades", {})
+	boost_system.ensure_tiers_for_save(saved_boosts)
+	boost_upgrade_system.from_save(saved_boosts)
 	project_upgrade_system.from_save(game.get("project_upgrades", {}))
 	# PlayerData.well_project_levels is a projection of the levels just loaded,
 	# not a saved field, so it has to be rebuilt here - same as achievement_tiers.

@@ -26,14 +26,12 @@
  */
 (() => {
   const {
-    log10Of, growthCurve, powerCurve, chartBlock, engineSeries, engineCurve, xpLadder,
-    rowsOf, cell, numberCell, field, fieldGroup, bigField, scopeTargetFields,
+    log10Of, formatBig, growthCurve, powerCurve, chartBlock, engineSeries, engineCurve,
+    xpLadder, rowsOf, cell, numberCell, field, fieldGroup, bigField, scopeTargetFields,
   } = window.GameKit;
 
   const CRYSTAL_STAT = "crystal_gain";
   const TIERS = 50;              // matches BalanceData.CURVE_OPEN_ENDED_LEVELS
-  const BOOST_LEVELS = 500;      // BoostTiers.MAX_TIER * LEVELS_PER_TIER
-  const LEVELS_PER_TIER = 100;   // BoostTiers.LEVELS_PER_TIER
   const AUTOMATION_LEVELS = 50;
 
   /* Only these two AchievementDef.Stat values are continuous; every other one
@@ -45,6 +43,13 @@
   const screen = { label: "Crystals" };
 
   const list = (value) => (value || "").split("|").filter(Boolean);
+
+  const hint = (text) => {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = text;
+    return p;
+  };
 
   function shortPath(path) {
     const parts = (path || "").split("::")[0].replace(/^res:\/\/data\//, "").split("/");
@@ -72,6 +77,27 @@
   const boostEntries = () => orderedBy("BoostList", "boosts", "BoostDef");
   const automationEntries = () =>
     orderedBy("AutomationList", "automations", "AutomationDef");
+
+  /* ------------------------------------------------------------ ladder shape */
+
+  /* BoostTiers.LEVELS_PER_TIER, authored on BoostList and read into BoostTiers at
+   * boot. Read through a function rather than captured once: editing the field
+   * must redraw every boost's charts in place, and a const would go stale the
+   * moment the box is typed in.
+   *
+   * The default matches BoostTiers', so an unloaded table degrades to the shipped
+   * ladder rather than throwing - cell() already answers "" for a null entry. */
+  const ladderRow = () => rowsOf("BoostList")[0];
+  const levelsPerTier = () =>
+    Math.max(1, Math.round(numberCell(ladderRow(), "levels_per_tier", 100)));
+
+  /* A window on the ladder, not a limit on it: a boost tiers up every
+   * levels_per_tier levels for as long as its ceiling is raised, so there is no
+   * last tier to chart to. Matches BalanceData.CURVE_BOOST_TIERS, which is what
+   * the engine samples, so the mirrored line and the engine's dots cover the same
+   * span. Each chart's own range control reaches past it. */
+  const CHARTED_TIERS = 5;
+  const boostLevels = () => CHARTED_TIERS * levelsPerTier();
 
   /* ------------------------------------------------------------------ curves */
 
@@ -127,31 +153,45 @@
     numberCell(entry, "base_per_level", 0.01)
       * numberCell(entry, "per_level_growth", 5) ** (tier - 1);
 
-  /** BoostDef.tier_base_cost(tier) - what the tier opens at. */
-  const tierBaseCost = (entry, tier) =>
-    numberCell(entry, "base_cost", 1)
-      * numberCell(entry, "tier_cost_growth", 10) ** (tier - 1);
-
   const tierOf = (level) =>
-    Math.min(Math.max(Math.floor(level / LEVELS_PER_TIER) + 1, 1), 5);
+    Math.max(Math.floor(Math.max(level, 0) / levelsPerTier()) + 1, 1);
+
+  /** BoostDef.cost_at(level), in log10 - what the next level costs at this point
+   * on the whole ladder.
+   *
+   * Log space is not a nicety here: cost_growth_exponent raises the level through
+   * itself before it becomes an exponent, so any value above 1.0 puts the top of
+   * a five-hundred level ladder far past what a double holds. The engine carries
+   * it as a BigNumber for the same reason.
+   *
+   * Priced off the total level, so the levels of every tier below count. A tier
+   * therefore opens one step above where the one under it closed, and
+   * tier_cost_growth is a step on top of that rather than the whole boundary. */
+  function costAtLog(entry, level) {
+    const base = numberCell(entry, "base_cost", 1);
+    const growth = numberCell(entry, "cost_growth", 1.05);
+    if (base <= 0 || growth <= 0) return null;
+    const steps = level * numberCell(entry, "cost_growth_exponent", 1) ** level;
+    const value = Math.log10(base)
+      + steps * Math.log10(growth)
+      + (tierOf(level) - 1) * Math.log10(numberCell(entry, "tier_cost_growth", 1));
+    return Number.isFinite(value) ? value : null;
+  }
 
   /** Crystals for the next level, across the whole authored ladder.
    *
-   * A staircase rather than one curve: each tier restarts the within-tier climb
-   * from a base ten times the last, so the four jumps are the thing being tuned
-   * as much as the slope between them. */
+   * One curve, not a staircase: tier_cost_growth of 1.0 draws an unbroken line
+   * and anything above it kinks the line upwards at each boundary. It used to
+   * restart per tier, which made every boundary a discount - the levels below
+   * were dropped out of the exponent, and tier_cost_growth had to make all of
+   * that back on its own.
+   *
+   * On a log axis a cost_growth_exponent of 1.0 is a straight line, and anything
+   * above it bows upwards - which is the only honest way to read that field,
+   * since the numbers at the top of the ladder stop meaning much very quickly. */
   function boostCostCurve(entry, from, to) {
-    const growth = numberCell(entry, "cost_growth", 1.05);
-    if (growth <= 0) return [];
     const out = [];
-    for (let level = from; level <= to; level += 1) {
-      const tier = tierOf(level);
-      const within = level - (tier - 1) * LEVELS_PER_TIER;
-      const base = tierBaseCost(entry, tier);
-      const value = base > 0
-        ? Math.log10(base) + within * Math.log10(growth) : null;
-      out.push(Number.isFinite(value) ? value : null);
-    }
+    for (let level = from; level <= to; level += 1) out.push(costAtLog(entry, level));
     return out;
   }
 
@@ -403,6 +443,101 @@
 
   /* ------------------------------------------------------------- 4. boosts */
 
+  const tiers = () => Array.from({ length: CHARTED_TIERS }, (_, index) => index + 1);
+
+  /** The ladder every boost shares, edited once rather than per card.
+   *
+   * On BoostList rather than on each BoostDef because BoostTiers is what reads
+   * it, and BoostTiers is one table for the whole game - BoostDef already owns
+   * the two curves that differ per boost. Levels bought under an old shape are
+   * not redistributed, so shrinking either number retires whatever sat above the
+   * new ceiling. */
+  function ladderShapeSection() {
+    const row = ladderRow();
+    const wrap = document.createElement("div");
+    wrap.className = "game-group";
+    const heading = document.createElement("h4");
+    heading.textContent = "Ladder shape";
+    wrap.append(heading);
+    if (!row) {
+      wrap.append(hint("BoostList is not loaded. Press \"Reload from .tres\" and try again."));
+      return wrap;
+    }
+    const fields = document.createElement("div");
+    fields.className = "game-fields";
+    for (const column of ["levels_per_tier"]) {
+      const editor = field(row, column);
+      if (editor) fields.append(editor);
+    }
+    fields.append(hint(`Applies to every boost: one tier every ${levelsPerTier()} levels, with `
+      + "no last tier — a boost keeps tiering up for as long as its cap perk and the Well's "
+      + `projects raise its ceiling. The charts below show the first ${CHARTED_TIERS} tiers; `
+      + "the range control under each one goes further. Read into BoostTiers at boot, so "
+      + "moving it moves where every boundary falls."));
+    wrap.append(fields);
+    return wrap;
+  }
+
+  /** A magnitude the ladder reaches, as the game would print it. The prices pass
+   * 1e8 by the top tier, so they are carried in log space and only turned into a
+   * mantissa/exponent pair here. */
+  function formatLog(value) {
+    if (!Number.isFinite(value)) return "-";
+    const exponent = Math.floor(value);
+    return formatBig(10 ** (value - exponent), exponent);
+  }
+
+  /** Every tier of one boost on one line: what a level of it is worth, what it
+   * opens and closes at, and how the opening compares to the close below it.
+   *
+   * That last column is the whole point. A boundary is the one place the two
+   * curves move at once - the payout jumps by per_level_growth and the price
+   * restarts - and a step under 1.0 there means the player is paid to cross into
+   * a tier that is worth more, which is what the staircase pricing used to do at
+   * every boundary. */
+  function tierTable(entry) {
+    const perTier = levelsPerTier();
+    const table = document.createElement("table");
+    table.className = "web-table game-gate-table boost-tiers";
+    const head = table.insertRow();
+    for (const column of ["tier", "per level", "opens at", "closes at", "step"]) {
+      const th = document.createElement("th");
+      th.textContent = column;
+      head.append(th);
+    }
+
+    let previousClose = null;
+    for (const tier of tiers()) {
+      // Both read off the ladder itself rather than derived from a per-tier
+      // base, so cost_growth_exponent bends these the way it bends the chart.
+      const first = (tier - 1) * perTier;
+      const open = costAtLog(entry, first);
+      // The last level of the tier, i.e. one short of where the next one opens.
+      const close = costAtLog(entry, first + perTier - 1);
+      const row = table.insertRow();
+      row.insertCell().textContent = `T${tier}`;
+      const rate = row.insertCell();
+      rate.className = "num";
+      rate.textContent = `×${(1 + perLevelAt(entry, tier)).toFixed(2)}`;
+      for (const value of [open, close]) {
+        const price = row.insertCell();
+        price.className = "num";
+        price.textContent = formatLog(value);
+      }
+      const step = row.insertCell();
+      step.className = "num";
+      if (previousClose === null || !Number.isFinite(open) || !Number.isFinite(previousClose)) {
+        step.textContent = "-";
+      } else {
+        const factor = 10 ** (open - previousClose);
+        step.textContent = `×${factor < 10 ? factor.toFixed(2) : formatLog(open - previousClose)}`;
+        if (factor < 1) step.classList.add("boost-dip");
+      }
+      previousClose = close;
+    }
+    return table;
+  }
+
   function boostCard(entry, index, total) {
     const wrap = document.createElement("section");
     wrap.className = "game-card crystal-card";
@@ -423,10 +558,11 @@
 
     const gateNote = document.createElement("p");
     gateNote.className = "hint";
-    gateNote.textContent = `Both charts run the full authored ladder — ${BOOST_LEVELS} levels, `
-      + `${LEVELS_PER_TIER} per tier. In game the boost opens at base_max_level and only the `
-      + "cap perk lifts it the rest of the way, so what a player can reach today is narrower "
-      + "than what is drawn here.";
+    gateNote.textContent = `Both charts run the first ${CHARTED_TIERS} tiers — `
+      + `${boostLevels()} levels at ${levelsPerTier()} per tier, set under Ladder shape above. `
+      + "The ladder itself has no end: in game the boost opens at base_max_level and its cap "
+      + "perk lifts it from there, tiering up every "
+      + `${levelsPerTier()} levels however far that goes.`;
     body.append(gateNote);
 
     // Cost
@@ -437,21 +573,26 @@
     cost.append(costHead);
     const costFields = document.createElement("div");
     costFields.className = "game-fields";
-    for (const column of ["base_cost", "cost_growth", "tier_cost_growth"]) {
+    for (const column of
+      ["base_cost", "cost_growth", "cost_growth_exponent", "tier_cost_growth"]) {
       const editor = field(entry, column);
       if (editor) costFields.append(editor);
     }
     const costNote = document.createElement("p");
     costNote.className = "hint";
-    costNote.textContent = "Each tier reopens at base_cost × tier_cost_growth^(tier−1) and "
-      + "climbs by cost_growth over the levels bought inside it, so the ladder is a staircase. "
-      + "The four steps are as much the tuning as the slope between them.";
-    costFields.append(costNote);
+    costNote.textContent = "One curve across the whole ladder: every level climbs by "
+      + "cost_growth, and the levels of the tiers below count towards the exponent, so a tier "
+      + "opens one step above where the last one closed. tier_cost_growth is an extra step on "
+      + "top of that — 1.0 is smooth, not free. Below 1.0 a boundary becomes a discount, which "
+      + "is exactly when the payout jumps. cost_growth_exponent bows the whole line upwards "
+      + `and bites hard over ${boostLevels()} levels — the third decimal is the useful range, `
+      + "and the chart is the only honest read of it.";
+    costFields.append(costNote, tierTable(entry));
     cost.append(costFields, chartBlock("Crystals for the next level",
       (from, to) => withEngine(entry, "next level", boostCostCurve(entry, from, to),
         from, to, "cost", ([m, e]) => log10Of(m, e)),
       { log: true, xLabel: "level",
-        range: { key: "boost-cost", from: 0, to: BOOST_LEVELS, label: "level" } }));
+        range: { key: "boost-cost", from: 0, to: boostLevels(), label: "level" } }));
     body.append(cost);
 
     // Multiplier
@@ -469,7 +610,7 @@
     const rates = document.createElement("p");
     rates.className = "hint";
     rates.textContent = "Per level by tier: "
-      + [1, 2, 3, 4, 5].map((tier) => `T${tier} ×${(1 + perLevelAt(entry, tier)).toFixed(2)}`)
+      + tiers().map((tier) => `T${tier} ×${(1 + perLevelAt(entry, tier)).toFixed(2)}`)
         .join(" · ")
       + ". A level multiplies rather than adds, so the tiers compound on each other.";
     rateFields.append(rates);
@@ -477,7 +618,7 @@
       (from, to) => withEngine(entry, "multiplier", boostMultiplierCurve(entry, from, to),
         from, to, "multiplier", ([m, e]) => log10Of(m, e)),
       { log: true, xLabel: "level",
-        range: { key: "boost-mult", from: 0, to: BOOST_LEVELS, label: "level" } }));
+        range: { key: "boost-mult", from: 0, to: boostLevels(), label: "level" } }));
     body.append(rate);
     return wrap;
   }
@@ -619,9 +760,10 @@
       body.append(achievementCard(entry, index, achievements.length)));
 
     body.append(sectionHeading(`Boosts (${boosts.length}) — the sink`,
-      "Bought with crystals, five tiers of a hundred levels each. A level multiplies rather "
-      + "than adds, and every hundred raises the tier, which is worth more per level and "
-      + "costs ten times more to open."));
+      `Bought with crystals, tiering up every ${levelsPerTier()} levels with no last tier. A `
+      + "level multiplies rather than adds, and each tier is worth more per level than the one "
+      + "below it, so how far a boost's ceiling is raised is how far the rate keeps climbing."));
+    body.append(ladderShapeSection());
     boosts.forEach((entry, index) => body.append(boostCard(entry, index, boosts.length)));
 
     body.append(sectionHeading(`Automations (${automations.length}) — the other sink`,

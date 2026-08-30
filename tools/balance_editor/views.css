@@ -750,6 +750,15 @@
    crystal currency. */
 .crystal-card { --tint: #5cc8e6; }
 
+/* The boost ladder tier by tier. Narrow enough to sit under the price fields
+   rather than beside the chart, so the numbers and the knobs that move them stay
+   on the same side of the split. */
+.boost-tiers { margin-top: 8px; }
+/* A tier that opens below where the one under it closed - the boundary pays the
+   player to cross into the tier that is worth more. Loud on purpose: it is the
+   one number on this card that is never intentional. */
+.boost-tiers td.boost-dip { color: var(--danger); font-weight: 600; }
+
 /* A band between the three economies on one long page: without it the mint and
    the sinks read as one undifferentiated run of cards. Named generically because
    the fold keys off it - a band heads the cards that follow rather than the ones

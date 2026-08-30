@@ -7,19 +7,25 @@ extends RefCounted
 ## the per-tier defs are derived rather than hand-written, so the ladder's shape
 ## lives in BoostTiers alone and adding a tier is a constant change instead of
 ## ten more .tres files.
+##
+## Built a tier at a time rather than a whole ladder at once, because there is no
+## last tier to stop at. BoostSystem grows a boost's defs as its ceiling rises -
+## see BoostSystem._ensure_tier().
 
-## One UpgradeDef per boost per tier, ready to register. Ids come from
+## One UpgradeDef per boost, for tiers 1..tiers. Ids come from
 ## BoostTiers.upgrade_id(), which is also what BoostSystem looks levels up by.
-static func build(list: BoostList) -> Array[UpgradeDef]:
+static func build(list: BoostList, tiers: int) -> Array[UpgradeDef]:
 	var defs: Array[UpgradeDef] = []
 	if list == null:
 		return defs
 	for boost in list.boosts:
-		for tier in range(1, BoostTiers.MAX_TIER + 1):
-			defs.append(_build_tier(boost, tier))
+		for tier in range(1, tiers + 1):
+			defs.append(build_tier(boost, tier))
 	return defs
 
-static func _build_tier(boost: BoostDef, tier: int) -> UpgradeDef:
+## One boost's def for one tier. Public because the ladder is open-ended: the
+## system builds the tier it is about to need rather than a fixed table.
+static func build_tier(boost: BoostDef, tier: int) -> UpgradeDef:
 	# MORE + COMPOUND is what makes a boost level multiply rather than add: the
 	# effect's magnitude at level n is (1 + per_level)^n - 1, and a MORE effect
 	# multiplies base by one plus that, i.e. (1 + per_level)^n. INCREASED, or
@@ -43,9 +49,14 @@ static func _build_tier(boost: BoostDef, tier: int) -> UpgradeDef:
 	# bought into the top tier's counter. BoostSystem.is_maxed() owns the ceiling,
 	# because it is the only thing that knows where the ceiling currently is.
 	def.max_level = 0
-	# Each tier restarts the within-tier curve, but from a higher opening price
-	# than the tier below - see BoostDef.tier_cost_growth.
-	def.base_cost = BigNumber.from_value(boost.tier_base_cost(tier))
-	def.cost_growth = boost.cost_growth
+	# Deliberately unpriced. These defs are level counters and effect carriers;
+	# what a level costs is BoostSystem.boost_cost(), off BoostDef.cost_at() and
+	# the total level across every tier.
+	#
+	# A price here could only ever be a per-tier one, and a per-tier price is
+	# what made a boundary a discount - it cannot see the levels below it, so it
+	# restarts the curve and has nothing for cost_growth_exponent to bend. Left
+	# at the UpgradeDef defaults rather than filled in with a number no caller
+	# reads, which would drift out of step with the real curve unnoticed.
 	def.effects = effects
 	return def

@@ -16,6 +16,10 @@ const BalanceDataScript := preload("res://tools/gd_balance_data.gd")
 
 const DEFAULT_DATA_DIR := "res://data"
 
+## The authored ladder shape, relative to the data dir. Seeded into BoostTiers
+## before any command runs - see _configure_boost_tiers().
+const BOOST_LIST_PATH := "boosts/all_boosts.tres"
+
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -40,6 +44,8 @@ func _initialize() -> void:
 		elif not arg.begins_with("-"):
 			command = arg
 
+	_configure_boost_tiers(data_dir)
+
 	match command:
 		"dump":
 			quit(_dump(data_dir, out_path))
@@ -59,6 +65,19 @@ func _initialize() -> void:
 			printerr("usage: gd_balance_cli.gd -- <dump|curves|perks|unused|apply|create|delete> "
 				+ "--out=FILE [--patch=FILE] [--request=FILE] [--dry-run]")
 			quit(2)
+
+
+## Reads the boost ladder's shape off the authored list, the way App does at boot.
+##
+## No autoload runs under --script, so BoostTiers would otherwise answer with its
+## script defaults - and BalanceData.boost_curve_for() builds a throwaway
+## BoostList for its one-boost sample, which cannot carry the shape either. The
+## charts would then be drawn against a ladder the game does not have.
+func _configure_boost_tiers(data_dir: String) -> void:
+	var path := data_dir.path_join(BOOST_LIST_PATH)
+	if not ResourceLoader.exists(path):
+		return
+	BoostTiers.configure(load(path) as BoostList)
 
 
 func _dump(data_dir: String, out_path: String) -> int:

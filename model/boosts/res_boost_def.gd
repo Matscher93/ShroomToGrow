@@ -35,7 +35,8 @@ extends Resource
 @export var base_per_level: float = 0.01
 
 ## How much more a level is worth one tier up. 5.0 gives x1.01, x1.05, x1.25,
-## x2.25, x7.25 per level across the five tiers.
+## x2.25, x7.25 per level across a five-tier ladder, and keeps climbing at that
+## rate if BoostList authors more tiers than that.
 ##
 ## Must be at least 1.0: below it a tier pays *less* per level than the one under
 ## it, so crossing a boundary is a downgrade the player paid for.
@@ -43,20 +44,35 @@ extends Resource
 
 # ---------------------------------------------------------------- cost curve
 
-## Crystals for the first level of tier 1. Every tier restarts its own curve from
-## tier_base_cost(), which is this scaled up by tier_cost_growth.
+## Crystals for the first level of tier 1. Every level above it is this climbed by
+## cost_growth, across tier boundaries as well as within a tier.
 @export var base_cost: float = 1.0
 
-## Per-level growth *within* a tier.
+## Per-level growth. Applies to the whole ladder, not to one tier: the levels of
+## the tiers below count towards the exponent, so a boundary is one more step of
+## this curve rather than a fresh start.
 @export var cost_growth: float = 1.05
 
-## Per-tier growth of the starting price. Prices restart at each boundary, and
-## without this they restart at the same number every time - so tier 5, worth
-## orders of magnitude more per level, would open at the same crystal price
-## tier 1 did.
+## Bends that climb upwards with the level itself, the same shape
+## UpgradeDef.cost_growth_exponent has: the level is raised through this before it
+## becomes cost_growth's exponent, so the price curves in log space instead of
+## running as a straight line.
 ##
-## Must be greater than 1.0, or the tiers do not escalate at all.
-@export var tier_cost_growth: float = 10.0
+## Compounds far harder here than on the ladders it is borrowed from. The shipped
+## node curves sit between 1.01 and 1.044 over fifty levels; this ladder is five
+## hundred, and 1.01 over five hundred levels is already past what a float holds.
+## Reach for the third decimal, and read the chart rather than the number.
+##
+## 1.0 is the plain geometric ladder, which is what every boost shipped with.
+@export_range(1.0, 1.02, 0.0001, "or_greater") var cost_growth_exponent: float = 1.0
+
+## Extra step taken *on top of* that continuity when a tier opens, e.g. 2.0 to
+## make crossing a boundary cost double what the next level otherwise would.
+##
+## 1.0 is the smooth ladder, not a free one. Below 1.0 a boundary becomes a
+## discount - the same contract per_level_growth has, and for the same reason:
+## a player must never be paid to cross into a tier that is worth more.
+@export var tier_cost_growth: float = 1.0
 
 # ---------------------------------------------------------------- perk gates
 
@@ -66,12 +82,17 @@ extends Resource
 @export var unlock_perk_id: StringName = &""
 
 ## How far up the ladder this boost may be bought before a perk widens it.
-## 0 = the whole BoostTiers ladder, i.e. no gate of its own.
+##
+## 0 means no ceiling at all, not a default one: the ladder has no last tier to
+## fall back on, so an ungated boost climbs for as long as the price allows. Every
+## shipped boost sets this and leans on its cap perk for the rest.
 @export var base_max_level: int = 0
 
-## Perk whose levels raise that ceiling, and by how many levels each. The result
-## is still clamped to BoostTiers.max_level() - the ladder's tiers are what the
-## rates and prices are authored against, so nothing may reach past them.
+## Perk whose levels raise that ceiling, and by how many levels each.
+##
+## Nothing clamps the result. The ladder tiers up to meet however far the perk
+## reaches, so the levels it opens are bought at the rate and the price of the
+## tier they actually land in rather than piling into a last one.
 @export var max_level_perk_id: StringName = &""
 @export var max_level_per_perk_level: int = 0
 
@@ -80,7 +101,23 @@ extends Resource
 func per_level(tier: int) -> float:
 	return base_per_level * pow(per_level_growth, float(tier - 1))
 
-## Crystals the first level of the given tier costs, before the within-tier
-## curve.
-func tier_base_cost(tier: int) -> float:
-	return base_cost * pow(tier_cost_growth, float(tier - 1))
+## Crystals the next level costs, given how far up the whole ladder the boost
+## already is. Level 0 prices the first level bought.
+##
+## Priced off the total level rather than off a tier's own counter, which is what
+## keeps the ladder one curve. The counter restarting is what made every boundary
+## a discount of cost_growth^LEVELS_PER_TIER - and a boundary is also where the
+## payout jumps, so the player was paid to cross into the tier worth more. It is
+## also what leaves cost_growth_exponent nothing coherent to bend: an exponent
+## raised through a level that resets bends the same short stretch of curve once
+## per tier instead of bending the ladder once, end to end.
+##
+## BigNumber rather than float because it has to be - any exponent above 1.0 puts
+## the top of this ladder past what a float holds, and pow_float saturates at
+## BigNumber.MAX_EXPONENT rather than handing back an inf that spreads.
+func cost_at(level: int) -> BigNumber:
+	var steps := float(level) * pow(cost_growth_exponent, float(level))
+	var tier := BoostTiers.tier_for_level(level)
+	return BigNumber.from_value(base_cost) \
+		.mul(BigNumber.from_value(cost_growth).pow_float(steps)) \
+		.mul(BigNumber.from_value(tier_cost_growth).pow_float(float(tier - 1)))
