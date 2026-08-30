@@ -13,4 +13,4 @@ tick_growth = 2.0
 _payout_base_mantissa = 1.0
 _payout_base_exponent = 0
 payout_growth = 1.6
-max_areas = 200
+max_areas = 100000

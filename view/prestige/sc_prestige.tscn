@@ -81,6 +81,18 @@ shader_parameter/additional_border_offset = 2.0
 shader_parameter/background_alpha = 1.0
 shader_parameter/border_alpha = 1.0
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_storage"]
+resource_local_to_scene = true
+shader = ExtResource("7_qe6gy")
+shader_parameter/rect_size = Vector2(700, 120)
+shader_parameter/box_color = Color(0.047984995, 0.0343, 0.07, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 18.0
+shader_parameter/border_thickness = 2.0
+shader_parameter/additional_border_offset = 2.0
+shader_parameter/background_alpha = 0.95
+shader_parameter/border_alpha = 0.0
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_x2ilw"]
 resource_local_to_scene = true
 shader = ExtResource("7_qe6gy")
@@ -105,7 +117,7 @@ shader_parameter/additional_border_offset = 2.0
 shader_parameter/background_alpha = 1.0
 shader_parameter/border_alpha = 1.0
 
-[node name="prestige_screen" type="PanelContainer" unique_id=563082709 node_paths=PackedStringArray("sporate_button", "perk_web", "detail_name", "detail_description", "detail_level", "buy_button", "nutrient_storage_label", "nutrient_storage_bar", "tick_storage_label", "tick_storage_bar", "gate_label")]
+[node name="prestige_screen" type="PanelContainer" unique_id=563082709 node_paths=PackedStringArray("sporate_button", "perk_web", "detail_name", "detail_description", "detail_level", "buy_button", "storage_toggle", "storage_box", "nutrient_storage_label", "nutrient_storage_bar", "tick_storage_label", "tick_storage_bar", "gate_label")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -114,16 +126,18 @@ grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxEmpty_lxikg")
 script = ExtResource("1_panel_script")
 sporate_button = NodePath("TopBar/SporateButton")
+storage_toggle = NodePath("TopBar/StorageToggle")
+storage_box = NodePath("TopBar/StoragePanel")
 perk_web = NodePath("MarginContainer/VBox/WebClip")
 detail_name = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailName")
 detail_description = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailDescription")
 detail_level = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/DetailLevel")
 buy_button = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton")
-nutrient_storage_label = NodePath("TopBar/StorageBox/NutrientLabel")
-nutrient_storage_bar = NodePath("TopBar/StorageBox/NutrientBar")
-tick_storage_label = NodePath("TopBar/StorageBox/TickLabel")
-tick_storage_bar = NodePath("TopBar/StorageBox/TickBar")
-gate_label = NodePath("TopBar/StorageBox/GateLabel")
+nutrient_storage_label = NodePath("TopBar/StoragePanel/StorageMargin/StorageBox/NutrientLabel")
+nutrient_storage_bar = NodePath("TopBar/StoragePanel/StorageMargin/StorageBox/NutrientBar")
+tick_storage_label = NodePath("TopBar/StoragePanel/StorageMargin/StorageBox/TickLabel")
+tick_storage_bar = NodePath("TopBar/StoragePanel/StorageMargin/StorageBox/TickBar")
+gate_label = NodePath("TopBar/StoragePanel/StorageMargin/StorageBox/GateLabel")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=503072458]
 layout_mode = 2
@@ -150,11 +164,11 @@ material = SubResource("ShaderMaterial_webfade")
 script = ExtResource("3_lines_script")
 connector_scene = ExtResource("5_connector_scene")
 
-[node name="TopBar" type="HBoxContainer" parent="." unique_id=590918908]
+[node name="TopBar" type="VBoxContainer" parent="." unique_id=590918908]
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
 
 [node name="SporateButton" parent="TopBar" unique_id=1183978066 instance=ExtResource("6_button_scene")]
 material = SubResource("ShaderMaterial_2mo3i")
@@ -164,17 +178,35 @@ disabled_color = Color(0.13709998, 0.098000005, 0.2, 1)
 text_color = Color(1, 1, 1, 1)
 disabled_text_color = Color(0.24, 0.24, 0.24, 1)
 
-[node name="StorageBox" type="VBoxContainer" parent="TopBar"]
+[node name="StorageToggle" type="Button" parent="TopBar"]
 layout_mode = 2
 size_flags_horizontal = 3
+text = "Storage"
+
+[node name="StoragePanel" type="PanelContainer" parent="TopBar"]
+visible = false
+material = SubResource("ShaderMaterial_storage")
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("8_6hxqy")
+
+[node name="StorageMargin" type="MarginContainer" parent="TopBar/StoragePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="StorageBox" type="VBoxContainer" parent="TopBar/StoragePanel/StorageMargin"]
+layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="NutrientLabel" type="Label" parent="TopBar/StorageBox"]
+[node name="NutrientLabel" type="Label" parent="TopBar/StoragePanel/StorageMargin/StorageBox"]
 layout_mode = 2
 text = "Nutrient storage"
 
-[node name="NutrientBar" type="ProgressBar" parent="TopBar/StorageBox"]
+[node name="NutrientBar" type="ProgressBar" parent="TopBar/StoragePanel/StorageMargin/StorageBox"]
 custom_minimum_size = Vector2(0, 7)
 layout_mode = 2
 max_value = 1.0
@@ -182,11 +214,11 @@ step = 0.001
 value = 0.0
 show_percentage = false
 
-[node name="TickLabel" type="Label" parent="TopBar/StorageBox"]
+[node name="TickLabel" type="Label" parent="TopBar/StoragePanel/StorageMargin/StorageBox"]
 layout_mode = 2
 text = "Time storage"
 
-[node name="TickBar" type="ProgressBar" parent="TopBar/StorageBox"]
+[node name="TickBar" type="ProgressBar" parent="TopBar/StoragePanel/StorageMargin/StorageBox"]
 custom_minimum_size = Vector2(0, 7)
 layout_mode = 2
 max_value = 1.0
@@ -194,7 +226,7 @@ step = 0.001
 value = 0.0
 show_percentage = false
 
-[node name="GateLabel" type="Label" parent="TopBar/StorageBox"]
+[node name="GateLabel" type="Label" parent="TopBar/StoragePanel/StorageMargin/StorageBox"]
 layout_mode = 2
 autowrap_mode = 3
 

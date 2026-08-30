@@ -25,7 +25,8 @@ var sporate_enabled: bool:
 var nutrient_storage_text: String:
 	get:
 		var report := App.prestige_system.storage_report()
-		return _storage_text("Nutrient storage", report["nutrient_areas"], report["nutrient_fill"])
+		return _storage_text("Nutrient storage", report["nutrient_areas"],
+			report["nutrient_amount"], report["nutrient_next"])
 
 var nutrient_storage_fill: float:
 	get: return App.prestige_system.storage_report()["nutrient_fill"]
@@ -33,7 +34,8 @@ var nutrient_storage_fill: float:
 var tick_storage_text: String:
 	get:
 		var report := App.prestige_system.storage_report()
-		return _storage_text("Time storage", report["tick_areas"], report["tick_fill"])
+		return _storage_text("Time storage", report["tick_areas"],
+			report["tick_amount"], report["tick_next"])
 
 var tick_storage_fill: float:
 	get: return App.prestige_system.storage_report()["tick_fill"]
@@ -51,8 +53,13 @@ var gate_text: String:
 		return "Fill more storage: this run pays %s, your best was %s." % [
 			(report["gain"] as BigNumber).to_display(), best.to_display()]
 
-func _storage_text(label: String, areas: int, fill: float) -> String:
-	return "%s · %d filled · %d%% to #%d" % [label, areas, roundi(fill * 100.0), areas + 1]
+## "Nutrient storage · 4 filled · 12.3K / 100.0K": what the ladder has finished,
+## then how far into the one being filled - as the two amounts rather than as a
+## percentage, which said nothing about how much further it is. The pair is not
+## labelled as the next area's price: it sits above that area's own bar.
+func _storage_text(label: String, areas: int, amount: BigNumber, needed: BigNumber) -> String:
+	return "%s · %d filled · %s / %s" % [
+		label, areas, amount.to_display(), needed.to_display()]
 
 ## Short form for the resource bar's biomass chip, where the full sporate
 ## sentence does not fit.

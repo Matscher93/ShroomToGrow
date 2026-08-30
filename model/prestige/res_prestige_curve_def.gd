@@ -32,11 +32,15 @@ extends Resource
 @export var _payout_base_exponent: int = 0
 @export var payout_growth: float = 1.6
 
-## Hard ceiling on the areas one ladder may report. A growth of 1.0 or below
-## makes the ladder flat and every amount infinitely deep, and the payout is an
-## exponential of the total: without this a mistyped growth is not a bad curve
-## but a hang.
-@export var max_areas: int = 200
+## Hard ceiling on the areas one ladder may report.
+##
+## A guard, not a design ceiling: a growth of 1.0 or below makes the ladder flat
+## and every amount infinitely deep, and the payout is an exponential of the
+## total, so a mistyped growth would be a hang rather than a bad curve. The
+## ladder itself is walked in log space, so a high ceiling costs nothing - keep
+## this well above the areas a real run can fill, or late runs stop being worth
+## more than the one that first hit the cap.
+@export var max_areas: int = 100000
 
 func nutrient_base() -> BigNumber:
 	return BigNumber.new(_nutrient_base_mantissa, _nutrient_base_exponent)

@@ -36,18 +36,28 @@ static func areas_filled(amount: BigNumber, base: BigNumber, growth: float,
 	var steps := (amount.log10() - base.log10()) / (log(growth) / log(10.0))
 	return clampi(int(floor(steps)) + 1, 0, max_areas)
 
-## Progress into the next area, 0.0 to 1.0, for a storage bar. Below the first
-## area this measures the approach to it over one area's width, so a run that has
-## filled nothing still shows movement.
-static func fill_fraction(amount: BigNumber, base: BigNumber, growth: float) -> float:
+## What `area` costs on this ladder: `base * growth^(area - 1)`. Zero for area 0,
+## which is the empty ladder rather than a threshold.
+static func area_threshold(base: BigNumber, growth: float, area: int) -> BigNumber:
+	if area <= 0 or base == null:
+		return BigNumber.new(0.0, 0)
+	return base.mul(BigNumber.from_value(growth).pow_float(float(area - 1)))
+
+## Progress across the area currently being filled, 0.0 to 1.0, for a storage
+## bar. Measured against the same two numbers the bar is labelled with - what
+## the area started at and what it needs - so a bar at half is a label at half.
+static func fill_fraction(amount: BigNumber, base: BigNumber, growth: float,
+		areas: int) -> float:
 	if amount == null or base == null or amount.mantissa <= 0.0 or base.mantissa <= 0.0:
 		return 0.0
 	if growth <= 1.0:
 		return 0.0
-	var steps := (amount.log10() - base.log10()) / (log(growth) / log(10.0))
-	if steps < 0.0:
-		return clampf(1.0 + steps, 0.0, 1.0)
-	return clampf(steps - floor(steps), 0.0, 1.0)
+	var filled := area_threshold(base, growth, areas)
+	var needed := area_threshold(base, growth, areas + 1)
+	var span := needed.sub(filled)
+	if span.mantissa <= 0.0:
+		return 0.0
+	return clampf(amount.sub(filled).div(span).to_float(), 0.0, 1.0)
 
 ## Biomass a run of this shape converts into, before ProductionSystem's
 ## &"biomass_gain" stacks. Zero until the run has filled at least one area on

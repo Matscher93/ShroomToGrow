@@ -11,6 +11,8 @@ extends PanelContainer
 @export var detail_description: Label
 @export var detail_level: Label
 @export var buy_button: PanelContainer
+@export var storage_toggle: Button
+@export var storage_box: Control
 @export var nutrient_storage_label: Label
 @export var nutrient_storage_bar: ProgressBar
 @export var tick_storage_label: Label
@@ -20,9 +22,14 @@ extends PanelContainer
 var _vm: PrestigeViewModel
 var _detail_vm: PerkViewModel
 var _selected_id: StringName = &"core"
+## Folded away by default: the sporate button and two labelled bars do not both
+## fit across the top bar, and the button is what the screen is for.
+var _storage_open := false
 
 func _ready() -> void:
 	sporate_button.pressed.connect(_on_sporate_pressed)
+	storage_toggle.pressed.connect(_on_storage_toggled)
+	_apply_storage_visibility()
 	buy_button.pressed.connect(_on_buy_pressed)
 	perk_web.perk_selected.connect(_on_perk_selected)
 	bind(App.prestige_vm)
@@ -68,12 +75,26 @@ func _select_perk(id: StringName) -> void:
 func _on_sporate_pressed() -> void:
 	_vm.sporate()
 
+func _on_storage_toggled() -> void:
+	_storage_open = not _storage_open
+	_apply_storage_visibility()
+	if _storage_open:
+		_refresh_sporate()
+
+func _apply_storage_visibility() -> void:
+	storage_box.visible = _storage_open
+	storage_toggle.text = "Storage ▴" if _storage_open else "Storage ▾"
+
 func _on_buy_pressed() -> void:
 	_detail_vm.buy()
 
 func _refresh_sporate() -> void:
 	sporate_button.set_button_text(_vm.sporate_text)
 	sporate_button.set_disabled(not _vm.sporate_enabled)
+	# The bars read the model on every access, and the panel refreshes on every
+	# tick: skipped entirely while nobody is looking at them.
+	if not _storage_open:
+		return
 	nutrient_storage_label.text = _vm.nutrient_storage_text
 	nutrient_storage_bar.value = _vm.nutrient_storage_fill
 	tick_storage_label.text = _vm.tick_storage_text

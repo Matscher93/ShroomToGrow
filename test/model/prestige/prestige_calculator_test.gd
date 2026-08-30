@@ -48,14 +48,32 @@ func test_a_part_filled_area_does_not_count_yet() -> void:
 	assert_int(PrestigeCalculator.nutrient_areas(BigNumber.from_value(9.99e3), _def)).is_equal(1)
 	assert_float(_gain(0, 9.99e3)).is_equal_approx(_gain(0, 1e3), EPS)
 
-func test_the_fill_fraction_tracks_progress_into_the_next_area() -> void:
-	# Halfway up an area in log space, which is what the bar is drawn in.
+func test_the_fill_fraction_matches_the_amounts_the_bar_is_labelled_with() -> void:
+	# The first area spans 0 to 1e3, the second 1e3 to 1e4: the bar is the plain
+	# ratio across whichever one is being filled, so it agrees with the "X / Y"
+	# the label carries.
 	assert_float(PrestigeCalculator.fill_fraction(
-		BigNumber.from_value(sqrt(10.0) * 1e3), _def.nutrient_base(), _def.nutrient_growth)) \
+		BigNumber.from_value(500.0), _def.nutrient_base(), _def.nutrient_growth, 0)) \
 		.is_equal_approx(0.5, 0.001)
-	# Below the first area the bar still measures the approach to it.
 	assert_float(PrestigeCalculator.fill_fraction(
-		BigNumber.from_value(1.0), _def.nutrient_base(), _def.nutrient_growth)).is_zero()
+		BigNumber.from_value(5.5e3), _def.nutrient_base(), _def.nutrient_growth, 1)) \
+		.is_equal_approx(0.5, 0.001)
+
+func test_the_fill_fraction_never_leaves_its_bar() -> void:
+	assert_float(PrestigeCalculator.fill_fraction(
+		BigNumber.from_value(0.0), _def.nutrient_base(), _def.nutrient_growth, 0)).is_zero()
+	assert_float(PrestigeCalculator.fill_fraction(
+		BigNumber.from_value(1e30), _def.nutrient_base(), _def.nutrient_growth, 1)) \
+		.is_equal_approx(1.0, EPS)
+
+func test_an_area_threshold_is_what_that_area_costs() -> void:
+	assert_float(PrestigeCalculator.area_threshold(
+		_def.nutrient_base(), _def.nutrient_growth, 1).to_float()).is_equal_approx(1e3, 1.0)
+	assert_float(PrestigeCalculator.area_threshold(
+		_def.nutrient_base(), _def.nutrient_growth, 3).to_float()).is_equal_approx(1e5, 1.0)
+	# Area 0 is the empty ladder, not a price.
+	assert_float(PrestigeCalculator.area_threshold(
+		_def.nutrient_base(), _def.nutrient_growth, 0).to_float()).is_zero()
 
 func test_max_areas_clamps_a_ladder() -> void:
 	_def.max_areas = 3

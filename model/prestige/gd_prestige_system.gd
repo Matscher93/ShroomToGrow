@@ -63,16 +63,23 @@ func can_prestige() -> bool:
 ## bars. One call rather than a property per number, so the View never re-derives
 ## a ladder the model already knows how to read.
 func storage_report() -> Dictionary:
-	var nutrient_areas := PrestigeCalculator.nutrient_areas(_player_data.run_nutrients, _curve)
+	var nutrients := _player_data.run_nutrients
+	var ticks := BigNumber.from_value(float(maxi(_player_data.tick_count, 0)))
+	var nutrient_areas := PrestigeCalculator.nutrient_areas(nutrients, _curve)
 	var tick_areas := PrestigeCalculator.tick_areas(_player_data.tick_count, _curve)
 	return {
 		"nutrient_areas": nutrient_areas,
 		"nutrient_fill": PrestigeCalculator.fill_fraction(
-			_player_data.run_nutrients, _curve.nutrient_base(), _curve.nutrient_growth),
+			nutrients, _curve.nutrient_base(), _curve.nutrient_growth, nutrient_areas),
+		"nutrient_amount": nutrients,
+		"nutrient_next": PrestigeCalculator.area_threshold(
+			_curve.nutrient_base(), _curve.nutrient_growth, nutrient_areas + 1),
 		"tick_areas": tick_areas,
 		"tick_fill": PrestigeCalculator.fill_fraction(
-			BigNumber.from_value(float(maxi(_player_data.tick_count, 0))),
-			_curve.tick_base(), _curve.tick_growth),
+			ticks, _curve.tick_base(), _curve.tick_growth, tick_areas),
+		"tick_amount": ticks,
+		"tick_next": PrestigeCalculator.area_threshold(
+			_curve.tick_base(), _curve.tick_growth, tick_areas + 1),
 		"total_areas": nutrient_areas + tick_areas,
 		"gain": preview_biomass_gain(),
 		"best": _player_data.best_biomass_gain,
