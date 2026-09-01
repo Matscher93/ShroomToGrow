@@ -18,7 +18,7 @@
   const {
     growthCurve, effectCurve, chartBlock, engineCurve, engineSeries, cell, numberCell, enumIs,
     log10Of: bigLog10,   // the local log10Of below takes a pair, this one a pair's halves
-    fromLog10, formatBig,
+    fromLog10, formatBig, logSumExp, costToMaxLog10, resetRange,
     scopeTargetFields, rowsOf, fieldGroup, bigField, hueOf, dependencyField,
   } = window.GameKit;
 
@@ -273,6 +273,12 @@
   const SIBLING_SPREAD_DEG = 26;
   const BRANCH_START_DEG = -90;   // the first branch points straight up
   const BRANCH_SLICE_FILL = 0.8;  // the rest of a branch's slice is gutter
+
+  /* The chart kinds drawn about one perk, as chartBlock keys. Named here so the
+   * range specs below and the reset in render() cannot drift apart. */
+  const PERK_COST_CHART = "perk-cost";
+  const PERK_EFFECT_CHART = "perk-effect";
+  const PERK_CHART_KEYS = [PERK_COST_CHART, PERK_EFFECT_CHART];
 
   const LIST_FILE = "PerkBranchList";
   const BRANCH_FILE = "PerkBranchDef";
@@ -1046,8 +1052,9 @@
       return series;
     };
     return chartBlock("What an area costs", build, {
-      log: true, xLabel: "area", width: 320, height: 200,
+      space: "log10", xLabel: "area", width: 320, height: 200,
       range: { key: "prestige-area", from: 0, to: 20, label: "area" },
+      scaleKey: "prestige-ladder",
     });
   }
 
@@ -1067,8 +1074,11 @@
       return series;
     };
     return chartBlock("What a run pays", build, {
-      log: true, xLabel: "areas filled, both ladders", width: 320, height: 200,
+      space: "log10", xLabel: "areas filled, both ladders", width: 320, height: 200,
       range: { key: "prestige-area", from: 0, to: 20, label: "area" },
+      // Its own scale key though it shares the range: the two charts are read
+      // against the same x axis but answer different questions on y.
+      scaleKey: "prestige-payout",
     });
   }
 
@@ -1279,6 +1289,10 @@
     { key: "per_level", label: "Per level", column: "per_level" },
     { key: "max_magnitude", label: "Max magnitude", column: "max_magnitude" },
   ];
+
+  /* Both lists by key, so the solve can name a field without repeating its shape. */
+  const BULK_FIELD_BY_KEY = Object.fromEntries(
+    [...BULK_FIELDS, ...EFFECT_FIELDS].map((field) => [field.key, field]));
 
   /* The two tables a bulk apply can stage into. Two of them means Save all
    * rather than Save, which is worth saying before the perks are saved and the
@@ -1679,6 +1693,643 @@
     return wrap;
   }
 
+  /* ------------------------------------------------------------ auto-balance */
+
+  /* Working out what the numbers should be, rather than moving them by hand.
+   *
+   * The whole solve is closed form, which is why there is no search loop here.
+   * The engine prices a level as `base * g^(l * ge^l)` and maxing costs the sum
+   * of those over l = 0..L-1, so:
+   *
+   *   cost_to_max = base * S(g, ge, L)      <- linear in base
+   *   last/first  = g^((L-1) * ge^(L-1))    <- the climb across its own levels
+   *
+   * Name what reaching depth d should cost and how far a perk climbs, and both
+   * knobs fall out by inversion: g from the climb, then base from the budget.
+   * Nothing is iterated and nothing is simulated - the sim comes afterwards, to
+   * say what the pacing became, and is never in this loop.
+   */
+
+  /* Two curves across depth, both in log10: what a perk's first level should
+   * cost at that depth, and what its last should. Each is the shape the game
+   * itself prices with - `start * 10^(ratio * (d-1) * accel^(d-1))` - so a
+   * branch can widen as it deepens rather than only sliding up.
+   *
+   * Those two points are what a perk is solved from. `cost(l) = base * g^(l *
+   * ge^l)` is exactly `base` at level 0, so the first curve *is* base_cost; the
+   * last curve then fixes how far the perk has to climb over its levels. That is
+   * one equation and two growth fields, so cost_growth_exponent is left as
+   * authored and cost_growth is the one that moves - the perk keeps whatever
+   * curvature it was given, and only its steepness is retuned. */
+  const AUTO = {
+    anchor: "",
+    // Each curve's start is typed as a mantissa and an exponent, the same split
+    // the .tres stores a base cost in, so 2.5e3 is two boxes rather than a
+    // logarithm worked out by hand. `first0`/`last0` are what everything else
+    // reads, recomputed from the pair whenever either half moves.
+    firstMantissa: null, firstExponent: null, first0: null,
+    firstRatio: null, firstAccel: 1,
+    lastMantissa: null, lastExponent: null, last0: null,
+    lastRatio: null, lastAccel: 1,
+    levels: "keep",    // keep | set
+    levelValue: 100,
+    holdEffect: true,  // per_level follows max_level, so effect_at_max is held
+  };
+
+  /** Least squares over one branch, in the space the costs live in: where the
+   * curve starts and how many decades each depth adds. `valueOf` picks which
+   * cost is being fitted - a perk's first level or its last. */
+  function fitCurve(perks, valueOf) {
+    const points = perks
+      .map((perk) => ({ x: perk.depth - 1, y: log10Of(valueOf(perk)) }))
+      .filter((point) => point.x >= 0 && point.y !== null && Number.isFinite(point.y));
+    if (points.length < 2) return null;
+    const n = points.length;
+    const sx = points.reduce((sum, p) => sum + p.x, 0);
+    const sy = points.reduce((sum, p) => sum + p.y, 0);
+    const sxx = points.reduce((sum, p) => sum + p.x * p.x, 0);
+    const sxy = points.reduce((sum, p) => sum + p.x * p.y, 0);
+    const denom = n * sxx - sx * sx;
+    if (!denom) return null;
+    const ratio = (n * sxy - sx * sy) / denom;
+    return { start: (sy - ratio * sx) / n, ratio };
+  }
+
+  /** Recomputes a curve's start from the two boxes it is typed in. Null when the
+   * mantissa is not a positive number, which has no logarithm. */
+  function restart(which) {
+    const mantissa = AUTO[`${which}Mantissa`];
+    const exponent = AUTO[`${which}Exponent`];
+    AUTO[`${which}0`] = mantissa > 0 && Number.isFinite(exponent)
+      ? Math.log10(mantissa) + exponent : null;
+  }
+
+  /** Puts a log10 into the two boxes, then recomputes the start from what they
+   * now hold - so what is used is always what is shown, rounding included. */
+  function setStart(which, value) {
+    const [mantissa, exponent] = fromLog10(value);
+    // Four figures, not six: this is a least-squares estimate over a handful of
+    // perks, and 1.31072 claims a precision the fit does not have - while
+    // costing the box the room to show its last two digits.
+    AUTO[`${which}Mantissa`] = Number(mantissa.toPrecision(4));
+    AUTO[`${which}Exponent`] = exponent;
+    restart(which);
+  }
+
+  /** Fills both curves from a branch already priced the way you want the rest to
+   * be. Two straight-line fits, so adopting a branch adopts straight lines -
+   * curving them is a deliberate move away from that. */
+  function adoptAnchor(branchKey) {
+    const perks = view.report.perks.filter((perk) => perk.branch_key === branchKey);
+    const first = fitCurve(perks, (perk) => perk.first_level_cost);
+    const last = fitCurve(perks, (perk) => perk.last_level_cost);
+    if (!first || !last) return false;
+    setStart("first", first.start);
+    AUTO.firstRatio = Number(first.ratio.toPrecision(4));
+    AUTO.firstAccel = 1;
+    setStart("last", last.start);
+    AUTO.lastRatio = Number(last.ratio.toPrecision(4));
+    AUTO.lastAccel = 1;
+    return true;
+  }
+
+  /** Where one of the two curves sits at `depth`, in log10. Taken from
+   * growthCurve rather than written out again, so the target and every cost
+   * curve on this screen are the same expression. */
+  const curveAt = (which, depth) => growthCurve(
+    AUTO[`${which}0`], 10 ** AUTO[`${which}Ratio`], AUTO[`${which}Accel`],
+    depth - 1, depth - 1)[0];
+
+  /* cost_growth has to stay above 1.0 - authored_data_test and the pacing test
+   * both refuse a curve that never rises - so a perk is never asked to climb
+   * fewer decades than this over all its levels. */
+  const MIN_CLIMB = 1e-6;
+
+  /** The whole solve: one plan, per field, plus everything worth refusing over.
+   *
+   * Built in one pass so the preview and the apply cannot disagree, and so the
+   * per_level rows can be worked out from the max_level a perk is *about to*
+   * have while its old one is still readable. */
+  function solvePlan() {
+    const perField = new Map();
+    const warnings = [];
+    const push = (key, row) => {
+      if (!perField.has(key)) perField.set(key, []);
+      perField.get(key).push(row);
+    };
+
+    const ready = ["first0", "firstRatio", "last0", "lastRatio"]
+      .every((key) => Number.isFinite(AUTO[key]));
+    if (!ready) {
+      return { perField, warnings: ["Pick a branch to match, or type both curves."] };
+    }
+    if (!(AUTO.firstAccel > 0) || !(AUTO.lastAccel > 0)) {
+      return { perField, warnings: ["A depth exponent has to be above 0."] };
+    }
+
+    const solved = new Map();
+    for (const entry of orderedPicked()) {
+      const perk = view.drawn.get(entry.path) || {};
+      const priced = view.report.perks.find((p) => p.res_path === entry.path) || {};
+      const depth = perk.depth ?? priced.depth;
+      if (!depth) {
+        warnings.push(`${nameOf(entry.path)} is the core - it has no depth to price.`);
+        continue;
+      }
+      const row = rowIndexOf(entry.path);
+      if (!row) continue;
+
+      // The level count first: everything below is priced for the perk it is
+      // about to be, not the one it was.
+      const wasLevel = Math.max(1, Math.round(numberCell(row, "max_level", 1)));
+      const level = AUTO.levels === "set"
+        ? Math.max(1, Math.round(AUTO.levelValue)) : wasLevel;
+      if (level !== wasLevel) {
+        push("max_level", { path: entry.path, name: nameOf(entry.path),
+          current: wasLevel, next: level });
+      }
+
+      // Level 0 costs base_cost exactly, so the first curve is not solved for -
+      // it is written straight in.
+      const first = curveAt("first", depth);
+      const last = curveAt("last", depth);
+      if (!Number.isFinite(first) || !Number.isFinite(last)) {
+        warnings.push(`${nameOf(entry.path)} at depth ${depth} is off the end of these curves.`);
+        continue;
+      }
+      push("base_cost", { path: entry.path, name: nameOf(entry.path),
+        current: readField(entry.path, BULK_FIELD_BY_KEY.base_cost), next: first });
+
+      if (level > 1) {
+        const ge = numberCell(row, "cost_growth_exponent", 1);
+        // How far level 0 is from level L-1 in the exponent, with the perk's own
+        // curvature left in. cost_growth is what is left to solve.
+        const reach = (level - 1) * ge ** (level - 1);
+        let span = last - first;
+        if (!(span > 0)) {
+          warnings.push(`${nameOf(entry.path)} is asked to end no dearer than it starts at `
+            + `depth ${depth} - its last level would need a cost_growth of 1.0 or less, `
+            + "which authored_data_test refuses. Raised to the smallest rise there is.");
+          span = MIN_CLIMB;
+        }
+        const growth = reach > 0 ? 10 ** (span / reach) : numberCell(row, "cost_growth", 1.6);
+        push("cost_growth", { path: entry.path, name: nameOf(entry.path),
+          current: numberCell(row, "cost_growth", 1.6), next: growth });
+      } else if (Math.abs(last - first) > 1e-9) {
+        warnings.push(`${nameOf(entry.path)} has one level, so its first level is its last - `
+          + "only the first curve reaches it.");
+      }
+
+      solved.set(entry.path, { baseLog: first, level, wasLevel, depth,
+        parent_id: perk.parent_id || priced.parent_id, id: perk.id || priced.id });
+    }
+
+    // A perk has to cost more than the one it hangs off - authored_data_test
+    // asserts it on base_cost, and a curve can rise with depth while a fork
+    // inside a branch still breaks it. Reported, never quietly fixed.
+    const byId = new Map([...solved].map(([path, entry]) => [entry.id, { path, ...entry }]));
+    for (const entry of byId.values()) {
+      const parent = byId.get(entry.parent_id);
+      if (parent && !(entry.baseLog > parent.baseLog)) {
+        warnings.push(`${nameOf(entry.path)} would not cost more than `
+          + `${nameOf(parent.path)} - authored_data_test asserts a perk is dearer `
+          + "than its parent.");
+      }
+    }
+
+    if (AUTO.holdEffect && AUTO.levels === "set") {
+      for (const row of effectRowsHoldingMagnitude(solved)) push("per_level", row);
+    }
+    return { perField, warnings };
+  }
+
+  /** per_level rebuilt so a perk gives what it gave before its level count moved.
+   *
+   * Effect defs are shared - one belongs to eight perks on the Reach arm - so a
+   * def is only touched when every picked perk using it lands on the *same* new
+   * level. Otherwise there is no single per_level that holds all their
+   * magnitudes, and picking one silently would be a guess. */
+  function effectRowsHoldingMagnitude(solved) {
+    const byPath = new Map();
+    for (const perk of view.report.perks) {
+      const entry = solved.get(perk.res_path);
+      if (!entry) continue;
+      for (const path of perk.effect_paths || []) {
+        if (!byPath.has(path)) byPath.set(path, []);
+        byPath.get(path).push(entry);
+      }
+    }
+    const rows = [];
+    for (const [path, users] of byPath) {
+      const level = users[0].level;
+      const wasLevel = users[0].wasLevel;
+      if (users.some((user) => user.level !== level || user.wasLevel !== wasLevel)) {
+        continue;   // reported by the section itself, which knows the names
+      }
+      const effect = rowIndexOf(path);
+      if (!effect) continue;
+      const perLevel = numberCell(effect, "per_level", 0);
+      const compound = cell(effect, "level_scaling") === "COMPOUND";
+      // LINEAR magnitude is per_level * L, COMPOUND is (1+per_level)^L - 1.
+      // Both invert directly for the per_level that keeps the old magnitude.
+      const next = compound
+        ? (1 + perLevel) ** (wasLevel / level) - 1
+        : (perLevel * wasLevel) / level;
+      if (!Number.isFinite(next) || Math.abs(next - perLevel) < 1e-12) continue;
+      rows.push({ path, name: labelOf(path), current: perLevel, next });
+    }
+    return rows;
+  }
+
+  /** The auto-balance controls, the plan they produce, and one Apply that hands
+   * it to the same staging every manual op goes through.
+   *
+   * Six boxes in a grid rather than a column of labelled rows: they are two
+   * readings of the same three questions - where the curve starts, what each
+   * depth multiplies it by, and whether that multiplier itself grows - and read
+   * far quicker as two rows under one set of headings. Every one of them is an
+   * exponent, so there is nothing to echo; the ladder underneath shows what the
+   * numbers actually come to, which is better feedback than a restatement.
+   */
+  function autoSection() {
+    const wrap = document.createElement("div");
+    wrap.className = "bulk-auto";
+    const title = document.createElement("h3");
+    title.textContent = "Auto-balance";
+    wrap.append(title);
+
+    const note = document.createElement("p");
+    note.className = "hint";
+    note.textContent = "Say what a perk's first and last level should cost at each depth. "
+      + "base_cost and cost_growth are solved from the two; cost_growth_exponent is left "
+      + "as authored. Nothing is written until Apply.";
+    wrap.append(note);
+
+    const anchor = document.createElement("select");
+    anchor.append(new Option("price it like…", ""));
+    for (const branch of view.report.branches) {
+      if (!branch.branch_key) continue;
+      anchor.append(new Option(branch.branch_label, branch.branch_key));
+    }
+    anchor.title = "Fit both curves to a branch already costing what you want";
+    anchor.onchange = () => {
+      AUTO.anchor = anchor.value;
+      if (AUTO.anchor && adoptAnchor(AUTO.anchor)) fill();
+      refresh();
+    };
+    wrap.append(anchor);
+
+    const grid = document.createElement("div");
+    grid.className = "bulk-auto-grid";
+    for (const heading of ["", "start", "×1e / depth", "exp"]) {
+      const cell = document.createElement("i");
+      cell.className = "bulk-auto-head";
+      cell.textContent = heading;
+      grid.append(cell);
+    }
+
+    const boxes = {};
+    const box = (key, tip, step) => {
+      const input = document.createElement("input");
+      input.type = "number";
+      input.step = step;
+      input.dataset.auto = key;
+      input.title = tip;
+      input.oninput = () => {
+        const raw = input.value.trim() === "" ? NaN : Number(input.value);
+        AUTO[key] = Number.isFinite(raw) ? raw : null;
+        // A start is stored as a pair and read as a logarithm; moving either
+        // half has to move the logarithm with it.
+        const start = /^(first|last)(Mantissa|Exponent)$/.exec(key);
+        if (start) restart(start[1]);
+        // Typing makes the curves yours, not the branch's - the picker stops
+        // claiming a fit these numbers may no longer be.
+        AUTO.anchor = "";
+        anchor.value = "";
+        refresh();
+      };
+      boxes[key] = input;
+      return input;
+    };
+
+    /** The mantissa and exponent of one curve's start, side by side with the `e`
+     * between them - the same pair the .tres stores a base cost as, so a price
+     * of 2.5e3 is typed rather than converted. */
+    const startPair = (which, label) => {
+      const pair = document.createElement("span");
+      pair.className = "bulk-auto-pair";
+      const mantissa = box(`${which}Mantissa`, `What this ${label} costs at depth 1`, "any");
+      mantissa.min = "0";
+      const e = document.createElement("i");
+      e.textContent = "e";
+      const exponent = box(`${which}Exponent`,
+        `The power of ten this ${label} costs at depth 1`, "1");
+      pair.append(mantissa, e, exponent);
+      return pair;
+    };
+
+    // Short labels: the heading says these are starts, and the row names cost the
+    // exponent boxes room they need more.
+    for (const [which, label] of [["first", "first"], ["last", "last"]]) {
+      const name = document.createElement("label");
+      name.textContent = label;
+      grid.append(name,
+        startPair(which, label),
+        box(`${which}Ratio`, `Decades each step down the branch adds to this ${label}`, "0.5"),
+        box(`${which}Accel`, "How much more each step adds than the one before it. "
+          + "1 is a straight line in log space. The same knob cost_growth_exponent "
+          + "is on a perk.", "0.005"));
+    }
+    wrap.append(grid);
+
+    /* Level counts, not prices. Closed by default: a branch's costs can be
+     * retuned without changing how long its perks are, and that is the change
+     * worth making by default. */
+    const adjust = document.createElement("details");
+    adjust.className = "bulk-auto-adjust";
+    const summary = document.createElement("summary");
+    summary.textContent = "Adjust levels";
+    adjust.append(summary);
+
+    const levels = document.createElement("select");
+    levels.append(new Option("keep max levels", "keep"), new Option("set max level", "set"));
+    levels.value = AUTO.levels;
+    const levelBox = document.createElement("input");
+    levelBox.type = "number";
+    levelBox.step = "1";
+    levelBox.dataset.auto = "levels";
+    levelBox.value = String(AUTO.levelValue);
+    levelBox.oninput = () => {
+      const value = Number(levelBox.value);
+      if (Number.isFinite(value)) AUTO.levelValue = value;
+      refresh();
+    };
+    levels.onchange = () => { AUTO.levels = levels.value; refresh(); };
+    const levelRow = document.createElement("div");
+    levelRow.className = "bulk-auto-row";
+    levelRow.append(levels, levelBox);
+
+    const hold = document.createElement("label");
+    hold.className = "bulk-auto-hold";
+    const holdBox = document.createElement("input");
+    holdBox.type = "checkbox";
+    holdBox.checked = AUTO.holdEffect;
+    holdBox.onchange = () => { AUTO.holdEffect = holdBox.checked; refresh(); };
+    hold.append(holdBox, document.createTextNode(" hold effect at max (per_level follows)"));
+    adjust.append(levelRow, hold);
+    wrap.append(adjust);
+
+    const warnings = document.createElement("div");
+    const ladder = document.createElement("table");
+    ladder.className = "web-table bulk-auto-ladder";
+    const staged = document.createElement("div");
+    staged.className = "bulk-preview";
+    const apply = document.createElement("button");
+    apply.type = "button";
+    apply.textContent = "Apply";
+    wrap.append(warnings, ladder, staged, apply);
+
+    const asValue = (log) => (log === null || log === undefined || !Number.isFinite(log)
+      ? "-" : formatBig(...fromLog10(log)));
+
+    function fill() {
+      for (const [key, input] of Object.entries(boxes)) {
+        input.value = AUTO[key] === null || AUTO[key] === undefined
+          ? "" : String(Number(AUTO[key].toPrecision(6)));
+      }
+    }
+
+    const startsFilled = () => ["firstMantissa", "firstExponent", "lastMantissa", "lastExponent"]
+      .every((key) => AUTO[key] !== null && AUTO[key] !== undefined);
+
+    /* Column widths for the ladder, remembered the way every other dragged width
+     * in the editor is. Keyed per column rather than per table: there is one
+     * ladder, and its three columns hold very different things - a depth number,
+     * and two "now → target" pairs that can each run to 1e1354. */
+    const LADDER_WIDTHS = ["ladder:depth", "ladder:first", "ladder:last"];
+    const LADDER_MIN = 40;
+
+    /** Puts a drag handle on one of the ladder's headers. The table is
+     * table-layout: fixed, so a width set on a header is the column's width. */
+    function ladderResizer(table, index) {
+      const handle = document.createElement("div");
+      handle.className = "resizer";
+      handle.title = "drag to resize · double-click to reset";
+      handle.onpointerdown = (event) => {
+        event.preventDefault();
+        handle.setPointerCapture(event.pointerId);
+        handle.classList.add("dragging");
+        const startX = event.clientX;
+        const startWidth = table.rows[0].cells[index].getBoundingClientRect().width;
+        const onMove = (moveEvent) => {
+          const width = Math.max(LADDER_MIN,
+            Math.round(startWidth + moveEvent.clientX - startX));
+          panelWidths[LADDER_WIDTHS[index]] = width;
+          table.rows[0].cells[index].style.width = `${width}px`;
+        };
+        const onUp = () => {
+          handle.classList.remove("dragging");
+          handle.removeEventListener("pointermove", onMove);
+          handle.removeEventListener("pointerup", onUp);
+          savePanelWidths();
+        };
+        handle.addEventListener("pointermove", onMove);
+        handle.addEventListener("pointerup", onUp);
+      };
+      handle.ondblclick = (event) => {
+        event.preventDefault();
+        delete panelWidths[LADDER_WIDTHS[index]];
+        savePanelWidths();
+        table.rows[0].cells[index].style.width = "";
+      };
+      return handle;
+    }
+
+    /** Both ends of a perk at each depth, now against target. The endpoints are
+     * what the two curves name, so they are what the ladder has to show - a
+     * multiplier per depth cannot be judged from the multiplier. */
+    function renderLadder() {
+      ladder.replaceChildren();
+      const head = ladder.insertRow();
+      ["depth", "first level", "last level"].forEach((column, index) => {
+        const th = document.createElement("th");
+        th.textContent = column;
+        // Re-applied on every rebuild: the ladder is thrown away and remade on
+        // each keystroke, so a width that lived only on the element would last
+        // until the next character typed.
+        const width = panelWidths[LADDER_WIDTHS[index]];
+        if (width) th.style.width = `${width}px`;
+        th.append(ladderResizer(ladder, index));
+        head.append(th);
+      });
+      const depths = new Map();
+      for (const path of view.picked) {
+        const perk = view.report.perks.find((p) => p.res_path === path);
+        if (!perk || !perk.depth) continue;
+        const at = depths.get(perk.depth) || { first: -Infinity, last: -Infinity };
+        at.first = Math.max(at.first, log10Of(perk.first_level_cost) ?? -Infinity);
+        at.last = Math.max(at.last, log10Of(perk.last_level_cost) ?? -Infinity);
+        depths.set(perk.depth, at);
+      }
+      const ready = ["first0", "firstRatio", "last0", "lastRatio"]
+        .every((key) => Number.isFinite(AUTO[key])) && AUTO.firstAccel > 0 && AUTO.lastAccel > 0;
+      for (const depth of [...depths.keys()].sort((a, b) => a - b)) {
+        const row = ladder.insertRow();
+        row.insertCell().textContent = String(depth);
+        for (const which of ["first", "last"]) {
+          const cell = row.insertCell();
+          cell.className = "num";
+          const now = depths.get(depth)[which];
+          cell.textContent = `${asValue(now === -Infinity ? null : now)} → `
+            + `${ready ? asValue(curveAt(which, depth)) : "-"}`;
+        }
+      }
+    }
+
+    let plan = null;
+    function refresh() {
+      levelBox.hidden = AUTO.levels !== "set";
+      hold.hidden = AUTO.levels !== "set";
+      plan = solvePlan();
+      warnings.replaceChildren();
+      for (const line of plan.warnings) {
+        const warn = document.createElement("p");
+        warn.className = "hint warn";
+        warn.textContent = line;
+        warnings.append(warn);
+      }
+      renderLadder();
+      const counts = [...plan.perField].map(([key, rows]) =>
+        `${BULK_FIELD_BY_KEY[key].label} ${rows.length}`);
+      staged.textContent = counts.length ? `stages ${counts.join(" · ")}` : "nothing to solve for";
+      apply.disabled = !counts.length;
+    }
+
+    if (!startsFilled() && view.report.branches.length > 1) {
+      // Opens on something real: the cheapest arm is the one the others tend to
+      // need bringing towards, and it means the boxes are never blank.
+      const cheapest = view.report.branches
+        .filter((branch) => branch.branch_key && log10Of(branch.total_cost_to_max) !== null)
+        .sort((a, b) => log10Of(a.total_cost_to_max) - log10Of(b.total_cost_to_max))[0];
+      if (cheapest && adoptAnchor(cheapest.branch_key)) AUTO.anchor = cheapest.branch_key;
+    }
+    anchor.value = AUTO.anchor;
+    fill();
+    refresh();
+
+    apply.onclick = () => {
+      if (!plan) return;
+      const files = new Set();
+      let count = 0;
+      // max_level before per_level: the magnitude each row holds was worked out
+      // against the level the perk is about to have.
+      for (const key of ["max_level", "base_cost", "cost_growth", "per_level"]) {
+        for (const row of plan.perField.get(key) || []) {
+          const file = writeField(row.path, BULK_FIELD_BY_KEY[key], row.next);
+          if (file) { files.add(file); count += 1; }
+        }
+      }
+      finishBulk(files, `auto-balance: ${count} value(s) staged`);
+    };
+    return wrap;
+  }
+
+  /* ------------------------------------------------------------------- verify */
+
+  /* What the pacing became. One run, not a search: the objective is
+   * self-referential - prices decide what the run can afford, which decides when
+   * it prestiges, which decides the payout, which decides affordability again -
+   * and the payout is quantised in whole storage areas, so it moves in steps.
+   * Something optimising against that would be fitting the robot, not the game. */
+
+  const PACING_WINDOW = [20, 1500];   // balance_pacing_test.gd MIN/MAX_FIRST_PRESTIGE_TICK
+
+  function verifySection() {
+    const wrap = document.createElement("div");
+    wrap.className = "bulk-verify";
+    const title = document.createElement("h3");
+    title.textContent = "Check the pacing";
+    wrap.append(title);
+
+    const dirty = BULK_TABLES.some((file) => state.loaded.has(file) && fileHasChanges(file));
+    const note = document.createElement("p");
+    note.className = dirty ? "hint warn" : "hint";
+    note.textContent = dirty
+      ? "Unsaved edits are not simulated - the run reads the .tres files. Save first."
+      : "One run over what is on disk, reporting what the robot did under "
+        + "BalancePolicy's cheapest-affordable-perk rule. That is not a player.";
+    wrap.append(note);
+
+    const out = document.createElement("div");
+    out.className = "bulk-preview";
+    if (view.pacing) out.textContent = view.pacing;
+
+    const run = document.createElement("button");
+    run.type = "button";
+    run.textContent = "Run the sim";
+    run.disabled = dirty;
+    run.onclick = async () => {
+      run.disabled = true;
+      out.textContent = "running…";
+      try {
+        // samples=0, breakdowns=off: the cheapest invocation there is, and the
+        // one --report mode uses. The breakdown is ~250 re-resolve probes.
+        const report = await api("/api/sim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ticks: 20000, prestiges: 3, samples: 0,
+            policy: "roi", breakdowns: "off" }),
+        });
+        view.pacing = readPacing(report);
+        out.textContent = view.pacing;
+      } catch (error) {
+        out.textContent = String(error);
+      }
+      run.disabled = false;
+    };
+    wrap.append(run, out);
+    return wrap;
+  }
+
+  /** The run, read against the only bounds this repo actually states. */
+  function readPacing(report) {
+    const milestones = report.milestones || [];
+    const prestiges = milestones.filter((stone) => stone.event === "prestige");
+    const lines = [];
+    const first = prestiges[0];
+    if (!first) {
+      lines.push("no prestige inside the tick budget - balance_pacing_test asserts at least one");
+    } else {
+      const inside = first.tick >= PACING_WINDOW[0] && first.tick <= PACING_WINDOW[1];
+      lines.push(`first prestige at tick ${first.tick}`
+        + ` ${inside ? "· inside" : "· OUTSIDE"} the ${PACING_WINDOW.join("-")} window`
+        + " balance_pacing_test asserts");
+    }
+    lines.push(`${prestiges.length} of ${report.prestige_target} prestiges`
+      + ` · ${report.seconds ? `${Math.round(report.seconds / 60)} min played` : "?"}`);
+
+    const biomes = milestones.filter((stone) => stone.event === "biome")
+      .map((stone) => stone.detail);
+    for (const needed of ["meadow", "forest", "permafrost"]) {
+      if (!biomes.some((name) => String(name).includes(needed))) {
+        lines.push(`${needed} never unlocked - balance_pacing_test requires it`);
+      }
+    }
+
+    // The jump between payouts is the sharpest signal the pacing is not smooth:
+    // a run whose third prestige pays 122 orders more than its second is not a
+    // curve, it is a cliff.
+    const orders = prestiges.map((stone) => {
+      const match = /([0-9.]+)e([0-9+-]+)/.exec(String(stone.detail || ""));
+      return match ? Math.log10(Number(match[1])) + Number(match[2]) : null;
+    });
+    for (let i = 1; i < orders.length; i += 1) {
+      if (orders[i] === null || orders[i - 1] === null) continue;
+      lines.push(`payout #${i} → #${i + 1}: +${(orders[i] - orders[i - 1]).toFixed(0)} orders`);
+    }
+    return lines.join("\n");
+  }
+
   function renderBulk(target) {
     const head = document.createElement("div");
     head.className = "web-editor-head";
@@ -1707,9 +2358,11 @@
         watch: () => {},
       }));
     }
+    target.append(autoSection());
     target.append(fields);
     target.append(effectSection());
     target.append(bulkFooter());
+    target.append(verifySection());
   }
 
   /** Everything outside the perk tree that names this perk by id.
@@ -1766,8 +2419,8 @@
 
     const maxLevel = Math.round(numberCell(entry, "max_level", 0));
     return chartBlock("Biomass per level", build, {
-      log: true, xLabel: "level", width: 560, height: 300,
-      range: { key: "perk-cost", from: 0, to: maxLevel > 0 ? maxLevel : 50, label: "level" },
+      space: "log10", xLabel: "level", width: 560, height: 300,
+      range: { key: PERK_COST_CHART, from: 0, to: maxLevel > 0 ? maxLevel : 50, label: "level" },
     });
   }
 
@@ -1820,8 +2473,8 @@
 
     const maxLevel = Math.round(numberCell(focusedRow(), "max_level", 0));
     const block = chartBlock("Effect per level", build, {
-      zeroBased: true, xLabel: "level", width: 560, height: 220,
-      range: { key: "perk-effect", from: 0, to: maxLevel > 0 ? maxLevel : 50, label: "level" },
+      space: "linear", zeroBased: true, xLabel: "level", width: 560, height: 220,
+      range: { key: PERK_EFFECT_CHART, from: 0, to: maxLevel > 0 ? maxLevel : 50, label: "level" },
     });
 
     const notes = [];
@@ -1842,7 +2495,7 @@
     return block;
   }
 
-  function costOverlay(row) {
+  function costOverlay(row, perk = selectedPerk()) {
     const wrap = document.createElement("div");
     wrap.className = "web-cost";
     const name = document.createElement("div");
@@ -1852,7 +2505,124 @@
 
     // A followed chip can be priced without being a perk, and then there is no
     // effect to pair with the price.
-    const effect = effectChart(selectedPerk());
+    const effect = effectChart(perk);
+    if (effect) wrap.append(effect);
+    return wrap;
+  }
+
+  /* ------------------------------------------------------- many at once */
+
+  /* Comparing a set is the reason to have picked one. Both overlays draw a curve
+   * per picked perk rather than the one that happens to be focused.
+   *
+   * The engine's own samples are left off here: a dot series per perk would bury
+   * the twelve lines they are meant to be checked against. Pick one perk to see
+   * them. */
+
+  /* Past this the legend is taller than the chart and every line is one of
+   * twenty in the same colour family, so the count is said instead. */
+  const MAX_OVERLAY_SERIES = 12;
+
+  /** The picked perks that have a price to draw, in the order the web reads. */
+  function pickedForCharts() {
+    return orderedPicked()
+      .map((entry) => ({ path: entry.path, row: rowIndexOf(entry.path),
+        perk: view.report.perks.find((p) => p.res_path === entry.path) }))
+      .filter((entry) => isPriced(entry.row));
+  }
+
+  /** Blanks a curve past the last level that perk actually has.
+   *
+   * The window is shared by every series, so it runs to the deepest perk's level
+   * count. Without this a perk maxing at 5 draws a confident line out to 150,
+   * which is a price nobody can ever be charged. */
+  const upToMax = (points, from, maxLevel) =>
+    points.map((value, index) => (from + index < maxLevel ? value : null));
+
+  function costChartMany(entries) {
+    const shown = entries.slice(0, MAX_OVERLAY_SERIES);
+    const build = (from, to) => shown.map((entry, index) => {
+      const maxLevel = Math.round(numberCell(entry.row, "max_level", 0));
+      return {
+        label: nameOf(entry.path),
+        color: hueOf(index),
+        points: upToMax(growthCurve(
+          bigLog10(numberCell(entry.row, "_base_cost_mantissa", 0),
+            numberCell(entry.row, "_base_cost_exponent", 0)),
+          numberCell(entry.row, "cost_growth", 1.15),
+          numberCell(entry.row, "cost_growth_exponent", 1),
+          from, to), from, maxLevel),
+      };
+    });
+    const maxLevel = Math.max(...shown.map((entry) =>
+      Math.round(numberCell(entry.row, "max_level", 0))));
+    return chartBlock("Biomass per level", build, {
+      space: "log10", xLabel: "level", width: 560, height: 300,
+      range: { key: PERK_COST_CHART, from: 0, to: maxLevel > 0 ? maxLevel : 50, label: "level" },
+    });
+  }
+
+  function effectChartMany(entries) {
+    const withEffect = entries
+      .map((entry) => ({ ...entry, effect: rowIndexOf(((entry.perk
+        && entry.perk.effect_paths) || [])[0] || "") }))
+      .filter((entry) => entry.effect);
+    if (!withEffect.length) return null;
+    const shown = withEffect.slice(0, MAX_OVERLAY_SERIES);
+
+    const build = (from, to) => shown.map((entry, index) => {
+      const maxLevel = Math.round(numberCell(entry.row, "max_level", 0));
+      const curve = effectCurve({
+        perLevel: numberCell(entry.effect, "per_level", 0),
+        compound: enumIs(cell(entry.effect, "level_scaling"), "COMPOUND"),
+        cap: numberCell(entry.effect, "max_magnitude", 0),
+        factor: null,
+      }, from, to);
+      return {
+        label: `${nameOf(entry.path)} · ${cell(entry.effect, "stat") || "effect"}`,
+        color: hueOf(index),
+        points: upToMax(curve.raw, from, maxLevel),
+      };
+    });
+
+    const maxLevel = Math.max(...shown.map((entry) =>
+      Math.round(numberCell(entry.row, "max_level", 0))));
+    const block = chartBlock("Effect per level", build, {
+      space: "linear", zeroBased: true, xLabel: "level", width: 560, height: 220,
+      range: { key: PERK_EFFECT_CHART, from: 0, to: maxLevel > 0 ? maxLevel : 50, label: "level" },
+    });
+
+    // Two stats on one axis are two different units sharing a scale, which is
+    // worth saying before a tick_rate of -7.5 is read as smaller than 40 points.
+    const stats = [...new Set(shown.map((entry) => cell(entry.effect, "stat")).filter(Boolean))];
+    const notes = [];
+    if (stats.length > 1) {
+      notes.push(`${stats.length} different stats share this axis (${stats.join(", ")}) - `
+        + "their magnitudes are not comparable.");
+    }
+    if (withEffect.length < entries.length) {
+      notes.push(`${entries.length - withEffect.length} picked perk(s) have no effect to draw.`);
+    }
+    if (notes.length) {
+      const hint = document.createElement("p");
+      hint.className = "hint";
+      hint.textContent = notes.join(" ");
+      block.append(hint);
+    }
+    return block;
+  }
+
+  /** Both charts over the whole picked set. */
+  function costOverlayMany(entries) {
+    const wrap = document.createElement("div");
+    wrap.className = "web-cost";
+    const name = document.createElement("div");
+    name.className = "web-cost-name";
+    name.textContent = entries.length > MAX_OVERLAY_SERIES
+      ? `${MAX_OVERLAY_SERIES} of ${entries.length} picked perks`
+      : `${entries.length} picked perks`;
+    wrap.append(name, costChartMany(entries));
+    const effect = effectChartMany(entries);
     if (effect) wrap.append(effect);
     return wrap;
   }
@@ -2015,8 +2785,27 @@
         view.canvasScroll = { left: canvas.scrollLeft, top: canvas.scrollTop };
       });
       panel.addEventListener("scroll", () => { view.panelTop = panel.scrollTop; });
+
+      // The same drag bar the file list and the graph panel get. The web is a
+      // screen inside the Game view rather than a view of its own, so it never
+      // passed through the wiring that gives every view panel one.
+      makeGridResizer(view.element, panel, "panel:web", "end", 340, 240, 1000);
+      // The cost overlay is placed against the view, not the canvas, so that
+      // panning does not carry it off screen - which means its width has to be
+      // told how much of the view the panel is taking. Watched as well as
+      // measured on render: a drag moves it between renders, and a render can
+      // happen before the observer has ever fired.
+      if (window.ResizeObserver) new ResizeObserver(measurePanel).observe(panel);
     }
     return view.element;
+  }
+
+  /** Tells the stylesheet how much of the view the panel is taking, for the one
+   * rule that has to know: the cost overlay's width. */
+  function measurePanel() {
+    if (!view.element) return;
+    const panel = view.element.querySelector(".web-panel");
+    if (panel) view.element.style.setProperty("--web-panel", `${panel.offsetWidth}px`);
   }
 
   view.render = (body) => {
@@ -2042,6 +2831,19 @@
     // should start at the top of what it says rather than partway down it.
     const sameFocus = view.lastFocus === state.focus;
     view.lastFocus = state.focus;
+    // Both charts are about the perk that was just picked, so they are drawn over
+    // that perk's own levels. A window is otherwise remembered per chart kind -
+    // which is what lets two of them be compared - and a perk maxing at 5 was
+    // being drawn out to the 150 levels of whichever one was looked at first.
+    // Dropped only when the focus actually moves, so a window typed while
+    // reading one perk survives the redraw every keystroke in the panel causes.
+    // The charts are about the picked set when there is one, so a change to
+    // either what is focused or what is picked means they are about something
+    // else and the window refits.
+    const pickedKey = [...view.picked].join("|");
+    const samePicked = view.lastPicked === pickedKey;
+    view.lastPicked = pickedKey;
+    if (!sameFocus || !samePicked) for (const key of PERK_CHART_KEYS) resetRange(key);
 
     canvas.replaceChildren(drawWeb());
     renderPanel(panel);
@@ -2054,9 +2856,20 @@
     }
     panel.scrollTop = sameFocus ? (view.panelTop || 0) : 0;
 
-    const priced = focusedRow();
+    measurePanel();
     view.element.querySelector(".web-cost")?.remove();
-    if (isPriced(priced)) view.element.append(costOverlay(priced));
+    // A picked set outranks the focus, the same way the panel's editor does:
+    // the focus is only still set because something had to be clicked to start
+    // picking, and the charts are what the set was gathered to compare.
+    const charted = pickedForCharts();
+    if (charted.length > 1) {
+      view.element.append(costOverlayMany(charted));
+    } else if (charted.length === 1) {
+      view.element.append(costOverlay(charted[0].row, charted[0].perk));
+    } else {
+      const priced = focusedRow();
+      if (isPriced(priced)) view.element.append(costOverlay(priced));
+    }
     const row = focusedRow();
     setStatus(row
       ? `editing ${labelOf(row)}${fileHasChanges(row.file) ? " · unsaved" : ""}`

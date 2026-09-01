@@ -15,8 +15,8 @@ id = &"tempo_4b"
 display_name = "Tempo IV"
 description = "Reduces Tick Timer by 0.01s per level"
 max_level = 150
-_base_cost_mantissa = 1.0
-_base_cost_exponent = 150
+_base_cost_exponent = 162
+cost_growth = 2.0105941163678227
 cost_growth_exponent = 1.025
 effects = Array[ExtResource("3_effect_script")]([ExtResource("10_effect_4b")])
 
@@ -27,8 +27,8 @@ children = Array[ExtResource("4_node_script")]([SubResource("node_4b")])
 display_name = "Tempo III"
 description = "Reduces Tick Timer by 0.02s per level"
 max_level = 100
-_base_cost_mantissa = 1.0
-_base_cost_exponent = 25
+_base_cost_exponent = 36
+cost_growth = 1.4625538466702566
 cost_growth_exponent = 1.025
 effects = Array[ExtResource("3_effect_script")]([ExtResource("8_effect_3b")])
 
@@ -39,8 +39,8 @@ children = Array[ExtResource("4_node_script")]([SubResource("node_3b")])
 display_name = "Tempo II"
 description = "Reduces Tick Timer by 0.05s per level"
 max_level = 40
-_base_cost_mantissa = 1.0
-_base_cost_exponent = 4
+_base_cost_exponent = 6
+cost_growth = 1.2980690596288105
 cost_growth_exponent = 1.04
 effects = Array[ExtResource("3_effect_script")]([ExtResource("6_effect_2")])
 
@@ -51,7 +51,7 @@ children = Array[ExtResource("4_node_script")]([SubResource("node_2")])
 display_name = "Tempo I"
 description = "Reduces Tick Timer by 0.1s per level"
 max_level = 20
-cost_growth = 1.5
+cost_growth = 1.4959365022381907
 cost_growth_exponent = 1.05
 effects = Array[ExtResource("3_effect_script")]([ExtResource("5_effect_1")])
 

@@ -16,18 +16,11 @@ script = ExtResource("4_node_script")
 id = &"substrate_4a"
 display_name = "Substrate IV·A"
 description = "Substrate node - kept through every sporation."
-_base_cost_mantissa = 1.6
-_base_cost_exponent = 1
+max_level = 50
+_base_cost_exponent = 162
+cost_growth = 2216.3044796616105
+cost_growth_exponent = 1.05
 effects = Array[ExtResource("3_effect_script")]([ExtResource("9_effect_4a")])
-
-[sub_resource type="Resource" id="node_4b"]
-script = ExtResource("4_node_script")
-id = &"substrate_4b"
-display_name = "Substrate IV·B"
-description = "Substrate node - kept through every sporation."
-_base_cost_mantissa = 1.6
-_base_cost_exponent = 1
-effects = Array[ExtResource("3_effect_script")]([ExtResource("10_effect_4b")])
 
 [sub_resource type="Resource" id="node_3a"]
 script = ExtResource("4_node_script")
@@ -35,9 +28,22 @@ id = &"substrate_3a"
 children = Array[ExtResource("4_node_script")]([SubResource("node_4a")])
 display_name = "Substrate III·A"
 description = "Substrate node - kept through every sporation."
-_base_cost_mantissa = 8.0
-_base_cost_exponent = 0
+max_level = 50
+_base_cost_exponent = 36
+cost_growth = 2.2493138326977644
+cost_growth_exponent = 1.05
 effects = Array[ExtResource("3_effect_script")]([ExtResource("7_effect_3a")])
+
+[sub_resource type="Resource" id="node_4b"]
+script = ExtResource("4_node_script")
+id = &"substrate_4b"
+display_name = "Substrate IV·B"
+description = "Substrate node - kept through every sporation."
+max_level = 50
+_base_cost_exponent = 162
+cost_growth = 2216.3044796616105
+cost_growth_exponent = 1.05
+effects = Array[ExtResource("3_effect_script")]([ExtResource("10_effect_4b")])
 
 [sub_resource type="Resource" id="node_3b"]
 script = ExtResource("4_node_script")
@@ -45,8 +51,10 @@ id = &"substrate_3b"
 children = Array[ExtResource("4_node_script")]([SubResource("node_4b")])
 display_name = "Substrate III·B"
 description = "Substrate node - kept through every sporation."
-_base_cost_mantissa = 8.0
-_base_cost_exponent = 0
+max_level = 50
+_base_cost_exponent = 36
+cost_growth = 2.2493138326977644
+cost_growth_exponent = 1.05
 effects = Array[ExtResource("3_effect_script")]([ExtResource("8_effect_3b")])
 
 [sub_resource type="Resource" id="node_2"]
@@ -55,8 +63,10 @@ id = &"substrate_2"
 children = Array[ExtResource("4_node_script")]([SubResource("node_3a"), SubResource("node_3b")])
 display_name = "Substrate II"
 description = "Substrate node - kept through every sporation."
-_base_cost_mantissa = 4.0
-_base_cost_exponent = 0
+max_level = 50
+_base_cost_exponent = 6
+cost_growth = 1.0917335001446442
+cost_growth_exponent = 1.05
 effects = Array[ExtResource("3_effect_script")]([ExtResource("6_effect_2")])
 
 [sub_resource type="Resource" id="node_1"]
@@ -65,6 +75,9 @@ id = &"substrate_1"
 children = Array[ExtResource("4_node_script")]([SubResource("node_2")])
 display_name = "Substrate I"
 description = "Substrate node - kept through every sporation."
+max_level = 50
+cost_growth = 1.036794826506285
+cost_growth_exponent = 1.05
 effects = Array[ExtResource("3_effect_script")]([ExtResource("5_effect_1")])
 
 [resource]

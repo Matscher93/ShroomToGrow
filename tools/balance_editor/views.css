@@ -25,6 +25,10 @@
   min-height: 0;
   height: calc(100vh - 150px);
   position: relative;
+  /* What the panel is currently taking. The drag bar rewrites the track list
+     inline, so this is kept in step by a ResizeObserver rather than by the
+     stylesheet, and the cost overlay measures itself against it. */
+  --web-panel: 340px;
 }
 
 /* The selected perk's cost curve, over the canvas rather than in the panel: the
@@ -36,7 +40,7 @@
   top: 10px;
   left: 10px;
   z-index: 2;
-  max-width: calc(100% - 360px);
+  max-width: calc(100% - var(--web-panel) - 20px);
   /* Price and payout stacked is taller than a short window, and the overlay is
      absolutely placed - without this the effect curve runs off the canvas with
      no way to reach it. */
@@ -299,6 +303,85 @@
   white-space: pre-line;
   padding-left: 2px;
 }
+/* Auto-balance: the target curve, and what it would do to each branch. */
+.bulk-auto, .bulk-verify { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 6px; }
+.bulk-auto h3, .bulk-verify h3 { margin: 0 0 4px; font-size: 13px; }
+.bulk-auto-controls { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+.bulk-auto-row { display: flex; align-items: center; gap: 4px; }
+.bulk-auto-row > label { flex: 1 1 auto; font: 11px ui-monospace, monospace; color: var(--muted); }
+.bulk-auto select, .bulk-auto input[type="number"] {
+  font: 12px ui-monospace, monospace;
+  padding: 3px 6px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  width: auto;
+  margin-top: 0;
+  min-width: 0;
+}
+.bulk-auto-row input[type="number"] { flex: 0 1 90px; }
+.bulk-auto-row select { flex: 1 1 auto; }
+/* Two readings of the same three questions, so they are laid out as two rows
+   under one set of headings rather than six labelled lines. */
+.bulk-auto-grid {
+  display: grid;
+  grid-template-columns: auto 1.9fr 0.85fr 4.2em;   /* the start is two boxes, not one */
+  gap: 3px 4px;
+  align-items: center;
+  margin: 6px 0;
+}
+.bulk-auto-head { font-style: normal; font: 9px ui-monospace, monospace; color: var(--muted);
+  text-align: center; }
+.bulk-auto-grid > label { font: 11px ui-monospace, monospace; color: var(--muted);
+  white-space: nowrap; padding-right: 2px; }
+/* The mantissa and its exponent read as one value, so they sit in one cell with
+   the `e` between them rather than as two columns of their own. */
+.bulk-auto-pair { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.bulk-auto-pair > i { font-style: normal; font: 10px ui-monospace, monospace;
+  color: var(--muted); flex: 0 0 auto; }
+/* Both halves have to hold what they can actually be handed: a fitted mantissa
+   reads 1.31072, and an exponent runs to four digits plus a sign - the Tempo arm
+   is authored past 1e1354. */
+.bulk-auto-pair input { flex: 1 1 0; min-width: 0; }
+.bulk-auto-pair input:first-child { flex: 1.15 1 0; }
+/* No spinners in this grid. They take about fifteen pixels off the inside of
+   every box - a third of the exp column, which is enough to clip a
+   cost_growth_exponent of 1.025 down to its first digit - and the values here
+   are typed, not nudged. */
+.bulk-auto-grid input::-webkit-outer-spin-button,
+.bulk-auto-grid input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.bulk-auto-grid input { -moz-appearance: textfield; appearance: textfield; }
+.bulk-auto-grid input {
+  /* 10px, not the panel's 11: six boxes share one row, and the values are read
+     rather than edited in place. */
+  font: 10px ui-monospace, monospace;
+  padding: 3px 3px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  width: 100%;
+  min-width: 0;
+  margin-top: 0;
+}
+.bulk-auto-adjust { margin: 4px 0; }
+.bulk-auto-adjust > summary { cursor: pointer; font: 11px ui-monospace, monospace;
+  color: var(--muted); }
+.bulk-auto-adjust > summary:hover { color: var(--accent); }
+.bulk-auto-adjust .bulk-auto-row { margin-top: 4px; }
+/* The ladder is the feedback the two boxes are read through, so it sits tight
+   under them rather than being another block down the panel. */
+/* Fixed layout so a dragged header width is the column's width, and the cells
+   clip rather than pushing their neighbours around. */
+.bulk-auto-ladder { margin: 6px 0 2px; table-layout: fixed; width: 100%; }
+.bulk-auto-ladder th { position: relative; }
+.bulk-auto-ladder td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bulk-auto-ladder td.num { text-align: right; font: 11px ui-monospace, monospace; }
+.bulk-auto-hold { display: flex; align-items: center; gap: 4px;
+  font: 11px ui-monospace, monospace; color: var(--muted); }
+.bulk-auto > button, .bulk-verify > button { align-self: flex-start; margin-top: 4px; }
+.bulk-verify > button:disabled { opacity: 0.4; cursor: default; }
 .bulk-gate { display: flex; align-items: center; gap: 4px;
   font: 11px ui-monospace, monospace; color: var(--danger); }
 
@@ -566,8 +649,27 @@
 .game-chart .game-marker { stroke: var(--dirty); stroke-width: 1; stroke-dasharray: 2 3; }
 .game-chart-empty { fill: var(--muted); font: 11px ui-monospace, monospace; }
 
-.game-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 2px; }
-.game-legend-item { font: 10px ui-monospace, monospace; color: var(--muted); }
+/* One entry per line rather than a wrapped row. A row reads fine for the two
+   series most charts carry, but the perk overlay draws a line per picked perk -
+   and wrapping a dozen labels of very different widths puts one entry's swatch
+   beside another's tail, which is the one thing a legend must not do. */
+/* The y-axis picker sits in the chart's header beside its range boxes. */
+.game-scale {
+  font: 10px ui-monospace, monospace;
+  padding: 2px 4px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  width: auto;
+  margin-top: 0;
+  margin-left: 4px;
+}
+
+.game-legend { display: flex; flex-direction: column; align-items: flex-start;
+  gap: 2px; margin-top: 4px; }
+.game-legend-item { font: 10px ui-monospace, monospace; color: var(--muted);
+  white-space: nowrap; }
 .game-legend-item i {
   display: inline-block;
   width: 8px;

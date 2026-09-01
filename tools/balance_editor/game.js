@@ -95,6 +95,31 @@
     return out;
   }
 
+  /** log10 of a sum whose terms are given in log10, without ever forming them.
+   *
+   * A perk's levels run to 1e1354, so summing them by adding the values is not
+   * an option: every term but the largest overflows the double first. Factoring
+   * the largest out leaves ratios that fit. */
+  function logSumExp(values) {
+    const real = values.filter((value) => Number.isFinite(value));
+    if (!real.length) return null;
+    const most = Math.max(...real);
+    return most + Math.log10(real.reduce((sum, value) => sum + 10 ** (value - most), 0));
+  }
+
+  /** log10 of what maxing one upgrade costs: every level of growthCurve added up.
+   *
+   * The same expression the game prices with, summed rather than plotted -
+   * UpgradeSystem.cost() over levels 0..maxLevel-1, which is what
+   * BalanceData._cost_to_max walks one level at a time. Note it is *linear in
+   * base*, which is what makes the price solvable: the sum with base at zero is
+   * a constant of the curve's shape alone.
+   */
+  function costToMaxLog10(base, growth, growthExponent, maxLevel) {
+    if (maxLevel <= 0 || growth <= 0 || base === null || !Number.isFinite(base)) return null;
+    return logSumExp(growthCurve(base, growth, growthExponent, 0, maxLevel - 1));
+  }
+
   /** UpgradeEffectDef.magnitude() over a window, and the same scaled by whatever
    * the effect depends on.
    *
@@ -231,6 +256,8 @@
       const step = Math.max(1, Math.ceil((maxY - minY) / 8));
       for (let e = Math.ceil(minY); e <= Math.floor(maxY); e += step) ticks.push(e);
     } else {
+      // Evenly spaced, doubly-logarithmic included: a tick there is a power of a
+      // power, so there are no round ones to land on.
       for (let i = 0; i <= 4; i += 1) ticks.push(minY + ((maxY - minY) * i) / 4);
     }
     for (const tick of ticks) {
@@ -238,9 +265,11 @@
         x1: CHART.left, x2: width - CHART.right, y1: y(tick), y2: y(tick) }));
       const label = svgEl("text", { class: "axis", x: CHART.left - 6, y: y(tick) + 3,
         "text-anchor": "end" });
-      label.textContent = options.log
-        ? (tick === 0 ? "1" : `1e${Math.round(tick)}`)
-        : formatAxis(tick);
+      // A doubly-logarithmic tick stands for 10^(10^tick), so it is labelled by
+      // the decade it names rather than by its own value - "1e300", not "2.5".
+      if (options.loglog) label.textContent = `1e${formatAxis(10 ** tick)}`;
+      else if (options.log) label.textContent = tick === 0 ? "1" : `1e${Math.round(tick)}`;
+      else label.textContent = formatAxis(tick);
       svg.append(label);
     }
 
@@ -417,6 +446,69 @@
     }
   }
 
+  /* ------------------------------------------------------------- y scales */
+
+  const SCALE_KEY = "balance-editor-chart-scales";
+
+  /** How each *kind* of chart draws its y axis, keyed the same way its window is.
+   * A cost curve spanning 1300 decades and one spanning three want different
+   * answers, and the answer is worth keeping across the redraw every keystroke
+   * causes. */
+  let scales = {};
+  try {
+    scales = JSON.parse(localStorage.getItem(SCALE_KEY) || "{}");
+  } catch (error) { /* private mode - the default applies */ }
+
+  const SCALE_LABELS = { linear: "linear", log: "log", loglog: "log log" };
+
+  function saveScales() {
+    try {
+      localStorage.setItem(SCALE_KEY, JSON.stringify(scales));
+    } catch (error) { /* private mode - the choice just won't survive a reload */ }
+  }
+
+  const scaleFor = (key, fallback) => scales[key] || fallback || "linear";
+
+  /** Points as the chart should plot them.
+   *
+   * `space` is what build() produced - a cost curve is worked out in log10
+   * because a late level passes what a double holds, while an effect magnitude
+   * is a plain number. `mode` is what the reader asked for. Everything that
+   * cannot be shown in the asked-for space becomes a gap rather than a guess: a
+   * negative magnitude has no logarithm, and 10^1354 has no double.
+   */
+  function rescale(points, space, mode) {
+    const alreadyLog = space === "log10";
+    return points.map((value) => {
+      if (value === null || !Number.isFinite(value)) return null;
+      if (mode === "linear") {
+        const raw = alreadyLog ? 10 ** value : value;
+        return Number.isFinite(raw) ? raw : null;
+      }
+      const log = alreadyLog ? value : (value > 0 ? Math.log10(value) : null);
+      if (log === null) return null;
+      if (mode === "log") return log;
+      return log > 0 ? Math.log10(log) : null;
+    });
+  }
+
+  /** The picker that chooses one chart kind's y axis. */
+  function scaleControl(key, fallback, onChange) {
+    const select = document.createElement("select");
+    select.className = "game-scale";
+    select.title = "How the y axis is spaced";
+    for (const [value, label] of Object.entries(SCALE_LABELS)) {
+      select.append(new Option(label, value));
+    }
+    select.value = scaleFor(key, fallback);
+    select.onchange = () => {
+      scales[key] = select.value;
+      saveScales();
+      onChange();
+    };
+    return select;
+  }
+
   /* -------------------------------------------------------------- x ranges */
 
   const RANGE_KEY = "balance-editor-chart-ranges";
@@ -462,6 +554,21 @@
 
   const isCustom = (key) => stored(key, "from") !== null || stored(key, "to") !== null
     || stored(key, "at") !== null;
+
+  /** Drops one chart kind's stored window, so it falls back to whatever the
+   * screen hands it - an upgrade's own max_level, say.
+   *
+   * A window is remembered per chart *kind*, which is what lets two biomes be
+   * read against each other, but the same stickiness means a perk's cost curve
+   * would keep the levels of whichever perk was looked at first. A screen that
+   * knows its charts are about to be about a different thing calls this.
+   */
+  function resetRange(key) {
+    if (!isCustom(key)) return false;
+    delete ranges[key];
+    saveRanges();
+    return true;
+  }
 
   /** key -> the draw() of every chart currently showing that key, so moving one
    * range moves all the charts it governs. Rebuilt on each full render, since
@@ -566,7 +673,21 @@
       head.replaceChildren(caption);
       if (options.range) head.append(rangeControl(options.range));
 
-      body.replaceChildren(chart(series, drawOptions), legendOf(series));
+      // A chart that says what space its points are in can be re-spaced by the
+      // reader; one that does not keeps whatever its screen asked for.
+      let plotted = series;
+      let plotOptions = drawOptions;
+      if (options.space) {
+        const key = options.scaleKey || (options.range && options.range.key) || title;
+        const mode = scaleFor(key, options.space === "log10" ? "log" : "linear");
+        head.append(scaleControl(key, options.space === "log10" ? "log" : "linear", draw));
+        plotted = series.map((entry) =>
+          ({ ...entry, points: rescale(entry.points, options.space, mode) }));
+        plotOptions = { ...drawOptions, log: mode === "log", loglog: mode === "loglog",
+          zeroBased: drawOptions.zeroBased && mode === "linear" };
+      }
+
+      body.replaceChildren(chart(plotted, plotOptions), legendOf(plotted));
     };
 
     if (options.range) {
@@ -1070,8 +1191,9 @@
   }
 
   window.GameKit = {
-    formatBig, log10Of, fromLog10, growthCurve, powerCurve, effectCurve, enumIs,
-    xpLadder, levelForXp, chart, chartBlock, hueOf,
+    formatBig, log10Of, fromLog10, logSumExp, costToMaxLog10,
+    growthCurve, powerCurve, effectCurve, enumIs,
+    xpLadder, levelForXp, chart, chartBlock, hueOf, resetRange, rescale,
     rowsOf, findRow, cell, numberCell,
     field, fieldGroup, bigField, engineCurve, engineWindow, engineSeries, rowHasChanges,
     targetOptionsFor, scopeTargetFields, liveRow, tierPicker, declaredGroups, tagsOfNode,
