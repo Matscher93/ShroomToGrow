@@ -202,6 +202,16 @@
 #web-chart g.dim { opacity: 0.12; }
 #web-chart .link.dim { opacity: 0.08; }
 #web-chart g.match circle.perk { filter: drop-shadow(0 0 5px var(--accent)); }
+/* Picked for bulk edit. A ring outside the node rather than the focus outline
+   on it: a perk can be both the one being edited and one of the set, and the
+   two have to stay tellable apart. */
+#web-chart g.picked circle.perk {
+  stroke: var(--text);
+  stroke-width: 3;
+  stroke-dasharray: 4 3;
+  filter: drop-shadow(0 0 6px var(--text));
+}
+#web-chart g.picked .perk-label { fill: var(--text); font-weight: 600; }
 #web-chart .drag-ghost {
   stroke: var(--accent);
   stroke-width: 2;
@@ -239,6 +249,58 @@
 .web-filter-range i { font-style: normal; color: var(--muted);
   font: 11px ui-monospace, monospace; }
 .web-filter-range input { flex: 1; }
+.web-filter-take {
+  font: 11px ui-monospace, monospace;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+/* Bulk edit: one row per field, each its own op, values and preview. */
+.bulk-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.bulk-chip {
+  font: 11px ui-monospace, monospace;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+}
+.bulk-chip:hover { border-color: var(--danger); color: var(--danger); }
+
+.bulk-fields { display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
+.bulk-row { display: flex; flex-direction: column; gap: 3px; }
+.bulk-row > label { font: 11px ui-monospace, monospace; color: var(--muted); }
+.bulk-controls { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.bulk-controls select, .bulk-controls input, .bulk-shape {
+  font: 12px ui-monospace, monospace;
+  padding: 3px 6px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  min-width: 0;
+}
+/* width and margin-top, not only flex: the effect block carries .deps-panel,
+   whose own rule stretches every select to the full row - and a flex-basis of
+   auto then resolves to that 100%, which left no room for the value or Apply. */
+.bulk-controls select { flex: 0 0 auto; width: auto; margin-top: 0; }
+/* A floor rather than a share: three controls in a 340px panel that may have
+   been dragged narrower, so the value box wraps to its own line before it is
+   squeezed to nothing. */
+.bulk-controls input { flex: 1 1 70px; min-width: 70px; }
+.bulk-controls button { flex: 0 0 auto; }
+.bulk-shape { width: auto; margin-top: 0; }
+.bulk-controls button:disabled { opacity: 0.4; cursor: default; }
+/* The rows the op would rewrite, before it rewrites them. */
+.bulk-preview {
+  font: 10px ui-monospace, monospace;
+  color: var(--muted);
+  white-space: pre-line;
+  padding-left: 2px;
+}
+.bulk-gate { display: flex; align-items: center; gap: 4px;
+  font: 11px ui-monospace, monospace; color: var(--danger); }
 
 .web-table { border-collapse: collapse; font-size: 12px; width: 100%; }
 .web-table th {

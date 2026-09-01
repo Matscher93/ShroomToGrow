@@ -57,6 +57,20 @@
     return Math.log10(m) + Number(exponent);
   };
 
+  /** The pair a log10 stands for, with the mantissa renormalised into [1, 10).
+   *
+   * The inverse of log10Of, and the only safe way to change one of these numbers:
+   * a base cost of 1e150 multiplied in the mantissa either overflows the double
+   * or leaves a mantissa of 1000, which every reader of the pair then gets wrong.
+   * Work in log10, come back through here. */
+  const fromLog10 = (value) => {
+    if (!Number.isFinite(value)) return [0, 0];
+    const exponent = Math.floor(value);
+    // toPrecision, not toFixed: the mantissa is a float the .tres round-trips,
+    // and trailing 0.9999999999 noise from the pow shows up in every diff.
+    return [Number((10 ** (value - exponent)).toPrecision(12)), exponent];
+  };
+
   /* ------------------------------------------------------------------ curves */
 
   /** The one growth curve the game prices everything with, in log10.
@@ -1056,7 +1070,7 @@
   }
 
   window.GameKit = {
-    formatBig, log10Of, growthCurve, powerCurve, effectCurve, enumIs,
+    formatBig, log10Of, fromLog10, growthCurve, powerCurve, effectCurve, enumIs,
     xpLadder, levelForXp, chart, chartBlock, hueOf,
     rowsOf, findRow, cell, numberCell,
     field, fieldGroup, bigField, engineCurve, engineWindow, engineSeries, rowHasChanges,

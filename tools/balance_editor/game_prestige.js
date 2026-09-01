@@ -18,6 +18,7 @@
   const {
     growthCurve, effectCurve, chartBlock, engineCurve, engineSeries, cell, numberCell, enumIs,
     log10Of: bigLog10,   // the local log10Of below takes a pair, this one a pair's halves
+    fromLog10, formatBig,
     scopeTargetFields, rowsOf, fieldGroup, bigField, hueOf, dependencyField,
   } = window.GameKit;
 
@@ -56,8 +57,15 @@
   const view = {
     label: "Prestige",
     scale: "path_cost",
-    filter: { text: "", stat: "", from: null, to: null },
+    filter: { text: "", stat: "", branch: "", from: null, to: null,
+      depthFrom: null, depthTo: null },
     matched: null,     // how many perks the filter caught, null when it is off
+    // The perks under bulk edit, as res_paths. Beside state.focus rather than
+    // instead of it: focus still says which single row the field editor and the
+    // header's Save act on, and picking a set does not change that.
+    picked: new Set(),
+    rampMode: "geometric",   // remembered between applies
+    drawn: new Map(),  // res_path -> the perk drawWeb last laid out, for ramp order
     report: null,
     warnings: [],      // what PerkTree would push_error about the staged shape
     widest: new Map(), // branch key -> its widest sibling offset, from webLayout
@@ -85,7 +93,8 @@
 
   const filterActive = () => {
     const f = view.filter;
-    return !!(f.text || f.stat || f.from !== null || f.to !== null);
+    return !!(f.text || f.stat || f.branch || f.from !== null || f.to !== null
+      || f.depthFrom !== null || f.depthTo !== null);
   };
 
   /** Whether one perk is what the filter is asking for. Every clause is an AND:
@@ -101,6 +110,11 @@
       const stat = perk.stat || "";
       if (f.stat === NO_EFFECT ? stat !== "" : stat !== f.stat) return false;
     }
+    // Branch and depth are clauses rather than a picker of their own, so "the
+    // outer half of tempo" is one question and dims the web like every other.
+    if (f.branch && perk.branch_key !== f.branch) return false;
+    if (f.depthFrom !== null && perk.depth < f.depthFrom) return false;
+    if (f.depthTo !== null && perk.depth > f.depthTo) return false;
     if (f.from !== null || f.to !== null) {
       const value = valueOf(perk);
       // A perk with nothing on this scale is not "cheap", it is unanswerable -
@@ -123,6 +137,55 @@
    * (and so Save, Revert and Ctrl+S) pointing at the file the perk lives in, and
    * re-renders this view, which draws the editor for it in the panel. */
   const edit = (path) => setFocus(path);
+
+  /* ---------------------------------------------------------------- selection */
+
+  /* Balancing is rarely a question about one perk: a branch is retuned against
+   * its neighbours, and doing that a field at a time was fifteen clicks and a
+   * drift. `view.picked` is that set, filled four ways - ctrl-click, shift-click
+   * for a subtree, the Highlight bar's "Select these", and the branch and depth
+   * clauses feeding it - and read by the bulk panel, which is the only thing
+   * that writes through it. */
+
+  const pickedPaths = () => [...view.picked];
+
+  function togglePicked(path) {
+    if (!view.picked.delete(path)) view.picked.add(path);
+    view.render();
+  }
+
+  /** Everything hanging off `perk`, itself included. Parentage is by id, so the
+   * children of a node are found by asking who names it as a parent - the same
+   * direction reparent's cycle check walks. */
+  function subtreeOf(perk, byId) {
+    const children = new Map();
+    for (const other of byId.values()) {
+      if (!other.parent_id) continue;
+      if (!children.has(other.parent_id)) children.set(other.parent_id, []);
+      children.get(other.parent_id).push(other);
+    }
+    const out = [];
+    const stack = [perk];
+    while (stack.length) {
+      const at = stack.pop();
+      if (at.res_path) out.push(at.res_path);
+      for (const child of children.get(at.id) || []) stack.push(child);
+    }
+    return out;
+  }
+
+  /** Shift-click takes the whole subtree, and takes it as a whole: if every perk
+   * under this one is already picked the gesture is read as "not those after
+   * all", so the same click undoes itself. */
+  function pickSubtree(perk, byId) {
+    const paths = subtreeOf(perk, byId);
+    const all = paths.every((path) => view.picked.has(path));
+    for (const path of paths) {
+      if (all) view.picked.delete(path);
+      else view.picked.add(path);
+    }
+    view.render();
+  }
 
   /* ------------------------------------------------------------------ drawing */
 
@@ -403,17 +466,26 @@
         x2: perk.world_x, y2: perk.world_y, stroke: `hsl(${perk.hue} 60% 55%)` }));
     }
 
+    // What the panel's ramp orders by, and what its chips are labelled from.
+    // Kept here rather than recomputed: renderPanel runs straight after this,
+    // over the same layout, and webLayout is the expensive half of a render.
+    view.drawn = new Map(perks.filter((perk) => perk.res_path)
+      .map((perk) => [perk.res_path, perk]));
+
     for (const perk of perks) {
       const group = svgEl("g");
       const classes = [];
       const selected = perk.res_path && perk.res_path === state.focus;
+      const picked = perk.res_path && view.picked.has(perk.res_path);
       if (selected) classes.push("selected");
+      if (picked) classes.push("picked");
       // The perk being edited is never dimmed, whether or not it matches: the
       // panel beside it is showing its fields, and fading the node they belong
-      // to leaves that panel pointing at nothing on screen.
+      // to leaves that panel pointing at nothing on screen. A picked one is not
+      // dimmed either - the bulk panel is about to write to it.
       if (filtering) {
         if (matched.has(perk.id)) classes.push("match");
-        else if (!selected) classes.push("dim");
+        else if (!selected && !picked) classes.push("dim");
       }
       if (classes.length) group.setAttribute("class", classes.join(" "));
       const circle = svgEl("circle", { class: "perk", cx: perk.world_x, cy: perk.world_y,
@@ -449,7 +521,15 @@
         group.setAttribute("data-path", perk.res_path);
         // A drag that reparents ends in a pointerup over some node, and the
         // click that follows would otherwise re-focus whichever one that was.
-        group.onclick = () => { if (!dragSuppressedClick()) edit(perk.res_path); };
+        group.onclick = (event) => {
+          if (dragSuppressedClick()) return;
+          if (event.shiftKey) pickSubtree(perk, byId);
+          else if (event.ctrlKey || event.metaKey) togglePicked(perk.res_path);
+          // A plain click is still "edit this one", and it drops the set: a
+          // selection left standing would keep the bulk panel over the fields
+          // of the perk that was just asked for.
+          else { view.picked.clear(); edit(perk.res_path); }
+        };
         // The core is nobody's child, so there is nothing to move it out of.
         if (perk.order) enableReparentDrag(group, perk, byId);
       }
@@ -457,7 +537,10 @@
       // so the web is not a field of buttons, and never on the core: its
       // `children` is not walked - a branch's first perks hang off the branch's
       // own `roots`, and a new branch is a different operation entirely.
-      if (perk.res_path && perk.res_path === state.focus && perk.parent_id) {
+      // Not while a set is picked: those badges act on one perk each, and the
+      // panel beside them is showing what the whole set is about to become.
+      if (!view.picked.size && perk.res_path && perk.res_path === state.focus
+          && perk.parent_id) {
         group.append(addChildBadge(perk), orderBadges(perk));
       }
       svg.append(group);
@@ -765,6 +848,21 @@
     count.className = "web-filter-count";
     head.append(title, count);
 
+    // The whole point of asking "which ones": the set the filter names is the
+    // set the bulk panel edits, so it is one press from lit to picked.
+    const take = document.createElement("button");
+    take.type = "button";
+    take.className = "web-filter-take";
+    take.textContent = "Select these";
+    take.title = "Put every highlighted perk under bulk edit";
+    take.onclick = () => {
+      for (const perk of view.drawn.values()) {
+        if (matchesFilter(perk)) view.picked.add(perk.res_path);
+      }
+      view.render();
+    };
+    head.append(take);
+
     const clear = document.createElement("button");
     clear.type = "button";
     clear.className = "revert";
@@ -801,12 +899,24 @@
     stat.value = view.filter.stat;
     stat.onchange = () => { view.filter.stat = stat.value; apply(); };
 
+    const branch = document.createElement("select");
+    branch.append(new Option("any branch", ""));
+    for (const entry of view.report.branches) {
+      // The core is its own rollup with an empty key, and is not an arm anyone
+      // retunes as a unit.
+      if (!entry.branch_key) continue;
+      branch.append(new Option(
+        `${entry.branch_label || entry.branch_key} · ${entry.perk_count}`, entry.branch_key));
+    }
+    branch.value = view.filter.branch;
+    branch.onchange = () => { view.filter.branch = branch.value; apply(); };
+
     const range = document.createElement("div");
     range.className = "web-filter-range";
-    const bound = (part, tip) => {
+    const bound = (part, tip, step = "0.5") => {
       const box = document.createElement("input");
       box.type = "number";
-      box.step = "0.5";
+      box.step = step;
       box.placeholder = "any";
       box.title = tip;
       box.value = view.filter[part] === null ? "" : String(view.filter[part]);
@@ -825,19 +935,33 @@
       Object.assign(document.createElement("i"), { textContent: "– 1e" }),
       bound("to", `Highest ${scaleOf().label.toLowerCase()} to highlight, as a power of ten`));
 
-    wrap.append(text, stat, range);
+    // Depth is how far down an arm a perk sits, which is the axis a branch is
+    // usually retuned along - the outer half is dear and the inner half is not.
+    const depth = document.createElement("div");
+    depth.className = "web-filter-range";
+    depth.append(Object.assign(document.createElement("i"), { textContent: "depth" }),
+      bound("depthFrom", "Shallowest depth to highlight", "1"),
+      Object.assign(document.createElement("i"), { textContent: "–" }),
+      bound("depthTo", "Deepest depth to highlight", "1"));
+
+    wrap.append(text, stat, branch, range, depth);
 
     clear.onclick = () => {
-      view.filter = { text: "", stat: "", from: null, to: null };
+      view.filter = { text: "", stat: "", branch: "", from: null, to: null,
+        depthFrom: null, depthTo: null };
       text.value = "";
       stat.value = "";
-      for (const box of range.querySelectorAll("input")) box.value = "";
+      branch.value = "";
+      for (const box of wrap.querySelectorAll(".web-filter-range input")) box.value = "";
       apply();
     };
 
     function sync() {
       const on = filterActive();
       clear.hidden = !on;
+      // view.matched is counted by drawWeb, which apply() has just re-run.
+      take.hidden = !on || !view.matched;
+      take.textContent = `Select these ${view.matched || 0}`;
       count.textContent = on
         ? `${view.matched} of ${view.report.perks.length}`
         : `${scaleOf().label.toLowerCase()}, or a name`;
@@ -986,12 +1110,16 @@
     // web is priced against, but the panel is 340px and the perk's own fields
     // are what a click asked for.
     const focused = focusedRow();
-    panel.append(payoutSection(!focused));
+    panel.append(payoutSection(!focused && !view.picked.size));
 
     const editor = document.createElement("div");
     editor.className = "web-editor";
     panel.append(editor);
-    if (focused) {
+    // A picked set outranks the focus: the focus is only still set because
+    // something had to be clicked to start picking.
+    if (view.picked.size) {
+      renderBulk(editor);
+    } else if (focused) {
       renderEditor(editor);
     } else {
       panel.append(branchTable());
@@ -1118,6 +1246,470 @@
     fields.className = "deps-panel";   // the styling the graph's own panel carries
     target.append(fields);
     renderDeps(row.row[0], fields);
+  }
+
+  /* ---------------------------------------------------------------- bulk edit */
+
+  /* Retuning a set instead of a perk.
+   *
+   * Every write here goes through writeCell, the one place a value changes, so a
+   * bulk apply is staged exactly like a typed one: the web re-lays-out under it,
+   * Revert undoes it, and Save sends the lot as a single patch - snapshot()
+   * groups rows by class rather than by file, so every perk in all eight branch
+   * files is one table and one request.
+   */
+
+  /** The perk fields worth moving as a set.
+   *
+   * `big` marks the ones stored as a mantissa/exponent pair. Those are read and
+   * written in log10 throughout: a base cost passes 1e150, and multiplying the
+   * mantissa either overflows the double or leaves a mantissa of 1000. An offset
+   * on one of them adds decades, which is the only offset meaning anything at
+   * that size. */
+  const BULK_FIELDS = [
+    { key: "base_cost", label: "Base cost", big: "_base_cost", log: true,
+      addLabel: "+ decades", hint: "1e50" },
+    { key: "max_level", label: "Max level", column: "max_level", integer: true, min: 1 },
+    { key: "cost_growth", label: "Cost growth", column: "cost_growth", min: 0.000001 },
+    { key: "cost_growth_exponent", label: "Growth exponent", column: "cost_growth_exponent",
+      min: 0.000001 },
+  ];
+
+  const EFFECT_FIELDS = [
+    { key: "per_level", label: "Per level", column: "per_level" },
+    { key: "max_magnitude", label: "Max magnitude", column: "max_magnitude" },
+  ];
+
+  /* The two tables a bulk apply can stage into. Two of them means Save all
+   * rather than Save, which is worth saying before the perks are saved and the
+   * effects are not. */
+  const BULK_TABLES = ["PerkNodeDef", "UpgradeEffectDef"];
+
+  const columnIndexOf = (row, column) => {
+    const index = row.header.indexOf(column);
+    return index > 0 ? index : -1;   // 0 is res_path, which is never written
+  };
+
+  const nameOf = (path) => {
+    const perk = view.drawn.get(path);
+    return (perk && perk.display_name) || labelOf(path);
+  };
+
+  /** What one field is worth on one row right now, in the unit its ops compose
+   * in: log10 for a big pair, the plain number otherwise. Read off the staged
+   * rows, not the pristine ones, so two applies compose. */
+  function readField(path, field) {
+    const row = rowIndexOf(path);
+    if (!row) return null;
+    if (field.big) {
+      return bigLog10(numberCell(row, `${field.big}_mantissa`, 0),
+        numberCell(row, `${field.big}_exponent`, 0));
+    }
+    const index = columnIndexOf(row, field.column);
+    if (index === -1) return null;
+    const value = Number(row.row[index]);
+    return Number.isFinite(value) ? value : null;
+  }
+
+  /** Writes one field back, and answers which table it landed in. */
+  function writeField(path, field, value) {
+    const row = rowIndexOf(path);
+    if (!row) return null;
+    if (field.big) {
+      const mantissa = columnIndexOf(row, `${field.big}_mantissa`);
+      const exponent = columnIndexOf(row, `${field.big}_exponent`);
+      if (mantissa === -1 || exponent === -1) return null;
+      const pair = fromLog10(value);
+      writeCell(row.file, row.rowIndex, mantissa, String(pair[0]));
+      writeCell(row.file, row.rowIndex, exponent, String(pair[1]));
+      return row.file;
+    }
+    const index = columnIndexOf(row, field.column);
+    if (index === -1) return null;
+    writeCell(row.file, row.rowIndex, index, String(value));
+    return row.file;
+  }
+
+  const lerp = (from, to, t) => from + (to - from) * t;
+
+  /** What a field becomes on one row. `t` is where that row sits in the picked
+   * order, 0 at the first and 1 at the last; only a ramp reads it.
+   *
+   * A big field's boxes still take the number the way it is written - 1e50, ×10
+   * - and the conversion into log10 happens here rather than asking anyone to
+   * type exponents. */
+  function nextValue(field, current, op, a, b, t) {
+    if (field.log) {
+      if (op === "set") return Math.log10(a);
+      if (op === "mul") return current + Math.log10(a);
+      if (op === "add") return current + a;   // decades: +2 is a hundredfold
+      // Always geometric. A linear ramp from 1e50 to 1e200 leaves every perk but
+      // the last sitting at 1e200, and those numbers do not fit a double anyway.
+      return lerp(Math.log10(a), Math.log10(b), t);
+    }
+    if (op === "set") return a;
+    if (op === "mul") return current * a;
+    if (op === "add") return current + a;
+    return view.rampMode === "geometric" && a > 0 && b > 0
+      ? 10 ** lerp(Math.log10(a), Math.log10(b), t)
+      : lerp(a, b, t);
+  }
+
+  function clamped(field, value) {
+    if (!Number.isFinite(value)) return null;
+    let out = value;
+    if (field.integer) out = Math.round(out);
+    if (field.min !== undefined) out = Math.max(field.min, out);
+    return out;
+  }
+
+  /** The picked perks in the order a ramp runs along: down the arms, and around
+   * the web within one depth, which is the order they are read in. A ramp over
+   * two branches at once interleaves them, so it is one branch at a time that
+   * this is for. */
+  function orderedPicked() {
+    return pickedPaths()
+      .map((path) => ({ path, perk: view.drawn.get(path) }))
+      .sort((left, right) => {
+        if (!left.perk || !right.perk) return 0;
+        return (left.perk.depth - right.perk.depth)
+          || ((left.perk.angle || 0) - (right.perk.angle || 0));
+      });
+  }
+
+  /** Every row an op would touch, with what it holds and what it would become.
+   * The same list backs the preview and the apply, so what is shown is what is
+   * written. */
+  function planPerks(field, op, a, b) {
+    const ordered = orderedPicked();
+    const rows = [];
+    ordered.forEach((entry, index) => {
+      const current = readField(entry.path, field);
+      if (current === null) return;
+      const t = ordered.length > 1 ? index / (ordered.length - 1) : 0;
+      const raw = nextValue(field, current, op, a, b, t);
+      const next = field.log ? (Number.isFinite(raw) ? raw : null) : clamped(field, raw);
+      if (next === null) return;
+      rows.push({ path: entry.path, name: nameOf(entry.path), current, next });
+    });
+    return rows;
+  }
+
+  /** The effect defs the picked perks point at, deduped by path.
+   *
+   * Deduped because most perks do not own their effect: an empty `effects` list
+   * inherits the branch's `default_effects`, one resource shared by the whole
+   * arm. A ×1.2 applied once per perk that points at it would be ×1.2 to the
+   * power of however many were picked. */
+  function pickedEffects() {
+    const used = new Map();
+    for (const perk of view.report.perks) {
+      for (const path of perk.effect_paths || []) {
+        if (!used.has(path)) used.set(path, { path, picked: 0, total: 0, others: [] });
+        const entry = used.get(path);
+        entry.total += 1;
+        if (perk.res_path && view.picked.has(perk.res_path)) entry.picked += 1;
+        else entry.others.push(perk.display_name);
+      }
+    }
+    return [...used.values()].filter((entry) => entry.picked > 0);
+  }
+
+  function planEffects(field, op, a, b) {
+    const rows = [];
+    for (const entry of pickedEffects()) {
+      const current = readField(entry.path, field);
+      if (current === null) continue;
+      const next = clamped(field, nextValue(field, current, op, a, b, 0));
+      if (next === null) continue;
+      rows.push({ path: entry.path, name: labelOf(entry.path), current, next });
+    }
+    return rows;
+  }
+
+  /** A value the way this field is read: a big one through the same formatter
+   * the mantissa/exponent boxes echo with, so the preview and the field agree. */
+  function showValue(field, value) {
+    if (field.log) {
+      const pair = fromLog10(value);
+      return formatBig(pair[0], pair[1]);
+    }
+    if (!Number.isFinite(value)) return "-";
+    return Math.abs(value) >= 100000 ? value.toExponential(2)
+      : String(Number(value.toPrecision(6)));
+  }
+
+  const bulkBox = (placeholder) => {
+    const box = document.createElement("input");
+    box.type = "number";
+    box.step = "any";
+    box.placeholder = placeholder;
+    return box;
+  };
+
+  /** One field's controls: the op, its one or two values, and what the picked
+   * rows would become. Nothing is staged until Apply - a bulk write is not a
+   * gesture to discover by watching the numbers move. */
+  function bulkRow(field, target) {
+    const wrap = document.createElement("div");
+    wrap.className = "bulk-row";
+
+    const head = document.createElement("label");
+    head.textContent = field.label;
+    wrap.append(head);
+
+    const controls = document.createElement("div");
+    controls.className = "bulk-controls";
+
+    const op = document.createElement("select");
+    const ops = [["set", "="], ["mul", "×"], ["add", field.addLabel || "+"]];
+    if (target.ramp) ops.push(["ramp", "ramp"]);
+    for (const [value, label] of ops) op.append(new Option(label, value));
+
+    const first = bulkBox(field.hint || "value");
+    const second = bulkBox("to");
+    const apply = document.createElement("button");
+    apply.type = "button";
+    apply.textContent = "Apply";
+    controls.append(op, first, second, apply);
+    wrap.append(controls);
+
+    // Only offered where a ramp is: a big field ramps geometrically or not at
+    // all, and the effects have no per-perk position to ramp along.
+    const shape = document.createElement("select");
+    shape.className = "bulk-shape";
+    shape.append(new Option("geometric", "geometric"), new Option("linear", "linear"));
+    shape.value = view.rampMode;
+    shape.title = "How the values between the two ends are spaced";
+    shape.onchange = () => { view.rampMode = shape.value; refresh(); };
+    if (target.ramp && !field.log) wrap.append(shape);
+
+    const preview = document.createElement("div");
+    preview.className = "bulk-preview";
+    wrap.append(preview);
+
+    /** The numbers as typed, or null when this op cannot be run with them. A
+     * log field cannot be set to or scaled by a number that has no logarithm. */
+    function args() {
+      const a = first.value.trim() === "" ? NaN : Number(first.value);
+      const b = second.value.trim() === "" ? NaN : Number(second.value);
+      if (!Number.isFinite(a)) return null;
+      if (op.value === "ramp" && !Number.isFinite(b)) return null;
+      if (field.log && op.value !== "add") {
+        if (a <= 0) return null;
+        if (op.value === "ramp" && b <= 0) return null;
+      }
+      return [a, b];
+    }
+
+    function refresh() {
+      second.hidden = op.value !== "ramp";
+      shape.hidden = op.value !== "ramp";
+      const pair = args();
+      const rows = pair ? target.plan(op.value, pair[0], pair[1]) : [];
+      const allowed = !target.allow || target.allow();
+      apply.disabled = !rows.length || !allowed;
+      if (!rows.length) {
+        preview.textContent = pair ? "nothing this field applies to" : "";
+        return;
+      }
+      const shown = rows.slice(0, 5)
+        .map((row) => `${row.name}  ${showValue(field, row.current)} → ${showValue(field, row.next)}`);
+      if (rows.length > shown.length) shown.push(`… and ${rows.length - shown.length} more`);
+      preview.textContent = shown.join("\n");
+    }
+
+    op.onchange = refresh;
+    first.oninput = refresh;
+    second.oninput = refresh;
+    target.watch(refresh);
+
+    apply.onclick = () => {
+      const pair = args();
+      if (!pair) return;
+      const rows = target.plan(op.value, pair[0], pair[1]);
+      if (!rows.length || (target.allow && !target.allow())) return;
+      const files = new Set();
+      for (const row of rows) {
+        const file = writeField(row.path, field, row.next);
+        if (file) files.add(file);
+      }
+      finishBulk(files, `${field.label}: ${rows.length} row(s) staged`);
+    };
+
+    refresh();
+    return wrap;
+  }
+
+  /** What every bulk apply ends with.
+   *
+   * The sidebar has to move with it: the header's Save and Revert act on the
+   * file `state.current` names, so a set written while the sidebar pointed
+   * elsewhere would stage edits neither button could reach - the same reason
+   * reparent re-focuses whatever it moved. */
+  function finishBulk(files, message) {
+    const [first] = files;
+    if (first && state.current !== first) state.current = first;
+    renderFileList();
+    view.render();
+    log(message);
+  }
+
+  /** One removable chip per picked perk, so a set gathered by four gestures can
+   * be corrected without starting it again. */
+  function pickedChips() {
+    const wrap = document.createElement("div");
+    wrap.className = "bulk-chips";
+    const paths = orderedPicked();
+    for (const entry of paths.slice(0, 40)) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "bulk-chip";
+      chip.textContent = `${nameOf(entry.path)} ✕`;
+      chip.title = "Drop this one from the set";
+      chip.onclick = () => togglePicked(entry.path);
+      wrap.append(chip);
+    }
+    if (paths.length > 40) {
+      const more = document.createElement("span");
+      more.className = "hint";
+      more.textContent = `and ${paths.length - 40} more`;
+      wrap.append(more);
+    }
+    return wrap;
+  }
+
+  /** The effect half of the panel, and the one place a bulk edit can reach
+   * further than it was pointed: a shared def belongs to perks nobody picked. */
+  function effectSection() {
+    // The rows built below, so ticking the shared-effect box re-enables their
+    // Apply buttons without rebuilding the panel under the cursor.
+    const watchers = [];
+    const wrap = document.createElement("div");
+    wrap.className = "deps-panel web-effect";
+    const title = document.createElement("h3");
+    title.textContent = "Effects";
+    wrap.append(title);
+
+    const effects = pickedEffects();
+    if (!effects.length) {
+      const none = document.createElement("p");
+      none.className = "hint";
+      none.textContent = "No effect in this report belongs to the picked perks.";
+      wrap.append(none);
+      return wrap;
+    }
+
+    const note = document.createElement("p");
+    note.className = "hint";
+    note.textContent = `${effects.length} effect def(s) behind ${view.picked.size} perks. `
+      + "Each is changed once, however many perks point at it.";
+    wrap.append(note);
+
+    const spill = effects.filter((entry) => entry.total > entry.picked);
+    const gate = { open: spill.length === 0 };
+    if (spill.length) {
+      const warn = document.createElement("p");
+      warn.className = "hint warn";
+      const others = [...new Set(spill.flatMap((entry) => entry.others))];
+      warn.textContent = `${spill.length} of these is shared with `
+        + `${others.length} perk(s) that were not picked: `
+        + `${others.slice(0, 6).join(", ")}${others.length > 6 ? ", …" : ""}. `
+        + "Changing it changes those too.";
+      wrap.append(warn);
+
+      const label = document.createElement("label");
+      label.className = "bulk-gate";
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.onchange = () => { gate.open = box.checked; for (const fn of watchers) fn(); };
+      label.append(box, document.createTextNode(" change the shared effects anyway"));
+      wrap.append(label);
+    }
+
+    for (const field of EFFECT_FIELDS) {
+      wrap.append(bulkRow(field, {
+        ramp: false,
+        allow: () => gate.open,
+        plan: (op, a, b) => planEffects(field, op, a, b),
+        watch: (fn) => watchers.push(fn),
+      }));
+    }
+    return wrap;
+  }
+
+  /** Puts every picked row - and the effect defs behind them - back the way the
+   * file has them. writeCell drops a file from state.edits the moment nothing in
+   * it differs, so reverting the last set reverts the file. */
+  function revertPicked() {
+    const files = new Set();
+    const paths = [...pickedPaths(), ...pickedEffects().map((entry) => entry.path)];
+    for (const path of paths) {
+      const row = rowIndexOf(path);
+      if (!row) continue;
+      const pristine = state.loaded.get(row.file).rows[row.rowIndex];
+      pristine.forEach((value, index) => {
+        if (index > 0) writeCell(row.file, row.rowIndex, index, value);
+      });
+      files.add(row.file);
+    }
+    finishBulk(files, `reverted ${paths.length} row(s)`);
+  }
+
+  function bulkFooter() {
+    const wrap = document.createElement("div");
+    const dirty = BULK_TABLES.filter((file) => state.loaded.has(file) && fileHasChanges(file));
+
+    const line = document.createElement("p");
+    line.className = dirty.length ? "hint warn" : "hint";
+    line.textContent = dirty.length
+      ? `unsaved in ${dirty.join(" and ")}`
+        + (dirty.length > 1 ? " - two tables, so save with Ctrl+Shift+S (Save all). " : ". ")
+        + "Costs recolour after Save, and adding or deleting a perk is refused until then."
+      : "Nothing staged yet. Positions preview live; costs recolour after Save.";
+    wrap.append(line);
+
+    const revert = document.createElement("button");
+    revert.type = "button";
+    revert.textContent = "Revert these";
+    revert.title = "Put the picked perks and their effects back to what the files hold";
+    revert.disabled = !dirty.length;
+    revert.onclick = revertPicked;
+    wrap.append(revert);
+    return wrap;
+  }
+
+  function renderBulk(target) {
+    const head = document.createElement("div");
+    head.className = "web-editor-head";
+    const title = document.createElement("b");
+    title.textContent = `${view.picked.size} perks picked`;
+    const clear = document.createElement("button");
+    clear.textContent = "Clear";
+    clear.title = "Stop bulk editing";
+    clear.onclick = () => { view.picked.clear(); view.render(); };
+    head.append(title, clear);
+    target.append(head);
+
+    target.append(pickedChips());
+
+    const hint = document.createElement("p");
+    hint.className = "hint";
+    hint.textContent = "Ctrl-click a perk to add or drop it, shift-click for its whole subtree.";
+    target.append(hint);
+
+    const fields = document.createElement("div");
+    fields.className = "bulk-fields";
+    for (const field of BULK_FIELDS) {
+      fields.append(bulkRow(field, {
+        ramp: true,
+        plan: (op, a, b) => planPerks(field, op, a, b),
+        watch: () => {},
+      }));
+    }
+    target.append(fields);
+    target.append(effectSection());
+    target.append(bulkFooter());
   }
 
   /** Everything outside the perk tree that names this perk by id.
