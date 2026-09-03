@@ -6,7 +6,7 @@
 script = ExtResource("1_script")
 stat = &"node_production"
 op = 1
-scope = 0
-target = &""
+scope = 2
+target = &"6"
 per_level = 0.15
 level_scaling = 0

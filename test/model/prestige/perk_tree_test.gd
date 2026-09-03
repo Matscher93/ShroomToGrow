@@ -131,11 +131,19 @@ func test_each_attunement_is_cheaper_than_the_next_reach_rung() -> void:
 ## PerkTree's sibling spread wide enough to lay the branch out - see the comment
 ## at the top of res_branch_reach.tres. Hanging them all on one side crushed the
 ## spread from 26 degrees to under 7.
+##
+## The bound is where _spread_for starts cutting: a branch keeps the full
+## SIBLING_SPREAD_DEG only while its widest offset still fits inside half a slice
+## at that spacing. Offsets are counted in root-ring steps rather than in
+## siblings, because a step taken far out is worth less than one taken near the
+## core - see PerkTree._widest_offset.
 func test_the_reach_chain_stays_near_its_centre_line() -> void:
+	var step := 360.0 / float(_branches.branches.size())
+	var limit := (step * 0.5 * PerkTree.BRANCH_SLICE_FILL) / PerkTree.SIBLING_SPREAD_DEG
 	var widest := PerkTree._widest_offset(_reach_branch().roots, 0.0)
 	assert_float(widest).override_failure_message(
-		"Reach's widest sibling offset is %f; past 1.5 the branch stops fitting its slice." \
-			% widest).is_less_equal(1.5)
+		"Reach's widest sibling offset is %f; past %f the branch loses the full spread." \
+			% [widest, limit]).is_less_equal(limit)
 
 func _reach_branch() -> PerkBranchDef:
 	for branch in _branches.branches:

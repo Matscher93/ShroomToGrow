@@ -97,8 +97,3 @@ func test_a_corrupt_entry_is_skipped_rather_than_taking_the_migration_down() -> 
 	var save := _v8_save([42, _entry("farm_pick_the_middens", "rot_grub", true)])
 	var ruins := _migrate(save)
 	assert_int(int(ruins["workers_owned"])).is_equal(1)
-
-## The version this build writes. A save that came back at 8 would be migrated
-## again on every load.
-func test_the_build_writes_version_nine() -> void:
-	assert_int(SaveManager.SAVE_VERSION).is_equal(9)

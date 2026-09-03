@@ -52,6 +52,24 @@ static func of_effects(effects: Array[UpgradeEffectDef], level: int = 1) -> Stri
 		parts.append(text)
 	return ", ".join(parts)
 
+## The scaling an effect's dependency adds, as a clause to hang off the end of a
+## sentence, and "" for an effect that scales with nothing.
+##
+## Deliberately vague about the arithmetic: the transform is what turns a count
+## into a multiplier, and there is no wording for a square root that helps
+## anybody. What the reader needs is that the number moves with something they
+## control, and which thing that is.
+static func scaling_note(effect: UpgradeEffectDef) -> String:
+	if effect == null or effect.dependency == null:
+		return ""
+	match effect.dependency.kind:
+		ScalingSourceDef.Kind.NODE_COUNT:
+			return ", scaled by how many of that tier you have grown"
+		ScalingSourceDef.Kind.BIOME_SIZE:
+			return ", scaled by %s Size" % ScopeLabel.tag_name(String(effect.dependency.key))
+		_:
+			return ""
+
 ## The noun the effect moves. Falls back to the resource group, and then to the
 ## stat's own name, so a stat nobody has worded yet reads as itself rather than
 ## as nothing.

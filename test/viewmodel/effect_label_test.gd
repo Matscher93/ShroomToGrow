@@ -83,3 +83,30 @@ func test_several_effects_are_joined() -> void:
 		_effect(&"farm_slots", UpgradeEffectDef.Op.ADD, 1.0),
 	]
 	assert_str(EffectLabel.of_effects(effects)).is_equal("+30% biomass, +1 farm plot")
+
+# ─── Scaling ─────────────────────────────────────────────────────────────────
+
+func _source(kind: ScalingSourceDef.Kind, key: StringName) -> ScalingSourceDef:
+	var source := ScalingSourceDef.new()
+	source.kind = kind
+	source.key = key
+	return source
+
+## An effect whose rate is multiplied by a dependency is not worth what its
+## per_level says, and the percentage alone would be a number the player never
+## sees happen.
+func test_a_node_count_dependency_says_what_it_scales_with() -> void:
+	var effect := _effect(&"synergy_production", UpgradeEffectDef.Op.INCREASED, 0.04,
+		UpgradeEffectDef.Scope.NODE, &"3")
+	effect.dependency = _source(ScalingSourceDef.Kind.NODE_COUNT, &"ManualNode3")
+	assert_str(EffectLabel.scaling_note(effect)) \
+		.is_equal(", scaled by how many of that tier you have grown")
+
+func test_a_biome_size_dependency_names_the_biome() -> void:
+	var effect := _effect(&"potency_production", UpgradeEffectDef.Op.MORE, 0.1)
+	effect.dependency = _source(ScalingSourceDef.Kind.BIOME_SIZE, &"symbiosis")
+	assert_str(EffectLabel.scaling_note(effect)).is_equal(", scaled by Symbiosis Size")
+
+func test_an_effect_that_scales_with_nothing_adds_no_clause() -> void:
+	assert_str(EffectLabel.scaling_note(_effect(&"biomass_gain", UpgradeEffectDef.Op.MORE, 0.3))).is_empty()
+	assert_str(EffectLabel.scaling_note(null)).is_empty()

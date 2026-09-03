@@ -14,117 +14,360 @@
 			"id": "substrate_1",
 			"branch": "nut",
 			"depth": 1,
-			"max_level": 5,
-			"cost_to_max": "3.16e1",
-			"path_cost": "3.26e1",
-			"effect_at_max": "7.50e-1"
+			"max_level": 50,
+			"cost_to_max": "2.03e4",
+			"path_cost": "2.03e4",
+			"effect_at_max": "7.50e0"
+		},
+		{
+			"id": "substrate_1_potency",
+			"branch": "nut",
+			"depth": 2,
+			"max_level": 25,
+			"cost_to_max": "2.53e7",
+			"path_cost": "2.53e7",
+			"effect_at_max": "2.50e0"
 		},
 		{
 			"id": "substrate_2",
 			"branch": "nut",
 			"depth": 2,
-			"max_level": 5,
-			"cost_to_max": "6.32e1",
-			"path_cost": "9.59e1",
-			"effect_at_max": "7.50e-1"
+			"max_level": 50,
+			"cost_to_max": "6.99e14",
+			"path_cost": "6.99e14",
+			"effect_at_max": "7.50e0"
 		},
 		{
-			"id": "substrate_3a",
+			"id": "substrate_2_potency",
 			"branch": "nut",
 			"depth": 3,
-			"max_level": 5,
-			"cost_to_max": "1.26e2",
-			"path_cost": "2.22e2",
-			"effect_at_max": "7.50e-1"
+			"max_level": 25,
+			"cost_to_max": "2.53e13",
+			"path_cost": "7.24e14",
+			"effect_at_max": "2.50e0"
 		},
 		{
-			"id": "substrate_4a",
-			"branch": "nut",
-			"depth": 4,
-			"max_level": 5,
-			"cost_to_max": "2.53e2",
-			"path_cost": "4.75e2",
-			"effect_at_max": "7.50e-1"
-		},
-		{
-			"id": "substrate_3b",
+			"id": "substrate_3",
 			"branch": "nut",
 			"depth": 3,
-			"max_level": 5,
-			"cost_to_max": "1.26e2",
-			"path_cost": "2.22e2",
-			"effect_at_max": "7.50e-1"
+			"max_level": 50,
+			"cost_to_max": "2.26e35",
+			"path_cost": "2.26e35",
+			"effect_at_max": "7.50e0"
 		},
 		{
-			"id": "substrate_4b",
+			"id": "substrate_3_potency",
 			"branch": "nut",
 			"depth": 4,
-			"max_level": 5,
-			"cost_to_max": "2.53e2",
-			"path_cost": "4.75e2",
-			"effect_at_max": "7.50e-1"
+			"max_level": 25,
+			"cost_to_max": "2.53e27",
+			"path_cost": "2.26e35",
+			"effect_at_max": "2.50e0"
+		},
+		{
+			"id": "substrate_4",
+			"branch": "nut",
+			"depth": 4,
+			"max_level": 50,
+			"cost_to_max": "2.04e72",
+			"path_cost": "2.04e72",
+			"effect_at_max": "7.50e0"
+		},
+		{
+			"id": "substrate_4_potency",
+			"branch": "nut",
+			"depth": 5,
+			"max_level": 25,
+			"cost_to_max": "2.53e52",
+			"path_cost": "2.04e72",
+			"effect_at_max": "2.50e0"
+		},
+		{
+			"id": "substrate_5",
+			"branch": "nut",
+			"depth": 5,
+			"max_level": 50,
+			"cost_to_max": "2.00e138",
+			"path_cost": "2.00e138",
+			"effect_at_max": "7.50e0"
+		},
+		{
+			"id": "substrate_5_potency",
+			"branch": "nut",
+			"depth": 6,
+			"max_level": 25,
+			"cost_to_max": "2.53e97",
+			"path_cost": "2.00e138",
+			"effect_at_max": "2.50e0"
+		},
+		{
+			"id": "substrate_6",
+			"branch": "nut",
+			"depth": 6,
+			"max_level": 50,
+			"cost_to_max": "1.99e260",
+			"path_cost": "1.99e260",
+			"effect_at_max": "7.50e0"
+		},
+		{
+			"id": "substrate_6_potency",
+			"branch": "nut",
+			"depth": 7,
+			"max_level": 25,
+			"cost_to_max": "2.53e177",
+			"path_cost": "1.99e260",
+			"effect_at_max": "2.50e0"
+		},
+		{
+			"id": "substrate_7",
+			"branch": "nut",
+			"depth": 7,
+			"max_level": 50,
+			"cost_to_max": "1.99e488",
+			"path_cost": "1.99e488",
+			"effect_at_max": "7.50e0"
+		},
+		{
+			"id": "substrate_7_potency",
+			"branch": "nut",
+			"depth": 8,
+			"max_level": 25,
+			"cost_to_max": "2.53e327",
+			"path_cost": "1.99e488",
+			"effect_at_max": "2.50e0"
+		},
+		{
+			"id": "substrate_8",
+			"branch": "nut",
+			"depth": 8,
+			"max_level": 50,
+			"cost_to_max": "2.01e900",
+			"path_cost": "2.01e900",
+			"effect_at_max": "7.50e0"
+		},
+		{
+			"id": "substrate_8_potency",
+			"branch": "nut",
+			"depth": 9,
+			"max_level": 25,
+			"cost_to_max": "2.53e607",
+			"path_cost": "2.01e900",
+			"effect_at_max": "2.50e0"
+		},
+		{
+			"id": "substrate_9",
+			"branch": "nut",
+			"depth": 9,
+			"max_level": 50,
+			"cost_to_max": "2.00e1640",
+			"path_cost": "2.00e1640",
+			"effect_at_max": "7.50e0"
+		},
+		{
+			"id": "substrate_9_potency",
+			"branch": "nut",
+			"depth": 10,
+			"max_level": 25,
+			"cost_to_max": "2.53e1107",
+			"path_cost": "2.00e1640",
+			"effect_at_max": "2.50e0"
+		},
+		{
+			"id": "substrate_10",
+			"branch": "nut",
+			"depth": 10,
+			"max_level": 50,
+			"cost_to_max": "2.00e2540",
+			"path_cost": "2.00e2540",
+			"effect_at_max": "7.50e0"
+		},
+		{
+			"id": "substrate_10_potency",
+			"branch": "nut",
+			"depth": 11,
+			"max_level": 25,
+			"cost_to_max": "2.53e2007",
+			"path_cost": "2.00e2540",
+			"effect_at_max": "2.50e0"
+		},
+		{
+			"id": "substrate_bedrock",
+			"branch": "nut",
+			"depth": 11,
+			"max_level": 25,
+			"cost_to_max": "2.29e2905",
+			"path_cost": "2.29e2905",
+			"effect_at_max": "1.25e0"
+		},
+		{
+			"id": "substrate_bedrock_potency",
+			"branch": "nut",
+			"depth": 12,
+			"max_level": 25,
+			"cost_to_max": "2.53e2907",
+			"path_cost": "2.55e2907",
+			"effect_at_max": "1.25e0"
+		},
+		{
+			"id": "substrate_bedrock_synergy",
+			"branch": "nut",
+			"depth": 12,
+			"max_level": 25,
+			"cost_to_max": "4.04e2907",
+			"path_cost": "4.06e2907",
+			"effect_at_max": "1.25e0"
+		},
+		{
+			"id": "substrate_10_synergy",
+			"branch": "nut",
+			"depth": 11,
+			"max_level": 25,
+			"cost_to_max": "4.04e2007",
+			"path_cost": "2.00e2540",
+			"effect_at_max": "1.00e0"
+		},
+		{
+			"id": "substrate_9_synergy",
+			"branch": "nut",
+			"depth": 10,
+			"max_level": 25,
+			"cost_to_max": "4.04e1107",
+			"path_cost": "2.00e1640",
+			"effect_at_max": "1.00e0"
+		},
+		{
+			"id": "substrate_8_synergy",
+			"branch": "nut",
+			"depth": 9,
+			"max_level": 25,
+			"cost_to_max": "4.04e607",
+			"path_cost": "2.01e900",
+			"effect_at_max": "1.00e0"
+		},
+		{
+			"id": "substrate_7_synergy",
+			"branch": "nut",
+			"depth": 8,
+			"max_level": 25,
+			"cost_to_max": "4.04e327",
+			"path_cost": "1.99e488",
+			"effect_at_max": "1.00e0"
+		},
+		{
+			"id": "substrate_6_synergy",
+			"branch": "nut",
+			"depth": 7,
+			"max_level": 25,
+			"cost_to_max": "4.04e177",
+			"path_cost": "1.99e260",
+			"effect_at_max": "1.00e0"
+		},
+		{
+			"id": "substrate_5_synergy",
+			"branch": "nut",
+			"depth": 6,
+			"max_level": 25,
+			"cost_to_max": "4.04e97",
+			"path_cost": "2.00e138",
+			"effect_at_max": "1.00e0"
+		},
+		{
+			"id": "substrate_4_synergy",
+			"branch": "nut",
+			"depth": 5,
+			"max_level": 25,
+			"cost_to_max": "4.04e52",
+			"path_cost": "2.04e72",
+			"effect_at_max": "1.00e0"
+		},
+		{
+			"id": "substrate_3_synergy",
+			"branch": "nut",
+			"depth": 4,
+			"max_level": 25,
+			"cost_to_max": "4.04e27",
+			"path_cost": "2.26e35",
+			"effect_at_max": "1.00e0"
+		},
+		{
+			"id": "substrate_2_synergy",
+			"branch": "nut",
+			"depth": 3,
+			"max_level": 25,
+			"cost_to_max": "4.04e13",
+			"path_cost": "7.40e14",
+			"effect_at_max": "1.00e0"
+		},
+		{
+			"id": "substrate_1_synergy",
+			"branch": "nut",
+			"depth": 2,
+			"max_level": 25,
+			"cost_to_max": "4.04e7",
+			"path_cost": "4.04e7",
+			"effect_at_max": "1.00e0"
 		},
 		{
 			"id": "fruiting_1",
 			"branch": "bio",
 			"depth": 1,
-			"max_level": 5,
-			"cost_to_max": "3.16e1",
-			"path_cost": "3.26e1",
-			"effect_at_max": "1.25e0"
+			"max_level": 50,
+			"cost_to_max": "9.52e8",
+			"path_cost": "9.52e8",
+			"effect_at_max": "1.25e1"
 		},
 		{
 			"id": "fruiting_2",
 			"branch": "bio",
 			"depth": 2,
-			"max_level": 5,
-			"cost_to_max": "6.32e1",
-			"path_cost": "9.59e1",
-			"effect_at_max": "1.25e0"
+			"max_level": 50,
+			"cost_to_max": "5.93e26",
+			"path_cost": "5.93e26",
+			"effect_at_max": "1.25e1"
 		},
 		{
 			"id": "fruiting_3a",
 			"branch": "bio",
 			"depth": 3,
-			"max_level": 5,
-			"cost_to_max": "1.26e2",
-			"path_cost": "2.22e2",
-			"effect_at_max": "1.25e0"
+			"max_level": 50,
+			"cost_to_max": "5.00e224",
+			"path_cost": "5.00e224",
+			"effect_at_max": "1.25e1"
 		},
 		{
 			"id": "fruiting_4a",
 			"branch": "bio",
 			"depth": 4,
-			"max_level": 5,
-			"cost_to_max": "2.53e2",
-			"path_cost": "4.75e2",
-			"effect_at_max": "1.25e0"
+			"max_level": 50,
+			"cost_to_max": "5.00e1952",
+			"path_cost": "5.00e1952",
+			"effect_at_max": "1.25e1"
 		},
 		{
 			"id": "fruiting_3b",
 			"branch": "bio",
 			"depth": 3,
-			"max_level": 5,
-			"cost_to_max": "1.26e2",
-			"path_cost": "2.22e2",
-			"effect_at_max": "1.25e0"
+			"max_level": 50,
+			"cost_to_max": "5.00e224",
+			"path_cost": "5.00e224",
+			"effect_at_max": "1.25e1"
 		},
 		{
 			"id": "fruiting_4b",
 			"branch": "bio",
 			"depth": 4,
-			"max_level": 5,
-			"cost_to_max": "2.53e2",
-			"path_cost": "4.75e2",
-			"effect_at_max": "1.25e0"
+			"max_level": 50,
+			"cost_to_max": "5.00e1952",
+			"path_cost": "5.00e1952",
+			"effect_at_max": "1.25e1"
 		},
 		{
 			"id": "tempo_1",
 			"branch": "tmp",
 			"depth": 1,
 			"max_level": 20,
-			"cost_to_max": "6.73e8",
-			"path_cost": "6.73e8",
+			"cost_to_max": "5.92e8",
+			"path_cost": "5.92e8",
 			"effect_at_max": "-2.00e0"
 		},
 		{
@@ -132,8 +375,8 @@
 			"branch": "tmp",
 			"depth": 2,
 			"max_level": 40,
-			"cost_to_max": "5.64e40",
-			"path_cost": "5.64e40",
+			"cost_to_max": "5.27e26",
+			"path_cost": "5.27e26",
 			"effect_at_max": "-2.00e0"
 		},
 		{
@@ -141,8 +384,8 @@
 			"branch": "tmp",
 			"depth": 3,
 			"max_level": 100,
-			"cost_to_max": "8.08e257",
-			"path_cost": "8.08e257",
+			"cost_to_max": "5.00e224",
+			"path_cost": "5.00e224",
 			"effect_at_max": "-2.00e0"
 		},
 		{
@@ -150,8 +393,8 @@
 			"branch": "tmp",
 			"depth": 4,
 			"max_level": 150,
-			"cost_to_max": "6.85e1354",
-			"path_cost": "6.85e1354",
+			"cost_to_max": "5.00e1952",
+			"path_cost": "5.00e1952",
 			"effect_at_max": "-1.50e0"
 		},
 		{
@@ -231,8 +474,8 @@
 			"branch": "rch",
 			"depth": 2,
 			"max_level": 1,
-			"cost_to_max": "5.00e0",
-			"path_cost": "8.00e0",
+			"cost_to_max": "6.00e1",
+			"path_cost": "6.30e1",
 			"effect_at_max": ""
 		},
 		{
@@ -240,8 +483,8 @@
 			"branch": "rch",
 			"depth": 3,
 			"max_level": 1,
-			"cost_to_max": "1.00e4",
-			"path_cost": "1.00e4",
+			"cost_to_max": "1.50e6",
+			"path_cost": "1.50e6",
 			"effect_at_max": ""
 		},
 		{
@@ -250,7 +493,7 @@
 			"depth": 4,
 			"max_level": 5,
 			"cost_to_max": "2.11e8",
-			"path_cost": "2.11e8",
+			"path_cost": "2.12e8",
 			"effect_at_max": "5.00e0"
 		},
 		{
@@ -258,8 +501,8 @@
 			"branch": "rch",
 			"depth": 4,
 			"max_level": 1,
-			"cost_to_max": "4.00e10",
-			"path_cost": "4.00e10",
+			"cost_to_max": "6.00e12",
+			"path_cost": "6.00e12",
 			"effect_at_max": ""
 		},
 		{
@@ -267,8 +510,8 @@
 			"branch": "rch",
 			"depth": 5,
 			"max_level": 1,
-			"cost_to_max": "1.00e32",
-			"path_cost": "1.00e32",
+			"cost_to_max": "1.00e35",
+			"path_cost": "1.00e35",
 			"effect_at_max": ""
 		},
 		{
@@ -285,8 +528,8 @@
 			"branch": "rch",
 			"depth": 6,
 			"max_level": 1,
-			"cost_to_max": "3.00e100",
-			"path_cost": "3.00e100",
+			"cost_to_max": "3.00e2000",
+			"path_cost": "3.00e2000",
 			"effect_at_max": ""
 		},
 		{
@@ -294,8 +537,8 @@
 			"branch": "rch",
 			"depth": 7,
 			"max_level": 1,
-			"cost_to_max": "8.00e500",
-			"path_cost": "8.00e500",
+			"cost_to_max": "8.00e5000",
+			"path_cost": "8.00e5000",
 			"effect_at_max": ""
 		},
 		{
@@ -304,7 +547,7 @@
 			"depth": 8,
 			"max_level": 5,
 			"cost_to_max": "4.21e701",
-			"path_cost": "4.21e701",
+			"path_cost": "8.00e5000",
 			"effect_at_max": "5.00e0"
 		},
 		{
@@ -312,8 +555,8 @@
 			"branch": "rch",
 			"depth": 8,
 			"max_level": 1,
-			"cost_to_max": "1.00e1000",
-			"path_cost": "1.00e1000",
+			"cost_to_max": "1.00e10000",
+			"path_cost": "1.00e10000",
 			"effect_at_max": ""
 		},
 		{
@@ -322,7 +565,7 @@
 			"depth": 9,
 			"max_level": 5,
 			"cost_to_max": "2.11e1202",
-			"path_cost": "2.11e1202",
+			"path_cost": "1.00e10000",
 			"effect_at_max": "5.00e0"
 		},
 		{
@@ -331,7 +574,7 @@
 			"depth": 7,
 			"max_level": 5,
 			"cost_to_max": "4.21e301",
-			"path_cost": "4.21e301",
+			"path_cost": "3.00e2000",
 			"effect_at_max": "5.00e0"
 		},
 		{
@@ -349,7 +592,7 @@
 			"depth": 3,
 			"max_level": 5,
 			"cost_to_max": "6.32e3",
-			"path_cost": "6.33e3",
+			"path_cost": "6.38e3",
 			"effect_at_max": "5.00e0"
 		},
 		{
@@ -589,30 +832,32 @@
 		},
 		{
 			"branch": "nut",
-			"perks": 6,
-			"max_depth": 4,
-			"total_cost_to_max": "8.54e2",
-			"deepest_path_cost": "4.75e2",
+			"perks": 33,
+			"max_depth": 12,
+			"total_cost_to_max": "6.59e2907",
+			"deepest_path_cost": "4.06e2907",
 			"stats": {
-				"node_production (INCREASED)": "4.50e0"
+				"node_production (INCREASED)": "7.62e1",
+				"potency_production (INCREASED)": "2.62e1",
+				"synergy_production (INCREASED)": "1.12e1"
 			}
 		},
 		{
 			"branch": "bio",
 			"perks": 6,
 			"max_depth": 4,
-			"total_cost_to_max": "8.54e2",
-			"deepest_path_cost": "4.75e2",
+			"total_cost_to_max": "10.00e1952",
+			"deepest_path_cost": "5.00e1952",
 			"stats": {
-				"biomass_gain (INCREASED)": "7.50e0"
+				"biomass_gain (INCREASED)": "7.50e1"
 			}
 		},
 		{
 			"branch": "tmp",
 			"perks": 4,
 			"max_depth": 4,
-			"total_cost_to_max": "6.85e1354",
-			"deepest_path_cost": "6.85e1354",
+			"total_cost_to_max": "5.00e1952",
+			"deepest_path_cost": "5.00e1952",
 			"stats": {
 				"tick_rate (ADD)": "-7.50e0"
 			}
@@ -631,8 +876,8 @@
 			"branch": "rch",
 			"perks": 16,
 			"max_depth": 9,
-			"total_cost_to_max": "2.11e1202",
-			"deepest_path_cost": "2.11e1202",
+			"total_cost_to_max": "1.00e10000",
+			"deepest_path_cost": "1.00e10000",
 			"stats": {
 				"level_points (ADD)": "4.00e1"
 			}
@@ -1656,8 +1901,8 @@
 		"policy": "roi",
 		"tick_budget": 20000,
 		"prestiges": 3,
-		"seconds": 1727.065,
-		"played": "28m 47s",
+		"seconds": 1832.9,
+		"played": "30m 33s",
 		"milestones": [
 			{
 				"tick": 1,
@@ -1672,8 +1917,8 @@
 				"detail": "forest"
 			},
 			{
-				"tick": 82,
-				"seconds": 820.0,
+				"tick": 83,
+				"seconds": 830.0,
 				"event": "biome",
 				"detail": "permafrost"
 			},
@@ -1681,7 +1926,7 @@
 				"tick": 90,
 				"seconds": 900.0,
 				"event": "prestige",
-				"detail": "#1, +3.68e1 biomass"
+				"detail": "#1, +5.98e1 biomass"
 			},
 			{
 				"tick": 91,
@@ -1690,14 +1935,14 @@
 				"detail": "meadow"
 			},
 			{
-				"tick": 96,
-				"seconds": 959.0,
+				"tick": 93,
+				"seconds": 929.6,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
-				"tick": 116,
-				"seconds": 1155.0,
+				"tick": 111,
+				"seconds": 1106.0,
 				"event": "biome",
 				"detail": "permafrost"
 			},
@@ -1705,7 +1950,7 @@
 				"tick": 140,
 				"seconds": 1390.2,
 				"event": "prestige",
-				"detail": "#2, +1.86e5 biomass"
+				"detail": "#2, +1.99e5 biomass"
 			},
 			{
 				"tick": 141,
@@ -1715,7 +1960,7 @@
 			},
 			{
 				"tick": 142,
-				"seconds": 1409.5,
+				"seconds": 1409.6,
 				"event": "biome",
 				"detail": "forest"
 			},
@@ -1727,183 +1972,15 @@
 			},
 			{
 				"tick": 148,
-				"seconds": 1462.85,
+				"seconds": 1463.3,
 				"event": "biome",
 				"detail": "crystal_caves"
 			},
 			{
-				"tick": 153,
-				"seconds": 1506.1,
-				"event": "biome",
-				"detail": "underground_lake"
-			},
-			{
-				"tick": 156,
-				"seconds": 1532.05,
-				"event": "project",
-				"detail": "project_sluice"
-			},
-			{
-				"tick": 156,
-				"seconds": 1532.05,
-				"event": "project",
-				"detail": "project_cistern"
-			},
-			{
-				"tick": 156,
-				"seconds": 1532.05,
-				"event": "project",
-				"detail": "project_shaft"
-			},
-			{
-				"tick": 157,
-				"seconds": 1540.66,
-				"event": "project",
-				"detail": "project_shrine"
-			},
-			{
-				"tick": 158,
-				"seconds": 1549.13,
-				"event": "project",
-				"detail": "project_terraces"
-			},
-			{
-				"tick": 159,
-				"seconds": 1557.46,
-				"event": "project",
-				"detail": "project_abyss"
-			},
-			{
-				"tick": 160,
-				"seconds": 1565.47,
-				"event": "project",
-				"detail": "project_weeping"
-			},
-			{
-				"tick": 161,
-				"seconds": 1573.03,
-				"event": "project",
-				"detail": "project_font"
-			},
-			{
-				"tick": 162,
-				"seconds": 1580.24,
-				"event": "project",
-				"detail": "project_fish"
-			},
-			{
-				"tick": 163,
-				"seconds": 1587.17,
-				"event": "project",
-				"detail": "project_chalk"
-			},
-			{
-				"tick": 164,
-				"seconds": 1594.01,
-				"event": "project",
-				"detail": "project_bridge"
-			},
-			{
-				"tick": 164,
-				"seconds": 1594.01,
-				"event": "project",
-				"detail": "project_forest"
-			},
-			{
-				"tick": 165,
-				"seconds": 1600.79,
-				"event": "project",
-				"detail": "project_mirror"
-			},
-			{
-				"tick": 167,
-				"seconds": 1614.085,
-				"event": "project",
-				"detail": "project_glacier"
-			},
-			{
-				"tick": 168,
-				"seconds": 1620.575,
-				"event": "project",
-				"detail": "project_sump"
-			},
-			{
-				"tick": 169,
-				"seconds": 1626.975,
-				"event": "project",
-				"detail": "project_karst"
-			},
-			{
-				"tick": 170,
-				"seconds": 1633.28,
-				"event": "project",
-				"detail": "project_black"
-			},
-			{
-				"tick": 171,
-				"seconds": 1639.485,
-				"event": "project",
-				"detail": "project_lock"
-			},
-			{
-				"tick": 172,
-				"seconds": 1645.26,
-				"event": "biome",
-				"detail": "ruins"
-			},
-			{
-				"tick": 172,
-				"seconds": 1645.26,
-				"event": "project",
-				"detail": "project_salt"
-			},
-			{
-				"tick": 174,
-				"seconds": 1656.21,
-				"event": "project",
-				"detail": "project_hollow"
-			},
-			{
-				"tick": 175,
-				"seconds": 1661.435,
-				"event": "project",
-				"detail": "project_moon"
-			},
-			{
-				"tick": 176,
-				"seconds": 1666.57,
-				"event": "project",
-				"detail": "project_lantern"
-			},
-			{
-				"tick": 178,
-				"seconds": 1676.39,
-				"event": "project",
-				"detail": "project_reef"
-			},
-			{
-				"tick": 179,
-				"seconds": 1681.11,
-				"event": "project",
-				"detail": "project_leviathan"
-			},
-			{
-				"tick": 181,
-				"seconds": 1690.285,
-				"event": "project",
-				"detail": "project_sink"
-			},
-			{
-				"tick": 185,
-				"seconds": 1707.365,
-				"event": "project",
-				"detail": "project_urocean"
-			},
-			{
 				"tick": 190,
-				"seconds": 1727.065,
+				"seconds": 1832.9,
 				"event": "prestige",
-				"detail": "#3, +1.23e127 biomass"
+				"detail": "#3, +6.90e15 biomass"
 			}
 		]
 	},

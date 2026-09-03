@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("1_script")
-stat = &"node_production"
+stat = &"potency_production"
 op = 1
 scope = 2
-target = &"1"
-per_level = 0.15
+target = &"9"
+per_level = 0.1
 level_scaling = 0

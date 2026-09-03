@@ -9,7 +9,13 @@ extends RefCounted
 ## in during the walk rather than authored.
 
 const CANVAS_CENTER := 520.0
-const ROOT_RADIUS := 150.0
+## The innermost ring is where two branches come closest: sibling spacing is an
+## angle, so the arc it buys is smallest where the radius is. Raised from 150
+## when Substrate grew a potency and a synergy leaf on every rung - those sit at
+## the very edge of Substrate's slice, and at 150 the depth-1 leaf's label landed
+## on Dominion's. perk_node_test.gd is what pins that down; 190 is where it
+## starts passing, so this leaves a ring's worth of margin.
+const ROOT_RADIUS := 200.0
 ## Node circles are 40px and the label block under one is about 60px tall, so a
 ## step much under this puts a node's labels on top of whatever the next ring
 ## over happens to sit beneath it. perk_node_test.gd is what pins that down.
@@ -23,6 +29,19 @@ const ROOT_RADIUS := 150.0
 ## measurably worse than what it fixes.
 const DEPTH_RADIUS_STEP := 170.0
 const SIBLING_SPREAD_DEG := 26.0
+## How hard sibling spacing narrows as a branch reaches outward. Spacing is an
+## angle, so the arc it buys is the angle times the radius: at a flat 26 degrees
+## the tenth ring's siblings sit ten times further apart than the first's, and a
+## long branch reads as a fan rather than a line. Scaling the angle by
+## (root radius / this ring's radius) to this power pulls that back - 1.0 holds
+## the gap between siblings exactly constant the whole way out, 0.0 is the flat
+## spacing this replaced, and in between the gap still opens up, just slowly.
+##
+## 0.5 is where perk_node_test still passes: at 0.75 Tide folds in on itself
+## (tide_depth's label lands on tide_shrine) and at 1.0 five more pairs go with
+## it. Going tighter than this means giving those branches more room radially,
+## not less room angularly.
+const SPREAD_FALLOFF := 0.5
 const BRANCH_START_DEG := -90.0  ## first branch points straight up from the core
 ## Fraction of its slice of the circle a branch may fill. The rest is the gutter
 ## that keeps neighbouring branches from touching.
@@ -52,11 +71,24 @@ static func _spread_for(branch: PerkBranchDef, half_slice: float) -> float:
 	var widest := _widest_offset(branch.roots, 0.0)
 	return spread if widest <= 0.0 else minf(spread, half_slice / widest)
 
-static func _widest_offset(siblings: Array[PerkNodeDef], parent_offset: float) -> float:
+## What one ring's sibling step is worth against a root's, per SPREAD_FALLOFF.
+## 1.0 at the root ring, and smaller the further out a ring sits.
+static func _depth_falloff(depth: int) -> float:
+	if SPREAD_FALLOFF <= 0.0:
+		return 1.0
+	return pow(ROOT_RADIUS / (ROOT_RADIUS + DEPTH_RADIUS_STEP * float(depth)), SPREAD_FALLOFF)
+
+## Offsets are counted in root-ring steps, so an offset picked up out at depth
+## eight counts for a fraction of one picked up at depth one - the same weighting
+## _place_children lays the branch out with. Without it the cap would be measured
+## against a spread the branch no longer uses and would shrink every long branch
+## for angles it never reaches.
+static func _widest_offset(siblings: Array[PerkNodeDef], parent_offset: float, depth: int = 0) -> float:
 	var widest := absf(parent_offset)
+	var falloff := _depth_falloff(depth)
 	for i in siblings.size():
-		var offset := parent_offset + float(i) - (siblings.size() - 1) / 2.0
-		widest = maxf(widest, _widest_offset(siblings[i].children, offset))
+		var offset := parent_offset + (float(i) - (siblings.size() - 1) / 2.0) * falloff
+		widest = maxf(widest, _widest_offset(siblings[i].children, offset, depth + 1))
 	return widest
 
 static func _make_core(core: PerkNodeDef) -> PerkDef:
@@ -83,7 +115,7 @@ static func _place_children(branch: PerkBranchDef, siblings: Array[PerkNodeDef],
 			push_error("Perk branch '%s' reuses id '%s', skipping that node and everything under it." % [branch.key, node.id])
 			continue
 		seen[node.id] = true
-		var angle := parent_angle + spread * (float(i) - (siblings.size() - 1) / 2.0)
+		var angle := parent_angle + spread * (float(i) - (siblings.size() - 1) / 2.0) * _depth_falloff(depth)
 		out.append(_make_perk(branch, node, parent_id, angle, depth))
 		_place_children(branch, node.children, node.id, angle, depth + 1, spread, seen, out)
 

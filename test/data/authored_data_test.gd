@@ -381,6 +381,67 @@ func test_symbiosis_upgrades_get_more_expensive_with_their_tier() -> void:
 				.override_failure_message("%s at tier %d (%s) costs no more than tier %d (%s)." \
 					% [stat, ordered[i], here, ordered[i - 1], before]).is_true()
 
+## The three stats Substrate moves, each once per tier along the spine and once
+## globally at the Bedrock capstone.
+const SUBSTRATE_STATS: Array[StringName] = [
+	&"node_production", &"potency_production", &"synergy_production",
+]
+
+## Substrate is the branch that steers a single tier: one rung per mycelium tier
+## boosting its production, with a potency and a synergy perk hanging off it.
+## Those are NODE-scoped, and a target that drifts by one leaves a tier with no
+## perk while another carries two - which no other check here would notice,
+## because both spellings resolve to a real tier.
+func test_every_mycelium_tier_has_its_own_substrate_perks() -> void:
+	var by_stat := {}   # stat -> { tier -> count }
+	for perk in _perks:
+		if perk.branch_key != &"nut":
+			continue
+		for e in perk.effects:
+			if e.scope == UpgradeEffectDef.Scope.GLOBAL:
+				continue   # the Bedrock capstones, checked below
+			assert_int(e.scope) \
+				.override_failure_message("Substrate perk '%s' is neither global nor NODE-scoped, so it moves tiers it was never meant to." \
+					% perk.id).is_equal(UpgradeEffectDef.Scope.NODE)
+			var tiers: Dictionary = by_stat.get(e.stat, {})
+			tiers[String(e.target)] = int(tiers.get(String(e.target), 0)) + 1
+			by_stat[e.stat] = tiers
+
+	for stat: StringName in SUBSTRATE_STATS:
+		var tiers: Dictionary = by_stat.get(stat, {})
+		for node in _nodes:
+			assert_int(int(tiers.get(String(node.id_key), 0))) \
+				.override_failure_message("Tier %d (%s) is targeted by %d Substrate '%s' perks, not exactly one." \
+					% [node.node_id, node.name, int(tiers.get(String(node.id_key), 0)), stat]).is_equal(1)
+		assert_int(tiers.size()) \
+			.override_failure_message("Substrate has '%s' perks on %d targets but the game has %d tiers." \
+				% [stat, tiers.size(), _nodes.size()]).is_equal(_nodes.size())
+
+## The capstones are what the spine builds up to: past the last rung, one perk
+## per stat that moves every tier at once. Global rather than ten node-scoped
+## copies, so a tier added later is covered without touching them - and one per
+## stat, because two would be the same multiplier under two names.
+func test_substrate_ends_in_one_global_perk_per_stat() -> void:
+	var globals := {}   # stat -> [perk ids]
+	for perk in _perks:
+		if perk.branch_key != &"nut":
+			continue
+		for e in perk.effects:
+			if e.scope != UpgradeEffectDef.Scope.GLOBAL:
+				continue
+			var ids: Array = globals.get(e.stat, [])
+			ids.append(String(perk.id))
+			globals[e.stat] = ids
+
+	for stat: StringName in SUBSTRATE_STATS:
+		var ids: Array = globals.get(stat, [])
+		assert_int(ids.size()) \
+			.override_failure_message("Substrate has %d global '%s' perks (%s), not exactly one." \
+				% [ids.size(), stat, ", ".join(PackedStringArray(ids))]).is_equal(1)
+	assert_int(globals.size()) \
+		.override_failure_message("Substrate carries global perks for stats outside %s." \
+			% [SUBSTRATE_STATS]).is_equal(SUBSTRATE_STATS.size())
+
 func test_a_perk_costs_more_than_its_parent() -> void:
 	var by_id := {}
 	for perk in _perks:

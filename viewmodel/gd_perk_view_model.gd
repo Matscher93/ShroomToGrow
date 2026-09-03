@@ -64,11 +64,15 @@ var can_buy: bool:
 ## Worded by EffectLabel, so a perk and an expedition reward naming the same stat
 ## read as the same thing. It names the scope itself - a global perk is most of
 ## them, and "on every node" on every line says nothing the reader did not
-## assume - so all that is added here is the per-level footing.
+## assume - so all that is added here is the per-level footing and, for a perk
+## that scales with something, what it scales with. Substrate's synergy perks are
+## the reason for that last part: their rate is multiplied by a ScalingSourceDef,
+## and the bare percentage is not what the player actually gets.
 func _generated_effect_text() -> String:
 	if _def.effects.is_empty():
 		return ""
-	return "%s per level" % EffectLabel.of_effect(_def.effects[0])
+	var effect: UpgradeEffectDef = _def.effects[0]
+	return "%s per level%s" % [EffectLabel.of_effect(effect), EffectLabel.scaling_note(effect)]
 
 # --- Lifecycle ---
 

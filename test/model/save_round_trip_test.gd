@@ -264,13 +264,26 @@ func test_v1_perk_ids_are_remapped_and_the_save_is_stamped_v2() -> void:
 		"substrate_1": 2, "bounty_3a": 1, "core": 1, UpgradeSystem.LIFETIME_KEY: 4,
 	})
 
+## Driven through the whole chain rather than through PERK_IDS_V1_TO_V2 alone,
+## because a perk can be renamed twice: Substrate's forks landed on substrate_3a
+## in v2 and were renumbered again in v10, and only the composed answer says
+## whether a v1 save still finds its perks.
 func test_migrated_perk_ids_are_all_known_to_the_built_tree() -> void:
 	var ids := {}
 	for perk in PerkTree.build(load("res://data/prestige/all_branches.tres") as PerkBranchList):
 		ids[String(perk.id)] = true
+
+	var perks := {}
 	for old_id: String in SaveManager.PERK_IDS_V1_TO_V2:
-		assert_bool(ids.has(SaveManager.PERK_IDS_V1_TO_V2[old_id])) \
-			.override_failure_message("v1 perk '%s' migrates to an id no longer in the tree." % old_id) \
+		perks[old_id] = 1
+	var data := {"version": 1, "game": {"prestige_upgrades": perks}}
+	assert_bool(SaveManager._migrate(data)).is_true()
+
+	for id: String in data["game"]["prestige_upgrades"]:
+		if id == UpgradeSystem.LIFETIME_KEY:
+			continue
+		assert_bool(ids.has(id)) \
+			.override_failure_message("A v1 save migrates a perk to '%s', which is no longer in the tree." % id) \
 			.is_true()
 
 func test_migration_leaves_unknown_and_already_current_perk_ids_alone() -> void:
