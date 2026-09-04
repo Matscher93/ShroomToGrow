@@ -7,6 +7,6 @@ script = ExtResource("1_script")
 stat = &"biome_points"
 op = 0
 scope = 2
-target = &"permafrost"
+target = &"crystal_caves"
 per_level = 1.0
 level_scaling = 0

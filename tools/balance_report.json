@@ -398,7 +398,7 @@
 			"effect_at_max": "-1.50e0"
 		},
 		{
-			"id": "bounty_1",
+			"id": "bounty_meadow",
 			"branch": "bnt",
 			"depth": 1,
 			"max_level": 5,
@@ -407,7 +407,7 @@
 			"effect_at_max": "5.00e0"
 		},
 		{
-			"id": "bounty_2",
+			"id": "bounty_forest",
 			"branch": "bnt",
 			"depth": 2,
 			"max_level": 5,
@@ -416,7 +416,7 @@
 			"effect_at_max": "5.00e0"
 		},
 		{
-			"id": "bounty_3a",
+			"id": "bounty_permafrost",
 			"branch": "bnt",
 			"depth": 3,
 			"max_level": 5,
@@ -425,7 +425,7 @@
 			"effect_at_max": "5.00e0"
 		},
 		{
-			"id": "bounty_4a",
+			"id": "bounty_crystal_caves",
 			"branch": "bnt",
 			"depth": 4,
 			"max_level": 5,
@@ -434,21 +434,21 @@
 			"effect_at_max": "5.00e0"
 		},
 		{
-			"id": "bounty_3b",
+			"id": "bounty_underground_lake",
 			"branch": "bnt",
-			"depth": 3,
+			"depth": 5,
 			"max_level": 5,
-			"cost_to_max": "1.26e2",
-			"path_cost": "2.22e2",
+			"cost_to_max": "5.06e2",
+			"path_cost": "9.81e2",
 			"effect_at_max": "5.00e0"
 		},
 		{
-			"id": "bounty_4b",
+			"id": "bounty_ruins",
 			"branch": "bnt",
-			"depth": 4,
+			"depth": 6,
 			"max_level": 5,
-			"cost_to_max": "2.53e2",
-			"path_cost": "4.75e2",
+			"cost_to_max": "1.01e3",
+			"path_cost": "1.99e3",
 			"effect_at_max": "5.00e0"
 		},
 		{
@@ -865,9 +865,9 @@
 		{
 			"branch": "bnt",
 			"perks": 6,
-			"max_depth": 4,
-			"total_cost_to_max": "8.54e2",
-			"deepest_path_cost": "4.75e2",
+			"max_depth": 6,
+			"total_cost_to_max": "1.99e3",
+			"deepest_path_cost": "1.99e3",
 			"stats": {
 				"biome_points (ADD)": "3.00e1"
 			}
@@ -1901,7 +1901,7 @@
 		"policy": "roi",
 		"tick_budget": 20000,
 		"prestiges": 3,
-		"seconds": 1828.8,
+		"seconds": 1828.7,
 		"played": "30m 29s",
 		"milestones": [
 			{
@@ -1966,21 +1966,21 @@
 			},
 			{
 				"tick": 145,
-				"seconds": 1437.1,
+				"seconds": 1437.0,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
-				"tick": 148,
-				"seconds": 1463.4,
+				"tick": 151,
+				"seconds": 1489.4,
 				"event": "biome",
 				"detail": "crystal_caves"
 			},
 			{
 				"tick": 190,
-				"seconds": 1828.8,
+				"seconds": 1828.7,
 				"event": "prestige",
-				"detail": "#3, +3.11e16 biomass"
+				"detail": "#3, +2.24e13 biomass"
 			}
 		]
 	},

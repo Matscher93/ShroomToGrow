@@ -261,7 +261,7 @@ func test_v1_perk_ids_are_remapped_and_the_save_is_stamped_v2() -> void:
 	assert_int(int(data["version"])).is_equal(SaveManager.SAVE_VERSION)
 	# The lifetime seed rides along: a v1 save runs every later step too.
 	assert_dict(data["game"]["prestige_upgrades"]).is_equal({
-		"substrate_1": 2, "bounty_3a": 1, "core": 1, UpgradeSystem.LIFETIME_KEY: 4,
+		"substrate_1": 2, "bounty_permafrost": 1, "core": 1, UpgradeSystem.LIFETIME_KEY: 4,
 	})
 
 ## Driven through the whole chain rather than through PERK_IDS_V1_TO_V2 alone,

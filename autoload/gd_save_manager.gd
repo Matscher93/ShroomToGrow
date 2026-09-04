@@ -5,7 +5,7 @@ extends Node
 const SAVE_PATH   := "user://save.json"
 const BACKUP_PATH := "user://save.bak.json"
 const TMP_PATH    := "user://save.tmp.json"
-const SAVE_VERSION := 10
+const SAVE_VERSION := 11
 
 ## The three UpgradeSystem buckets in a save, for migrations that touch all of
 ## them. Order is irrelevant, each is keyed independently.
@@ -37,6 +37,15 @@ const PERK_IDS_V1_TO_V2 := {
 const PERK_IDS_V9_TO_V10 := {
 	"substrate_3a": "substrate_3", "substrate_3b": "substrate_4",
 	"substrate_4a": "substrate_5", "substrate_4b": "substrate_6",
+}
+## v10 -> v11: the Bounty branch became one rung per biome, so its forked perks
+## were renamed onto the biome each one now feeds. Levels carry over one for one;
+## where the point lands does not, because the old III/IV perks all poured into
+## Permafrost and the new rungs each open a biome of their own.
+const PERK_IDS_V10_TO_V11 := {
+	"bounty_1": "bounty_meadow", "bounty_2": "bounty_forest",
+	"bounty_3a": "bounty_permafrost", "bounty_3b": "bounty_crystal_caves",
+	"bounty_4a": "bounty_underground_lake", "bounty_4b": "bounty_ruins",
 }
 
 const AUTOSAVE_INTERVAL := 15.0  # seconds
@@ -218,6 +227,8 @@ func _migrate(data: Dictionary) -> bool:
 		_migrate_ruins_to_v9(data)
 	if version < 10:
 		_migrate_substrate_perks_to_v10(data)
+	if version < 11:
+		_migrate_bounty_perks_to_v11(data)
 	data["version"] = SAVE_VERSION
 	return true
 
@@ -287,6 +298,19 @@ func _migrate_substrate_perks_to_v10(data: Dictionary) -> void:
 	var migrated := {}
 	for key in perks:
 		migrated[PERK_IDS_V9_TO_V10.get(key, key)] = perks[key]
+	game["prestige_upgrades"] = migrated
+
+## Rewrites the rebiomed Bounty perk keys of a pre-v11 save in place, the same
+## way _migrate_substrate_perks_to_v10 does. Every old Bounty id is in the table,
+## so nothing of that branch falls through.
+func _migrate_bounty_perks_to_v11(data: Dictionary) -> void:
+	if not data.has("game"):
+		return
+	var game: Dictionary = data["game"]
+	var perks: Dictionary = game.get("prestige_upgrades", {})
+	var migrated := {}
+	for key in perks:
+		migrated[PERK_IDS_V10_TO_V11.get(key, key)] = perks[key]
 	game["prestige_upgrades"] = migrated
 
 ## Seeds the lifetime counters the achievement ladder measures, which pre-v3

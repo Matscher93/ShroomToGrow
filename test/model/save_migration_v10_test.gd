@@ -50,8 +50,3 @@ func test_every_migrated_id_is_still_in_the_tree() -> void:
 		assert_bool(ids.has(SaveManager.PERK_IDS_V9_TO_V10[old_id])) \
 			.override_failure_message("v9 perk '%s' migrates to an id no longer in the tree." % old_id) \
 			.is_true()
-
-## The version this build writes. A save that came back at 9 would be migrated
-## again on every load.
-func test_the_build_writes_version_ten() -> void:
-	assert_int(SaveManager.SAVE_VERSION).is_equal(10)
