@@ -1271,7 +1271,8 @@
       played.title = `${Math.round(milestone.seconds || 0)}s`;
       row.insertCell().textContent = milestone.event;
       row.insertCell().textContent = milestone.detail;
-      row.insertCell().append(...savepointActions(savepoints[index], milestone));
+      row.insertCell().append(...breakdownAction(milestone),
+        ...savepointActions(savepoints[index], milestone));
     });
     if (!view.result.milestones.length) {
       const row = table.insertRow();
@@ -1281,6 +1282,43 @@
       cell.textContent = "nothing happened in this many ticks";
     }
     return table;
+  }
+
+  /** Open the bonus breakdown on this milestone's own snapshot.
+   *
+   * The dropdown inside the breakdown can already reach every one of them, but it
+   * is below a few hundred rows and reads as a list of ticks - the question being
+   * asked here is "what was carrying the run when *this* happened", and the row
+   * that says it happened is where that question is asked from.
+   *
+   * Doubles as the readout of which milestone the numbers below belong to: the
+   * button on the chosen row is the one wearing the accent.
+   *
+   * Nothing at all when this milestone carries no snapshot - a run asked for
+   * bonuses at the end alone measures none of them, and a stitched result can
+   * hold a leg that was run without any.
+   */
+  function breakdownAction(milestone) {
+    // Matched by tick rather than by index, for the same reason
+    // breakdownChoices() does: a stitched result's milestones and breakdowns are
+    // not parallel arrays.
+    const at = (view.result.breakdowns || []).findIndex((snapshot) => snapshot.tick === milestone.tick);
+    if (at < 0) return [];
+    const button = document.createElement("button");
+    button.className = view.breakdownAt === at && view.breakdownOpen ? "sim-tiny primary" : "sim-tiny";
+    button.textContent = "bonuses";
+    button.title = `show what was carrying the run at ${milestone.event}, tick ${milestone.tick}`;
+    button.onclick = () => {
+      view.breakdownAt = at;
+      view.breakdownOpen = true;
+      // The panel alone, and then scrolled to: the breakdown sits below the form,
+      // the summary and the whole milestone table, so opening it without going
+      // there leaves the button looking like it did nothing.
+      const panel = view.element.querySelector(".sim-panel");
+      renderPanel(panel);
+      panel.querySelector(".sim-breakdown").scrollIntoView({ block: "start" });
+    };
+    return [button];
   }
 
   /** Run on from this milestone, or take its save away. Nothing at all for a
