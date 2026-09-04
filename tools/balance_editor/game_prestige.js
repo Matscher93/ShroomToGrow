@@ -1245,13 +1245,16 @@
 
     const note = document.createElement("div");
     note.className = "hint";
-    note.textContent = "A run fills whole areas on both ladders; the payout is "
-      + "payout base x payout growth ^ (areas - 1).";
+    note.textContent = "A run fills whole areas on both ladders; area k above a "
+      + "ladder's base costs base x growth ^ (k x growth exponent ^ k), and the "
+      + "payout is payout base x payout growth ^ (areas - 1).";
     wrap.append(note);
 
-    const nutrients = fieldGroup("Nutrient storage", entry, ["nutrient_growth"]);
+    const nutrients = fieldGroup("Nutrient storage", entry,
+      ["nutrient_growth", "nutrient_growth_exponent"]);
     nutrients.prepend(bigField(entry, "First area at", "_nutrient_base"));
-    const ticks = fieldGroup("Time storage", entry, ["tick_growth"]);
+    const ticks = fieldGroup("Time storage", entry,
+      ["tick_growth", "tick_growth_exponent"]);
     ticks.prepend(bigField(entry, "First area at", "_tick_base"));
     const payout = fieldGroup("Payout", entry, ["payout_growth", "max_areas"]);
     payout.prepend(bigField(entry, "One area pays", "_payout_base"));
@@ -1259,13 +1262,17 @@
     return wrap;
   }
 
-  /** growthCurve() over area indices. The ladder is `base * growth^(area - 1)`,
-   * which is the shared curve at growth exponent 1 shifted one place: area 1 is
-   * the base itself, so the sampled window starts one below where it is drawn. */
-  const ladderCurve = (entry, prefix, growthColumn, from, to) => growthCurve(
+  /** growthCurve() over area indices. The ladder is
+   * `base * growth^(k * growth_exponent^k)` at k areas above the base, which is
+   * the shared curve shifted one place: area 1 is the base itself, so the
+   * sampled window starts one below where it is drawn. `exponentColumn` is left
+   * out by the payout curve, which reuses this shape but carries no exponent. */
+  const ladderCurve = (entry, prefix, growthColumn, from, to, exponentColumn) => growthCurve(
     bigLog10(numberCell(entry, `${prefix}_mantissa`, 0),
       numberCell(entry, `${prefix}_exponent`, 0)),
-    numberCell(entry, growthColumn, 10), 1, Math.max(from - 1, 0), to - 1);
+    numberCell(entry, growthColumn, 10),
+    exponentColumn ? Math.max(numberCell(entry, exponentColumn, 1), 1) : 1,
+    Math.max(from - 1, 0), to - 1);
 
   /** What each area on either ladder costs the run, area by area. */
   function ladderChart(entry) {
@@ -1274,9 +1281,11 @@
       const pad = new Array(start - from).fill(null);
       const series = [
         { label: "run nutrients", color: "var(--accent)",
-          points: pad.concat(ladderCurve(entry, "_nutrient_base", "nutrient_growth", start, to)) },
+          points: pad.concat(ladderCurve(entry, "_nutrient_base", "nutrient_growth", start, to,
+            "nutrient_growth_exponent")) },
         { label: "ticks survived", color: hueOf(3),
-          points: pad.concat(ladderCurve(entry, "_tick_base", "tick_growth", start, to)) },
+          points: pad.concat(ladderCurve(entry, "_tick_base", "tick_growth", start, to,
+            "tick_growth_exponent")) },
       ];
       const sampled = engineCurve(entry.row[0]);
       const nutrientDots = engineSeries(entry, sampled && sampled.nutrient_threshold,

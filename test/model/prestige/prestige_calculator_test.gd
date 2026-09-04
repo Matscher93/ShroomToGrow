@@ -53,27 +53,27 @@ func test_the_fill_fraction_matches_the_amounts_the_bar_is_labelled_with() -> vo
 	# ratio across whichever one is being filled, so it agrees with the "X / Y"
 	# the label carries.
 	assert_float(PrestigeCalculator.fill_fraction(
-		BigNumber.from_value(500.0), _def.nutrient_base(), _def.nutrient_growth, 0)) \
+		BigNumber.from_value(500.0), _def.nutrient_base(), _def.nutrient_growth, 1.0, 0)) \
 		.is_equal_approx(0.5, 0.001)
 	assert_float(PrestigeCalculator.fill_fraction(
-		BigNumber.from_value(5.5e3), _def.nutrient_base(), _def.nutrient_growth, 1)) \
+		BigNumber.from_value(5.5e3), _def.nutrient_base(), _def.nutrient_growth, 1.0, 1)) \
 		.is_equal_approx(0.5, 0.001)
 
 func test_the_fill_fraction_never_leaves_its_bar() -> void:
 	assert_float(PrestigeCalculator.fill_fraction(
-		BigNumber.from_value(0.0), _def.nutrient_base(), _def.nutrient_growth, 0)).is_zero()
+		BigNumber.from_value(0.0), _def.nutrient_base(), _def.nutrient_growth, 1.0, 0)).is_zero()
 	assert_float(PrestigeCalculator.fill_fraction(
-		BigNumber.from_value(1e30), _def.nutrient_base(), _def.nutrient_growth, 1)) \
+		BigNumber.from_value(1e30), _def.nutrient_base(), _def.nutrient_growth, 1.0, 1)) \
 		.is_equal_approx(1.0, EPS)
 
 func test_an_area_threshold_is_what_that_area_costs() -> void:
 	assert_float(PrestigeCalculator.area_threshold(
-		_def.nutrient_base(), _def.nutrient_growth, 1).to_float()).is_equal_approx(1e3, 1.0)
+		_def.nutrient_base(), _def.nutrient_growth, 1.0, 1).to_float()).is_equal_approx(1e3, 1.0)
 	assert_float(PrestigeCalculator.area_threshold(
-		_def.nutrient_base(), _def.nutrient_growth, 3).to_float()).is_equal_approx(1e5, 1.0)
+		_def.nutrient_base(), _def.nutrient_growth, 1.0, 3).to_float()).is_equal_approx(1e5, 1.0)
 	# Area 0 is the empty ladder, not a price.
 	assert_float(PrestigeCalculator.area_threshold(
-		_def.nutrient_base(), _def.nutrient_growth, 0).to_float()).is_zero()
+		_def.nutrient_base(), _def.nutrient_growth, 1.0, 0).to_float()).is_zero()
 
 func test_max_areas_clamps_a_ladder() -> void:
 	_def.max_areas = 3
@@ -86,6 +86,68 @@ func test_a_flat_ladder_cannot_run_away() -> void:
 	_def.max_areas = 5
 	assert_int(PrestigeCalculator.nutrient_areas(BigNumber.from_value(1e30), _def)).is_equal(5)
 	assert_int(PrestigeCalculator.nutrient_areas(BigNumber.from_value(1.0), _def)).is_zero()
+
+# ─── Bent ladders ────────────────────────────────────────────────────────────
+
+func test_an_exponent_of_one_leaves_the_index_alone() -> void:
+	# The whole point of the default: an unbent ladder is the plain index, so
+	# every number above this section still describes the shipped curve.
+	for area: int in [0, 1, 5, 40]:
+		assert_float(PrestigeCalculator.scaled_area(area, 1.0)) \
+			.is_equal_approx(float(area), EPS)
+
+func test_an_exponent_below_one_is_clamped_away() -> void:
+	# Under 1.0 the index peaks and falls again, which would price a later area
+	# below an earlier one. Clamped rather than trusted - see PrestigeCurveDef.
+	assert_float(PrestigeCalculator.scaled_area(3, 0.5)).is_equal_approx(3.0, EPS)
+	assert_float(PrestigeCalculator.scaled_area(3, 0.0)).is_equal_approx(3.0, EPS)
+
+func test_an_exponent_bends_the_ladder_upward() -> void:
+	# base 1e3, growth 10, exponent 1.2: area k above the base costs
+	# 1e3 * 10^(k * 1.2^k), so the ladder's exponents run 3, 4.2, 5.88, 8.184 …
+	_def.nutrient_growth_exponent = 1.2
+	for expected: Array in [[1, 3.0], [2, 4.2], [3, 5.88], [4, 8.184]]:
+		var threshold := PrestigeCalculator.area_threshold(
+			_def.nutrient_base(), _def.nutrient_growth, 1.2, int(expected[0]))
+		assert_float(threshold.log10()).is_equal_approx(float(expected[1]), 0.0001)
+
+func test_a_bent_ladder_is_inverted_exactly() -> void:
+	# The bent ladder has no closed-form inverse, so areas_filled bisects it. What
+	# it must still agree with is area_threshold: an amount sitting exactly on
+	# area N's threshold has filled N areas, and a hair under it has filled N-1.
+	_def.nutrient_growth_exponent = 1.2
+	for area: int in range(1, 7):
+		var threshold := PrestigeCalculator.area_threshold(
+			_def.nutrient_base(), _def.nutrient_growth, 1.2, area)
+		assert_int(PrestigeCalculator.nutrient_areas(threshold, _def)).is_equal(area)
+		assert_int(PrestigeCalculator.nutrient_areas(
+			threshold.mul(BigNumber.from_value(0.99)), _def)).is_equal(area - 1)
+
+func test_a_bent_ladder_fills_slower_than_a_straight_one() -> void:
+	# What the exponent is for: the same run stands on fewer areas, so the payout
+	# stops compounding at the rate the run's own output does.
+	var straight := PrestigeCalculator.nutrient_areas(BigNumber.new(1.0, 40), _def)
+	_def.nutrient_growth_exponent = 1.2
+	var bent := PrestigeCalculator.nutrient_areas(BigNumber.new(1.0, 40), _def)
+	assert_int(bent).is_less(straight)
+	assert_int(bent).is_greater(0)
+
+func test_a_bent_ladder_stays_monotonic() -> void:
+	_def.nutrient_growth_exponent = 1.25
+	_def.tick_growth_exponent = 1.25
+	var previous := 0.0
+	for nutrients: float in [1e3, 1e6, 1e12, 1e30, 1e60]:
+		var current := _gain(5000, nutrients)
+		assert_float(current).is_greater_equal(previous)
+		previous = current
+
+func test_a_bent_ladder_still_clamps_and_still_pays_past_float_range() -> void:
+	_def.nutrient_growth_exponent = 1.2
+	_def.max_areas = 4
+	assert_int(PrestigeCalculator.nutrient_areas(BigNumber.new(1.0, 300), _def)).is_equal(4)
+	_def.max_areas = 200
+	assert_int(PrestigeCalculator.calculate_biomass_gain(
+		0, BigNumber.new(1.0, 400), _def).exponent).is_greater_equal(0)
 
 # ─── Payout ──────────────────────────────────────────────────────────────────
 

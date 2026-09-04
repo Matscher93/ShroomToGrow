@@ -366,10 +366,13 @@ static func prestige_curve_for(res: Resource) -> Dictionary:
 			tick_thresholds.append(_big_pair(BigNumber.new(0.0, 0)))
 			payouts.append(_big_pair(BigNumber.new(0.0, 0)))
 			continue
-		nutrient_thresholds.append(_big_pair(def.nutrient_base().mul(
-			BigNumber.from_value(def.nutrient_growth).pow_float(float(area - 1)))))
-		tick_thresholds.append(_big_pair(def.tick_base().mul(
-			BigNumber.from_value(def.tick_growth).pow_float(float(area - 1)))))
+		# Through the calculator rather than re-derived here: the ladders carry a
+		# growth exponent that bends them, and a mirror spelling the plain
+		# exponential out again would drift the moment one is authored.
+		nutrient_thresholds.append(_big_pair(PrestigeCalculator.area_threshold(
+			def.nutrient_base(), def.nutrient_growth, def.nutrient_growth_exponent, area)))
+		tick_thresholds.append(_big_pair(PrestigeCalculator.area_threshold(
+			def.tick_base(), def.tick_growth, def.tick_growth_exponent, area)))
 		# Through the calculator rather than off the fields: the payout is
 		# floored while it stays inside float range, and a mirror that skipped
 		# that would report fractions the game never pays.
@@ -382,7 +385,9 @@ static func prestige_curve_for(res: Resource) -> Dictionary:
 		"tick_threshold": tick_thresholds,
 		"payout": payouts,
 		"nutrient_growth": def.nutrient_growth,
+		"nutrient_growth_exponent": def.nutrient_growth_exponent,
 		"tick_growth": def.tick_growth,
+		"tick_growth_exponent": def.tick_growth_exponent,
 		"payout_growth": def.payout_growth,
 		"kind": "prestige",
 	}
@@ -392,8 +397,8 @@ static func prestige_curve_for(res: Resource) -> Dictionary:
 ## calculator by handing it a nutrient total that fills exactly that many areas
 ## and no ticks at all.
 static func _prestige_payout(def: PrestigeCurveDef, areas: int) -> BigNumber:
-	var nutrients := def.nutrient_base().mul(
-		BigNumber.from_value(def.nutrient_growth).pow_float(float(areas - 1)))
+	var nutrients := PrestigeCalculator.area_threshold(
+		def.nutrient_base(), def.nutrient_growth, def.nutrient_growth_exponent, areas)
 	return PrestigeCalculator.calculate_biomass_gain(0, nutrients, def)
 
 

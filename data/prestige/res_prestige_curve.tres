@@ -4,13 +4,6 @@
 
 [resource]
 script = ExtResource("1_script")
-_nutrient_base_mantissa = 1.0
-_nutrient_base_exponent = 3
-nutrient_growth = 10.0
-_tick_base_mantissa = 6.0
-_tick_base_exponent = 1
-tick_growth = 2.0
-_payout_base_mantissa = 1.0
-_payout_base_exponent = 0
-payout_growth = 1.6
-max_areas = 100000
+nutrient_growth = 1.2
+nutrient_growth_exponent = 1.1
+tick_growth = 1.5

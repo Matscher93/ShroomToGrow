@@ -20,11 +20,22 @@ extends Resource
 @export var _nutrient_base_exponent: int = 3
 ## Factor each nutrient area past the first costs over the one below it.
 @export var nutrient_growth: float = 10.0
+## Steepens the ladder with the area index: area k over the base costs
+## `nutrient_growth^(k * nutrient_growth_exponent^k)`, the same shape UpgradeDef
+## prices levels with. 1.0 leaves a plain exponential ladder.
+##
+## Floored at 1.0 rather than merely defaulted to it: below 1.0 the scaled index
+## `k * e^k` peaks and falls again, which would make a later area cost *less*
+## than an earlier one - a ladder whose thresholds fall is a payout that falls
+## with them, and PrestigeCalculator's inverse assumes the climb is monotonic.
+@export_range(1.0, 1.5, 0.001, "or_greater") var nutrient_growth_exponent: float = 1.0
 
 ## Ticks the first tick area needs, and the factor per area after it.
 @export var _tick_base_mantissa: float = 6.0
 @export var _tick_base_exponent: int = 1
 @export var tick_growth: float = 2.0
+## The same bend on the tick ladder. See nutrient_growth_exponent.
+@export_range(1.0, 1.5, 0.001, "or_greater") var tick_growth_exponent: float = 1.0
 
 ## Biomass a run with exactly one filled area (of either kind) pays, and the
 ## factor every further area multiplies that by.

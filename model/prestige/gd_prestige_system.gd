@@ -70,16 +70,20 @@ func storage_report() -> Dictionary:
 	return {
 		"nutrient_areas": nutrient_areas,
 		"nutrient_fill": PrestigeCalculator.fill_fraction(
-			nutrients, _curve.nutrient_base(), _curve.nutrient_growth, nutrient_areas),
+			nutrients, _curve.nutrient_base(), _curve.nutrient_growth,
+			_curve.nutrient_growth_exponent, nutrient_areas),
 		"nutrient_amount": nutrients,
 		"nutrient_next": PrestigeCalculator.area_threshold(
-			_curve.nutrient_base(), _curve.nutrient_growth, nutrient_areas + 1),
+			_curve.nutrient_base(), _curve.nutrient_growth,
+			_curve.nutrient_growth_exponent, nutrient_areas + 1),
 		"tick_areas": tick_areas,
 		"tick_fill": PrestigeCalculator.fill_fraction(
-			ticks, _curve.tick_base(), _curve.tick_growth, tick_areas),
+			ticks, _curve.tick_base(), _curve.tick_growth,
+			_curve.tick_growth_exponent, tick_areas),
 		"tick_amount": ticks,
 		"tick_next": PrestigeCalculator.area_threshold(
-			_curve.tick_base(), _curve.tick_growth, tick_areas + 1),
+			_curve.tick_base(), _curve.tick_growth,
+			_curve.tick_growth_exponent, tick_areas + 1),
 		"total_areas": nutrient_areas + tick_areas,
 		"gain": preview_biomass_gain(),
 		"best": _player_data.best_biomass_gain,
