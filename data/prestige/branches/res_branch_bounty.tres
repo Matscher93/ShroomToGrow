@@ -4,65 +4,134 @@
 [ext_resource type="Script" uid="uid://067aofp8r8ni" path="res://model/upgrades/res_upgrade_effect_def.gd" id="2_effect_script"]
 [ext_resource type="Script" uid="uid://dyxv35b01w53b" path="res://model/prestige/gd_perk_node_def.gd" id="3_node_script"]
 [ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_meadow_effect.tres" id="4_meadow"]
-[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_forest_effect.tres" id="5_forest"]
-[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_permafrost_effect.tres" id="6_permafrost"]
-[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_crystal_caves_effect.tres" id="7_crystal_caves"]
-[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_underground_lake_effect.tres" id="8_underground_lake"]
-[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_ruins_effect.tres" id="9_ruins"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_meadow_yield_production_effect.tres" id="5_meadow_prod"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_meadow_yield_biomass_effect.tres" id="6_meadow_bio"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_forest_effect.tres" id="7_forest"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_forest_yield_production_effect.tres" id="8_forest_prod"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_forest_yield_biomass_effect.tres" id="9_forest_bio"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_permafrost_effect.tres" id="10_permafrost"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_permafrost_yield_production_effect.tres" id="11_permafrost_prod"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_permafrost_yield_biomass_effect.tres" id="12_permafrost_bio"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_crystal_caves_effect.tres" id="13_crystal_caves"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_crystal_caves_yield_production_effect.tres" id="14_crystal_caves_prod"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_crystal_caves_yield_biomass_effect.tres" id="15_crystal_caves_bio"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_underground_lake_effect.tres" id="16_underground_lake"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_underground_lake_yield_production_effect.tres" id="17_underground_lake_prod"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_underground_lake_yield_biomass_effect.tres" id="18_underground_lake_bio"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_ruins_effect.tres" id="19_ruins"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_ruins_yield_production_effect.tres" id="20_ruins_prod"]
+[ext_resource type="Resource" path="res://data/prestige/branches/res_perk_bounty_ruins_yield_biomass_effect.tres" id="21_ruins_bio"]
 
-[sub_resource type="Resource" id="node_ruins"]
+[sub_resource type="Resource" id="yield_ruins"]
+script = ExtResource("3_node_script")
+id = &"bounty_ruins_yield"
+display_name = "Ruins Yield"
+description = "{effect} and {effect:1}, per level, {scaling}."
+max_level = 10
+_base_cost_mantissa = 9.6
+_base_cost_exponent = 1
+effects = Array[ExtResource("2_effect_script")]([ExtResource("20_ruins_prod"), ExtResource("21_ruins_bio")])
+
+[sub_resource type="Resource" id="rung_ruins"]
 script = ExtResource("3_node_script")
 id = &"bounty_ruins"
+children = Array[ExtResource("3_node_script")]([SubResource("yield_ruins")])
 display_name = "Ruins Bounty"
 description = "{effect}, per level."
 _base_cost_mantissa = 6.4
 _base_cost_exponent = 1
-effects = Array[ExtResource("2_effect_script")]([ExtResource("9_ruins")])
+effects = Array[ExtResource("2_effect_script")]([ExtResource("19_ruins")])
 
-[sub_resource type="Resource" id="node_underground_lake"]
+[sub_resource type="Resource" id="yield_underground_lake"]
+script = ExtResource("3_node_script")
+id = &"bounty_underground_lake_yield"
+display_name = "Underground Lake Yield"
+description = "{effect} and {effect:1}, per level, {scaling}."
+max_level = 10
+_base_cost_mantissa = 4.8
+_base_cost_exponent = 1
+effects = Array[ExtResource("2_effect_script")]([ExtResource("17_underground_lake_prod"), ExtResource("18_underground_lake_bio")])
+
+[sub_resource type="Resource" id="rung_underground_lake"]
 script = ExtResource("3_node_script")
 id = &"bounty_underground_lake"
-children = Array[ExtResource("3_node_script")]([SubResource("node_ruins")])
+children = Array[ExtResource("3_node_script")]([SubResource("yield_underground_lake"), SubResource("rung_ruins")])
 display_name = "Underground Lake Bounty"
 description = "{effect}, per level."
 _base_cost_mantissa = 3.2
 _base_cost_exponent = 1
-effects = Array[ExtResource("2_effect_script")]([ExtResource("8_underground_lake")])
+effects = Array[ExtResource("2_effect_script")]([ExtResource("16_underground_lake")])
 
-[sub_resource type="Resource" id="node_crystal_caves"]
+[sub_resource type="Resource" id="yield_crystal_caves"]
+script = ExtResource("3_node_script")
+id = &"bounty_crystal_caves_yield"
+display_name = "Crystal Caves Yield"
+description = "{effect} and {effect:1}, per level, {scaling}."
+max_level = 10
+_base_cost_mantissa = 2.4
+_base_cost_exponent = 1
+effects = Array[ExtResource("2_effect_script")]([ExtResource("14_crystal_caves_prod"), ExtResource("15_crystal_caves_bio")])
+
+[sub_resource type="Resource" id="rung_crystal_caves"]
 script = ExtResource("3_node_script")
 id = &"bounty_crystal_caves"
-children = Array[ExtResource("3_node_script")]([SubResource("node_underground_lake")])
+children = Array[ExtResource("3_node_script")]([SubResource("rung_underground_lake"), SubResource("yield_crystal_caves")])
 display_name = "Crystal Caves Bounty"
 description = "{effect}, per level."
 _base_cost_mantissa = 1.6
 _base_cost_exponent = 1
-effects = Array[ExtResource("2_effect_script")]([ExtResource("7_crystal_caves")])
+effects = Array[ExtResource("2_effect_script")]([ExtResource("13_crystal_caves")])
 
-[sub_resource type="Resource" id="node_permafrost"]
+[sub_resource type="Resource" id="yield_permafrost"]
+script = ExtResource("3_node_script")
+id = &"bounty_permafrost_yield"
+display_name = "Permafrost Yield"
+description = "{effect} and {effect:1}, per level, {scaling}."
+max_level = 10
+_base_cost_mantissa = 1.2
+_base_cost_exponent = 1
+effects = Array[ExtResource("2_effect_script")]([ExtResource("11_permafrost_prod"), ExtResource("12_permafrost_bio")])
+
+[sub_resource type="Resource" id="rung_permafrost"]
 script = ExtResource("3_node_script")
 id = &"bounty_permafrost"
-children = Array[ExtResource("3_node_script")]([SubResource("node_crystal_caves")])
+children = Array[ExtResource("3_node_script")]([SubResource("yield_permafrost"), SubResource("rung_crystal_caves")])
 display_name = "Permafrost Bounty"
 description = "{effect}, per level."
 _base_cost_mantissa = 8.0
-_base_cost_exponent = 0
-effects = Array[ExtResource("2_effect_script")]([ExtResource("6_permafrost")])
+effects = Array[ExtResource("2_effect_script")]([ExtResource("10_permafrost")])
 
-[sub_resource type="Resource" id="node_forest"]
+[sub_resource type="Resource" id="yield_forest"]
+script = ExtResource("3_node_script")
+id = &"bounty_forest_yield"
+display_name = "Forest Yield"
+description = "{effect} and {effect:1}, per level, {scaling}."
+max_level = 10
+_base_cost_mantissa = 6.0
+effects = Array[ExtResource("2_effect_script")]([ExtResource("8_forest_prod"), ExtResource("9_forest_bio")])
+
+[sub_resource type="Resource" id="rung_forest"]
 script = ExtResource("3_node_script")
 id = &"bounty_forest"
-children = Array[ExtResource("3_node_script")]([SubResource("node_permafrost")])
+children = Array[ExtResource("3_node_script")]([SubResource("rung_permafrost"), SubResource("yield_forest")])
 display_name = "Forest Bounty"
 description = "{effect}, per level."
 _base_cost_mantissa = 4.0
-_base_cost_exponent = 0
-effects = Array[ExtResource("2_effect_script")]([ExtResource("5_forest")])
+effects = Array[ExtResource("2_effect_script")]([ExtResource("7_forest")])
 
-[sub_resource type="Resource" id="node_meadow"]
+[sub_resource type="Resource" id="yield_meadow"]
+script = ExtResource("3_node_script")
+id = &"bounty_meadow_yield"
+display_name = "Meadow Yield"
+description = "{effect} and {effect:1}, per level, {scaling}."
+max_level = 10
+_base_cost_mantissa = 3.0
+effects = Array[ExtResource("2_effect_script")]([ExtResource("5_meadow_prod"), ExtResource("6_meadow_bio")])
+
+[sub_resource type="Resource" id="rung_meadow"]
 script = ExtResource("3_node_script")
 id = &"bounty_meadow"
-children = Array[ExtResource("3_node_script")]([SubResource("node_forest")])
+children = Array[ExtResource("3_node_script")]([SubResource("yield_meadow"), SubResource("rung_forest")])
 display_name = "Meadow Bounty"
 description = "{effect}, per level."
 effects = Array[ExtResource("2_effect_script")]([ExtResource("4_meadow")])
@@ -72,4 +141,4 @@ script = ExtResource("1_script")
 key = &"bnt"
 label = "Bounty"
 hue = 45.0
-roots = Array[ExtResource("3_node_script")]([SubResource("node_meadow")])
+roots = Array[ExtResource("3_node_script")]([SubResource("rung_meadow")])

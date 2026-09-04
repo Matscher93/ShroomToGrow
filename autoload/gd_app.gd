@@ -487,6 +487,10 @@ func _track_manual_count(node: MyceliumNode) -> void:
 	node.manual_nodes_changed.connect(func(value: int) -> void:
 		resolve_context.manual_counts[key] = value
 		upgrade_system.invalidate()
+		# Hand-bought nodes are the Meadow's XP, so a purchase can level it. The
+		# next tick would pick it up anyway; doing it here is what makes the perk
+		# card's "now +x%" move as the player buys rather than a tick later.
+		biome_system.sync_levels()
 	)
 
 ## Timer.wait_time only takes hold on the timer's next cycle, so writing it alone
@@ -593,6 +597,11 @@ func load_from_save(game: Dictionary) -> void:
 	# Only a device clock moved backwards can leave a last-claim day in the
 	# future, and only a load can be the first thing to notice.
 	daily_reward_system.sync_clock_rollback()
+	# Last, once every XP source a biome level reads has been loaded: the nodes,
+	# the symbiosis levels, the achievement tiers, the well projects and the
+	# missions are all in by here. Without it the first tick of a loaded session
+	# resolves every level-scaled perk against level 1.
+	biome_system.sync_levels()
 
 ## Keyed by node_id, like every other track in the file.
 ##
@@ -664,6 +673,9 @@ func total_production() -> BigNumber:
 ## timer, which pays for one tick at a time anyway.
 func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
 		manual: Array[BigNumber] = []) -> void:
+	# Before production, so a level earned last tick pays into this one. Cheap
+	# and usually a no-op: it only invalidates when a biome actually levelled.
+	biome_system.sync_levels()
 	tick_system.handle_tick(bonuses, pump, manual)
 	# Straight after the cascade, so the peak it records is this tick's payout
 	# rather than one an automation below has already spent into.

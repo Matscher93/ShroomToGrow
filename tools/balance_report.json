@@ -407,6 +407,15 @@
 			"effect_at_max": "5.00e0"
 		},
 		{
+			"id": "bounty_meadow_yield",
+			"branch": "bnt",
+			"depth": 2,
+			"max_level": 10,
+			"cost_to_max": "5.45e2",
+			"path_cost": "5.77e2",
+			"effect_at_max": "2.00e-1"
+		},
+		{
 			"id": "bounty_forest",
 			"branch": "bnt",
 			"depth": 2,
@@ -423,6 +432,15 @@
 			"cost_to_max": "1.26e2",
 			"path_cost": "2.22e2",
 			"effect_at_max": "5.00e0"
+		},
+		{
+			"id": "bounty_permafrost_yield",
+			"branch": "bnt",
+			"depth": 4,
+			"max_level": 10,
+			"cost_to_max": "2.18e3",
+			"path_cost": "2.40e3",
+			"effect_at_max": "2.00e-1"
 		},
 		{
 			"id": "bounty_crystal_caves",
@@ -443,6 +461,15 @@
 			"effect_at_max": "5.00e0"
 		},
 		{
+			"id": "bounty_underground_lake_yield",
+			"branch": "bnt",
+			"depth": 6,
+			"max_level": 10,
+			"cost_to_max": "8.72e3",
+			"path_cost": "9.70e3",
+			"effect_at_max": "2.00e-1"
+		},
+		{
 			"id": "bounty_ruins",
 			"branch": "bnt",
 			"depth": 6,
@@ -450,6 +477,33 @@
 			"cost_to_max": "1.01e3",
 			"path_cost": "1.99e3",
 			"effect_at_max": "5.00e0"
+		},
+		{
+			"id": "bounty_ruins_yield",
+			"branch": "bnt",
+			"depth": 7,
+			"max_level": 10,
+			"cost_to_max": "1.74e4",
+			"path_cost": "1.94e4",
+			"effect_at_max": "2.00e-1"
+		},
+		{
+			"id": "bounty_crystal_caves_yield",
+			"branch": "bnt",
+			"depth": 5,
+			"max_level": 10,
+			"cost_to_max": "4.36e3",
+			"path_cost": "4.83e3",
+			"effect_at_max": "2.00e-1"
+		},
+		{
+			"id": "bounty_forest_yield",
+			"branch": "bnt",
+			"depth": 3,
+			"max_level": 10,
+			"cost_to_max": "1.09e3",
+			"path_cost": "1.19e3",
+			"effect_at_max": "2.00e-1"
 		},
 		{
 			"id": "reach_3",
@@ -864,12 +918,13 @@
 		},
 		{
 			"branch": "bnt",
-			"perks": 6,
-			"max_depth": 6,
-			"total_cost_to_max": "1.99e3",
-			"deepest_path_cost": "1.99e3",
+			"perks": 12,
+			"max_depth": 7,
+			"total_cost_to_max": "3.63e4",
+			"deepest_path_cost": "1.94e4",
 			"stats": {
-				"biome_points (ADD)": "3.00e1"
+				"biome_points (ADD)": "3.00e1",
+				"node_production (INCREASED)": "1.20e0"
 			}
 		},
 		{
@@ -1901,8 +1956,8 @@
 		"policy": "roi",
 		"tick_budget": 20000,
 		"prestiges": 3,
-		"seconds": 1828.7,
-		"played": "30m 29s",
+		"seconds": 1829.6,
+		"played": "30m 30s",
 		"milestones": [
 			{
 				"tick": 1,
@@ -1935,14 +1990,14 @@
 				"detail": "meadow"
 			},
 			{
-				"tick": 95,
-				"seconds": 949.2,
+				"tick": 93,
+				"seconds": 929.6,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
-				"tick": 107,
-				"seconds": 1066.8,
+				"tick": 108,
+				"seconds": 1076.6,
 				"event": "biome",
 				"detail": "permafrost"
 			},
@@ -1950,7 +2005,7 @@
 				"tick": 140,
 				"seconds": 1390.2,
 				"event": "prestige",
-				"detail": "#2, +3.28e5 biomass"
+				"detail": "#2, +3.50e5 biomass"
 			},
 			{
 				"tick": 141,
@@ -1966,21 +2021,21 @@
 			},
 			{
 				"tick": 145,
-				"seconds": 1437.0,
+				"seconds": 1437.5,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
-				"tick": 151,
-				"seconds": 1489.4,
+				"tick": 149,
+				"seconds": 1472.9,
 				"event": "biome",
 				"detail": "crystal_caves"
 			},
 			{
 				"tick": 190,
-				"seconds": 1828.7,
+				"seconds": 1829.6,
 				"event": "prestige",
-				"detail": "#3, +2.24e13 biomass"
+				"detail": "#3, +5.42e14 biomass"
 			}
 		]
 	},

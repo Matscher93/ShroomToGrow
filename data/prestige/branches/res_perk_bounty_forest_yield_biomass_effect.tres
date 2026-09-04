@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeEffectDef" format=3]
+
+[ext_resource type="Script" path="res://model/upgrades/res_upgrade_effect_def.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/upgrades/dependencies/forest_level_source.tres" id="2_dep"]
+
+[resource]
+script = ExtResource("1_script")
+stat = &"biomass_gain"
+op = 1
+scope = 0
+target = &""
+per_level = 0.02
+level_scaling = 0
+dependency = ExtResource("2_dep")

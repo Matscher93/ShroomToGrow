@@ -239,7 +239,7 @@ func test_every_dependency_kind_is_still_supported() -> void:
 			if e.dependency == null:
 				continue
 			assert_bool([ScalingSourceDef.Kind.NONE, ScalingSourceDef.Kind.NODE_COUNT,
-					ScalingSourceDef.Kind.BIOME_SIZE].has(e.dependency.kind)) \
+					ScalingSourceDef.Kind.BIOME_SIZE, ScalingSourceDef.Kind.BIOME_LEVEL].has(e.dependency.kind)) \
 				.override_failure_message("Upgrade '%s' scales off removed kind %d." \
 					% [def.id, e.dependency.kind]).is_true()
 
@@ -264,6 +264,19 @@ func test_every_biome_size_dependency_resolves() -> void:
 				continue
 			assert_bool(keys.has(e.dependency.key)) \
 				.override_failure_message("Upgrade '%s' scales off biome size '%s', which is not a biome. It is dead at every level." \
+					% [def.id, e.dependency.key]).is_true()
+
+func test_every_biome_level_dependency_resolves() -> void:
+	# Dangling exactly the way a biome size key dangles: ResolveContext
+	# .biome_level() answers 1.0 for a biome it has never been written, so the
+	# effect keeps its authored magnitude for ever and nothing says why.
+	var keys := _biome_keys()
+	for def in _all_upgrade_defs():
+		for e in def.effects:
+			if e.dependency == null or e.dependency.kind != ScalingSourceDef.Kind.BIOME_LEVEL:
+				continue
+			assert_bool(keys.has(e.dependency.key)) \
+				.override_failure_message("Upgrade '%s' scales off biome level '%s', which is not a biome. It is dead at every level." \
 					% [def.id, e.dependency.key]).is_true()
 
 func test_every_biome_upgrade_scales_with_its_own_biome_size() -> void:

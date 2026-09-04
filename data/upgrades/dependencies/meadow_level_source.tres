@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="ScalingSourceDef" format=3]
+
+[ext_resource type="Script" uid="uid://et8tl87lvtui" path="res://model/upgrades/res_scaling_source_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+kind = 5
+key = &"meadow"

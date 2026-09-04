@@ -62,8 +62,20 @@ const UNITS := {
 static func of_effect(effect: UpgradeEffectDef, level: int = 1) -> String:
 	if effect == null:
 		return ""
+	return of_amount(effect, effect.per_level * float(level))
+
+## The same phrase from an amount somebody else already worked out - what
+## UpgradeEffectDef.contribution() resolved for the levels actually held,
+## dependency scaling and cap included - rather than from per_level times a
+## count. of_effect() is the authored rate; this is what the player has.
+static func of_amount(effect: UpgradeEffectDef, amount: float) -> String:
+	if effect == null:
+		return ""
+	var noun := noun_for(effect.stat)
+	if effect.op == UpgradeEffectDef.Op.ADD and not UNCOUNTED.has(effect.stat):
+		noun = _plural(noun, amount)
 	var where := ScopeLabel.suffix(ScopeLabel.of_effect(effect))
-	return "%s%s" % [_magnitude(effect, level), where]
+	return "%s %s%s" % [_amount_text(effect, amount), noun, where]
 
 ## Every effect on one upgrade, joined. Almost everything authored carries one,
 ## and the join is what keeps the caller from having to know that.
@@ -91,6 +103,8 @@ static func scaling_note(effect: UpgradeEffectDef) -> String:
 			return ", scaled by how many of that tier you have grown"
 		ScalingSourceDef.Kind.BIOME_SIZE:
 			return ", scaled by %s Size" % ScopeLabel.tag_name(String(effect.dependency.key))
+		ScalingSourceDef.Kind.BIOME_LEVEL:
+			return ", scaled by %s Level" % ScopeLabel.tag_name(String(effect.dependency.key))
 		_:
 			return ""
 
@@ -239,13 +253,6 @@ static func total_of(effect: UpgradeEffectDef, max_level: int) -> String:
 	if effect == null or max_level <= 0:
 		return ""
 	return _amount_text(effect, effect.magnitude(max_level).to_float())
-
-static func _magnitude(effect: UpgradeEffectDef, level: int) -> String:
-	var amount := effect.per_level * float(level)
-	var noun := noun_for(effect.stat)
-	if effect.op == UpgradeEffectDef.Op.ADD and not UNCOUNTED.has(effect.stat):
-		noun = _plural(noun, amount)
-	return "%s %s" % [_amount_text(effect, amount), noun]
 
 ## An amount in the shape its op actually applies in.
 ##

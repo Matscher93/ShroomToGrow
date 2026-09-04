@@ -55,6 +55,26 @@ var detail_buy_text: String:
 			return "Locked | %s" % cost_text
 		return "Buy | %s" % cost_text
 
+## What the perk is worth right now, at the level held: every effect as the
+## upgrade system actually resolves it - dependency scaling and cap included -
+## and not the per-level rate the description quotes. Those two part ways the
+## moment a perk scales with a biome's Level, which is the number the description
+## can never print.
+##
+## Empty while the perk is unowned, and for the cap perks, which raise somebody
+## else's ceiling and carry no effect of their own to total up. The panel hides
+## the label rather than showing a bonus of nothing.
+var bonus_text: String:
+	get:
+		var lvl := level
+		if lvl <= 0 or _def.effects.is_empty():
+			return ""
+		var parts: PackedStringArray = []
+		for effect: UpgradeEffectDef in _def.effects:
+			parts.append(EffectLabel.of_amount(effect,
+				effect.contribution(lvl, App.resolve_context).to_float()))
+		return "Now: %s" % ", ".join(parts)
+
 var can_buy: bool:
 	get: return App.can_buy_perk(_id)
 

@@ -9,6 +9,7 @@ extends RefCounted
 
 var manual_counts: Dictionary = {}    # node tier -> hand-bought count
 var biome_sizes: Dictionary = {}      # biome key -> purchased size
+var biome_levels: Dictionary = {}     # biome key -> BiomeCalculator level
 
 ## Hand-bought nodes only. Auto-generated nodes deliberately don't count, they
 ## grow every tick, which is what this cache can't represent.
@@ -21,3 +22,15 @@ func node_count(tier: StringName) -> float:
 ## reading "now +0%", which looks like broken UI rather than a dead upgrade.
 func biome_size(key: StringName) -> float:
 	return float(biome_sizes.get(key, 0)) + 1.0
+
+## The biome's level, and 1.0 for one nothing has written yet - the level a biome
+## sits at before it has earned any XP, so an unwritten entry scales an effect by
+## the same amount the first level does rather than erasing it.
+##
+## The one entry here that is not written by a single player action: a biome's
+## level is derived from six different XP sources (BiomeCalculator.xp_for), two
+## of which - achievement tiers and missions completed - can move on a tick. See
+## BiomeSystem.sync_levels(), which pulls all of them and invalidates only when a
+## level actually moved, so this stays as cache-safe as the two above.
+func biome_level(key: StringName) -> float:
+	return float(biome_levels.get(key, 1))

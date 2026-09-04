@@ -117,7 +117,7 @@ shader_parameter/additional_border_offset = 2.0
 shader_parameter/background_alpha = 1.0
 shader_parameter/border_alpha = 1.0
 
-[node name="prestige_screen" type="PanelContainer" unique_id=563082709 node_paths=PackedStringArray("sporate_button", "perk_web", "detail_name", "detail_description", "detail_level", "buy_button", "storage_toggle", "storage_box", "nutrient_storage_label", "nutrient_storage_bar", "tick_storage_label", "tick_storage_bar", "gate_label")]
+[node name="prestige_screen" type="PanelContainer" unique_id=563082709 node_paths=PackedStringArray("sporate_button", "perk_web", "detail_name", "detail_description", "detail_bonus", "detail_level", "buy_button", "storage_toggle", "storage_box", "nutrient_storage_label", "nutrient_storage_bar", "tick_storage_label", "tick_storage_bar", "gate_label")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -131,6 +131,7 @@ storage_box = NodePath("TopBar/StoragePanel")
 perk_web = NodePath("MarginContainer/VBox/WebClip")
 detail_name = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailName")
 detail_description = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailDescription")
+detail_bonus = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox/DetailBonus")
 detail_level = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/DetailLevel")
 buy_button = NodePath("InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/BuyButton")
 nutrient_storage_label = NodePath("TopBar/StoragePanel/StorageMargin/StorageBox/NutrientLabel")
@@ -284,6 +285,11 @@ text = "Sporation"
 
 [node name="DetailDescription" type="Label" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox" unique_id=982891349]
 modulate = Color(1, 1, 1, 0.75)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 3
+
+[node name="DetailBonus" type="Label" parent="InfoAnchor/PanelContainer_Info2/PanelContainer_Info/MarginContainer/DetailBox/HeaderRow/TextBox" unique_id=982891350]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 autowrap_mode = 3

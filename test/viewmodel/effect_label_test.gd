@@ -62,6 +62,24 @@ func test_a_tick_add_is_worded_in_seconds() -> void:
 	var text := EffectLabel.of_effect(_effect(&"tick_rate", UpgradeEffectDef.Op.ADD, -0.5))
 	assert_str(text).is_equal("-0.5s tick duration")
 
+# ─── Resolved amounts ────────────────────────────────────────────────────────
+
+## What the perk panel shows for the levels actually held. of_effect() multiplies
+## the authored rate; this words a number the upgrade system already resolved,
+## which is the only way a dependency-scaled or capped effect can be told the
+## truth about.
+func test_a_resolved_amount_is_worded_as_it_stands() -> void:
+	var effect := _effect(&"node_production", UpgradeEffectDef.Op.INCREASED, 0.08)
+	assert_str(EffectLabel.of_amount(effect, 0.34)).is_equal("+34% node production")
+
+func test_a_resolved_amount_keeps_its_scope_and_plural() -> void:
+	var effect := _effect(&"farm_slots", UpgradeEffectDef.Op.ADD, 1.0,
+		UpgradeEffectDef.Scope.TAG, &"canopy")
+	assert_str(EffectLabel.of_amount(effect, 3.0)).is_equal("+3 farm plots on Canopy")
+
+func test_a_null_effect_has_no_amount() -> void:
+	assert_str(EffectLabel.of_amount(null, 1.0)).is_empty()
+
 # ─── Scope ───────────────────────────────────────────────────────────────────
 
 ## A global effect is most of them, so naming the scope on every line would say
@@ -116,6 +134,11 @@ func test_a_biome_size_dependency_names_the_biome() -> void:
 	var effect := _effect(&"potency_production", UpgradeEffectDef.Op.MORE, 0.1)
 	effect.dependency = _source(ScalingSourceDef.Kind.BIOME_SIZE, &"symbiosis")
 	assert_str(EffectLabel.scaling_note(effect)).is_equal(", scaled by Symbiosis Size")
+
+func test_a_biome_level_dependency_names_the_biome() -> void:
+	var effect := _effect(&"node_production", UpgradeEffectDef.Op.INCREASED, 0.02)
+	effect.dependency = _source(ScalingSourceDef.Kind.BIOME_LEVEL, &"crystal_caves")
+	assert_str(EffectLabel.scaling_note(effect)).is_equal(", scaled by Crystal Caves Level")
 
 func test_an_effect_that_scales_with_nothing_adds_no_clause() -> void:
 	assert_str(EffectLabel.scaling_note(_effect(&"biomass_gain", UpgradeEffectDef.Op.MORE, 0.3))).is_empty()

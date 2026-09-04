@@ -9,7 +9,7 @@ extends Resource
 ## Both are live-per-tick, so reinstating them needs a resolution pass the cache
 ## design doesn't have. The remaining values keep their original ordinals so the
 ## authored .tres files still deserialise correctly.
-enum Kind { NONE = 0, NODE_COUNT = 1, BIOME_SIZE = 4 }
+enum Kind { NONE = 0, NODE_COUNT = 1, BIOME_SIZE = 4, BIOME_LEVEL = 5 }
 enum Transform { NONE, SQRT, LOG10 }
 
 @export var kind: Kind = Kind.NONE
@@ -22,6 +22,7 @@ func evaluate(ctx: ResolveContext) -> float:
 		Kind.NONE:       return 1.0
 		Kind.NODE_COUNT: v = ctx.node_count(key)
 		Kind.BIOME_SIZE: v = ctx.biome_size(key)
+		Kind.BIOME_LEVEL: v = ctx.biome_level(key)
 		_:
 			push_error("ScalingSourceDef '%s' has unsupported kind %d, treating as 1.0." % [key, kind])
 			return 1.0

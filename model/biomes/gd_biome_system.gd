@@ -79,6 +79,30 @@ func biome_xp(key: StringName) -> int:
 func biome_level(key: StringName) -> Dictionary:
 	return BiomeCalculator.level_for(biome_xp(key))
 
+## Pulls every biome's level into the ResolveContext, invalidating the caching
+## systems only when one actually moved.
+##
+## The other two ResolveContext inputs are written by the single action that
+## moves them (App._track_manual_count, buy_size below). A biome level has no
+## such action: it is derived from six XP sources (BiomeCalculator.xp_for), and
+## two of them - achievement tiers and missions completed - move on a tick with
+## nobody pressing anything. So this is a pull, called once a tick and wherever
+## an action can move a source; the change check is what keeps it from being an
+## invalidate() every tick, which would defeat the cache it is feeding.
+func sync_levels() -> void:
+	var moved := false
+	for def in _biomes.biomes:
+		var lvl: int = biome_level(def.key).level
+		if int(_ctx.biome_levels.get(def.key, 0)) == lvl:
+			continue
+		_ctx.biome_levels[def.key] = lvl
+		moved = true
+	if not moved:
+		return
+	_symbiosis.invalidate()
+	_biome_upgrades.invalidate()
+	_prestige_upgrades.invalidate()
+
 ## Level-derived points plus any flat bonus from upgrades in any track that
 ## target the &"biome_points" stat for this biome.
 func available_points(key: StringName) -> int:
@@ -252,9 +276,13 @@ func buy_size(key: StringName) -> bool:
 func reset() -> void:
 	_biomes_data.reset()
 	_ctx.biome_sizes.clear()
+	_ctx.biome_levels.clear()
 	# Same contract as buy_size: whoever writes _ctx invalidates every system
 	# that caches a ScalingSourceDef reading it.
 	_symbiosis.invalidate()
 	_biome_upgrades.invalidate()
 	_prestige_upgrades.invalidate()
 	unlock_free_biomes()
+	# After the unlock, so the levels written here are the ones the fresh run
+	# starts on rather than the ones it was reset from.
+	sync_levels()

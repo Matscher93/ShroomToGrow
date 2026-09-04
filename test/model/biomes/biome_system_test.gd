@@ -428,6 +428,47 @@ func test_unknown_biome_has_no_size_cost() -> void:
 	assert_float(_system.size_cost(&"nope").to_float()).is_zero()
 	assert_bool(_system.can_buy_size(&"nope")).is_false()
 
+# ─── Biome level ─────────────────────────────────────────────────────────────
+
+func test_sync_levels_feeds_the_resolve_context() -> void:
+	# Permafrost levels off the prestige count, which is the one XP source this
+	# harness can move without touching the shared node resources.
+	_player.prestige_count = 1   # 10 XP, and level 2 starts at 6
+
+	_system.sync_levels()
+
+	assert_float(_ctx.biome_level(&"permafrost")).is_equal_approx(2.0, EPS)
+
+func test_an_unsynced_biome_scales_by_one_rather_than_zero() -> void:
+	# The same contract biome_size() has: a level-scaled effect on a biome
+	# nothing has written yet keeps its authored magnitude instead of vanishing.
+	assert_float(_ctx.biome_level(&"permafrost")).is_equal_approx(1.0, EPS)
+
+func test_sync_levels_invalidates_only_when_a_level_moved() -> void:
+	# Called every tick, so a sync that invalidated unconditionally would throw
+	# away the cache it exists to keep fed.
+	_system.sync_levels()
+	var version := _prestige.version
+
+	_system.sync_levels()
+	assert_int(_prestige.version).is_equal(version)
+
+	_player.prestige_count = 1
+	_system.sync_levels()
+	assert_int(_prestige.version).is_greater(version)
+
+func test_reset_reseeds_the_levels_rather_than_leaving_them_stale() -> void:
+	_player.prestige_count = 1
+	_system.sync_levels()
+	assert_float(_ctx.biome_level(&"permafrost")).is_equal_approx(2.0, EPS)
+
+	# A sporation raises the count it levels off, so the fresh run starts at the
+	# new level and not at the one it was reset from.
+	_player.prestige_count = 3
+	_system.reset()
+
+	assert_float(_ctx.biome_level(&"permafrost")).is_equal_approx(4.0, EPS)
+
 # ─── Prestige reset ──────────────────────────────────────────────────────────
 
 func test_reset_relocks_the_run_but_keeps_ever_unlocked() -> void:

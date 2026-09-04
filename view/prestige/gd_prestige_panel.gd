@@ -9,6 +9,7 @@ extends PanelContainer
 @export var perk_web: PerkWeb
 @export var detail_name: Label
 @export var detail_description: Label
+@export var detail_bonus: Label
 @export var detail_level: Label
 @export var buy_button: PanelContainer
 @export var storage_toggle: Button
@@ -113,6 +114,10 @@ func _refresh_detail() -> void:
 	# above it, so it goes away entirely.
 	detail_description.text = _detail_vm.description
 	detail_description.visible = not detail_description.text.is_empty()
+	# Same treatment: an unowned perk has no bonus yet, and an empty line would
+	# still push the buy button down by its own separation.
+	detail_bonus.text = _detail_vm.bonus_text
+	detail_bonus.visible = not detail_bonus.text.is_empty()
 	detail_level.text = _detail_vm.level_text
 	buy_button.set_button_text(_detail_vm.detail_buy_text)
 	buy_button.set_disabled(not _detail_vm.can_buy)
