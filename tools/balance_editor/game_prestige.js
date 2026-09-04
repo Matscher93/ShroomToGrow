@@ -69,8 +69,16 @@
     report: null,
     warnings: [],      // what PerkTree would push_error about the staged shape
     widest: new Map(), // branch key -> its widest sibling offset, from webLayout
+    spreadLimit: null, // the offset past which a branch outgrows its slice
     hovered: null,
     element: null,   // this screen's own root, kept across renders
+    chart: null,     // the live <svg>, so a pan can move it without a redraw
+    // The window on the web, as a viewBox, and the whole web's own bounds it is
+    // read against. Outlive the drawing: a redraw from an edit must not move the
+    // corner being looked at.
+    camera: null,
+    fit: null,
+    homeWidth: 0,    // the fitted window's width, which the zoom readout is 100% of
   };
 
   /* ------------------------------------------------------------------ numbers */
@@ -268,9 +276,16 @@
    * if that file's layout changes, this follows.
    */
   const CANVAS_CENTER = 520;
-  const ROOT_RADIUS = 150;
+  const ROOT_RADIUS = 200;
   const DEPTH_RADIUS_STEP = 170;
   const SIBLING_SPREAD_DEG = 26;
+  /* PerkTree.SPREAD_FALLOFF: how hard sibling spacing narrows as a branch reaches
+   * outward. Spacing is an angle, so the arc it buys is that angle times the
+   * radius - at a flat 26 degrees the tenth ring's siblings sit ten times further
+   * apart than the first's, and a long branch reads as a fan rather than a line.
+   * 1.0 holds the gap between siblings exactly constant the whole way out, 0.0 is
+   * the flat spacing this replaced. */
+  const SPREAD_FALLOFF = 0.5;
   const BRANCH_START_DEG = -90;   // the first branch points straight up
   const BRANCH_SLICE_FILL = 0.8;  // the rest of a branch's slice is gutter
 
@@ -299,18 +314,33 @@
       .filter(Boolean);
   }
 
+  /** PerkTree._depth_falloff: what one ring's sibling step is worth against a
+   * root's. 1.0 at the root ring, and smaller the further out a ring sits. */
+  function depthFalloff(depth) {
+    if (SPREAD_FALLOFF <= 0) return 1;
+    return Math.pow(ROOT_RADIUS / (ROOT_RADIUS + DEPTH_RADIUS_STEP * depth), SPREAD_FALLOFF);
+  }
+
   /** PerkTree._widest_offset: how far from its branch's centre line the branch
-   * reaches, in sibling steps. Offsets accumulate down a chain, so this is what
-   * decides the spacing the whole branch gets - and past 1.5 the branch stops
-   * fitting its slice, which perk_tree_test asserts. */
-  function widestOffset(siblings, parentOffset, seen) {
+   * reaches, in root-ring sibling steps. Offsets accumulate down a chain, so this
+   * is what decides the spacing the whole branch gets - and past the limit
+   * webLayout works out the branch stops fitting its slice, which perk_tree_test
+   * asserts.
+   *
+   * Counted in root-ring steps, not in siblings: an offset picked up out at depth
+   * eight counts for a fraction of one picked up at depth one, the same weighting
+   * place() lays the branch out with. Without it the cap would be measured against
+   * a spread the branch no longer uses and would shrink every long branch for
+   * angles it never reaches. */
+  function widestOffset(siblings, parentOffset, seen, depth = 0) {
     let widest = Math.abs(parentOffset);
+    const falloff = depthFalloff(depth);
     siblings.forEach((node, index) => {
       const id = cell(node, "id");
       if (seen.has(id)) return;
       seen.add(id);
-      const offset = parentOffset + index - (siblings.length - 1) / 2;
-      widest = Math.max(widest, widestOffset(nodesOf(node, "children"), offset, seen));
+      const offset = parentOffset + (index - (siblings.length - 1) / 2) * falloff;
+      widest = Math.max(widest, widestOffset(nodesOf(node, "children"), offset, seen, depth + 1));
     });
     return widest;
   }
@@ -359,7 +389,12 @@
         toRadians(BRANCH_START_DEG + step * index), 0, spread, branch, "roots");
     });
 
-    return { perks, warnings, widest };
+    // Where _spread_for starts cutting: a branch keeps the full
+    // SIBLING_SPREAD_DEG only while its widest offset still fits inside half a
+    // slice at that spacing. It moves with the branch count, so it is worked out
+    // here rather than written down - an added branch narrows every slice.
+    const spreadLimit = halfSlice / toRadians(SIBLING_SPREAD_DEG);
+    return { perks, warnings, widest, spreadLimit };
 
     /** PerkTree._place_children, one branch deep at a time. `ownerRow` and
      * `ownerColumn` are the cell these siblings are listed in - the branch's
@@ -377,7 +412,8 @@
           return;
         }
         seen.add(id);
-        const angle = parentAngle + spread * (index - (siblings.length - 1) / 2);
+        const angle = parentAngle
+          + spread * (index - (siblings.length - 1) / 2) * depthFalloff(depth);
         const radius = ROOT_RADIUS + DEPTH_RADIUS_STEP * depth;
         perks.push({
           ...authoredFields(node),
@@ -430,6 +466,7 @@
       : view.report.perks;
     view.warnings = layout ? layout.warnings : [];
     view.widest = layout ? layout.widest : new Map();
+    view.spreadLimit = layout ? layout.spreadLimit : null;
     const positions = new Map(perks.map((perk) => [perk.id, perk]));
     // Keyed by id rather than path, because parentage is expressed in ids: the
     // ancestor walk a reparent has to refuse a cycle on runs through this.
@@ -449,8 +486,14 @@
     const width = Math.max(...xs) - left + PAD;
     const height = Math.max(...ys) - top + PAD;
 
-    const svg = svgEl("svg", { id: "web-chart",
-      viewBox: `${left} ${top} ${width} ${height}` });
+    const svg = svgEl("svg", { id: "web-chart" });
+    // The window on the web, not the web itself: the camera keeps whatever the
+    // last zoom and pan left it on, so a redraw from an edit does not throw away
+    // the corner that was being read.
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    view.chart = svg;
+    applyCamera(cameraFor({ left, top, width, height }));
+    enableZoomPan(svg);
     const defs = svgEl("defs");
     svg.append(defs);
 
@@ -555,16 +598,212 @@
     if (values.length) {
       // Bottom-left, not top: the cost chart hangs over the top-left corner of
       // the canvas, and the legend used to sit exactly under it.
-      const ticks = svgEl("g");
+      //
+      // Pinned to the camera rather than to the drawing: the ramp is what the
+      // colours are read against, and a legend left at the web's own corner is
+      // off screen the moment anything is zoomed into. applyCamera moves it, so
+      // the transform here is only what the first frame needs.
+      const ticks = svgEl("g", { class: "scale-legend" });
       [min, (min + max) / 2, max].forEach((value, index) => {
-        const text = svgEl("text", { class: "scale-tick",
-          x: left + 6, y: top + height - 34 + index * 14 });
+        const text = svgEl("text", { class: "scale-tick", x: 6, y: -34 + index * 14 });
         text.textContent = `${["cheap", "mid", "dear"][index]}: 1e${value.toFixed(1)}`;
         ticks.append(text);
       });
       svg.append(ticks);
+      placeLegend();
     }
     return svg;
+  }
+
+  /* ----------------------------------------------------------------- camera */
+
+  /* Wheel to zoom about the cursor, drag the background to pan, double-click to
+   * fit. The web is eight branches ten rings deep, so at a width that shows all
+   * of it a perk's label is a few pixels tall; before this the only way in was
+   * the browser's own page zoom, which took the panel with it.
+   *
+   * Held as the SVG's viewBox rather than as a scroll offset: the drawing is
+   * rebuilt on every keystroke in the panel, and a scroller starts a fresh child
+   * at its top-left corner. A viewBox is set on the new element for nothing, and
+   * it zooms out past the web's own bounds, which a scroller cannot do.
+   *
+   * A pan or a zoom writes the attribute on the live SVG and stops there. Only a
+   * layout change redraws - moving the window is not a reason to lay out several
+   * hundred nodes again.
+   */
+
+  const ZOOM_STEP = 1.2;      // one wheel notch
+  const MIN_SPAN = 260;       // world units across: about two perks and a label
+  const MAX_SPAN_FILL = 4;    // how far out past the whole web a zoom may go
+
+  const canvasOf = () => view.element && view.element.querySelector(".web-canvas");
+
+  /** The camera to draw `fit` with. Kept across redraws; only its shape follows
+   * the canvas, so that "meet" never letterboxes and a zoom about the cursor
+   * lands exactly on the point it was pointed at. */
+  function cameraFor(fit) {
+    view.fit = fit;
+    const aspect = canvasAspect() || fit.width / Math.max(fit.height, 1);
+    const home = fittedTo(fit, aspect);
+    // What the readout calls 100%. The web is taller than it is wide, so the
+    // window that holds all of it is wider than the web's own bounds - measuring
+    // the zoom against those would call the fitted view a third of itself.
+    view.homeWidth = home.w;
+    if (!view.camera) view.camera = home;
+    else view.camera = shapedTo(view.camera, aspect);
+    return view.camera;
+  }
+
+  function canvasAspect() {
+    const canvas = canvasOf();
+    if (!canvas) return 0;
+    const rect = canvas.getBoundingClientRect();
+    return rect.height > 0 ? rect.width / rect.height : 0;
+  }
+
+  /** The whole web, grown - never cropped - to the canvas's shape. */
+  function fittedTo(fit, aspect) {
+    let width = fit.width;
+    let height = fit.height;
+    if (width / height < aspect) width = height * aspect;
+    else height = width / aspect;
+    return { x: fit.left + fit.width / 2 - width / 2, y: fit.top + fit.height / 2 - height / 2,
+      w: width, h: height };
+  }
+
+  /** The same window in a canvas of a different shape - the panel's drag bar is
+   * what changes it. Width is what is kept: the web is wider than it is tall, so
+   * holding it is what keeps a branch in frame when the panel grows. */
+  function shapedTo(camera, aspect) {
+    const height = camera.w / aspect;
+    return { x: camera.x, y: camera.y + camera.h / 2 - height / 2, w: camera.w, h: height };
+  }
+
+  /** Writes the camera onto the live drawing. Everything that moves the window
+   * goes through here, and nothing here redraws. */
+  function applyCamera(camera) {
+    view.camera = camera;
+    if (!view.chart) return camera;
+    view.chart.setAttribute("viewBox", `${camera.x} ${camera.y} ${camera.w} ${camera.h}`);
+    placeLegend();
+    showZoom();
+    return camera;
+  }
+
+  /** The ramp legend, held at the camera's bottom-left corner and counter-scaled
+   * so it stays the size it is drawn at rather than growing with the zoom. */
+  function placeLegend() {
+    const legend = view.chart && view.chart.querySelector(".scale-legend");
+    if (!legend || !view.fit) return;
+    const camera = view.camera;
+    const scale = camera.w / view.fit.width;
+    legend.setAttribute("transform",
+      `translate(${camera.x} ${camera.y + camera.h}) scale(${scale})`);
+  }
+
+  /** Zoom is read against the fitted window, so 100% is "the whole web" whatever
+   * size the canvas happens to be. */
+  const zoomFactor = () =>
+    (view.homeWidth && view.camera ? view.homeWidth / view.camera.w : 1);
+
+  function showZoom() {
+    const readout = view.element && view.element.querySelector(".web-zoom-level");
+    if (readout) readout.textContent = `${Math.round(zoomFactor() * 100)}%`;
+  }
+
+  /** Zooms by `factor` about a point in world units, or about the middle of the
+   * window when none is given. Clamped at both ends: further in than MIN_SPAN
+   * there is one node and no context, and further out the web is a smudge. */
+  function zoomBy(factor, about) {
+    if (!view.camera || !view.fit) return;
+    const camera = view.camera;
+    const maxSpan = Math.max(view.fit.width, view.fit.height) * MAX_SPAN_FILL;
+    const width = Math.min(Math.max(camera.w * factor, MIN_SPAN), maxSpan);
+    const scale = width / camera.w;
+    if (scale === 1) return;
+    const at = about || { x: camera.x + camera.w / 2, y: camera.y + camera.h / 2 };
+    applyCamera({ x: at.x - (at.x - camera.x) * scale, y: at.y - (at.y - camera.y) * scale,
+      w: width, h: camera.h * scale });
+  }
+
+  function fitCamera() {
+    if (!view.fit) return;
+    const home = fittedTo(view.fit, canvasAspect() || view.fit.width / view.fit.height);
+    view.homeWidth = home.w;
+    applyCamera(home);
+  }
+
+  /** The pan in progress, if any. Outside enableZoomPan because a redraw can
+   * replace the drawing under a gesture - the camera it moves does not. */
+  let panning = null;
+
+  function enableZoomPan(svg) {
+    svg.addEventListener("wheel", (event) => {
+      // Not passive: a wheel over the web is a zoom, and the canvas no longer
+      // scrolls - there is nothing for the page to do with it instead.
+      event.preventDefault();
+      zoomBy(event.deltaY < 0 ? 1 / ZOOM_STEP : ZOOM_STEP, toUserSpace(svg, event));
+    }, { passive: false });
+
+    svg.addEventListener("pointerdown", (event) => {
+      // Left on a node is a reparent drag and left on a badge is a press; the
+      // background is what is left. Middle drags anywhere, which is the way to
+      // pan out of a corner packed with nodes.
+      const onNode = event.target.closest && event.target.closest("g[data-path], .perk-badge");
+      if (event.button === 1 || (event.button === 0 && !onNode)) {
+        const matrix = svg.getScreenCTM();
+        if (!matrix || !matrix.a) return;
+        panning = { x: event.clientX, y: event.clientY, scale: matrix.a, from: view.camera };
+        event.preventDefault();
+        svg.classList.add("panning");
+      }
+    });
+
+    // Double-click, not a button alone: the gesture that undoes a zoom belongs
+    // where the zoom was made. The buttons in the corner keep it discoverable.
+    svg.addEventListener("dblclick", (event) => {
+      if (event.target.closest && event.target.closest("g[data-path], .perk-badge")) return;
+      fitCamera();
+    });
+  }
+
+  // On the window rather than on the SVG: a pan that wanders off the canvas is
+  // still a pan, and the drawing under it can be replaced mid-gesture.
+  window.addEventListener("pointermove", (event) => {
+    if (!panning) return;
+    applyCamera({ ...panning.from,
+      x: panning.from.x - (event.clientX - panning.x) / panning.scale,
+      y: panning.from.y - (event.clientY - panning.y) / panning.scale });
+  });
+  const endPan = () => {
+    if (!panning) return;
+    panning = null;
+    if (view.chart) view.chart.classList.remove("panning");
+  };
+  window.addEventListener("pointerup", endPan);
+  window.addEventListener("pointercancel", endPan);
+
+  /** The zoom controls, over the canvas rather than in the panel: they act on
+   * what is under them, and the panel is already a column of fields. */
+  function zoomControls() {
+    const wrap = document.createElement("div");
+    wrap.className = "web-zoom";
+    const button = (glyph, tip, onClick) => {
+      const element = document.createElement("button");
+      element.type = "button";
+      element.textContent = glyph;
+      element.title = tip;
+      element.onclick = onClick;
+      return element;
+    };
+    const level = document.createElement("span");
+    level.className = "web-zoom-level";
+    wrap.append(
+      button("−", "Zoom out (wheel down over the web)", () => zoomBy(ZOOM_STEP)),
+      level,
+      button("+", "Zoom in (wheel up over the web)", () => zoomBy(1 / ZOOM_STEP)),
+      button("⤢", "Fit the whole web (double-click the background)", fitCamera));
+    return wrap;
   }
 
   /* ------------------------------------------------------------ reparenting */
@@ -877,16 +1116,12 @@
     head.append(clear);
     wrap.append(head);
 
-    const canvas = () => view.element && view.element.querySelector(".web-canvas");
     const apply = () => {
-      const where = canvas();
+      const where = canvasOf();
       if (!where) return;
-      const left = where.scrollLeft;
-      const top = where.scrollTop;
+      // drawWeb rebuilds the svg, and the camera it puts on the new one is the
+      // one the old one was left at - so the window does not move.
       where.replaceChildren(drawWeb());
-      // drawWeb rebuilds the svg, and a fresh one starts at its own top-left.
-      where.scrollLeft = left;
-      where.scrollTop = top;
       sync();
     };
 
@@ -1212,16 +1447,17 @@
 
       // What a reorder actually costs the branch. Sibling offsets accumulate
       // down a chain, and the widest one is what caps the spacing every node in
-      // the branch gets; past 1.5 the branch spills out of its slice, which is
-      // where perk_tree_test stops it. Reach alternates its two children side to
-      // side for exactly this reason.
+      // the branch gets; past the limit the branch spills out of its slice, which
+      // is where perk_tree_test stops it. Reach alternates its two children side
+      // to side for exactly this reason.
       const reach = view.widest.get(perk.branch_key);
-      if (reach !== undefined) {
+      const limit = view.spreadLimit;
+      if (reach !== undefined && limit) {
         const spread = document.createElement("div");
-        const tight = reach > 1.5;
+        const tight = reach > limit;
         spread.className = tight ? "web-stats warn" : "web-stats";
-        spread.textContent = `widest sibling offset ${reach.toFixed(2)} of 1.5`
-          + (tight ? " - this branch no longer fits its slice" : "");
+        spread.textContent = `widest sibling offset ${reach.toFixed(2)} of ${limit.toFixed(2)}`
+          + (tight ? " - this branch is past its slice, so its spread is cut to fit" : "");
         target.append(spread);
       }
     }
@@ -2767,24 +3003,21 @@
 
   /** The canvas and its panel, built once and re-filled on every render. A tab
    * hands over a fresh container each time, so the root is re-appended rather
-   * than rebuilt - dropping and remaking the SVG on every keystroke would lose
-   * the canvas scroll position along with it. */
+   * than rebuilt. */
   function root() {
     if (!view.element) {
       view.element = document.createElement("div");
       view.element.id = "web-view";
       view.element.innerHTML = `<div class="web-canvas"></div><aside class="web-panel"></aside>`;
-      // Where the two scrollers are, remembered as they move rather than read at
-      // the top of render(): the tab detaches this whole element before calling
-      // us (game.js empties the body first), and a detached element comes back
-      // with both offsets already at zero. By the time render() runs there is
-      // nothing left to read.
-      const canvas = view.element.querySelector(".web-canvas");
       const panel = view.element.querySelector(".web-panel");
-      canvas.addEventListener("scroll", () => {
-        view.canvasScroll = { left: canvas.scrollLeft, top: canvas.scrollTop };
-      });
+      // Where the panel is scrolled to, remembered as it moves rather than read
+      // at the top of render(): the tab detaches this whole element before
+      // calling us (game.js empties the body first), and a detached element comes
+      // back with the offset already at zero. By the time render() runs there is
+      // nothing left to read. The canvas needs none of this - it does not scroll,
+      // the camera in the viewBox is what holds where the web is being read.
       panel.addEventListener("scroll", () => { view.panelTop = panel.scrollTop; });
+      view.element.append(zoomControls());
 
       // The same drag bar the file list and the graph panel get. The web is a
       // screen inside the Game view rather than a view of its own, so it never
@@ -2820,9 +3053,9 @@
       return;
     }
     // A render happens on every selection, every keystroke in the panel and every
-    // scale switch, and each one replaces both halves' children. Without putting
-    // the offsets back the web jumps to its top-left corner the moment a perk is
-    // clicked - exactly when the pan that found it matters most.
+    // scale switch, and each one replaces both halves' children. The web keeps
+    // its place through that because the camera outlives the drawing; the panel
+    // has to be put back by hand.
     const canvas = view.element.querySelector(".web-canvas");
     const panel = view.element.querySelector(".web-panel");
     // The panel holds different content per perk, so its offset is only worth
@@ -2850,10 +3083,6 @@
 
     // After the content is back, so there is something to scroll to. The browser
     // clamps whatever the new content is too short for.
-    if (view.canvasScroll) {
-      canvas.scrollLeft = view.canvasScroll.left;
-      canvas.scrollTop = view.canvasScroll.top;
-    }
     panel.scrollTop = sameFocus ? (view.panelTop || 0) : 0;
 
     measurePanel();
