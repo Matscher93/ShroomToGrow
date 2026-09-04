@@ -16,7 +16,7 @@ level_scaling = 0
 [sub_resource type="Resource" id="boon_bore"]
 script = ExtResource("2_boon_script")
 display_name = "Bore Head"
-description = "+2 max levels for Nutrient Flow, per level."
+description = "{value} max levels for Nutrient Flow, per level."
 unlock_at_level = 1
 effect = SubResource("effect_bore")
 
@@ -33,7 +33,7 @@ max_magnitude = 0.75
 [sub_resource type="Resource" id="boon_standpipe"]
 script = ExtResource("2_boon_script")
 display_name = "Standpipe"
-description = "-0.02s tick duration, per level, up to -0.75s."
+description = "{value} tick duration, per level, up to {cap}."
 unlock_at_level = 5
 effect = SubResource("effect_standpipe")
 
@@ -49,7 +49,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_surge"]
 script = ExtResource("2_boon_script")
 display_name = "Surge Tank"
-description = "x1.015 Nutrient Flow strength, per level, compounding."
+description = "{value} Nutrient Flow strength, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_surge")
 
@@ -66,7 +66,7 @@ max_magnitude = 2.0
 [sub_resource type="Resource" id="boon_hammer"]
 script = ExtResource("2_boon_script")
 display_name = "Hammer Drive"
-description = "-0.08 ticks between pumps, per level, up to -2.00."
+description = "{value} ticks between pumps, per level, up to {cap}."
 unlock_at_level = 40
 effect = SubResource("effect_hammer")
 

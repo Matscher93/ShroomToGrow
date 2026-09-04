@@ -202,7 +202,10 @@ func _fert_row(upgrade: FertilizerUpgradeDef) -> FertilizerRow:
 	var row := FertilizerRow.new()
 	row.id = upgrade.id
 	row.label = upgrade.display_name
-	row.description = upgrade.description
+	# A fertilizer upgrade has no UpgradeEffectDef - its payoff is one authored
+	# per_level on the def - so its rate arrives as an extra.
+	row.description = EffectLabel.expand(upgrade.description, [], 0,
+		{"rate": "%s%%" % EffectLabel.trimmed(upgrade.per_level * 100.0)})
 	row.level_text = "Lv %d" % App.fertilizer_level(upgrade.id)
 	row.cost_text = App.fertilizer_cost(upgrade.id).to_display(0)
 	row.enabled = App.can_buy_fertilizer(upgrade.id)

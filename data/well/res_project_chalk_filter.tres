@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_clarity"]
 script = ExtResource("2_boon_script")
 display_name = "Clarity"
-description = "x1.04 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_clarity")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_polish"]
 script = ExtResource("2_boon_script")
 display_name = "Polish"
-description = "x1.045 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_polish")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_sediment"]
 script = ExtResource("2_boon_script")
 display_name = "Sediment Yield"
-description = "x1.04 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_sediment")
 
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_purity"]
 script = ExtResource("2_boon_script")
 display_name = "Purity"
-description = "x1.02 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_purity")
 

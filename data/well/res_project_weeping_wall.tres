@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_seep2"]
 script = ExtResource("2_boon_script")
 display_name = "Hairline Seep"
-description = "x1.035 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_seep2")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_damp"]
 script = ExtResource("2_boon_script")
 display_name = "Damp Substrate"
-description = "x1.025 production on every node, per level, compounding."
+description = "{value} production on every node, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_damp")
 
@@ -49,7 +49,7 @@ max_magnitude = 1.5
 [sub_resource type="Resource" id="boon_runnels"]
 script = ExtResource("2_boon_script")
 display_name = "Runnels"
-description = "-0.06 ticks between pumps, per level, up to -1.50."
+description = "{value} ticks between pumps, per level, up to {cap}."
 unlock_at_level = 15
 effect = SubResource("effect_runnels")
 
@@ -65,7 +65,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_sheet"]
 script = ExtResource("2_boon_script")
 display_name = "Sheeting"
-description = "x1.05 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_sheet")
 
@@ -73,7 +73,7 @@ effect = SubResource("effect_sheet")
 script = ExtResource("1_script")
 id = &"project_weeping"
 display_name = "Weeping Wall"
-description = "x1.05 water per pump, per level, compounding."
+description = "{value:3} water per pump, per level, compounding."
 max_level = 60
 min_project_levels = 181
 _base_cost_mantissa = 1.0

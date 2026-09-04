@@ -8,6 +8,6 @@
 script = ExtResource("3_def_script")
 id = &"ForestUpgrade3"
 display_name = "Spore Drift"
-description = "+5% Synergy production, per level. Compounds with a nodes Synergy upgrade levels. Scales with this biome's Size."
+description = "{value} Synergy production, per level. Compounds with a nodes Synergy upgrade levels. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

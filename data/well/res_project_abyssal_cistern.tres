@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_reservoir_deep"]
 script = ExtResource("2_boon_script")
 display_name = "Deep Reservoir"
-description = "x1.03 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_reservoir_deep")
 
@@ -33,7 +33,7 @@ max_magnitude = 4.0
 [sub_resource type="Resource" id="boon_seal"]
 script = ExtResource("2_boon_script")
 display_name = "Pressure Seal"
-description = "-0.20 ticks between pumps, per level, up to -4.00."
+description = "{value} ticks between pumps, per level, up to {cap}."
 unlock_at_level = 5
 effect = SubResource("effect_seal")
 
@@ -49,7 +49,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_current"]
 script = ExtResource("2_boon_script")
 display_name = "Cold Current"
-description = "x1.045 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_current")
 
@@ -65,7 +65,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_deep"]
 script = ExtResource("2_boon_script")
 display_name = "The Deep"
-description = "x1.04 biomass gained on sporation, per level, compounding."
+description = "{value} biomass gained on sporation, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_deep")
 

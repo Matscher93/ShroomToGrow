@@ -8,7 +8,7 @@
 script = ExtResource("3_def_script")
 id = &"Refraction"
 display_name = "Refraction"
-description = "+10% biomass gained on prestige, per level. Scales with this biome's Size."
+description = "{value} biomass gained on prestige, per level. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
 min_biome_points_spent = 17

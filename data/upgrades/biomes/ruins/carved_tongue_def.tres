@@ -8,6 +8,6 @@
 script = ExtResource("3_def_script")
 id = &"CarvedTongue"
 display_name = "Carved Tongue"
-description = "+25% glyphs from missions, per level. Scales with this biome's Size."
+description = "{value} glyphs from missions, per level. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

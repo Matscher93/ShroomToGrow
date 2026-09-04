@@ -81,9 +81,21 @@ func test_the_bonuses_tab_lists_a_levelled_upgrade() -> void:
 ## undo. Perks rather than symbiosis upgrades: App.perk_defs is keyed by the same
 ## id prestige_upgrade_system registers, so a perk id is always a real def -
 ## where a node's id_key is a guess that data can move out from under.
+##
+## The first perk that *carries an effect*, not simply the first one: the tree's
+## first entry is the core, which has none, and levelling it files no
+## contribution and groups into no card. That read as a passing test only while
+## the save underneath had other perks levelled to fill the tab.
 func _with_a_levelled_perk() -> Callable:
 	var track := App.prestige_upgrade_system
-	var id: StringName = App.perk_defs.keys()[0]
+	var id: StringName = &""
+	for candidate: StringName in App.perk_defs:
+		if not (App.perk_defs[candidate] as PerkDef).effects.is_empty():
+			id = candidate
+			break
+	assert_str(String(id)).override_failure_message(
+		"No perk in the tree carries an effect, so the bonus tab can never have a row.") \
+		.is_not_empty()
 	var before := track.level(id)
 	track.set_level_for_analysis(id, maxi(before, 1))
 	return func() -> void: track.set_level_for_analysis(id, before)

@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_roots2"]
 script = ExtResource("2_boon_script")
 display_name = "Sunken Roots"
-description = "x1.03 production on every node, per level, compounding."
+description = "{value} production on every node, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_roots2")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_standing"]
 script = ExtResource("2_boon_script")
 display_name = "Standing Timber"
-description = "x1.04 biomass gained on sporation, per level, compounding."
+description = "{value} biomass gained on sporation, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_standing")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_canopy"]
 script = ExtResource("2_boon_script")
 display_name = "Drowned Canopy"
-description = "x1.055 production on tier 5 nodes, per level, compounding."
+description = "{value} node production on {scope}, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_canopy")
 
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_rot"]
 script = ExtResource("2_boon_script")
 display_name = "Slow Rot"
-description = "x1.045 biomass gained on sporation, per level, compounding."
+description = "{value} biomass gained on sporation, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_rot")
 
@@ -72,7 +72,7 @@ effect = SubResource("effect_rot")
 script = ExtResource("1_script")
 id = &"project_forest"
 display_name = "Drowned Forest"
-description = "x1.045 biomass gained on sporation, per level, compounding."
+description = "{value:3} biomass gained on sporation, per level, compounding."
 max_level = 60
 min_project_levels = 359
 _base_cost_mantissa = 5.0

@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_bore2"]
 script = ExtResource("2_boon_script")
 display_name = "The Bore"
-description = "x1.06 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_bore2")
 
@@ -33,7 +33,7 @@ max_magnitude = 6.0
 [sub_resource type="Resource" id="boon_wake"]
 script = ExtResource("2_boon_script")
 display_name = "Wake"
-description = "-0.30 ticks between pumps, per level, up to -6.00."
+description = "{value} ticks between pumps, per level, up to {cap}."
 unlock_at_level = 5
 effect = SubResource("effect_wake")
 
@@ -50,7 +50,7 @@ max_magnitude = 1.0
 [sub_resource type="Resource" id="boon_passage"]
 script = ExtResource("2_boon_script")
 display_name = "Passage"
-description = "-0.04s tick duration, per level, up to -1.00s."
+description = "{value} tick duration, per level, up to {cap}."
 unlock_at_level = 15
 effect = SubResource("effect_passage")
 
@@ -66,7 +66,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_leviathan2"]
 script = ExtResource("2_boon_script")
 display_name = "What Dug It"
-description = "x1.04 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_leviathan2")
 

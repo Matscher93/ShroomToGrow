@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_shoal"]
 script = ExtResource("2_boon_script")
 display_name = "Shoal Beds"
-description = "x1.045 production on tier 1 nodes, per level, compounding."
+description = "{value} node production on {scope}, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_shoal")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_deeper"]
 script = ExtResource("2_boon_script")
 display_name = "Deeper Shoals"
-description = "x1.05 production on tier 3 nodes, per level, compounding."
+description = "{value} node production on {scope}, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_deeper")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_instinct"]
 script = ExtResource("2_boon_script")
 display_name = "Blind Instinct"
-description = "x1.02 Nutrient Flow strength, per level, compounding."
+description = "{value} Nutrient Flow strength, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_instinct")
 
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_swarm"]
 script = ExtResource("2_boon_script")
 display_name = "Swarm Feeding"
-description = "x1.025 production on every node, per level, compounding."
+description = "{value} production on every node, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_swarm")
 
@@ -72,7 +72,7 @@ effect = SubResource("effect_swarm")
 script = ExtResource("1_script")
 id = &"project_fish"
 display_name = "Blind Fish Run"
-description = "x1.025 production on every node, per level, compounding."
+description = "{value:3} production on every node, per level, compounding."
 max_level = 60
 min_project_levels = 247
 _base_cost_mantissa = 5.0

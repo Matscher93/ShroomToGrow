@@ -8,7 +8,7 @@
 script = ExtResource("3_4t37e")
 id = &"NodeSynergy2"
 display_name = "Mycelium Synergy"
-description = "increases mycelium production by 1% each level, scaled by symbiosis biome size"
+description = "{value} synergy, per level, {scaling}."
 _base_cost_exponent = 5
 cost_growth = 1.9
 cost_growth_exponent = 1.044

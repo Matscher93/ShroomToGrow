@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_thaw"]
 script = ExtResource("2_boon_script")
 display_name = "Thaw"
-description = "x1.05 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_thaw")
 
@@ -33,7 +33,7 @@ max_magnitude = 2.5
 [sub_resource type="Resource" id="boon_torrent"]
 script = ExtResource("2_boon_script")
 display_name = "Meltwater Torrent"
-description = "-0.12 ticks between pumps, per level, up to -2.50."
+description = "{value} ticks between pumps, per level, up to {cap}."
 unlock_at_level = 5
 effect = SubResource("effect_torrent")
 
@@ -49,7 +49,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_cold"]
 script = ExtResource("2_boon_script")
 display_name = "Cold Nutrition"
-description = "x1.03 production on every node, per level, compounding."
+description = "{value} production on every node, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_cold")
 
@@ -65,7 +65,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_flood"]
 script = ExtResource("2_boon_script")
 display_name = "Spring Flood"
-description = "x1.055 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_flood")
 
@@ -73,7 +73,7 @@ effect = SubResource("effect_flood")
 script = ExtResource("1_script")
 id = &"project_glacier"
 display_name = "Glacier Melt"
-description = "x1.055 water per pump, per level, compounding."
+description = "{value:3} water per pump, per level, compounding."
 max_level = 60
 min_project_levels = 441
 _base_cost_mantissa = 2.5

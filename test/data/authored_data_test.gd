@@ -442,17 +442,42 @@ func test_substrate_ends_in_one_global_perk_per_stat() -> void:
 		.override_failure_message("Substrate carries global perks for stats outside %s." \
 			% [SUBSTRATE_STATS]).is_equal(SUBSTRATE_STATS.size())
 
-func test_a_perk_costs_more_than_its_parent() -> void:
+## The spine is the path outward, so walking it has to keep costing more. Held
+## for the perks that carry the tree onward - the ones something hangs off - and
+## not for its leaves.
+##
+## A leaf is a terminal purchase behind a gate that has already been paid for,
+## and what it is worth is a balance call rather than a structural one. Reach is
+## the branch that makes the difference: its rungs are tier unlocks priced in the
+## thousands of digits, and its Attunement leaves are small bonuses hanging off
+## them. Charging more for the bonus than for the gate it sits behind would be
+## the wrong shape, and every other branch's leaves are dearer than their parent
+## anyway - so what a leaf still owes is only that it costs something, which
+## test_every_perk_costs_something asserts.
+func test_the_perk_spine_costs_more_at_every_step() -> void:
 	var by_id := {}
+	var carries_the_tree := {}
 	for perk in _perks:
 		by_id[perk.id] = perk
+		if not perk.parent_id.is_empty():
+			carries_the_tree[perk.parent_id] = true
 	for perk in _perks:
-		if perk.parent_id.is_empty():
+		if perk.parent_id.is_empty() or not carries_the_tree.has(perk.id):
 			continue
 		var parent: PerkDef = by_id[perk.parent_id]
 		assert_bool(perk.base_cost.gt(parent.base_cost)) \
-			.override_failure_message("Perk '%s' (%s) costs no more than its parent '%s' (%s)." \
+			.override_failure_message("Perk '%s' (%s) carries the tree onward but costs no more than its parent '%s' (%s)." \
 				% [perk.id, perk.base_cost, parent.id, parent.base_cost]).is_true()
+
+## What a leaf still owes, now that the ordering check above steps over it: a
+## perk priced at nothing is one the tree hands out for free the moment its gate
+## opens, and nothing else would say so.
+func test_every_perk_costs_something() -> void:
+	for perk in _perks:
+		if perk.parent_id.is_empty():
+			continue   # the core is the free one, by design
+		assert_bool(perk.base_cost.gt(BigNumber.new(0.0, 0))) \
+			.override_failure_message("Perk '%s' is free." % perk.id).is_true()
 
 func test_currency_bought_upgrades_have_a_rising_cost_curve() -> void:
 	# cost() is base * growth^(level * exponent^level). A growth of 1 or less makes the

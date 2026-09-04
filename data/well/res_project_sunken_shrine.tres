@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_offering"]
 script = ExtResource("2_boon_script")
 display_name = "Offering"
-description = "x1.035 biomass gained on sporation, per level, compounding."
+description = "{value} biomass gained on sporation, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_offering")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_votive"]
 script = ExtResource("2_boon_script")
 display_name = "Votive Crystals"
-description = "x1.035 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_votive")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_drowned"]
 script = ExtResource("2_boon_script")
 display_name = "Drowned Roots"
-description = "x1.045 biomass gained on sporation, per level, compounding."
+description = "{value} biomass gained on sporation, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_drowned")
 
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_rite"]
 script = ExtResource("2_boon_script")
 display_name = "Abyssal Rite"
-description = "x1.03 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_rite")
 

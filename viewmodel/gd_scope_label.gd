@@ -5,8 +5,8 @@ extends RefCounted
 ##
 ## Lives here rather than under model/ because it is presentation: the model files
 ## a contribution under "n:7" or "t:canopy" and has no opinion about what to call
-## it. Reads App.nodes.mycelium_nodes, which is a static registry loaded once, not
-## game state.
+## it. Reads the node and boost registries, which are static resources loaded
+## once, not game state.
 ##
 ## One place, because there were about to be three: the statistics overlay names a
 ## scope on every bonus row, a generated perk description names one, and a scoped
@@ -15,11 +15,41 @@ extends RefCounted
 
 ## The node's own name, as the node panel says it. Falls back to the raw id, so a
 ## target that no longer names a tier reads as a mistake rather than as nothing.
+##
+## Scope.NODE addresses tiers, biomes and crystal boosts through the one `target`
+## field (see authored_data_test._scope_targets), so all three are looked up
+## here: "on Nutrient Flow" is what the Well card has always said, and Bounty's
+## perks land a biome point "on Permafrost". "on node boost_nutrients" is not a
+## thing the player has ever been shown.
 static func node_name(node_id: String) -> String:
-	for node in App.nodes.mycelium_nodes:
+	for node in _nodes():
 		if str(node.node_id) == node_id:
 			return node.name
+	for biome in _biomes():
+		if String(biome.key) == node_id:
+			return biome.display_name
+	for boost in _boosts():
+		if String(boost.id) == node_id:
+			return boost.display_name
 	return "node %s" % node_id
+
+## The registries by path rather than through App.
+##
+## The same resources App holds - load() is cached by path, so this is that one
+## instance and not a second copy - but reachable without the autoload. The
+## balance editor's CLI runs with `-s`, where no autoload exists and a bare `App`
+## does not even compile, and it needs to word a description exactly the way the
+## game does. A registry that is static anyway has no business needing the
+## running game to be readable.
+static func _nodes() -> Array[MyceliumNode]:
+	return (load("res://data/mycelium_nodes/res_all_mycelium_nodes.tres") as MyceliumNodes) \
+		.mycelium_nodes
+
+static func _biomes() -> Array[BiomeDef]:
+	return (load("res://data/biomes/all_biomes.tres") as BiomeList).biomes
+
+static func _boosts() -> Array[BoostDef]:
+	return (load("res://data/boosts/all_boosts.tres") as BoostList).boosts
 
 ## A group as a name. Tags are authored lowercase and read as words, so the only
 ## work here is making one look like a name in a sentence.

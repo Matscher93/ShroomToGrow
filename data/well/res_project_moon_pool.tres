@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_pull"]
 script = ExtResource("2_boon_script")
 display_name = "Lunar Pull"
-description = "x1.055 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_pull")
 
@@ -33,7 +33,7 @@ max_magnitude = 5.0
 [sub_resource type="Resource" id="boon_swell"]
 script = ExtResource("2_boon_script")
 display_name = "Swell"
-description = "-0.25 ticks between pumps, per level, up to -5.00."
+description = "{value} ticks between pumps, per level, up to {cap}."
 unlock_at_level = 5
 effect = SubResource("effect_swell")
 
@@ -49,7 +49,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_phase"]
 script = ExtResource("2_boon_script")
 display_name = "Phase"
-description = "x1.03 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_phase")
 
@@ -65,7 +65,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_silver"]
 script = ExtResource("2_boon_script")
 display_name = "Silver Water"
-description = "x1.055 biomass gained on sporation, per level, compounding."
+description = "{value} biomass gained on sporation, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_silver")
 
@@ -73,7 +73,7 @@ effect = SubResource("effect_silver")
 script = ExtResource("1_script")
 id = &"project_moon"
 display_name = "Moon Pool"
-description = "x1.055 biomass gained on sporation, per level, compounding."
+description = "{value:3} biomass gained on sporation, per level, compounding."
 max_level = 60
 min_project_levels = 780
 _base_cost_mantissa = 5.0

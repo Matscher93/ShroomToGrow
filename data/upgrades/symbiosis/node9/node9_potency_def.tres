@@ -8,7 +8,7 @@
 script = ExtResource("3_7vflb")
 id = &"NodePotency9"
 display_name = "Mycelium Potency"
-description = "increases mycelium production by 10% each level"
+description = "{value} potency, per level, {compounding}."
 _base_cost_exponent = 513
 cost_growth = 256.0
 cost_growth_exponent = 1.058

@@ -67,14 +67,19 @@ static func snapshot(data_dir: String) -> Dictionary:
 			meta.append(_column_meta(column))
 
 		var rows := []
+		var previews := {}
 		for res: Resource in resources:
 			var line := [res.resource_path]
 			for column: Dictionary in columns:
 				line.append(encode_value(res.get(column.name), column))
 			rows.append(line)
+			var preview := _description_preview(res)
+			if not preview.is_empty():
+				previews[res.resource_path] = preview
 		tables[class_key] = {
 			"header": header,
 			"columns": meta,
+			"description_previews": previews,
 			"script": (resources[0].get_script() as Script).resource_path,
 			"rows": rows,
 		}
@@ -1617,6 +1622,41 @@ static func _column_meta(column: Dictionary) -> Dictionary:
 		_:
 			meta["type"] = "text"
 	return meta
+
+
+## What a row's authored description will actually read as on the card, with its
+## {token}s resolved.
+##
+## Derived rather than stored, and resolved through EffectLabel - the same call
+## the ViewModels make - for the reason curves() samples cost through
+## UpgradeSystem: a preview computed a second way in the editor could disagree
+## with the game, and a preview that disagrees is worse than none. Dragging
+## per_level then shows the sentence the player will read, which is the whole
+## point of the tokens.
+##
+## "" for a row with no description, or one with no token in it - there is
+## nothing to preview when the text is already what it says.
+static func _description_preview(res: Resource) -> String:
+	var text: String = res.get("description") if res.get("description") != null else ""
+	if text.is_empty() or not text.contains("{"):
+		return ""
+	var effects: Array = []
+	var from_array: Variant = res.get("effects")
+	var single: Variant = res.get("effect")
+	var boons: Variant = res.get("boons")
+	if from_array is Array:
+		effects.append_array(from_array)
+	elif single is UpgradeEffectDef:
+		effects.append(single)
+	elif boons is Array:
+		# A project holds no effect of its own; its rungs do, and a {value:3} in
+		# its description names the third of them. Mirrors
+		# ProjectViewModel._boon_effects().
+		for boon: ProjectBoonDef in boons:
+			effects.append(boon.effect)
+	var max_level: Variant = res.get("max_level")
+	var extras := PerkTree.cap_step_extras(StringName(res.get("id") if res.get("id") != null else &""))
+	return EffectLabel.expand(text, effects, int(max_level) if max_level != null else 0, extras)
 
 
 #region Value codec

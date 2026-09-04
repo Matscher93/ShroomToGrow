@@ -8,7 +8,7 @@
 script = ExtResource("3_def_script")
 id = &"CavernHeart"
 display_name = "Cavern Heart"
-description = "-0.1s tick duration, per level. Scales with this biome's Size."
+description = "{value} tick duration, per level. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
 min_biome_points_spent = 23

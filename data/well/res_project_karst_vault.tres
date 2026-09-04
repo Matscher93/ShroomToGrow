@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_vault"]
 script = ExtResource("2_boon_script")
 display_name = "Vault Store"
-description = "x1.05 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_vault")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_pillar"]
 script = ExtResource("2_boon_script")
 display_name = "Pillar Beds"
-description = "x1.055 production on tier 6 nodes, per level, compounding."
+description = "{value} node production on {scope}, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_pillar")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_flowstone"]
 script = ExtResource("2_boon_script")
 display_name = "Flowstone"
-description = "x1.045 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_flowstone")
 
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_cavern"]
 script = ExtResource("2_boon_script")
 display_name = "Cavern Volume"
-description = "x1.03 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_cavern")
 

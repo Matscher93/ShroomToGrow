@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_still"]
 script = ExtResource("2_boon_script")
 display_name = "Stillness"
-description = "x1.045 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_still")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_reflect"]
 script = ExtResource("2_boon_script")
 display_name = "Reflection"
-description = "x1.045 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_reflect")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_double"]
 script = ExtResource("2_boon_script")
 display_name = "Doubling"
-description = "x1.02 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_double")
 
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_image"]
 script = ExtResource("2_boon_script")
 display_name = "The Other Colony"
-description = "x1.02 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_image")
 

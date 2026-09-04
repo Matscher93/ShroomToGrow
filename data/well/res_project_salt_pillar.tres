@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_crust"]
 script = ExtResource("2_boon_script")
 display_name = "Salt Crust"
-description = "x1.05 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_crust")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_halite"]
 script = ExtResource("2_boon_script")
 display_name = "Halite Seams"
-description = "x1.055 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_halite")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_brine"]
 script = ExtResource("2_boon_script")
 display_name = "Brine Draw"
-description = "x1.055 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_brine")
 
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_pillar2"]
 script = ExtResource("2_boon_script")
 display_name = "The Pillar"
-description = "x1.02 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_pillar2")
 

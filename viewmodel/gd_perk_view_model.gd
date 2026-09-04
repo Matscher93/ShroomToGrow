@@ -22,7 +22,10 @@ var max_level: int:
 ## neither, and the panel hides the label rather than leaving a gap.
 var description: String:
 	get:
-		return _def.description if not _def.description.is_empty() else _generated_effect_text()
+		if _def.description.is_empty():
+			return _generated_effect_text()
+		return EffectLabel.expand(_def.description, _def.effects, _def.max_level,
+			PerkTree.cap_step_extras(_id))
 
 # --- Read-only display properties bound by the View ---
 var status: String:
@@ -57,6 +60,15 @@ var can_buy: bool:
 
 # --- Display helpers ---
 
+## Tokens a perk's description can name that are not on an effect.
+##
+## The cap perks are the reason: Instinct and Tide raise a boost's, an
+## automation's or the whole Well's ceiling, and the step they raise it by is
+## authored on the thing being raised - BoostDef.max_level_per_perk_level and its
+## two counterparts - never on the perk. A description that typed the number
+## would go on promising 100 levels after the boost dropped to 50, which is the
+## drift this whole mechanism exists to stop.
+##
 ## Only the first effect is described. Every perk authored so far carries one,
 ## and a perk with several would need wording this can't guess at - that is what
 ## the description field is for.

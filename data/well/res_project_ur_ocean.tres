@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_memory"]
 script = ExtResource("2_boon_script")
 display_name = "Memory"
-description = "x1.05 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_memory")
 
@@ -33,7 +33,7 @@ max_magnitude = 8.0
 [sub_resource type="Resource" id="boon_first"]
 script = ExtResource("2_boon_script")
 display_name = "First Tide"
-description = "-0.35 ticks between pumps, per level, up to -8.00."
+description = "{value} ticks between pumps, per level, up to {cap}."
 unlock_at_level = 5
 effect = SubResource("effect_first")
 
@@ -49,7 +49,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_origin"]
 script = ExtResource("2_boon_script")
 display_name = "Origin"
-description = "x1.03 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_origin")
 
@@ -65,7 +65,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_ur"]
 script = ExtResource("2_boon_script")
 display_name = "The Ur"
-description = "x1.05 biomass gained on sporation, per level, compounding."
+description = "{value} biomass gained on sporation, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_ur")
 

@@ -8,6 +8,6 @@
 script = ExtResource("3_def_script")
 id = &"WardensDue"
 display_name = "Warden's Due"
-description = "+22% crystals from claims, per level. Scales with this biome's Size."
+description = "{value} crystals from claims, per level. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

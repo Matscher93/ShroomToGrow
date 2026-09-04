@@ -1678,7 +1678,35 @@ function fieldEditor(entry, columnIndex, metaOverride) {
   label.append(revert);
   sync();
   wrap.append(label, meta.type === "color" ? decorateColor(input) : input);
+  const preview = descriptionPreview(entry, column);
+  if (preview) wrap.append(preview);
   return wrap;
+}
+
+/** The sentence a description's {token}s resolve to, under the field that
+ * authors it - or null for any other column.
+ *
+ * Read from the snapshot rather than recomputed here. Resolving a token means
+ * knowing that a MORE of 0.03 is a x1.03 while an INCREASED of 0.03 is a +3%,
+ * that a tick is seconds, and what noun each stat takes; a second copy of that
+ * in JavaScript would be a second vocabulary, and the one it disagreed with
+ * would be the game's. gd_balance_data resolves it through the same EffectLabel
+ * the cards call, so what shows here is what the player reads.
+ *
+ * That does mean it lags an unsaved per_level - it is the sentence as the data
+ * currently on disk renders it, refreshed on save and reload. Which is the
+ * point: the number belongs to the effect, and the description never repeats
+ * it. */
+function descriptionPreview(entry, column) {
+  if (column !== "description") return null;
+  const previews = (state.loaded.get(entry.file) || {}).description_previews;
+  const row = dataOf(entry.file).rows[entry.rowIndex];
+  const text = previews && row && previews[row[0]];
+  if (!text) return null;
+  const line = document.createElement("div");
+  line.className = "hint";
+  line.textContent = `reads as: ${text}`;
+  return line;
 }
 
 function renderDeps(focus, target = el.deps) {

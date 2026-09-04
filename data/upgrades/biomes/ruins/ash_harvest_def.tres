@@ -8,6 +8,6 @@
 script = ExtResource("3_def_script")
 id = &"AshHarvest"
 display_name = "Ash Harvest"
-description = "+18% biomass on sporation, per level. Scales with this biome's Size."
+description = "{value} biomass on sporation, per level. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

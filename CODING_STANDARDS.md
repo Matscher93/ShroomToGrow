@@ -146,9 +146,26 @@ Two commands, both from the project root:
 #    class of failure, which is a parse error rather than a runtime one.
 godot --headless --path . --quit
 
-# 2. Run every test suite.
-godot --headless -s addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -a test
+# 2. Run every test suite, against an empty save.
+XDG_DATA_HOME=$(mktemp -d) \
+  godot --headless -s addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -a test
 ```
+
+`XDG_DATA_HOME` is not optional either, and for a worse reason than
+`--ignoreHeadlessMode`: without it `App` loads **your own save file**, and the
+suite reports on the game you happen to have been playing.
+
+It fails in both directions at once. `statistics_panel_test` asserts that every
+"Deepest biome" row takes the colour of the biome the test recorded, and a save
+carrying real runs puts other biomes' rows on the same screen - 49 failures that
+say nothing about the code. Meanwhile a save with points already spent hides
+tests that a first-run player would fail: `biome_system_test` and
+`statistics_panel_test` both assume a fresh `PlayerData` has something to spend,
+which stopped being true when Meadow became a bought biome, and neither noticed
+until the save was empty.
+
+`mktemp -d` per run rather than one fixed directory, so a suite that writes a
+save cannot hand it to the next run.
 
 `--ignoreHeadlessMode` is not optional: without it gdUnit4 refuses to run at all and exits 103, because input-driven tests can't work headless. None of these suites synthesize `InputEvent`s, so the warning it prints does not apply to them - if one ever does, it belongs in a run with a display attached.
 

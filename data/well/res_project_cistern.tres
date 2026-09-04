@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_catchment"]
 script = ExtResource("2_boon_script")
 display_name = "Catchment"
-description = "x1.035 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_catchment")
 
@@ -32,7 +32,7 @@ level_scaling = 0
 [sub_resource type="Resource" id="boon_siphon"]
 script = ExtResource("2_boon_script")
 display_name = "Siphon"
-description = "-0.1 ticks between pumps, per level."
+description = "{value} ticks between pumps, per level."
 unlock_at_level = 5
 effect = SubResource("effect_siphon")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_reservoir"]
 script = ExtResource("2_boon_script")
 display_name = "Reservoir"
-description = "x1.02 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_reservoir")
 
@@ -64,7 +64,7 @@ level_scaling = 0
 [sub_resource type="Resource" id="boon_artesian"]
 script = ExtResource("2_boon_script")
 display_name = "Artesian Head"
-description = "-0.15 ticks between pumps, per level."
+description = "{value} ticks between pumps, per level."
 unlock_at_level = 40
 effect = SubResource("effect_artesian")
 

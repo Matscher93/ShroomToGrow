@@ -23,8 +23,14 @@ func buy() -> void:
 var display_name: String:
 	get: return _def.display_name
 
+## A boost has no UpgradeEffectDef to read: BoostSystem generates one def per
+## tier and rewrites its rate in refresh_power(), so what a description can name
+## is {rate} - what the next level is worth, at the tier the player is in now
+## rather than the one the ladder was authored at.
 var description: String:
-	get: return _def.description
+	get:
+		return EffectLabel.expand(_def.description, [], 0,
+			{"rate": "x%.2f" % (1.0 + App.boost_next_gain(_id))})
 
 ## Against the ceiling the prestige perks have opened so far, not some ladder's
 ## far end: a boost capped at 100 showing "/ 500" reads as buyable when it isn't.

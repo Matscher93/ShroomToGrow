@@ -25,8 +25,15 @@ var id: StringName:
 var display_name: String:
 	get: return _def.display_name
 
+## An automation has no UpgradeEffectDef either - its payoff is runs per tick, on
+## the def itself - so its two numbers arrive as extras rather than through an
+## effect.
 var description: String:
-	get: return _def.description
+	get:
+		return EffectLabel.expand(_def.description, [], _def.max_level, {
+			"base_rate": EffectLabel.trimmed(_def.base_runs_per_tick),
+			"rate": EffectLabel.trimmed(_def.runs_per_level),
+		})
 
 var sort_order: int:
 	get: return _def.sort_order

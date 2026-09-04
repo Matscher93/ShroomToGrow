@@ -8,6 +8,6 @@
 script = ExtResource("3_def_script")
 id = &"DenseMycelium"
 display_name = "Dense Mycelium"
-description = "+15% node production, per level. Scales with this biome's Size."
+description = "{value} node production, per level. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])

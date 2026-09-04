@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_glow"]
 script = ExtResource("2_boon_script")
 display_name = "Glowing Beds"
-description = "x1.06 production on tier 2 nodes, per level, compounding."
+description = "{value} node production on {scope}, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_glow")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_lumen"]
 script = ExtResource("2_boon_script")
 display_name = "Lumen Feed"
-description = "x1.035 production on every node, per level, compounding."
+description = "{value} production on every node, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_lumen")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_prism2"]
 script = ExtResource("2_boon_script")
 display_name = "Prism Shoal"
-description = "x1.055 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_prism2")
 
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_beacon"]
 script = ExtResource("2_boon_script")
 display_name = "Beacon Beds"
-description = "x1.07 production on tier 9 nodes, per level, compounding."
+description = "{value} node production on {scope}, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_beacon")
 
@@ -72,7 +72,7 @@ effect = SubResource("effect_beacon")
 script = ExtResource("1_script")
 id = &"project_lantern"
 display_name = "Lantern Shoal"
-description = "x1.07 production on tier 9 nodes, per level, compounding."
+description = "{value:3} node production on {scope:3}, per level, compounding."
 max_level = 60
 min_project_levels = 835
 _base_cost_mantissa = 1.0

@@ -98,7 +98,10 @@ static func _build_double(effects: Array[UpgradeEffectDef]) -> UpgradeDef:
 	var def := UpgradeDef.new()
 	def.id = GLOBAL_DOUBLE_ID
 	def.display_name = "Deep Roots"
-	def.description = "Every ten Level Points invested, wherever they went, doubles every producer again."
+	# The interval is PlayerLevelSystem's to decide, and a hand-typed "ten" here
+	# would go on saying ten after it moved.
+	def.description = "Every %d Level Points invested, wherever they went, doubles every producer again." \
+		% PlayerLevelSystem.LP_PER_DOUBLE
 	def.max_level = 0
 	def.base_cost = BigNumber.new(0.0, 0)
 	def.cost_growth = 1.0

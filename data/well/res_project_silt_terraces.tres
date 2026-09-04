@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_first"]
 script = ExtResource("2_boon_script")
 display_name = "First Terrace"
-description = "x1.045 production on tier 1 nodes, per level, compounding."
+description = "{value} node production on {scope}, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_first")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_second"]
 script = ExtResource("2_boon_script")
 display_name = "Second Terrace"
-description = "x1.045 production on tier 2 nodes, per level, compounding."
+description = "{value} node production on {scope}, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_second")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_third"]
 script = ExtResource("2_boon_script")
 display_name = "Third Terrace"
-description = "x1.055 production on tier 4 nodes, per level, compounding."
+description = "{value} node production on {scope}, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_third")
 
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_bloom"]
 script = ExtResource("2_boon_script")
 display_name = "Silt Bloom"
-description = "x1.025 production on every node, per level, compounding."
+description = "{value} production on every node, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_bloom")
 
@@ -72,7 +72,7 @@ effect = SubResource("effect_bloom")
 script = ExtResource("1_script")
 id = &"project_terraces"
 display_name = "Silt Terraces"
-description = "x1.025 production on every node, per level, compounding."
+description = "{value:3} production on every node, per level, compounding."
 max_level = 60
 min_project_levels = 95
 _base_cost_mantissa = 5.0

@@ -135,3 +135,32 @@ static func _make_perk(branch: PerkBranchDef, node: PerkNodeDef, parent_id: Stri
 	p.world_x = CANVAS_CENTER + cos(angle) * r
 	p.world_y = CANVAS_CENTER + sin(angle) * r
 	return p
+
+
+## The {max_level_step} a cap perk's description names: how many levels one of
+## its own levels opens on whatever it raises.
+##
+## The step is authored on the thing being raised - BoostDef, AutomationDef and
+## ProjectList each carry their own max_level_per_perk_level - and never on the
+## perk, so a description that typed the number would go on promising 100 levels
+## after the boost dropped to 50. Which perk raises what is a rule about the
+## data, so it lives here rather than in the panel that happens to read it: the
+## integrity sweep and the balance editor's preview resolve it the same way, and
+## none of the three needs a running game to do it.
+##
+## {} for an ordinary perk, which raises no ceiling and names no such token.
+static func cap_step_extras(perk_id: StringName) -> Dictionary:
+	var step := 0
+	for boost in (load("res://data/boosts/all_boosts.tres") as BoostList).boosts:
+		if boost.max_level_perk_id == perk_id:
+			step = boost.max_level_per_perk_level
+	var automations := load("res://data/automation/all_automations.tres") as AutomationList
+	for automation in automations.automations:
+		if automation.max_level_perk_id == perk_id:
+			step = automation.max_level_per_perk_level
+	var projects := load("res://data/well/all_projects.tres") as ProjectList
+	if projects.max_level_perk_id == perk_id:
+		step = projects.max_level_per_perk_level
+	if step == 0:
+		return {}
+	return {"max_level_step": "%d" % step}

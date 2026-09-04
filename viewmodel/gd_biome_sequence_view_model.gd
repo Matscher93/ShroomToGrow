@@ -178,7 +178,8 @@ var slot_status_text: String:
 		var upgrade_def := App.biome_upgrade_system.def(_status_id)
 		if upgrade_def == null:
 			return ""
-		var lines := "%s - %s" % [upgrade_def.display_name, upgrade_def.description]
+		var lines := "%s - %s" % [upgrade_def.display_name,
+			EffectLabel.expand(upgrade_def.description, upgrade_def.effects, upgrade_def.max_level)]
 		var blocked := record_blocked_reason(_status_id)
 		if not blocked.is_empty():
 			return "%s\n%s" % [lines, blocked]

@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_drain"]
 script = ExtResource("2_boon_script")
 display_name = "Drain"
-description = "x1.06 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_drain")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_gather"]
 script = ExtResource("2_boon_script")
 display_name = "Gathering"
-description = "x1.04 production on every node, per level, compounding."
+description = "{value} production on every node, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_gather")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_settle"]
 script = ExtResource("2_boon_script")
 display_name = "Settling"
-description = "x1.06 crystals from achievements, per level, compounding."
+description = "{value} crystals from achievements, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_settle")
 
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_sink2"]
 script = ExtResource("2_boon_script")
 display_name = "The Sink"
-description = "x1.04 biomass gained on sporation, per level, compounding."
+description = "{value} biomass gained on sporation, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_sink2")
 

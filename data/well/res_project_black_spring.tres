@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_warm"]
 script = ExtResource("2_boon_script")
 display_name = "Warm Rise"
-description = "x1.055 water per pump, per level, compounding."
+description = "{value} water per pump, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_warm")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_mineral"]
 script = ExtResource("2_boon_script")
 display_name = "Mineral Load"
-description = "x1.045 biomass gained on sporation, per level, compounding."
+description = "{value} biomass gained on sporation, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_mineral")
 
@@ -49,7 +49,7 @@ max_magnitude = 3.5
 [sub_resource type="Resource" id="boon_pressure2"]
 script = ExtResource("2_boon_script")
 display_name = "Deep Pressure"
-description = "-0.18 ticks between pumps, per level, up to -3.50."
+description = "{value} ticks between pumps, per level, up to {cap}."
 unlock_at_level = 15
 effect = SubResource("effect_pressure2")
 
@@ -65,7 +65,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_black"]
 script = ExtResource("2_boon_script")
 display_name = "The Black"
-description = "x1.03 biomass gained on sporation, per level, compounding."
+description = "{value} biomass gained on sporation, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_black")
 

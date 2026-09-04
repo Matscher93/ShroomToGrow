@@ -90,6 +90,20 @@ func reset() -> void:
 	spent_points.clear()
 	size.clear()
 
+## Wipes the account as well as the run - what reset() keeps on purpose.
+##
+## For starting from nothing rather than from a sporation, which is not something
+## the game ever does and the balance simulator always does: a baseline built
+## with `--load=` off a real save otherwise kept that player's discovered tabs and
+## bought auto-unlocks, so biomes reopened themselves for free in what the report
+## called a first run. load_from_save({}) cannot do this job - it merges what a
+## dict holds rather than replacing what it does not.
+func reset_to_first_run() -> void:
+	reset()
+	ever_unlocked.clear()
+	auto_unlock.clear()
+	auto_unlock_enabled.clear()
+
 func to_save() -> Dictionary:
 	var unlocked_out := {}
 	for key in unlocked:

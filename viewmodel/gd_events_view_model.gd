@@ -94,7 +94,14 @@ func _row(event: Dictionary) -> EventRow:
 	var row := EventRow.new()
 	row.instance_id = int(event["instance_id"])
 	row.title = def.title
-	row.description = def.description
+	# An event's numbers sit on its own def rather than on an effect, and which of
+	# them means anything depends on the kind, so all three are offered and a
+	# description names the one its kind actually uses.
+	row.description = EffectLabel.expand(def.description, [], 0, {
+		"pct": "%s%%" % EffectLabel.trimmed(def.pct_of_balance * 100.0),
+		"flat": EffectLabel.trimmed(def.flat_amount),
+		"ticks": "%d" % def.goal_ticks,
+	})
 	row.accent = def.accent_color
 	row.kind = def.kind
 	row.enabled = true

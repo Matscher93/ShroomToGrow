@@ -23,8 +23,11 @@ func invest() -> void:
 var display_name: String:
 	get: return _def.display_name
 
+## Expanded against the project's own boons, indexed - a project has no effect of
+## its own, and the line under its name is a summary of the rungs beneath it, so
+## {value:3} is how it quotes the deepest one without typing the number twice.
 var description: String:
-	get: return _def.description
+	get: return EffectLabel.expand(_def.description, _boon_effects(), _def.max_level)
 
 ## Against the ceiling the depth perk has opened so far, not the authored one: a
 ## project the perk has widened would otherwise read as maxed while it is still
@@ -96,7 +99,10 @@ func boon_rows() -> Array[Dictionary]:
 			detail = "Opens at Lv %d" % boon.unlock_at_level
 		rows.append({
 			"name": boon.display_name,
-			"description": boon.description,
+			# A boon carries one effect and its own ceiling is the project's, so the
+			# rung's levels are what {total} would be measured against - not a number
+			# the boon knows. max_level is left at 0 rather than guessed at.
+			"description": EffectLabel.expand(boon.description, [boon.effect]),
 			"detail": detail,
 			"rate": rate,
 			"stat": boon.effect.stat if boon.effect != null else &"",
@@ -131,6 +137,15 @@ func _on_changed() -> void:
 	_notify(PROP_PROJECT_CHANGED)
 
 # --- Formatting ---
+
+## The boons' effects in authored order, so a {value:N} in a description names
+## the same rung the card lists Nth.
+func _boon_effects() -> Array:
+	var effects: Array = []
+	for boon in _def.boons:
+		effects.append(boon.effect)
+	return effects
+
 
 ## A boon's magnitude in the shape its op actually applies in. Unlike the biome
 ## upgrade card, which can hardcode "+x%" because every biome upgrade is
@@ -170,7 +185,10 @@ func _rate_text(boon: ProjectBoonDef, index: int) -> String:
 	if delta.mantissa == 0.0:
 		return "max"
 	if boon.effect.op == UpgradeEffectDef.Op.MORE:
-		return "x%s/lvl" % _trimmed(1.0 + boon.effect.per_level)
+		# The authored rate, worded the same way the boon's own description words
+		# it - the two sit on one card and a x1.045 in the sentence beside a
+		# "x1.04/lvl" underneath would read as two different rungs.
+		return "%s/lvl" % EffectLabel.value_of(boon.effect)
 	return "%s/lvl" % _amount_text(boon.effect, delta)
 
 ## to_display() carries a minus of its own but never a plus, and a bare "8%" next

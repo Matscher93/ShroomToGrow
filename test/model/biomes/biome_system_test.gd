@@ -322,13 +322,36 @@ func test_upgrade_room_is_the_half_of_can_buy_that_ignores_the_budget() -> void:
 			break
 	assert_str(String(ungated)).is_not_empty()
 
-	# permafrost has no points on a fresh PlayerData, meadow does.
+	# The budget is granted rather than assumed. A biome's XP is derived from the
+	# node counts, and those live on the MyceliumNode resources, which load()
+	# hands out as one shared instance - App and the balance simulator both write
+	# to it. Reading meadow's level here meant reading whatever had run last.
+	_grant_points(&"meadow", 3)
+	assert_int(_system.available_points(&"meadow")).is_greater(0)
+
 	assert_bool(_system.has_upgrade_room(ungated, &"meadow")).is_true()
 	assert_bool(_system.can_buy_upgrade(ungated, &"meadow")).is_true()
 
+	# Spent down to nothing, the two halves part company: the upgrade still has
+	# room, and only the budget stops the purchase. That split is the subject.
 	_data.spend_points(&"meadow", _system.available_points(&"meadow"))
 	assert_bool(_system.has_upgrade_room(ungated, &"meadow")).is_true()
 	assert_bool(_system.can_buy_upgrade(ungated, &"meadow")).is_false()
+
+## A flat &"biome_points" bonus on one biome, the way a prestige perk grants one.
+## Same shape test_biome_points_bonus_flows_through_the_production_stack builds.
+func _grant_points(key: StringName, amount: float) -> void:
+	var effect := UpgradeEffectDef.new()
+	effect.stat = &"biome_points"
+	effect.per_level = amount
+	effect.op = UpgradeEffectDef.Op.ADD
+	effect.scope = UpgradeEffectDef.Scope.NODE
+	effect.target = key
+	var def := UpgradeDef.new()
+	def.id = StringName("GrantedPoints_%s" % key)
+	def.effects = [effect]
+	_prestige.register(def)
+	_prestige.from_save({String(def.id): 1})
 
 func test_upgrade_room_refuses_a_gated_or_maxed_upgrade() -> void:
 	for def in UpgradeDefLoader.load_all(UpgradeDefLoader.BIOME_PATH):

@@ -24,7 +24,7 @@ var display_name: String:
 	get: return _def.display_name
 
 var description: String:
-	get: return _def.description
+	get: return EffectLabel.expand(_def.description, _def.effects, _def.max_level)
 
 ## Which half of the ladder this rung sits in. Read off the stats its effects
 ## name rather than an authored flag, so a rung cannot claim to be one and behave

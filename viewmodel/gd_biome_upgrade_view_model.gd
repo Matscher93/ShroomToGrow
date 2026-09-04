@@ -22,7 +22,7 @@ var name_text: String:
 var desc_text: String:
 	get:
 		var def := App.biome_upgrade_system.def(_id)
-		var body := def.description if def else ""
+		var body := EffectLabel.expand(def.description, def.effects, def.max_level) if def else ""
 		# A scoped upgrade says which tier or group it lands on. Appended rather
 		# than authored, so the ten-tiers-one-wording problem the symbiosis track
 		# has cannot start here too; a global upgrade is left exactly as written.

@@ -17,7 +17,7 @@ max_magnitude = 3.0
 [sub_resource type="Resource" id="boon_chamber"]
 script = ExtResource("2_boon_script")
 display_name = "Lock Chamber"
-description = "-0.14 ticks between pumps, per level, up to -3.00."
+description = "{value} ticks between pumps, per level, up to {cap}."
 unlock_at_level = 1
 effect = SubResource("effect_chamber")
 
@@ -34,7 +34,7 @@ max_magnitude = 0.8
 [sub_resource type="Resource" id="boon_cadence"]
 script = ExtResource("2_boon_script")
 display_name = "Cadence"
-description = "-0.04s tick duration, per level, up to -0.80s."
+description = "{value} tick duration, per level, up to {cap}."
 unlock_at_level = 5
 effect = SubResource("effect_cadence")
 
@@ -50,7 +50,7 @@ level_scaling = 0
 [sub_resource type="Resource" id="boon_cycle"]
 script = ExtResource("2_boon_script")
 display_name = "Lock Cycling"
-description = "+3 max levels for Spore Density, per level."
+description = "{value} max levels for Spore Density, per level."
 unlock_at_level = 15
 effect = SubResource("effect_cycle")
 
@@ -67,7 +67,7 @@ max_magnitude = 4.5
 [sub_resource type="Resource" id="boon_spill"]
 script = ExtResource("2_boon_script")
 display_name = "Spillway"
-description = "-0.22 ticks between pumps, per level, up to -4.50."
+description = "{value} ticks between pumps, per level, up to {cap}."
 unlock_at_level = 40
 effect = SubResource("effect_spill")
 

@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_channel"]
 script = ExtResource("2_boon_script")
 display_name = "Open Channel"
-description = "x1.03 nutrient production, per level, compounding."
+description = "{value} nutrient production, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_channel")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_silt"]
 script = ExtResource("2_boon_script")
 display_name = "Silt Bed"
-description = "x1.02 production on every node, per level, compounding."
+description = "{value} production on every node, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_silt")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_intake"]
 script = ExtResource("2_boon_script")
 display_name = "Deep Intake"
-description = "x1.04 production on tier 3 nodes, per level, compounding."
+description = "{value} node production on {scope}, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_intake")
 
@@ -65,7 +65,7 @@ max_magnitude = 1.0
 [sub_resource type="Resource" id="boon_floodgate"]
 script = ExtResource("2_boon_script")
 display_name = "Floodgate"
-description = "-0.05s tick duration, per level, up to -1.00s."
+description = "{value} tick duration, per level, up to {cap}."
 unlock_at_level = 40
 effect = SubResource("effect_floodgate")
 

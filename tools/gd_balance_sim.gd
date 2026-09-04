@@ -258,9 +258,18 @@ static func _reset(app: Node) -> void:
 	# a mission boost bought in an earlier run is not part of a first one.
 	app.mission_upgrade_system.reset()
 	app.biome_system.reset()
+	# reset() alone is the sporation's reset, which keeps the discovered tabs and
+	# the bought auto-unlocks on purpose. A simulated run starts before either
+	# existed, so the account half goes too - then the free biomes are reopened,
+	# because clearing `unlocked` closed them.
+	app.biomes_data.reset_to_first_run()
 	app.biome_system.unlock_free_biomes()
 
 	app.player_data.load_from_save({})
+	# The records, the milestones and the run history. A baseline carrying a real
+	# save's peaks reports a first run that has already been everywhere, and the
+	# achievements read straight off these.
+	app.stats_data.load_from_save({})
 	app.automation_data.load_from_save({})
 	app.achievement_progress.load_from_save({})
 	app.achievement_system.sync_tier_count()
