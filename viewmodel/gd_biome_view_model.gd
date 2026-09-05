@@ -16,6 +16,7 @@ const PROP_PROGRESS_TEXT := &"progress_text"
 const PROP_PROGRESS_RATIO := &"progress_ratio"
 const PROP_POINTS_TEXT := &"points_text"
 const PROP_HAS_POINTS := &"has_points"
+const PROP_HAS_ATTENTION := &"has_attention"
 const PROP_SIZE_LEVEL_TEXT := &"size_level_text"
 const PROP_SIZE_COST_TEXT := &"size_cost_text"
 const PROP_CAN_BUY_SIZE := &"can_buy_size"
@@ -26,6 +27,8 @@ const PROP_SLOTS_CHANGED := &"slots_changed"
 
 var _key: StringName
 var _def: BiomeDef
+## The last value the cue was notified at - see _notify_attention().
+var _attention := false
 
 # --- View state ---
 ## Whether the card's upgrade body is open. Parked here because App owns this VM
@@ -99,6 +102,17 @@ var points_text: String:
 var has_points: bool:
 	get: return points_available >= 1
 
+## Everything on this card that is waiting on the player, rolled into the one
+## flag its notification dot and the Biomes nav badge both read.
+##
+## Two states, never both: a locked biome is waiting to be bought, an unlocked
+## one to have its points spent. can_buy_size is deliberately absent - automations
+## buy Size on a tick, so a cue on it would blink rather than mean anything, and a
+## dot that never means "act on this" is one the player learns to ignore (see
+## TopBar's note on the statistics chip).
+var has_attention: bool:
+	get: return can_unlock if not unlocked else has_points
+
 ## Subtitle under a slot's number in the upgrade grid: how far this upgrade is
 ## towards its cap.
 func upgrade_slot_text(id: StringName) -> String:
@@ -110,6 +124,13 @@ func upgrade_slot_text(id: StringName) -> String:
 
 func is_upgrade_unlocked(id: StringName) -> bool:
 	return App.is_biome_upgrade_unlocked(id, _key)
+
+## Whether this slot can be bought right now - unlocked, under its cap and paid
+## for by the points in hand. Mirrors is_upgrade_unlocked() so the grid can mark
+## every slot without standing a BiomeUpgradeViewModel up for each one; the
+## detail card still owns the selected slot's full read.
+func can_buy_upgrade(id: StringName) -> bool:
+	return App.can_buy_biome_upgrade(id, _key)
 
 var size_level_text: String:
 	get: return "Lv %d" % App.biome_size(_key)
@@ -149,6 +170,10 @@ func _init(key: StringName, def: BiomeDef) -> void:
 	for node in App.nodes.mycelium_nodes:                                  # XpSource.TOTAL_NODES
 		node.manual_nodes_changed.connect(_on_xp_source_changed.unbind(1))
 	App.biome_size_changed.connect(_on_biome_size_changed)
+	# Seeded rather than left false: _notify_attention() only fires on a crossing,
+	# so a cue that is already on at construction has to be known about here or its
+	# first turn *off* would look like no change at all.
+	_attention = has_attention
 
 func dispose() -> void:
 	App.biomes_data.biome_unlocked.disconnect(_on_biome_unlocked)
@@ -193,11 +218,13 @@ func _on_biome_unlocked(key: StringName) -> void:
 	_notify(PROP_PROGRESS_RATIO)
 	_notify(PROP_POINTS_TEXT)
 	_notify(PROP_HAS_POINTS)
+	_notify_attention()
 	_notify(PROP_SLOTS_CHANGED)
 
 func _on_points_source_changed() -> void:
 	_notify(PROP_POINTS_TEXT)
 	_notify(PROP_HAS_POINTS)
+	_notify_attention()
 
 func _on_biome_upgrades_changed() -> void:
 	_on_points_source_changed()
@@ -209,10 +236,29 @@ func _on_xp_source_changed() -> void:
 	_notify(PROP_PROGRESS_RATIO)
 	_notify(PROP_POINTS_TEXT)
 	_notify(PROP_HAS_POINTS)
+	_notify_attention()
 
 func _on_currency_changed(_value: BigNumber) -> void:
 	_notify(PROP_CAN_UNLOCK)
 	_notify(PROP_CAN_BUY_SIZE)
+	# A currency tick is where can_unlock flips, so the cue is re-read here - but
+	# only a crossing gets past _notify_attention().
+	_notify_attention()
+
+## Emits only when the cue actually turns on or off.
+##
+## has_attention is re-read from a currency change, which lands every game tick
+## for the whole session. Each notify reaches the card's slot grid and, through
+## NavigationViewModel, the nav badges and the menu disc - and the grid rebuilds a
+## StyleBox per slot when it repaints. Emitting one a tick would have all of them
+## working forever to say nothing moved. A dot has two states; only the crossings
+## between them are news.
+func _notify_attention() -> void:
+	var attention := has_attention
+	if attention == _attention:
+		return
+	_attention = attention
+	_notify(PROP_HAS_ATTENTION)
 
 func _on_biome_size_changed(key: StringName) -> void:
 	if key != _key:

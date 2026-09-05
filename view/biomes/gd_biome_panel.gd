@@ -113,6 +113,7 @@ func _refresh_grid_slots() -> void:
 		var btn := grid_upgrade_slots.get_child(i) as Button
 		UpgradeSlotGrid.set_level_text(btn, _vm.upgrade_slot_text(_slot_ids[i]))
 		UpgradeSlotGrid.set_locked(btn, not _vm.is_upgrade_unlocked(_slot_ids[i]))
+		UpgradeSlotGrid.set_affordable(btn, _vm.can_buy_upgrade(_slot_ids[i]), _vm.biome_color)
 
 func _on_slot_selected(id: StringName) -> void:
 	upgrade_detail.select_upgrade(id, biome_key)
@@ -187,8 +188,12 @@ func _on_property_changed(property: StringName) -> void:
 			_set_progress_ratio(_vm.progress_ratio)
 		BiomeViewModel.PROP_POINTS_TEXT:
 			lbl_upgrade_points.text = _vm.points_text
-		BiomeViewModel.PROP_HAS_POINTS:
-			image_notification.visible = _vm.has_points
+		BiomeViewModel.PROP_HAS_ATTENTION:
+			# The dot and the slot borders answer the same question - what is
+			# waiting on this card - so they move together. A point earned lights
+			# both, and neither costs the grid a rebuild.
+			image_notification.visible = _vm.has_attention
+			_refresh_grid_slots()
 		BiomeViewModel.PROP_SLOTS_CHANGED:
 			_refresh_grid_slots()
 		BiomeViewModel.PROP_SIZE_LEVEL_TEXT, BiomeViewModel.PROP_SIZE_COST_TEXT, BiomeViewModel.PROP_CAN_BUY_SIZE:
@@ -231,7 +236,7 @@ func _refresh_all() -> void:
 	_set_progress_ratio(_vm.progress_ratio)
 
 	lbl_upgrade_points.text = _vm.points_text
-	image_notification.visible = _vm.has_points
+	image_notification.visible = _vm.has_attention
 
 	_refresh_size_section()
 

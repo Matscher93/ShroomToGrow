@@ -11,6 +11,16 @@
 [ext_resource type="Shader" uid="uid://b2och7dhkl2si" path="res://shaders/icons/sh_expansion_arrow.gdshader" id="8_oi3wt"]
 [ext_resource type="Script" uid="uid://dhdlai82e2tmo" path="res://view/base_views/gd_base_button.gd" id="9_7yqcm"]
 [ext_resource type="Script" uid="uid://c3ouusiqjure6" path="res://view/base_views/gd_base_panel_container.gd" id="10_0kruu"]
+[ext_resource type="Shader" uid="uid://b4hlda7wef5eg" path="res://shaders/shared/sh_notification_indicator.gdshader" id="11_notif"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_notification"]
+resource_local_to_scene = true
+shader = ExtResource("11_notif")
+shader_parameter/radius = 0.4
+shader_parameter/radius_glow = 0.9
+shader_parameter/border_thickness = 0.1
+shader_parameter/notification_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
+shader_parameter/ring_color = Color(0, 0, 0, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_53xj8"]
 resource_local_to_scene = true
@@ -212,7 +222,7 @@ shader_parameter/additional_border_offset = 1.0
 shader_parameter/background_alpha = 0.2
 shader_parameter/border_alpha = 1.0
 
-[node name="mycelium_node" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "owned_nodes", "manual_nodes", "level_value", "level_header", "label_node_name", "label_node_desc", "label_node_income", "label_buy_cost", "panel_buy_node", "level_icon", "vbox_synergy", "vbox_buy", "expansion_arrow", "label_yield", "label_total_yield", "label_potency_level", "label_potency_gain_header", "label_potency_accumulated", "label_potency_cost", "panel_potency", "upgrade_button_potency", "label_synergy_level", "label_synergy_gain_header", "label_synergy_accumulated", "label_synergy_cost", "panel_synergy", "upgrade_button_synergy")]
+[node name="mycelium_node" type="PanelContainer" unique_id=506102240 node_paths=PackedStringArray("upgrade_button", "owned_nodes", "manual_nodes", "level_value", "level_header", "label_node_name", "label_node_desc", "label_node_income", "label_buy_cost", "panel_buy_node", "level_icon", "image_notification", "vbox_synergy", "vbox_buy", "expansion_arrow", "label_yield", "label_total_yield", "label_potency_level", "label_potency_gain_header", "label_potency_accumulated", "label_potency_cost", "panel_potency", "upgrade_button_potency", "label_synergy_level", "label_synergy_gain_header", "label_synergy_accumulated", "label_synergy_cost", "panel_synergy", "upgrade_button_synergy")]
 material = SubResource("ShaderMaterial_53xj8")
 custom_minimum_size = Vector2(250, 50)
 offset_right = 40.0
@@ -231,6 +241,7 @@ label_node_income = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/VBoxC
 label_buy_cost = NodePath("MarginContainer/VBoxContainer/vbox_buy/MarginContainer/HBoxContainer/panel_buy_node/MarginContainer/HBox/lbl_buy_cost")
 panel_buy_node = NodePath("MarginContainer/VBoxContainer/vbox_buy/MarginContainer/HBoxContainer/panel_buy_node")
 level_icon = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon")
+image_notification = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/level_icon/image_notification")
 vbox_synergy = NodePath("MarginContainer/VBoxContainer/vbox_buy/vbox_synergy")
 vbox_buy = NodePath("MarginContainer/VBoxContainer/vbox_buy")
 expansion_arrow = NodePath("MarginContainer/VBoxContainer/HBoxContainer2/ColorRect")
@@ -306,6 +317,20 @@ size_flags_vertical = 0
 text = "LVL"
 label_settings = SubResource("LabelSettings_53xj8")
 horizontal_alignment = 1
+
+[node name="image_notification" type="ColorRect" parent="MarginContainer/VBoxContainer/HBoxContainer2/level_icon" unique_id=1513601964]
+material = SubResource("ShaderMaterial_notification")
+visible = false
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -18.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 18.0
+grow_horizontal = 0
+mouse_filter = 2
 
 [node name="Control2" type="Control" parent="MarginContainer/VBoxContainer/HBoxContainer2" unique_id=2067873580]
 custom_minimum_size = Vector2(5, 0)

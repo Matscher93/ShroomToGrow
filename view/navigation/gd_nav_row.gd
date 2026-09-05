@@ -2,6 +2,10 @@ extends PanelContainer
 ## VIEW: one top-level destination row in the nav menu - icon, name, subtitle and
 ## an optional count badge.
 ##
+## The badge is everything waiting on that screen, its sub-views included, so a
+## collapsed row still says there is work behind it - the sub-rows underneath say
+## which tab it is on.
+##
 ## Bound from a NavDestination value object rather than a live ViewModel: the
 ## menu is spawned on open and freed on close, so a row never outlives the
 ## snapshot it was built from. Badge counts are the one thing that can move while
@@ -34,6 +38,7 @@ func bind(destination: NavDestination) -> void:
 	lbl_subtitle.visible = not destination.subtitle.is_empty()
 	icon.set_icon_shader(destination.icon_shader)
 	_paint(destination.accent, destination.is_current)
+	set_badge(destination.badge_count)
 
 func set_badge(count: int) -> void:
 	panel_badge.visible = count > 0

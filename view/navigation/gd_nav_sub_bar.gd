@@ -21,7 +21,7 @@ var _chips: Array[Control] = []
 ## Badge sources paired with _chips by index, so a currency change repaints the
 ## numbers without rebuilding the row under the player's finger - same reason the
 ## menu keeps its own list.
-var _badge_sources: Array[SubScreenDefinition.BadgeSource] = []
+var _badge_sources: Array[BadgeSource.Source] = []
 ## What the chips on screen were built from. Compared against the incoming rows
 ## to decide between re-binding and respawning - see _refresh_chips().
 var _shown: PackedStringArray = PackedStringArray()

@@ -141,12 +141,57 @@ func test_badge_counts_match_the_affordable_cards() -> void:
 		if vm.is_unlocked and vm.can_buy:
 			automations += 1
 
-	assert_int(_vm.badge_count(SubScreenDefinition.BadgeSource.AFFORDABLE_BOOSTS)).is_equal(boosts)
-	assert_int(_vm.badge_count(SubScreenDefinition.BadgeSource.AFFORDABLE_AUTOMATIONS)) \
+	assert_int(_vm.badge_count(BadgeSource.Source.AFFORDABLE_BOOSTS)).is_equal(boosts)
+	assert_int(_vm.badge_count(BadgeSource.Source.AFFORDABLE_AUTOMATIONS)) \
 		.is_equal(automations)
 
 func test_a_row_without_a_badge_source_counts_nothing() -> void:
-	assert_int(_vm.badge_count(SubScreenDefinition.BadgeSource.NONE)).is_zero()
+	assert_int(_vm.badge_count(BadgeSource.Source.NONE)).is_zero()
+
+## The card cues, checked against the cards themselves for the same reason as
+## above: the badge is a promise that arriving on that screen finds something.
+func test_the_card_cue_counts_match_the_cards() -> void:
+	var biomes := 0
+	for vm: Variant in App.biome_vms.values():
+		if vm.has_attention:
+			biomes += 1
+	var tiers := 0
+	for vm: Variant in App.mycelium_node_vms:
+		if vm.has_attention:
+			tiers += 1
+
+	assert_int(_vm.badge_count(BadgeSource.Source.BIOME_ATTENTION)).is_equal(biomes)
+	assert_int(_vm.badge_count(BadgeSource.Source.NEW_NODE_TIER)).is_equal(tiers)
+
+## An owned tier is affordable nearly all the time, so counting affordability
+## outright would light the Nodes row for the whole game. Only a tier the player
+## has yet to buy is news.
+func test_an_owned_node_tier_never_asks_for_attention() -> void:
+	for vm: Variant in App.mycelium_node_vms:
+		if vm.has_nodes:
+			assert_bool(vm.has_attention).override_failure_message(
+				"an owned tier is asking for attention").is_false()
+
+## A screen's badge is the sum of what is waiting on it. Screens author one or
+## the other - their own source, or sub-rows - so nothing is counted twice.
+func test_a_screens_badge_is_everything_waiting_on_it() -> void:
+	for row in _vm.destinations:
+		var definition: ScreenDefinition = App.screens_data.screen_data.get(row.screen_type)
+		var expected := _vm.badge_count(definition.badge_source)
+		for sub in row.subs:
+			expected += sub.badge_count
+		assert_int(row.badge_count).override_failure_message(
+			"screen %d badges %d, but %d is waiting on it" \
+				% [row.screen_type, row.badge_count, expected]).is_equal(expected)
+
+## The disc is the one cue that reaches across screens, so it must never light
+## for the screen the player is already standing on.
+func test_the_disc_ignores_the_screen_the_player_is_on() -> void:
+	var elsewhere := false
+	for row in _vm.destinations:
+		if not row.is_current and row.badge_count > 0:
+			elsewhere = true
+	assert_bool(_vm.any_attention).is_equal(elsewhere)
 
 # ─── Commands ────────────────────────────────────────────────────────────────
 

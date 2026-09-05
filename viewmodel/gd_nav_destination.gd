@@ -13,4 +13,7 @@ var subtitle: String
 var accent: Color
 var icon_shader: Shader
 var is_current: bool
+## Everything waiting on this screen, its sub-views included. See
+## NavigationViewModel.screen_badge_count().
+var badge_count: int
 var subs: Array[NavSubDestination] = []

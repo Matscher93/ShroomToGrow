@@ -25,3 +25,9 @@ extends Resource
 ## Sub-views promoted into the nav menu as indented rows under this screen.
 ## Empty for every screen that has no tabs of its own.
 @export var sub_screens: Array[SubScreenDefinition] = []
+
+## The count this screen's own row badges, on top of whatever its sub-rows carry.
+## Meant for a screen with no sub-views of its own: a screen that has them says
+## what is waiting through those rows, and naming a source here as well would
+## count the same work twice.
+@export var badge_source: BadgeSource.Source = BadgeSource.Source.NONE

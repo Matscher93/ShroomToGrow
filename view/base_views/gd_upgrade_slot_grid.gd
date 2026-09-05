@@ -16,6 +16,9 @@ const SLOT_HEIGHT := 44
 const INDEX_FONT_SIZE := 16
 const LEVEL_FONT_SIZE := 10
 const LEVEL_COLOR := Color(1, 1, 1, 0.6)
+## The slot's resting fill. Named because set_affordable() rebuilds the same
+## stylebox to put a border on it, and the two must not drift apart.
+const NORMAL_FILL := Color(1, 1, 1, 0.08)
 const LOCKED_MODULATE := Color(1, 1, 1, 0.4)
 ## Dimmer still, for a slot that cannot be pressed at all rather than one that is
 ## merely unused.
@@ -40,7 +43,7 @@ static func create_slot(index: int) -> Button:
 	# The grid hands each column an equal share of the panel width, so the slots
 	# grow with the card instead of sitting in a clump on the left.
 	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slot.add_theme_stylebox_override("normal", slot_style(Color(1, 1, 1, 0.08)))
+	slot.add_theme_stylebox_override("normal", slot_style(NORMAL_FILL))
 	slot.add_theme_stylebox_override("hover", slot_style(Color(1, 1, 1, 0.16)))
 	slot.add_theme_stylebox_override("pressed", slot_style(Color(1, 1, 1, 0.32)))
 	slot.add_theme_stylebox_override("disabled", slot_style(Color(1, 1, 1, 0.03)))
@@ -55,6 +58,23 @@ static func set_level_text(slot: Button, text: String) -> void:
 
 static func set_locked(slot: Button, locked: bool) -> void:
 	slot.modulate = LOCKED_MODULATE if locked else Color.WHITE
+
+## Marks a slot that can be bought right now, so the grid says which of the ten
+## are worth a tap instead of making the player select each one to find out.
+##
+## A border rather than a fill: the fill is what hover and pressed already speak
+## with, and overriding it would make an affordable slot look permanently
+## half-pressed. A notification dot per slot was the other option and is worse -
+## ten dots in a 5x2 grid of 44px buttons reads as a rash, not as news.
+##
+## Composes with set_locked(), which works through modulate: a locked slot is
+## dimmed border and all.
+static func set_affordable(slot: Button, affordable: bool, accent: Color) -> void:
+	var style := slot_style(NORMAL_FILL)
+	if affordable:
+		style.set_border_width_all(2)
+		style.border_color = accent
+	slot.add_theme_stylebox_override("normal", style)
 
 ## The slot's own number stays the headline, with the level underneath in a
 ## smaller, dimmer type so it reads as a subtitle rather than competing with it.

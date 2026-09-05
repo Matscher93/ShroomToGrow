@@ -14,4 +14,4 @@ var is_current: bool
 var badge_count: int
 ## Kept alongside the count so an open menu can re-read it when currency moves,
 ## instead of rebuilding every row to pick up a new number.
-var badge_source: SubScreenDefinition.BadgeSource
+var badge_source: BadgeSource.Source

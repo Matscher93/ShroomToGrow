@@ -36,9 +36,12 @@ const SCROLL_MARGIN := 11
 
 var _vm: NavigationViewModel
 ## Sub rows paired with the count they show, so a currency change can repaint the
-## numbers without rebuilding the list under the player's finger. Top-level rows
-## carry no badge, so none of them are in here.
+## numbers without rebuilding the list under the player's finger.
 var _badge_rows: Array[Dictionary] = []
+## The same, for the top-level rows: a destination badges everything waiting on
+## its screen, which is a per-screen sum rather than one source. Kept apart from
+## _badge_rows because the two are refreshed from different calls.
+var _screen_badge_rows: Array[Dictionary] = []
 ## Top-level rows in list order, for the re-bind path in _refresh_rows().
 var _top_rows: Array[Control] = []
 var _active_row: Control = null
@@ -133,6 +136,7 @@ func _build_rows(destinations: Array[NavDestination]) -> void:
 		vbox_rows.remove_child(child)
 		child.queue_free()
 	_badge_rows.clear()
+	_screen_badge_rows.clear()
 	_top_rows.clear()
 	_active_row = null
 
@@ -142,6 +146,7 @@ func _build_rows(destinations: Array[NavDestination]) -> void:
 		row.bind(destination)
 		row.selected.connect(_on_destination_selected)
 		_top_rows.append(row)
+		_screen_badge_rows.append({"node": row, "screen": destination.screen_type})
 		if destination.is_current:
 			_active_row = row
 		if not destination.subs.is_empty():
@@ -171,6 +176,8 @@ func _build_sub_rows(destination: NavDestination) -> void:
 func _refresh_badges() -> void:
 	for entry in _badge_rows:
 		entry["node"].set_badge(_vm.badge_count(entry["source"]))
+	for entry in _screen_badge_rows:
+		entry["node"].set_badge(_vm.screen_badge_count(entry["screen"]))
 
 # --- Opening ---
 

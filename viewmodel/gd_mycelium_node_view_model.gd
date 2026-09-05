@@ -27,6 +27,9 @@ const PROP_SYNERGY_CAN_BUY := &"synergy_can_buy"
 ## against MyceliumNode directly.
 const PROP_HAS_NODES := &"has_nodes"
 
+## The card's notification dot, and what the Nodes nav row badges.
+const PROP_HAS_ATTENTION := &"has_attention"
+
 # --- View state ---
 ## Whether the card's buy body is open. Parked here for the same reason as
 ## BiomeViewModel.expanded: App owns this VM for the app's lifetime, the Nodes
@@ -39,6 +42,8 @@ var _player_data: PlayerData
 var _mycelium_data: MyceliumNodeData
 var _potency_id: StringName
 var _synergy_id: StringName
+## The last value the cue was notified at - see _notify_attention().
+var _attention := false
 
 # --- Read-only display properties bound by the View ---
 var buy_button_text: String:
@@ -84,6 +89,20 @@ var can_buy_upgrade: bool:
 var is_unlocked: bool:
 	get:
 		return _mycelium_data.is_unlocked()
+
+## A tier the player has reached but never bought, affordable now.
+##
+## Not can_buy_upgrade on its own, which is what a cue here would obviously be:
+## nutrients climb on their own, so an owned tier is affordable nearly all the
+## time and a dot on that would be lit nearly all the time - which teaches the
+## player to stop reading every other dot in the game too. Gated on has_nodes it
+## fires once per tier, at the only moment the Nodes screen has news: the next
+## link in the chain just became reachable. Buying it puts the cue out for good.
+##
+## Naturally 0-or-1 across the whole screen, since NodesPanel only ever shows one
+## tier the player does not already own.
+var has_attention: bool:
+	get: return is_unlocked and not has_nodes and can_buy_upgrade
 
 ## Pluralised against the amount actually shown, not the production multiplier:
 ## 500 nutrients at a 1.0x bonus would otherwise render "500 nutrient".
@@ -173,6 +192,10 @@ func _init(player_data: PlayerData, mycelium_data: MyceliumNodeData) -> void:
 	App.upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
 	App.biome_upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
 	App.prestige_upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
+	# Seeded rather than left false: _notify_attention() only fires on a crossing,
+	# so a cue that is already on at construction has to be known about here or its
+	# first turn *off* would look like no change at all.
+	_attention = has_attention
 
 
 func dispose() -> void:
@@ -206,11 +229,13 @@ func _on_nutrients_changed(_value: BigNumber) -> void:
 	_notify(PROP_BUY_TEXT)  # affordability display may change
 	_notify(PROP_POTENCY_CAN_BUY)
 	_notify(PROP_SYNERGY_CAN_BUY)
+	_notify_attention()
 
 func _on_auto_nodes_changed(_auto_nodes: BigNumber) -> void:
 	_notify(PROP_OWNED_NODE_TEXT)
 	_notify(PROP_PRODUCTION_TEXT)
 	_notify(PROP_HAS_NODES)
+	_notify_attention()
 
 func _on_manual_nodes_changed(_manual_nodes: int) -> void:
 	_notify(PROP_MANUAL_NODE_TEXT)
@@ -219,6 +244,7 @@ func _on_manual_nodes_changed(_manual_nodes: int) -> void:
 	_notify(PROP_BUY_TEXT)
 	_notify(PROP_CAN_BUY)
 	_notify(PROP_HAS_NODES)
+	_notify_attention()
 
 func _on_upgrades_changed() -> void:
 	# Buying the unlock perk lands here too, so the buy panel re-reads both its
@@ -238,6 +264,20 @@ func _on_upgrades_changed() -> void:
 	_notify(PROP_SYNERGY_ACCUMULATED_TEXT)
 	_notify(PROP_SYNERGY_COST_TEXT)
 	_notify(PROP_SYNERGY_CAN_BUY)
+	_notify_attention()
+
+## Emits only when the cue actually turns on or off.
+##
+## has_attention is re-read from a nutrient change, which lands every game tick
+## for the whole session, and every notify reaches the nav badges and the menu
+## disc through NavigationViewModel. A dot has two states; only the crossings
+## between them are news. Mirrors BiomeViewModel._notify_attention().
+func _notify_attention() -> void:
+	var attention := has_attention
+	if attention == _attention:
+		return
+	_attention = attention
+	_notify(PROP_HAS_ATTENTION)
 
 # --- Formatting ---
 

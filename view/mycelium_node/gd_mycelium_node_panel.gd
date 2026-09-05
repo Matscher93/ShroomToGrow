@@ -13,6 +13,16 @@ extends PanelContainer
 @export var label_buy_cost: Label
 @export var panel_buy_node: PanelContainer
 @export var level_icon: ColorRect
+## Lit only for a tier the player has reached but never bought - see
+## MyceliumNodeViewModel.has_attention. Every other card on the screen stays
+## bare, which is what keeps this one worth looking at.
+##
+## Deliberately not tinted to the tier: it sits inside the level badge, which is
+## already painted in that colour, and a dot the same hue as what it sits on
+## reads as a hole punched in the badge rather than as a cue. It wears the same
+## fixed amber as the top bar chips and the menu disc, which is what says
+## "waiting on you" everywhere else in the game.
+@export var image_notification: ColorRect
 @export var vbox_synergy: VBoxContainer
 @export var vbox_buy: VBoxContainer
 @export var expansion_arrow: ColorRect
@@ -108,10 +118,13 @@ func _on_property_changed(property: StringName) -> void:
 		MyceliumNodeViewModel.PROP_SYNERGY_CAN_BUY:
 			upgrade_button_synergy.disabled = not _vm.synergy_can_buy
 			panel_synergy.set_enabled(_vm.synergy_can_buy)
+		MyceliumNodeViewModel.PROP_HAS_ATTENTION:
+			image_notification.visible = _vm.has_attention
 
 func _refresh_all() -> void:
 	label_buy_cost.text = _vm.buy_button_text
 	panel_buy_node.set_enabled(_vm.can_buy_upgrade)
+	image_notification.visible = _vm.has_attention
 	owned_nodes.text =_vm.owned_node_text
 	manual_nodes.text = _vm.manual_node_text
 	label_node_income.text = _vm.production_text

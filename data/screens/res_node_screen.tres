@@ -14,4 +14,5 @@ currencies = Array[ExtResource("2_curdef")]([ExtResource("3_nutr")])
 subtitle = "mycelium colony"
 accent_color = Color(0.49019608, 0.9411765, 0.8235294, 1)
 icon_shader = ExtResource("9_icon")
+badge_source = 6
 metadata/_custom_type_script = "uid://cfbpk4evittcm"
