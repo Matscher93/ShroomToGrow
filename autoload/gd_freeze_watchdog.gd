@@ -33,6 +33,13 @@ const REPEAT_MSEC := 10000
 
 const LOG_PATH := "user://freeze.log"
 
+## The live watchdog, so model code can leave a breadcrumb without holding a
+## reference to it - the systems take only their own inputs by design, and a
+## debug aid is not worth a constructor argument on every one of them. Null
+## outside a running game (the suites build the systems directly), which is what
+## makes phase() a no-op there.
+static var _instance: FreezeWatchdog
+
 var _mutex := Mutex.new()
 var _thread: Thread
 # Every field below is written by the main thread and read by the watcher, so
@@ -44,8 +51,30 @@ var _phase_at := 0
 var _stop := false
 
 func _ready() -> void:
+	_instance = self
 	_thread = Thread.new()
 	_thread.start(_watch)
+
+## Breadcrumb from anywhere, including code that has never heard of App. Pass a
+## constant rather than a built string: this sits under the tick, which runs it
+## once per node bought during an automation drain.
+static func phase(text: String) -> void:
+	if _instance != null:
+		_instance.mark(text)
+
+## Whether signal fan-outs should breadcrumb each listener they call.
+##
+## Off by default and opened only around the handful of calls a hard lock has
+## actually been caught inside (see BiomeSystem.sync_levels), because naming a
+## listener means building a String per listener per emit - fine once a tick,
+## far too much on every purchase.
+static var _tracing := false
+
+static func trace_listeners(on: bool) -> void:
+	_tracing = on
+
+static func is_tracing() -> bool:
+	return _tracing
 
 ## Records what the main thread is about to do. Kept to a handful of coarse
 ## phases - the point is to tell a hung tick from a hung repaint, not to trace.
@@ -61,6 +90,8 @@ func _process(_delta: float) -> void:
 	_mutex.unlock()
 
 func _exit_tree() -> void:
+	if _instance == self:
+		_instance = null
 	_mutex.lock()
 	_stop = true
 	_mutex.unlock()

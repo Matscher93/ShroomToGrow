@@ -16,9 +16,13 @@ const SLOT_HEIGHT := 44
 const INDEX_FONT_SIZE := 16
 const LEVEL_FONT_SIZE := 10
 const LEVEL_COLOR := Color(1, 1, 1, 0.6)
-## The slot's resting fill. Named because set_affordable() rebuilds the same
-## stylebox to put a border on it, and the two must not drift apart.
+## The three fills a slot can be pressed through. Named because set_affordable()
+## rebuilds all of them to carry its border, and the two must not drift apart.
 const NORMAL_FILL := Color(1, 1, 1, 0.08)
+const HOVER_FILL := Color(1, 1, 1, 0.16)
+const PRESSED_FILL := Color(1, 1, 1, 0.32)
+## Width of the accent border set_affordable() puts on a buyable slot.
+const AFFORDABLE_BORDER := 2
 const LOCKED_MODULATE := Color(1, 1, 1, 0.4)
 ## Dimmer still, for a slot that cannot be pressed at all rather than one that is
 ## merely unused.
@@ -44,8 +48,8 @@ static func create_slot(index: int) -> Button:
 	# grow with the card instead of sitting in a clump on the left.
 	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slot.add_theme_stylebox_override("normal", slot_style(NORMAL_FILL))
-	slot.add_theme_stylebox_override("hover", slot_style(Color(1, 1, 1, 0.16)))
-	slot.add_theme_stylebox_override("pressed", slot_style(Color(1, 1, 1, 0.32)))
+	slot.add_theme_stylebox_override("hover", slot_style(HOVER_FILL))
+	slot.add_theme_stylebox_override("pressed", slot_style(PRESSED_FILL))
 	slot.add_theme_stylebox_override("disabled", slot_style(Color(1, 1, 1, 0.03)))
 	slot.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	slot.add_child(_caption(index, slot))
@@ -67,14 +71,23 @@ static func set_locked(slot: Button, locked: bool) -> void:
 ## half-pressed. A notification dot per slot was the other option and is worse -
 ## ten dots in a 5x2 grid of 44px buttons reads as a rash, not as news.
 ##
+## Painted onto all three fills, not just the resting one. In the biome card the
+## slots are a toggle_mode selection, so the slot the player has picked sits in
+## its *pressed* state for as long as it stays selected - and a border on `normal`
+## alone vanishes the moment a slot is chosen, which is exactly when the player is
+## deciding whether to spend on it. Same for hover, which is where a mouse sits
+## while reading the slot it is about to buy.
+##
 ## Composes with set_locked(), which works through modulate: a locked slot is
 ## dimmed border and all.
 static func set_affordable(slot: Button, affordable: bool, accent: Color) -> void:
-	var style := slot_style(NORMAL_FILL)
-	if affordable:
-		style.set_border_width_all(2)
-		style.border_color = accent
-	slot.add_theme_stylebox_override("normal", style)
+	for state: Array in [["normal", NORMAL_FILL], ["hover", HOVER_FILL],
+			["pressed", PRESSED_FILL]]:
+		var style := slot_style(state[1])
+		if affordable:
+			style.set_border_width_all(AFFORDABLE_BORDER)
+			style.border_color = accent
+		slot.add_theme_stylebox_override(state[0], style)
 
 ## The slot's own number stays the headline, with the level underneath in a
 ## smaller, dimmer type so it reads as a subtitle rather than competing with it.

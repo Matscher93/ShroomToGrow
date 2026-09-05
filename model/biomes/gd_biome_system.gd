@@ -89,7 +89,14 @@ func biome_level(key: StringName) -> Dictionary:
 ## nobody pressing anything. So this is a pull, called once a tick and wherever
 ## an action can move a source; the change check is what keeps it from being an
 ## invalidate() every tick, which would defeat the cache it is feeding.
+##
+## Breadcrumbed for the freeze watchdog, at the cost of the model's usual "no
+## outside references": a hard lock was caught in here and the three invalidates
+## below reach some sixty listeners between them, so the phase has to say which
+## of them was running. FreezeWatchdog.phase() is a no-op with no watchdog in the
+## tree, which is every test.
 func sync_levels() -> void:
+	FreezeWatchdog.phase("sync_levels: levels")
 	var moved := false
 	for def in _biomes.biomes:
 		var lvl: int = biome_level(def.key).level
@@ -99,9 +106,17 @@ func sync_levels() -> void:
 		moved = true
 	if not moved:
 		return
+	# Named listener by listener for the length of these three, which is the
+	# window a hard lock has been caught inside.
+	FreezeWatchdog.trace_listeners(true)
+	FreezeWatchdog.phase("sync_levels: invalidate symbiosis")
 	_symbiosis.invalidate()
+	FreezeWatchdog.phase("sync_levels: invalidate biome upgrades")
 	_biome_upgrades.invalidate()
+	FreezeWatchdog.phase("sync_levels: invalidate perks")
 	_prestige_upgrades.invalidate()
+	FreezeWatchdog.trace_listeners(false)
+	FreezeWatchdog.phase("sync_levels: done")
 
 ## Level-derived points plus any flat bonus from upgrades in any track that
 ## target the &"biome_points" stat for this biome.

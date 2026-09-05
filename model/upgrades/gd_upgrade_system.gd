@@ -159,7 +159,37 @@ func _emit_changed() -> void:
 	if _batch_depth > 0:
 		_batch_pending = true
 		return
+	if FreezeWatchdog.is_tracing():
+		_emit_traced()
+		return
 	upgrades_changed.emit()
+
+## Debug: fans the signal out by hand, naming each listener before calling it, so
+## a hard lock inside one of some sixty synchronous refreshes says which one.
+##
+## Only reached inside the window BiomeSystem.sync_levels() opens - a level
+## moving is where the lock has been caught - so the per-listener String costs
+## nothing on the purchase path. Deferred connections stay deferred, or tracing
+## would change what runs when and could be the thing that hangs.
+func _emit_traced() -> void:
+	for connection in upgrades_changed.get_connections():
+		var callable: Callable = connection["callable"]
+		if int(connection.get("flags", 0)) & CONNECT_DEFERRED:
+			callable.call_deferred()
+			continue
+		FreezeWatchdog.phase("upgrades_changed -> %s" % _listener_name(callable))
+		callable.call()
+
+## A listener's script file and method, which is what identifies it: the
+## ViewModels are RefCounted, so get_class() answers "RefCounted" for all of them.
+func _listener_name(callable: Callable) -> String:
+	var target: Object = callable.get_object()
+	if target == null:
+		return str(callable)
+	var script: Script = target.get_script() as Script
+	var where := script.resource_path.get_file() if script != null else target.get_class()
+	var method := callable.get_method()
+	return "%s::%s" % [where, method if not method.is_empty() else "<lambda>"]
 
 ## Flat total of this upgrade's own effect at its current level (for display).
 func effect_amount(id: StringName, ctx: ResolveContext) -> BigNumber:
