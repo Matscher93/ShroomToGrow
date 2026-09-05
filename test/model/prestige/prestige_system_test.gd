@@ -161,6 +161,80 @@ func test_symbiosis_never_boosts_the_gain_it_is_paying_for() -> void:
 
 	assert_float(_system.preview_biomass_gain().to_float()).is_equal_approx(base, EPS)
 
+# ─── Storage ladder discounts ────────────────────────────────────────────────
+
+## The authored curve the system was handed, to assert the discounted copy left
+## it alone. load() hands back the same cached Resource every caller shares,
+## which is exactly why effective_curve() must not write into it.
+func _authored_curve() -> PrestigeCurveDef:
+	return load("res://data/prestige/res_prestige_curve.tres") as PrestigeCurveDef
+
+func _ladder_effect(stat: StringName, per_level: float) -> Array[UpgradeEffectDef]:
+	var e := UpgradeEffectDef.new()
+	e.stat = stat
+	e.per_level = per_level
+	e.op = UpgradeEffectDef.Op.ADD
+	e.scope = UpgradeEffectDef.Scope.GLOBAL
+	return [e]
+
+func test_a_tick_area_discount_makes_the_time_ladder_cheaper() -> void:
+	_make_prestige_available()
+	_player.tick_count = 60
+	var before := _system.storage_report()
+
+	_register(_perks, &"Compression", 30, _ladder_effect(&"tick_area_cost", -1.0))
+	var after := _system.storage_report()
+
+	assert_int(after["tick_areas"]).is_greater(before["tick_areas"])
+	assert_bool((after["tick_next"] as BigNumber).lt(before["tick_next"])) \
+		.override_failure_message("The next time area still costs %s, not less than %s." \
+			% [after["tick_next"], before["tick_next"]]).is_true()
+
+func test_a_nutrient_growth_discount_fills_more_nutrient_areas() -> void:
+	_make_prestige_available()
+	_player.run_nutrients = BigNumber.from_value(1e9)
+	var before := _system.storage_report()
+
+	_register(_perks, &"Densification", 100, _ladder_effect(&"nutrient_area_growth", -0.001))
+	var after := _system.storage_report()
+
+	assert_int(after["nutrient_areas"]).is_greater(before["nutrient_areas"])
+	assert_bool((after["gain"] as BigNumber).gt(before["gain"])) \
+		.override_failure_message("A cheaper nutrient ladder paid %s, no more than %s." \
+			% [after["gain"], before["gain"]]).is_true()
+
+func test_an_absurd_discount_stops_at_the_floor_instead_of_paying_the_ceiling() -> void:
+	# Both floors guard the same failure: PrestigeCalculator.areas_filled()
+	# reports max_areas for a ladder with no width or a growth at or below 1.0,
+	# so an unclamped discount would stop being a discount and hand every run the
+	# largest payout the curve can express.
+	_make_prestige_available()
+	_player.tick_count = 60
+	_register(_perks, &"Overshoot", 1, _ladder_effect(&"tick_area_cost", -1000.0))
+	_register(_perks, &"Collapse", 1, _ladder_effect(&"nutrient_area_growth", -1000.0))
+
+	var curve := _system.effective_curve()
+	assert_float(curve.tick_base().to_float()) \
+		.is_equal_approx(PrestigeSystem.MIN_TICK_AREA_TICKS, EPS)
+	assert_float(curve.nutrient_growth) \
+		.is_equal_approx(PrestigeSystem.MIN_NUTRIENT_AREA_GROWTH, EPS)
+
+	var report := _system.storage_report()
+	assert_int(report["tick_areas"]).is_less(curve.max_areas)
+	assert_int(report["nutrient_areas"]).is_less(curve.max_areas)
+
+func test_the_discounted_curve_never_writes_back_into_the_authored_one() -> void:
+	var authored := _authored_curve()
+	var ticks := authored.tick_base().to_float()
+	var growth := authored.nutrient_growth
+	_register(_perks, &"Compression", 30, _ladder_effect(&"tick_area_cost", -1.0))
+	_register(_perks, &"Densification", 100, _ladder_effect(&"nutrient_area_growth", -0.001))
+
+	_system.effective_curve()
+
+	assert_float(authored.tick_base().to_float()).is_equal_approx(ticks, EPS)
+	assert_float(authored.nutrient_growth).is_equal_approx(growth, EPS)
+
 # ─── What the reset wipes ────────────────────────────────────────────────────
 
 func test_currencies_and_counters_are_reset() -> void:

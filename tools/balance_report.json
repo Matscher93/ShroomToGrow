@@ -398,6 +398,42 @@
 			"effect_at_max": "-1.50e0"
 		},
 		{
+			"id": "tempo_density_1",
+			"branch": "tmp",
+			"depth": 4,
+			"max_level": 25,
+			"cost_to_max": "2.53e42",
+			"path_cost": "5.00e224",
+			"effect_at_max": "-2.50e-2"
+		},
+		{
+			"id": "tempo_density_2",
+			"branch": "tmp",
+			"depth": 5,
+			"max_level": 25,
+			"cost_to_max": "5.05e64",
+			"path_cost": "5.00e224",
+			"effect_at_max": "-2.50e-2"
+		},
+		{
+			"id": "tempo_compression_1",
+			"branch": "tmp",
+			"depth": 3,
+			"max_level": 15,
+			"cost_to_max": "4.37e10",
+			"path_cost": "5.27e26",
+			"effect_at_max": "-1.50e1"
+		},
+		{
+			"id": "tempo_compression_2",
+			"branch": "tmp",
+			"depth": 4,
+			"max_level": 15,
+			"cost_to_max": "8.74e14",
+			"path_cost": "5.27e26",
+			"effect_at_max": "-1.50e1"
+		},
+		{
 			"id": "bounty_meadow",
 			"branch": "bnt",
 			"depth": 1,
@@ -518,18 +554,18 @@
 			"id": "reach_attunement_3",
 			"branch": "rch",
 			"depth": 2,
-			"max_level": 5,
-			"cost_to_max": "1.26e2",
-			"path_cost": "1.29e2",
-			"effect_at_max": "5.00e0"
+			"max_level": 50,
+			"cost_to_max": "1.21e1791",
+			"path_cost": "1.21e1791",
+			"effect_at_max": "5.00e1"
 		},
 		{
 			"id": "reach_4",
 			"branch": "rch",
 			"depth": 2,
 			"max_level": 1,
-			"cost_to_max": "1.00e3",
-			"path_cost": "1.00e3",
+			"cost_to_max": "1.00e15",
+			"path_cost": "1.00e15",
 			"effect_at_max": ""
 		},
 		{
@@ -545,10 +581,10 @@
 			"id": "reach_attunement_5",
 			"branch": "rch",
 			"depth": 4,
-			"max_level": 5,
-			"cost_to_max": "2.11e8",
-			"path_cost": "4.00e150",
-			"effect_at_max": "5.00e0"
+			"max_level": 50,
+			"cost_to_max": "2.02e1941",
+			"path_cost": "2.02e1941",
+			"effect_at_max": "5.00e1"
 		},
 		{
 			"id": "reach_6",
@@ -572,10 +608,10 @@
 			"id": "reach_attunement_7",
 			"branch": "rch",
 			"depth": 6,
-			"max_level": 5,
-			"cost_to_max": "2.11e62",
-			"path_cost": "1.00e1000",
-			"effect_at_max": "5.00e0"
+			"max_level": 50,
+			"cost_to_max": "2.02e2791",
+			"path_cost": "2.02e2791",
+			"effect_at_max": "5.00e1"
 		},
 		{
 			"id": "reach_8",
@@ -599,10 +635,10 @@
 			"id": "reach_attunement_9",
 			"branch": "rch",
 			"depth": 8,
-			"max_level": 5,
-			"cost_to_max": "4.21e701",
-			"path_cost": "8.00e5000",
-			"effect_at_max": "5.00e0"
+			"max_level": 50,
+			"cost_to_max": "4.04e6790",
+			"path_cost": "4.04e6790",
+			"effect_at_max": "5.00e1"
 		},
 		{
 			"id": "reach_10",
@@ -617,37 +653,37 @@
 			"id": "reach_attunement_10",
 			"branch": "rch",
 			"depth": 9,
-			"max_level": 5,
-			"cost_to_max": "2.11e1202",
-			"path_cost": "1.00e10000",
-			"effect_at_max": "5.00e0"
+			"max_level": 50,
+			"cost_to_max": "2.02e16791",
+			"path_cost": "2.02e16791",
+			"effect_at_max": "5.00e1"
 		},
 		{
 			"id": "reach_attunement_8",
 			"branch": "rch",
 			"depth": 7,
-			"max_level": 5,
-			"cost_to_max": "4.21e301",
-			"path_cost": "3.00e2000",
-			"effect_at_max": "5.00e0"
+			"max_level": 50,
+			"cost_to_max": "4.04e3790",
+			"path_cost": "4.04e3790",
+			"effect_at_max": "5.00e1"
 		},
 		{
 			"id": "reach_attunement_6",
 			"branch": "rch",
 			"depth": 5,
-			"max_level": 5,
-			"cost_to_max": "8.42e21",
-			"path_cost": "1.00e600",
-			"effect_at_max": "5.00e0"
+			"max_level": 50,
+			"cost_to_max": "8.08e2390",
+			"path_cost": "8.08e2390",
+			"effect_at_max": "5.00e1"
 		},
 		{
 			"id": "reach_attunement_4",
 			"branch": "rch",
 			"depth": 3,
-			"max_level": 5,
-			"cost_to_max": "6.32e3",
-			"path_cost": "7.32e3",
-			"effect_at_max": "5.00e0"
+			"max_level": 50,
+			"cost_to_max": "6.06e1805",
+			"path_cost": "6.06e1805",
+			"effect_at_max": "5.00e1"
 		},
 		{
 			"id": "instinct_reflex",
@@ -908,12 +944,14 @@
 		},
 		{
 			"branch": "tmp",
-			"perks": 4,
-			"max_depth": 4,
+			"perks": 8,
+			"max_depth": 5,
 			"total_cost_to_max": "5.00e1952",
 			"deepest_path_cost": "5.00e1952",
 			"stats": {
-				"tick_rate (ADD)": "-7.50e0"
+				"tick_rate (ADD)": "-7.50e0",
+				"nutrient_area_growth (ADD)": "-5.00e-2",
+				"tick_area_cost (ADD)": "-3.00e1"
 			}
 		},
 		{
@@ -931,10 +969,10 @@
 			"branch": "rch",
 			"perks": 16,
 			"max_depth": 9,
-			"total_cost_to_max": "1.00e10000",
-			"deepest_path_cost": "1.00e10000",
+			"total_cost_to_max": "2.02e16791",
+			"deepest_path_cost": "2.02e16791",
 			"stats": {
-				"level_points (ADD)": "4.00e1"
+				"level_points (ADD)": "4.00e2"
 			}
 		},
 		{
@@ -1114,7 +1152,7 @@
 		{
 			"path": "res://data/ruins/res_boost_ruin_crystal_tithe.tres",
 			"max_level": 0,
-			"stat": "crystal_gain",
+			"stat": "synergy_production",
 			"per_level": 0.18,
 			"cost_to_max": "0.00e0"
 		},
@@ -1226,14 +1264,14 @@
 		{
 			"path": "res://data/upgrades/biomes/crystal_caves/crystal_bloom_def.tres",
 			"max_level": 10,
-			"stat": "crystal_gain",
+			"stat": "potency_production",
 			"per_level": 0.3,
 			"cost_to_max": "2.03e2"
 		},
 		{
 			"path": "res://data/upgrades/biomes/crystal_caves/crystal_resonance_def.tres",
 			"max_level": 10,
-			"stat": "crystal_gain",
+			"stat": "synergy_production",
 			"per_level": 0.2,
 			"cost_to_max": "2.03e2"
 		},
@@ -1247,7 +1285,7 @@
 		{
 			"path": "res://data/upgrades/biomes/crystal_caves/geode_seams_def.tres",
 			"max_level": 10,
-			"stat": "crystal_gain",
+			"stat": "biomass_gain",
 			"per_level": 0.15,
 			"cost_to_max": "2.03e2"
 		},
@@ -1275,7 +1313,7 @@
 		{
 			"path": "res://data/upgrades/biomes/crystal_caves/shard_cache_def.tres",
 			"max_level": 10,
-			"stat": "crystal_gain",
+			"stat": "node_production",
 			"per_level": 0.25,
 			"cost_to_max": "2.03e2"
 		},
@@ -1485,7 +1523,7 @@
 		{
 			"path": "res://data/upgrades/biomes/ruins/wardens_due_def.tres",
 			"max_level": 10,
-			"stat": "crystal_gain",
+			"stat": "potency_production",
 			"per_level": 0.22,
 			"cost_to_max": "2.03e2"
 		},
@@ -1870,7 +1908,7 @@
 		{
 			"path": "res://data/well/res_project_salt_pillar.tres",
 			"max_level": 60,
-			"stat": "crystal_gain",
+			"stat": "biomass_gain",
 			"per_level": 0.05,
 			"cost_to_max": "7.35e20"
 		},
@@ -1956,8 +1994,8 @@
 		"policy": "roi",
 		"tick_budget": 20000,
 		"prestiges": 3,
-		"seconds": 1829.6,
-		"played": "30m 30s",
+		"seconds": 1870.7,
+		"played": "31m 11s",
 		"milestones": [
 			{
 				"tick": 1,
@@ -1972,8 +2010,8 @@
 				"detail": "forest"
 			},
 			{
-				"tick": 83,
-				"seconds": 830.0,
+				"tick": 81,
+				"seconds": 810.0,
 				"event": "biome",
 				"detail": "permafrost"
 			},
@@ -1981,7 +2019,7 @@
 				"tick": 90,
 				"seconds": 900.0,
 				"event": "prestige",
-				"detail": "#1, +5.98e1 biomass"
+				"detail": "#1, +1.20e1 biomass"
 			},
 			{
 				"tick": 91,
@@ -1990,52 +2028,52 @@
 				"detail": "meadow"
 			},
 			{
-				"tick": 93,
-				"seconds": 929.6,
+				"tick": 97,
+				"seconds": 969.4,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
-				"tick": 108,
-				"seconds": 1076.6,
+				"tick": 121,
+				"seconds": 1207.0,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
 				"tick": 140,
-				"seconds": 1390.2,
+				"seconds": 1395.1,
 				"event": "prestige",
-				"detail": "#2, +3.50e5 biomass"
+				"detail": "#2, +5.38e2 biomass"
 			},
 			{
 				"tick": 141,
-				"seconds": 1400.0,
+				"seconds": 1405.0,
 				"event": "biome",
 				"detail": "meadow"
 			},
 			{
-				"tick": 141,
-				"seconds": 1400.0,
+				"tick": 142,
+				"seconds": 1414.7,
 				"event": "biome",
 				"detail": "forest"
 			},
 			{
 				"tick": 145,
-				"seconds": 1437.5,
+				"seconds": 1443.2,
 				"event": "biome",
 				"detail": "permafrost"
 			},
 			{
-				"tick": 149,
-				"seconds": 1472.9,
+				"tick": 178,
+				"seconds": 1756.7,
 				"event": "biome",
 				"detail": "crystal_caves"
 			},
 			{
 				"tick": 190,
-				"seconds": 1829.6,
+				"seconds": 1870.7,
 				"event": "prestige",
-				"detail": "#3, +5.42e14 biomass"
+				"detail": "#3, +2.51e5 biomass"
 			}
 		]
 	},

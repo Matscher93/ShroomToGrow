@@ -281,6 +281,33 @@ func tick_duration(base_duration: float, minimum: float) -> float:
 	var duration := stack(&"tick_rate", BigNumber.from_value(base_duration))
 	return maxf(minimum, duration.to_float())
 
+# ---------------------------------------------------------------- storage ladders
+
+## Ticks the first prestige time storage area costs, after every
+## &"tick_area_cost" discount - authored as an ADD effect with a negative
+## per_level, the same shape as tick_rate.
+##
+## Clamped so a stacked discount can never reach or cross zero: a ladder with no
+## width is one PrestigeCalculator.areas_filled() reports max_areas for, which
+## would pay every run the ceiling.
+##
+## stack_external, not stack: the sporation is about to wipe the symbiosis track,
+## so the levels being traded in must not price the trade - the same reason
+## modify_biomass_gain() uses it.
+func tick_area_ticks(base: BigNumber, minimum: float) -> BigNumber:
+	var ticks := stack_external(&"tick_area_cost", base)
+	var floor_value := BigNumber.from_value(minimum)
+	return floor_value if ticks.lt(floor_value) else ticks
+
+## The factor each nutrient storage area costs over the one below it, after every
+## &"nutrient_area_growth" discount. Clamped strictly above 1.0 for the same
+## reason tick_area_ticks() is clamped away from zero - see
+## PrestigeCalculator.areas_filled(), which treats a growth of 1.0 or below as a
+## ladder every amount fills to the ceiling.
+func nutrient_area_growth(base: float, minimum: float) -> float:
+	var growth := stack_external(&"nutrient_area_growth", BigNumber.from_value(base))
+	return maxf(minimum, growth.to_float())
+
 # ---------------------------------------------------------------- missions
 
 ## Divides a mission's authored duration, so an upgrade raising &"mission_speed"

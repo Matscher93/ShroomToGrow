@@ -27,6 +27,12 @@ const ALL: Array[StringName] = [
 	# Read by PlayerLevelSystem, the same way biome_points is read by BiomeSystem.
 	&"level_points",
 	&"automation_rate",
+	# Read by PrestigeSystem rather than ProductionSystem, the same way
+	# biome_points is read by BiomeSystem: the two prestige storage ladders reach
+	# their discounts through these. tick_area_cost is the ticks the first time
+	# storage area costs, nutrient_area_growth the factor each nutrient area costs
+	# over the one below it - both ADD effects with a negative per_level.
+	&"tick_area_cost", &"nutrient_area_growth",
 	&"water_production", &"water_rate",
 	# Read by BoostSystem rather than ProductionSystem: the Well's projects reach
 	# a crystal boost's ceiling and its per-level rate through these.

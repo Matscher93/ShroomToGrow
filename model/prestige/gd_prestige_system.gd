@@ -18,6 +18,14 @@ signal prestiging(gain: BigNumber)
 ## Prestige stays hidden until this biome has been reached at least once.
 const GATE_BIOME := &"permafrost"
 
+## Floor on the discounted first tick area, and on the discounted nutrient
+## ladder growth. Both guard the same failure: PrestigeCalculator.areas_filled()
+## reports max_areas for a ladder with no width or a growth at or below 1.0, so
+## an unclamped &"tick_area_cost" or &"nutrient_area_growth" discount would stop
+## being a discount and start paying every run the ceiling.
+const MIN_TICK_AREA_TICKS := 1.0
+const MIN_NUTRIENT_AREA_GROWTH := 1.25
+
 var _player_data: PlayerData
 var _biomes_data: BiomesData
 var _curve: PrestigeCurveDef
@@ -40,11 +48,30 @@ func _init(player_data: PlayerData, biomes_data: BiomesData, nodes: Array[Myceli
 	_biome_upgrades = biome_upgrades
 	_biome_system = biome_system
 
+## The authored curve with every storage ladder discount already applied - what
+## the two ladders actually cost this run rather than what data/ prices them at.
+##
+## A duplicate rather than a write into _curve: PrestigeCurveDef is a shared
+## Resource loaded once, so a discount written into it would leak into the
+## balance tools reading the same file and would survive into the next load.
+##
+## Handed out rather than kept private so the ViewModels and the balance tools
+## can read the ladder the player is actually climbing; every read below goes
+## through it, so the bars, the gate sentence and the payout cannot disagree.
+func effective_curve() -> PrestigeCurveDef:
+	if _curve == null or _production == null:
+		return _curve
+	var curve: PrestigeCurveDef = _curve.duplicate()
+	curve.set_tick_base(_production.tick_area_ticks(_curve.tick_base(), MIN_TICK_AREA_TICKS))
+	curve.nutrient_growth = _production.nutrient_area_growth(
+		_curve.nutrient_growth, MIN_NUTRIENT_AREA_GROWTH)
+	return curve
+
 ## Biomass the current run would convert into, boosted by every track except
 ## symbiosis (see ProductionSystem.modify_biomass_gain).
 func preview_biomass_gain() -> BigNumber:
 	var base := PrestigeCalculator.calculate_biomass_gain(
-		_player_data.tick_count, _player_data.run_nutrients, _curve)
+		_player_data.tick_count, _player_data.run_nutrients, effective_curve())
 	return _production.modify_biomass_gain(base)
 
 ## Prestige is offered only for a run worth more than the best one ever taken.
@@ -65,25 +92,29 @@ func can_prestige() -> bool:
 func storage_report() -> Dictionary:
 	var nutrients := _player_data.run_nutrients
 	var ticks := BigNumber.from_value(float(maxi(_player_data.tick_count, 0)))
-	var nutrient_areas := PrestigeCalculator.nutrient_areas(nutrients, _curve)
-	var tick_areas := PrestigeCalculator.tick_areas(_player_data.tick_count, _curve)
+	# Resolved once and reused: every number below has to come off the same
+	# ladder, or a bar would fill against one threshold and be labelled with
+	# another.
+	var curve := effective_curve()
+	var nutrient_areas := PrestigeCalculator.nutrient_areas(nutrients, curve)
+	var tick_areas := PrestigeCalculator.tick_areas(_player_data.tick_count, curve)
 	return {
 		"nutrient_areas": nutrient_areas,
 		"nutrient_fill": PrestigeCalculator.fill_fraction(
-			nutrients, _curve.nutrient_base(), _curve.nutrient_growth,
-			_curve.nutrient_growth_exponent, nutrient_areas),
+			nutrients, curve.nutrient_base(), curve.nutrient_growth,
+			curve.nutrient_growth_exponent, nutrient_areas),
 		"nutrient_amount": nutrients,
 		"nutrient_next": PrestigeCalculator.area_threshold(
-			_curve.nutrient_base(), _curve.nutrient_growth,
-			_curve.nutrient_growth_exponent, nutrient_areas + 1),
+			curve.nutrient_base(), curve.nutrient_growth,
+			curve.nutrient_growth_exponent, nutrient_areas + 1),
 		"tick_areas": tick_areas,
 		"tick_fill": PrestigeCalculator.fill_fraction(
-			ticks, _curve.tick_base(), _curve.tick_growth,
-			_curve.tick_growth_exponent, tick_areas),
+			ticks, curve.tick_base(), curve.tick_growth,
+			curve.tick_growth_exponent, tick_areas),
 		"tick_amount": ticks,
 		"tick_next": PrestigeCalculator.area_threshold(
-			_curve.tick_base(), _curve.tick_growth,
-			_curve.tick_growth_exponent, tick_areas + 1),
+			curve.tick_base(), curve.tick_growth,
+			curve.tick_growth_exponent, tick_areas + 1),
 		"total_areas": nutrient_areas + tick_areas,
 		"gain": preview_biomass_gain(),
 		"best": _player_data.best_biomass_gain,

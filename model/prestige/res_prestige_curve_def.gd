@@ -60,5 +60,12 @@ func nutrient_base() -> BigNumber:
 func tick_base() -> BigNumber:
 	return BigNumber.new(_tick_base_mantissa, _tick_base_exponent)
 
+## Overwrites the ticks the first tick area needs. Only for the discounted copy
+## PrestigeSystem builds - see PrestigeSystem.effective_curve() - so that the
+## copy is written through this class rather than through its two halves.
+func set_tick_base(value: BigNumber) -> void:
+	_tick_base_mantissa = value.mantissa
+	_tick_base_exponent = value.exponent
+
 func payout_base() -> BigNumber:
 	return BigNumber.new(_payout_base_mantissa, _payout_base_exponent)

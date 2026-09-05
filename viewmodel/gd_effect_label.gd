@@ -37,6 +37,8 @@ const NOUNS := {
 	&"level_points": "Level Point",
 	&"automation_rate": "automation triggers per tick",
 	&"tick_rate": "tick duration",
+	&"tick_area_cost": "ticks per time storage area",
+	&"nutrient_area_growth": "nutrient storage cost per area",
 	&"water_rate": "ticks between pumps",
 	&"water_production": "water per pump",
 	&"biomass_gain": "biomass gained on sporation",
@@ -47,8 +49,11 @@ const NOUNS := {
 
 ## Stats whose noun is a measure rather than a count of things, so it never takes
 ## an -s: a tick's duration is "-0.5s tick duration" at any size, and the gap
-## between pumps is already worded in the plural.
-const UNCOUNTED: Array[StringName] = [&"tick_rate", &"water_rate"]
+## between pumps is already worded in the plural. The two storage ladder stats
+## are the same shape - one already says "ticks", the other is a growth factor.
+const UNCOUNTED: Array[StringName] = [
+	&"tick_rate", &"water_rate", &"tick_area_cost", &"nutrient_area_growth",
+]
 
 ## The unit an ADD on this stat is measured in, appended to the bare number. A
 ## tick is seconds; the gap between pumps is ticks, which the noun already says.
