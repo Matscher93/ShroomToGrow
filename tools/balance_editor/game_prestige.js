@@ -1246,8 +1246,9 @@
     const note = document.createElement("div");
     note.className = "hint";
     note.textContent = "A run fills whole areas on both ladders; area k above a "
-      + "ladder's base costs base x growth ^ (k x growth exponent ^ k), and the "
-      + "payout is payout base x payout growth ^ (areas - 1).";
+      + "ladder's base costs base x growth ^ (k x growth exponent ^ k), and every "
+      + "filled area pays a step of its own, all of them summed: payout base x "
+      + "(payout growth ^ areas - 1) / (payout growth - 1).";
     wrap.append(note);
 
     const nutrients = fieldGroup("Nutrient storage", entry,
@@ -1303,14 +1304,27 @@
   }
 
   /** Biomass a run standing on N total areas converts into, before the
-   * &"biomass_gain" stacks the perks themselves add. */
+   * &"biomass_gain" stacks the perks themselves add: one step per filled area,
+   * all of them summed.
+   *
+   * Sampled from area 1 whatever the window starts at - the total at area N
+   * carries every step below it, including the ones off the left of the chart -
+   * and accumulated with logSumExp, because a late run's steps run past what a
+   * double holds long before the ladder runs out of areas. */
   function payoutChart(entry) {
     const build = (from, to) => {
       const start = Math.max(from, 1);
       const pad = new Array(start - from).fill(null);
+      const steps = ladderCurve(entry, "_payout_base", "payout_growth", 1, to);
+      const totals = [];
+      let running = null;
+      steps.forEach((step, index) => {
+        running = logSumExp([running, step]);
+        if (index + 1 >= start) totals.push(running);
+      });
       const series = [{
         label: "biomass at N areas", color: "var(--accent)",
-        points: pad.concat(ladderCurve(entry, "_payout_base", "payout_growth", start, to)),
+        points: pad.concat(totals),
       }];
       const sampled = engineCurve(entry.row[0]);
       const dots = engineSeries(entry, sampled && sampled.payout, from, to, log10Of);

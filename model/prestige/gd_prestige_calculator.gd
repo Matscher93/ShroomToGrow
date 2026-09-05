@@ -7,10 +7,11 @@ extends RefCounted
 ## A run fills two ladders of storage areas - one from the nutrients it produced,
 ## one from the ticks it survived - and each area up a ladder costs a factor more
 ## than the one below it, a factor its ladder's growth exponent may itself widen
-## with the area index. The number of *filled* areas, both ladders
-## summed, is what the payout is an exponential of. Whole areas only: a run is
-## worth what it has finished filling, which is what makes "one more area" a
-## thing a player can see coming.
+## with the area index. Every *filled* area, both ladders summed, pays a step of
+## its own - the step is an exponential of the area's index - and the run is paid
+## all of them added up, so one more area adds a step rather than replacing the
+## one below it. Whole areas only: a run is worth what it has finished filling,
+## which is what makes "one more area" a thing a player can see coming.
 
 ## Exponent above which a gain is left fractional. Below it a gain is floored,
 ## because the perk tree prices in whole biomass and a fractional remainder is
@@ -22,6 +23,12 @@ const WHOLE_NUMBER_LIMIT := 15
 ## of taking the ladder in log space. Far below the one whole area that would
 ## change a payout, and far above the error a difference of logarithms carries.
 const AREA_EPSILON := 0.000000001
+
+## Below this distance from 1.0 a payout growth is taken as flat. The closed-form
+## sum divides by `growth - 1`, which at 1.0 is a division by zero and just below
+## it is a ratio of two near-zero differences; the flat sum is both the accurate
+## answer there and the one a flat ladder means. See payout_total().
+const PAYOUT_FLAT_EPSILON := 0.000001
 
 ## The index a ladder is actually raised to at `area` steps above its base:
 ## `area * growth_exponent^area`, the same scaled level UpgradeSystem prices a
@@ -104,9 +111,29 @@ static func fill_fraction(amount: BigNumber, base: BigNumber, growth: float,
 		return 0.0
 	return clampf(amount.sub(filled).div(span).to_float(), 0.0, 1.0)
 
+## What a run standing on `areas` total areas is paid: every area's own step
+## added up rather than the top step alone - `base * (growth^areas - 1) /
+## (growth - 1)`, the sum of `base * growth^k` over k below `areas`.
+##
+## Closed form rather than a loop: max_areas runs to a hundred million, and the
+## steps pass what a double holds long before that. BigNumber.add drops a term
+## seventeen decades below its partner, so the `- 1` simply vanishes once the top
+## step is large - which is the answer, not a lost term.
+static func payout_total(base: BigNumber, growth: float, areas: int) -> BigNumber:
+	if base == null or areas <= 0:
+		return BigNumber.new(0.0, 0)
+	# A flat ladder pays the same step in every area, so the sum is the step
+	# counted out - and the closed form below would divide by zero.
+	if absf(growth - 1.0) <= PAYOUT_FLAT_EPSILON:
+		return base.scale(float(areas))
+	var top := BigNumber.from_value(growth).pow_float(float(areas))
+	return base.mul(top.sub(BigNumber.new(1.0, 0))
+		.div(BigNumber.from_value(growth - 1.0)))
+
 ## Biomass a run of this shape converts into, before ProductionSystem's
-## &"biomass_gain" stacks. Zero until the run has filled at least one area on
-## either ladder, which is what keeps a fresh run from being worth prestiging.
+## &"biomass_gain" stacks: one step per filled area, summed. Zero until the run
+## has filled at least one area on either ladder, which is what keeps a fresh run
+## from being worth prestiging.
 static func calculate_biomass_gain(tick_count: int, nutrients_generated: BigNumber,
 		def: PrestigeCurveDef) -> BigNumber:
 	if def == null:
@@ -115,16 +142,15 @@ static func calculate_biomass_gain(tick_count: int, nutrients_generated: BigNumb
 	var total := total_areas(tick_count, nutrients_generated, def)
 	if total <= 0:
 		return BigNumber.new(0.0, 0)
-	var gain := def.payout_base().mul(
-		BigNumber.from_value(def.payout_growth).pow_float(float(total - 1)))
+	var gain := payout_total(def.payout_base(), def.payout_growth, total)
 	if gain.exponent < WHOLE_NUMBER_LIMIT:
 		return BigNumber.from_value(floor(_snap(gain.to_float())))
 	return gain
 
-## A value that is a whole number bar float error, rounded to it. The payout is
-## an exponential taken in log space, so a growth of 2.0 over one area lands on
-## 1.9999999 rather than on 2 - and floor() turns that into a run paying half
-## what it earned. Snapped only inside a relative epsilon: a genuinely fractional
+## A value that is a whole number bar float error, rounded to it. The payout sums
+## steps taken in log space, so a growth of 2.0 over two areas lands on 2.9999999
+## rather than on 3 - and floor() turns that into a run paying a step less than
+## it earned. Snapped only inside a relative epsilon: a genuinely fractional
 ## payout is still floored.
 static func _snap(value: float) -> float:
 	var whole := roundf(value)

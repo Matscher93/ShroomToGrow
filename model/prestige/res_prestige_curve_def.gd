@@ -37,8 +37,9 @@ extends Resource
 ## The same bend on the tick ladder. See nutrient_growth_exponent.
 @export_range(1.0, 1.5, 0.001, "or_greater") var tick_growth_exponent: float = 1.0
 
-## Biomass a run with exactly one filled area (of either kind) pays, and the
-## factor every further area multiplies that by.
+## Biomass the first filled area (of either kind) pays, and the factor each
+## further area's step is worth over the step below it. A run is paid every one
+## of its steps added up, so a run with one area pays exactly this base.
 @export var _payout_base_mantissa: float = 1.0
 @export var _payout_base_exponent: int = 0
 @export var payout_growth: float = 1.6
@@ -46,7 +47,7 @@ extends Resource
 ## Hard ceiling on the areas one ladder may report.
 ##
 ## A guard, not a design ceiling: a growth of 1.0 or below makes the ladder flat
-## and every amount infinitely deep, and the payout is an exponential of the
+## and every amount infinitely deep, and the payout grows with every area in the
 ## total, so a mistyped growth would be a hang rather than a bad curve. The
 ## ladder itself is walked in log space, so a high ceiling costs nothing - keep
 ## this well above the areas a real run can fill, or late runs stop being worth

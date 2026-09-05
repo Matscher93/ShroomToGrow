@@ -1,11 +1,12 @@
 extends GdUnitTestSuite
 ## Unit tests for PrestigeCalculator (model/prestige/gd_prestige_calculator.gd).
 ##
-## The payout is a step function over filled storage areas, and every constant it
-## uses is authored on a PrestigeCurveDef - so these build their own def rather
-## than reading data/prestige/res_prestige_curve.tres, which is tuning and moves.
-## What is pinned is the shape: never negative, zero on a fresh run, monotonic in
-## both inputs, whole biomass, and a step at each area boundary.
+## The payout is a step function over filled storage areas - one step per area,
+## all of them summed - and every constant it uses is authored on a
+## PrestigeCurveDef, so these build their own def rather than reading
+## data/prestige/res_prestige_curve.tres, which is tuning and moves. What is
+## pinned is the shape: never negative, zero on a fresh run, monotonic in both
+## inputs, whole biomass, and a step added at each area boundary.
 
 const EPS := 0.000001
 
@@ -163,14 +164,22 @@ func test_sub_unit_nutrients_never_go_negative() -> void:
 func test_one_filled_area_pays_the_payout_base() -> void:
 	assert_float(_gain(0, 1e3)).is_equal_approx(1.0, EPS)
 
-func test_each_further_area_multiplies_the_payout() -> void:
-	# Two areas (1e4 nutrients) is one doubling over one area, three (1e5) is two.
-	assert_float(_gain(0, 1e4)).is_equal_approx(2.0, EPS)
-	assert_float(_gain(0, 1e5)).is_equal_approx(4.0, EPS)
+func test_each_further_area_adds_its_own_step() -> void:
+	# Every filled area pays a step of its own and the run is paid all of them:
+	# two areas (1e4 nutrients) is 1 + 2, three (1e5) is 1 + 2 + 4.
+	assert_float(_gain(0, 1e4)).is_equal_approx(3.0, EPS)
+	assert_float(_gain(0, 1e5)).is_equal_approx(7.0, EPS)
 
 func test_both_ladders_feed_the_same_payout() -> void:
-	# 1e4 nutrients is two areas, 200 ticks is two more: four in total.
-	assert_float(_gain(200, 1e4)).is_equal_approx(8.0, EPS)
+	# 1e4 nutrients is two areas, 200 ticks is two more: four in total, so
+	# 1 + 2 + 4 + 8.
+	assert_float(_gain(200, 1e4)).is_equal_approx(15.0, EPS)
+
+func test_a_flat_payout_pays_one_base_per_area() -> void:
+	# A growth of 1.0 makes every step the base, so the sum is the base counted
+	# out - and it is the case the closed-form sum would divide by zero on.
+	_def.payout_growth = 1.0
+	assert_float(_gain(200, 1e4)).is_equal_approx(4.0, EPS)
 
 func test_gain_is_monotonic_in_tick_count() -> void:
 	var previous := _gain(0, 1e6)
