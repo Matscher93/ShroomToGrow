@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
-nutrient_growth = 1.2
-nutrient_growth_exponent = 1.1
+nutrient_growth = 2.0
+nutrient_growth_exponent = 1.005
 tick_growth = 1.5
+max_areas = 100000000
