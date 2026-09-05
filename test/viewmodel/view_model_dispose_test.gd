@@ -39,6 +39,7 @@ func _emitters() -> Array[Object]:
 		App.growth_upgrade_system,
 		App.fertilizer_upgrade_system,
 		App.mission_upgrade_system,
+		App.expedition_upgrade_system,
 		App.daily_reward_data,
 		App.events_data,
 		App.ruins_data,

@@ -69,6 +69,34 @@ var pending_biomass_text: String:
 
 # --- Lifecycle ---
 
+## Every upgrade track ProductionSystem.stack_external() runs a stat through -
+## which is exactly what decides the numbers on this screen: &"biomass_gain" on
+## the payout, and &"tick_area_cost"/&"nutrient_area_growth" on the two storage
+## ladders that feed it. A level bought in any of them moves the pending gain, so
+## a track missing from here left the preview reading a purchase behind until the
+## next tick happened to refresh it - which is how a Level Point spent on the
+## biomass producer (&"biomass_gain", global, through the growth track) showed up
+## a tick late.
+##
+## Listed once so the connect and the disconnect cannot drift, and so a tenth
+## track added to stack_external is added here rather than silently going
+## unwatched. Symbiosis is deliberately absent, for the reason stack_external
+## skips it: the sporation is about to wipe those levels, so they must not price
+## the trade.
+func _gain_tracks() -> Array[UpgradeSystem]:
+	return [
+		# Biome upgrades feed &"biomass_gain" (PermafrostUpgrade2/10), and their
+		# Biome Size dependency re-emits this on invalidate().
+		App.biome_upgrade_system,
+		App.prestige_upgrade_system,
+		App.boost_upgrade_system,
+		App.project_upgrade_system,
+		App.growth_upgrade_system,
+		App.fertilizer_upgrade_system,
+		App.mission_upgrade_system,
+		App.expedition_upgrade_system,
+	]
+
 func _init() -> void:
 	# unbind(1) drops the BigNumber the currency signals carry, so the handler
 	# stays parameterless.
@@ -77,17 +105,15 @@ func _init() -> void:
 	# Ticks fill the time storage on their own, so the bars and the payout move
 	# on a tick that produced nothing.
 	App.player_data.tick_count_changed.connect(_on_changed.unbind(1))
-	App.prestige_upgrade_system.upgrades_changed.connect(_on_changed)
-	# Biome upgrades feed &"biomass_gain" too (PermafrostUpgrade2/10), and their
-	# Biome Size dependency re-emits this on invalidate().
-	App.biome_upgrade_system.upgrades_changed.connect(_on_changed)
+	for track in _gain_tracks():
+		track.upgrades_changed.connect(_on_changed)
 
 func dispose() -> void:
 	App.player_data.biomass_changed.disconnect(_on_changed.unbind(1))
 	App.player_data.nutrients_changed.disconnect(_on_changed.unbind(1))
 	App.player_data.tick_count_changed.disconnect(_on_changed.unbind(1))
-	App.prestige_upgrade_system.upgrades_changed.disconnect(_on_changed)
-	App.biome_upgrade_system.upgrades_changed.disconnect(_on_changed)
+	for track in _gain_tracks():
+		track.upgrades_changed.disconnect(_on_changed)
 
 # --- Commands (called by the View on input) ---
 
