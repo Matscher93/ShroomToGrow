@@ -60,11 +60,10 @@ func manual_node_counts() -> Array[BigNumber]:
 ## hoisted set, leave them empty to compute them fresh.
 func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
 		manual: Array[BigNumber] = []) -> void:
-	# Read before the counter moves: the pump is due on multiples of its interval,
-	# so it needs the tick the span starts from, not the one it ends on.
+	# The pump is due on multiples of its interval, so it needs the tick the span
+	# starts from, not the one it ends on. The counter itself is only written at
+	# the bottom of this function - see there for why.
 	var before := _player_data.tick_count
-	_player_data.tick_count += 1
-	_player_data.lifetime_ticks += 1
 	if _water != null:
 		_water.handle_ticks(before, 1, pump)
 	if bonuses.is_empty():
@@ -88,6 +87,14 @@ func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
 			_player_data.lifetime_nutrients = _player_data.lifetime_nutrients.add(node_change)
 			_player_data.run_nutrients = _player_data.run_nutrients.add(node_change)
 			last_tick_gain = node_change
+	# Last, after the cascade has paid out. tick_count_changed is what the views
+	# with no signal of their own ride - the growth sheet's level bar reads
+	# lifetime_nutrients, which is a plain field - so moving the counter first
+	# repainted them with the *previous* tick's totals, one tick behind for as
+	# long as the sheet stayed open. Nothing above reads the counter except
+	# `before`, which is taken by hand.
+	_player_data.tick_count += 1
+	_player_data.lifetime_ticks += 1
 
 ## Advances `count` ticks in one step, landing on exactly the state `count`
 ## calls to handle_tick() would have reached.
@@ -144,8 +151,6 @@ func advance_by(count: int, kernel: Array) -> void:
 	# inside the span, which is what makes a stride pay exactly what walking the
 	# span one tick at a time would.
 	var before := _player_data.tick_count
-	_player_data.tick_count += count
-	_player_data.lifetime_ticks += count
 	if _water != null:
 		_water.handle_ticks(before, count)
 
@@ -165,6 +170,10 @@ func advance_by(count: int, kernel: Array) -> void:
 	_player_data.nutrients = totals[_nodes.size()]
 	_player_data.lifetime_nutrients = _player_data.lifetime_nutrients.add(gained)
 	_player_data.run_nutrients = _player_data.run_nutrients.add(gained)
+	# Written last for the same reason handle_tick() does: a listener woken by
+	# the counter reads the state the span landed on, not the one it left.
+	_player_data.tick_count += count
+	_player_data.lifetime_ticks += count
 
 ## The live state as the flat vector the jump works on: one auto-node count per
 ## tier, then nutrients.

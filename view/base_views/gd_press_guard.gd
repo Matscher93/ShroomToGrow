@@ -45,6 +45,11 @@ func _ready() -> void:
 ## before the guard existed - a held pointer is the only thing that delays it.
 func run_when_free(key: StringName, work: Callable, defer: bool = false) -> void:
 	if not is_held:
+		# Breadcrumbed because a deferred rebuild that re-queues itself is a loop
+		# inside the engine's deferred-call flush, which hangs the frame with
+		# nothing of ours on the stack. A trail of one repeated key is what that
+		# looks like from the watchdog. See FreezeWatchdog.
+		FreezeWatchdog.phase("press guard: %s%s" % [key, " (deferred)" if defer else ""])
 		if defer:
 			work.call_deferred()
 		else:
@@ -66,6 +71,7 @@ func _process(_delta: float) -> void:
 		var work: Callable = entry["work"]
 		if not work.is_valid():
 			continue
+		FreezeWatchdog.phase("press guard: %s (released)" % key)
 		if entry["defer"]:
 			work.call_deferred()
 		else:

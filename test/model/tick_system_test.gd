@@ -363,3 +363,29 @@ func test_a_tick_system_without_a_well_still_runs() -> void:
 	system.handle_tick()
 	assert_float(_player.water.to_float()).is_zero()
 	assert_float(_player.nutrients.to_float()).is_greater(0.0)
+
+## Views with no signal of their own ride tick_count_changed - the growth
+## sheet's level bar reads lifetime_nutrients, a plain field - so the counter
+## has to move *after* the cascade has paid out. It used to move first, which
+## left every such view a whole tick behind for as long as it stayed open.
+func test_the_tick_counter_lands_after_the_cascade_has_paid_out() -> void:
+	var system := _system(_chain([2] as Array[int]))
+	var seen: Array[float] = []
+	_player.tick_count_changed.connect(func(_value: int) -> void:
+		seen.append(_player.lifetime_nutrients.to_float()))
+	system.handle_tick()
+	assert_int(seen.size()).is_equal(1)
+	assert_float(seen[0]).is_equal_approx(_player.lifetime_nutrients.to_float(), EPS)
+	assert_float(seen[0]).is_greater(0.0)
+
+## Same contract for the strided path the offline catch-up and the simulator
+## drive: a listener woken by the counter reads the state the span landed on.
+func test_a_stride_moves_the_counter_after_the_state_it_lands_on() -> void:
+	var system := _system(_chain([2] as Array[int]))
+	var seen: Array[float] = []
+	_player.tick_count_changed.connect(func(_value: int) -> void:
+		seen.append(_player.lifetime_nutrients.to_float()))
+	system.advance(10)
+	assert_int(seen.size()).is_equal(1)
+	assert_float(seen[0]).is_equal_approx(_player.lifetime_nutrients.to_float(), EPS)
+	assert_float(seen[0]).is_greater(0.0)

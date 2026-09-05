@@ -33,6 +33,19 @@ var _styles: Array[StyleBox] = []
 ## What was last written, so a re-layout that changes nothing writes nothing. An
 ## override write re-sorts this container, which is what calls back in here.
 var _applied_margin := -1.0
+## Writes made in the frame `_writes_frame` names, so a padding that never
+## settles costs a few passes instead of the whole game.
+##
+## The measurement above is what makes the loop terminate - the margin is a
+## function of a width it cannot move, so the second pass computes the same
+## number and the equality check stops it. This is the backstop for the case that
+## reasoning misses: an ancestor that sizes itself to the bar would put the
+## feedback back, and a margin alternating between two values slips past an
+## equality check. A few frames of padding half a pixel out is a bug report; a
+## frozen game is the one this class already caused.
+var _writes_this_frame := 0
+var _writes_frame := -1
+const _MAX_WRITES_PER_FRAME := 4
 
 func _ready() -> void:
 	_tab_bar = get_tab_bar()
@@ -72,18 +85,27 @@ func spread_tabs() -> void:
 	if shown == 0:
 		return
 	var gaps := float(_tab_bar.get_theme_constant(&"tab_separation") * (shown - 1))
-	# Never wider than this container. A padded tab raises the bar's own minimum
-	# width, so measuring the bar against itself feeds the last padding back in
-	# and the margin climbs on every pass - which it can do without bound once
-	# there is spare room to hand out, i.e. as soon as a tab is hidden. The
-	# container's width is the one input the padding cannot move.
-	var bar_width := minf(_tab_bar.size.x, size.x)
-	var spare := bar_width - titles_width - gaps - _SAFETY_MARGIN
+	# This container's width, and never the bar's. The padding *is* what sets the
+	# bar's width - a padded tab raises the bar's minimum - so measuring against
+	# the bar feeds the last write back in as the next input: the margin widens
+	# the bar, the wider bar buys more margin, and the pair climb until the game
+	# is spinning inside its own layout with nothing left to draw a frame with.
+	# That was a hard lock, reachable whenever a tab was hidden (which drops the
+	# bar's width below this container's, opening the gap the loop climbs).
+	# The container's width is the one input the padding cannot move.
+	var spare := size.x - titles_width - gaps - _SAFETY_MARGIN
 	# Halved because the padding sits on both sides of every title. Floored so the
 	# row can only ever come up short of the bar, never overrun it.
 	var margin := floorf(maxf(0.0, spare) / float(shown * 2))
 	if is_equal_approx(margin, _applied_margin):
 		return
+	var frame := Engine.get_process_frames()
+	if frame != _writes_frame:
+		_writes_frame = frame
+		_writes_this_frame = 0
+	if _writes_this_frame >= _MAX_WRITES_PER_FRAME:
+		return
+	_writes_this_frame += 1
 	_applied_margin = margin
 	for i in range(_TAB_STYLES.size()):
 		var style := _styles[i]

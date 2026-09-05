@@ -420,9 +420,10 @@ func _on_event_timer_timeout() -> void:
 ## handful of sources - node counts, upgrade levels, biome unlocks, prestiges - so
 ## a second flag would be the first one under another name.
 func _process(_delta: float) -> void:
-	# Everything outside the two blocks below is the engine's own frame - input,
-	# layout, drawing - so "frame" is the phase a lock in a view reports under.
-	watchdog.mark("frame")
+	# Opens the frame's phases; the engine's own half is marked at the bottom.
+	# Neither goes in the watchdog's trail - they land every frame, so sixteen of
+	# them would be a history saying only that frames were happening.
+	watchdog.mark("frame", false)
 	# Ahead of the achievement half, so a purchase made on this frame is counted
 	# on this frame. Gated on the same flag as the tick's automation block:
 	# SaveManager clears it for the whole offline catch-up, and that loop yields
@@ -440,13 +441,16 @@ func _process(_delta: float) -> void:
 		prestige_upgrade_system.end_batch()
 		biome_upgrade_system.end_batch()
 		upgrade_system.end_batch()
-	if not _achievements_dirty:
-		return
-	_achievements_dirty = false
-	watchdog.mark("frame: achievement evaluate")
-	achievement_system.evaluate()
-	watchdog.mark("frame: stats sample")
-	stats_system.sample_counts()
+	if _achievements_dirty:
+		_achievements_dirty = false
+		watchdog.mark("frame: achievement evaluate")
+		achievement_system.evaluate()
+		watchdog.mark("frame: stats sample")
+		stats_system.sample_counts()
+	# Last, so a stall reported under this phase is the engine's own frame -
+	# every other node's _process, the deferred-call flush, layout, input and
+	# drawing - rather than anything above.
+	watchdog.mark("frame: engine (after App._process)", false)
 
 func mark_achievements_dirty() -> void:
 	_achievements_dirty = true
@@ -732,6 +736,7 @@ func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
 		prestige_upgrade_system.end_batch()
 		biome_upgrade_system.end_batch()
 		upgrade_system.end_batch()
+	watchdog.mark("tick: done")
 
 # ---------------------------------------------------------------- production
 

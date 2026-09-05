@@ -31,6 +31,11 @@ const POLL_MSEC := 500
 ## back or is still wedged - and how long it stayed that way.
 const REPEAT_MSEC := 10000
 
+## How many phases back the stall report reads. Long enough to show the shape of
+## the road in (the tick's phases, or a run of traced listeners), short enough to
+## stay one glance in a log.
+const TRAIL_LENGTH := 16
+
 const LOG_PATH := "user://freeze.log"
 
 ## The live watchdog, so model code can leave a breadcrumb without holding a
@@ -49,6 +54,10 @@ var _beat := 0
 var _phase := "boot"
 var _phase_at := 0
 var _stop := false
+## The last TRAIL_LENGTH phases, oldest first, so a stall reports the road into
+## it rather than one label. Cheap: one array write per mark, no allocation once
+## the ring is full.
+var _trail: Array[String] = []
 
 func _ready() -> void:
 	_instance = self
@@ -58,9 +67,9 @@ func _ready() -> void:
 ## Breadcrumb from anywhere, including code that has never heard of App. Pass a
 ## constant rather than a built string: this sits under the tick, which runs it
 ## once per node bought during an automation drain.
-static func phase(text: String) -> void:
+static func phase(text: String, trail: bool = true) -> void:
 	if _instance != null:
-		_instance.mark(text)
+		_instance.mark(text, trail)
 
 ## Whether signal fan-outs should breadcrumb each listener they call.
 ##
@@ -78,10 +87,17 @@ static func is_tracing() -> bool:
 
 ## Records what the main thread is about to do. Kept to a handful of coarse
 ## phases - the point is to tell a hung tick from a hung repaint, not to trace.
-func mark(phase: String) -> void:
+## `trail` false for the marks that land every single frame: they are the right
+## answer for "what is it in", and useless as history - sixteen of them is a
+## trail that says only that frames were happening.
+func mark(phase: String, trail: bool = true) -> void:
 	_mutex.lock()
 	_phase = phase
 	_phase_at = Time.get_ticks_msec()
+	if trail:
+		_trail.append(phase)
+		if _trail.size() > TRAIL_LENGTH:
+			_trail.remove_at(0)
 	_mutex.unlock()
 
 func _process(_delta: float) -> void:
@@ -114,6 +130,7 @@ func _watch() -> void:
 		var phase := _phase
 		var phase_at := _phase_at
 		var stop := _stop
+		var trail := _trail.duplicate()
 		_mutex.unlock()
 		if stop:
 			return
@@ -130,9 +147,14 @@ func _watch() -> void:
 			continue
 		if reported_at > 0 and now - reported_at < REPEAT_MSEC:
 			continue
+		var first_report := reported_at == 0
 		reported_at = now
 		_write("main thread stalled %d ms in phase '%s' (entered %d ms before the stall)"
 			% [stalled, phase, maxi(0, last_beat_at - phase_at)])
+		# Only with the first report of a stall: the trail cannot change while
+		# the main thread is wedged, so repeating it would be the same lines.
+		if first_report:
+			_write("  trail: %s" % " -> ".join(trail))
 
 ## Appends one line, opening and closing per line so a lock that never ends still
 ## leaves the line on disk.
