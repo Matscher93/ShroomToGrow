@@ -20,6 +20,5 @@ _size_base_cost_mantissa = 5.0
 _size_base_cost_exponent = 52
 size_cost_growth = 2.25
 size_cost_growth_exponent = 1.01
-_auto_unlock_cost_mantissa = 5.0
-_auto_unlock_cost_exponent = 3
+_auto_unlock_cost_mantissa = 2.5
 metadata/_custom_type_script = "uid://beyspvlhwfx6a"

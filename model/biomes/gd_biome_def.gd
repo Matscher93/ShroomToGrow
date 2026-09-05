@@ -60,7 +60,7 @@ var size_base_cost: BigNumber:
 @export var _auto_unlock_cost_mantissa: float = 1.0
 @export var _auto_unlock_cost_exponent: int = 1
 var auto_unlock_cost: BigNumber:
-	get: return BigNumber.new(_auto_unlock_cost_mantissa, _auto_unlock_cost_exponent)
+	get: return BigNumber.new(_auto_unlock_cost_mantissa, _auto_unlock_cost_exponent).floored()
 	set(value):
 		_auto_unlock_cost_mantissa = value.mantissa
 		_auto_unlock_cost_exponent = value.exponent

@@ -154,7 +154,9 @@ func cost(id: StringName) -> BigNumber:
 	if def == null:
 		return BigNumber.new(0.0, 0)
 	var scaled_level := float(level(id)) * pow(def.cost_growth_exponent, float(level(id)))
-	return def.base_cost.mul(BigNumber.from_value(def.cost_growth).pow_float(scaled_level))
+	# Floored: crystals are bought and spent whole, so no card ever prices a level
+	# at 2.6 and no buy leaves a fraction of one behind.
+	return def.base_cost.mul(BigNumber.from_value(def.cost_growth).pow_float(scaled_level)).floored()
 
 func is_maxed(id: StringName) -> bool:
 	var ceiling := max_level(id)

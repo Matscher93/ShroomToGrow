@@ -120,4 +120,5 @@ func cost_at(level: int) -> BigNumber:
 	var tier := BoostTiers.tier_for_level(level)
 	return BigNumber.from_value(base_cost) \
 		.mul(BigNumber.from_value(cost_growth).pow_float(steps)) \
-		.mul(BigNumber.from_value(tier_cost_growth).pow_float(float(tier - 1)))
+		.mul(BigNumber.from_value(tier_cost_growth).pow_float(float(tier - 1))) \
+		.floored()

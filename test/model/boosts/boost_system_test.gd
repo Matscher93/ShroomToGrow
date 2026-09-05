@@ -164,8 +164,10 @@ func test_a_tier_opens_above_where_the_tier_below_closed() -> void:
 	assert_int(_system.boost_tier(&"test_nutrients")).is_equal(2)
 	var tier_two_opening := _system.boost_cost(&"test_nutrients").to_float()
 	assert_float(tier_two_opening).is_greater(tier_one_closing)
+	# Prices are floored to whole crystals, so the ratio of two of them carries up
+	# to a crystal of rounding on each side rather than matching the curve exactly.
 	assert_float(tier_two_opening / tier_one_closing).is_equal_approx(
-		def.cost_growth * def.tier_cost_growth, EPS)
+		def.cost_growth * def.tier_cost_growth, 0.001)
 
 ## The invariant the restart broke, checked the only way that catches it: against
 ## the price the tier below *closed* at, not against the one it opened at. Every
@@ -204,7 +206,10 @@ func test_an_exponent_of_one_is_the_plain_geometric_ladder() -> void:
 
 	for level in [0, 1, 50, BoostTiers.LEVELS_PER_TIER, 250]:
 		var plain := 2.0 * pow(1.1, float(level))
-		assert_float(def.cost_at(level).to_float() / plain).is_equal_approx(1.0, EPS)
+		# To within the crystal the floor drops: a whole-number price cannot sit on
+		# a curve that runs between the integers.
+		assert_float(def.cost_at(level).to_float()).is_equal_approx(
+			plain, maxf(1.0, plain * 1e-6))
 
 ## The exponent raises the level through itself before it becomes cost_growth's
 ## exponent, so the curve bows upwards instead of running straight in log space.
@@ -345,8 +350,11 @@ func test_each_boost_carries_its_own_curves() -> void:
 	# epsilon means nothing at that scale.
 	var continuous := 2.0 * pow(1.1, float(BoostTiers.LEVELS_PER_TIER))
 	var opens := BoostTiers.LEVELS_PER_TIER
-	assert_float(nutrients.cost_at(opens).to_float() / continuous).is_equal_approx(1.0, EPS)
-	assert_float(biomass.cost_at(opens).to_float() / continuous).is_equal_approx(1.5, EPS)
+	# Slack of a whole crystal over the continuous price, since floored prices land
+	# on the integers rather than on the curve.
+	var crystal := 1.0 / continuous
+	assert_float(nutrients.cost_at(opens).to_float() / continuous).is_equal_approx(1.0, crystal)
+	assert_float(biomass.cost_at(opens).to_float() / continuous).is_equal_approx(1.5, 1.5 * crystal)
 
 func test_the_next_level_gain_follows_the_tier_the_level_lands_in() -> void:
 	assert_float(_system.next_level_gain(&"test_nutrients")).is_equal_approx(

@@ -75,7 +75,7 @@ var cost_text: String:
 			return "Needs %s" % [_perk_name(_def.unlock_perk_id)]
 		if is_maxed:
 			return "-"
-		return "%s crystals" % App.boost_cost(_id).to_display()
+		return "%s crystals" % App.boost_cost(_id).to_display_whole()
 
 var is_maxed: bool:
 	get: return App.is_boost_maxed(_id)

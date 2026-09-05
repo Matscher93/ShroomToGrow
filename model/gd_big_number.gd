@@ -20,6 +20,10 @@ var exponent: int    ## Power of 10
 ## forever. Nothing this large is affordable, so saturating loses no gameplay.
 const MAX_EXPONENT := 1_000_000_000
 
+## Past 1e16 every double is already whole (the spacing between neighbours is
+## above 1), which is what makes floored() a no-op from here up.
+const WHOLE_EXPONENT := 16
+
 ## Suffix table: one entry per 3 exponent steps, ending at Decillion. 12 entries
 ## cover exponents 0..35, anything at or above 10^36 falls back to scientific
 ## notation. Extend the table (Ud, Dd, Td, ...) to push that cutoff higher.
@@ -124,6 +128,23 @@ func pow_int(p: int) -> BigNumber:
 func scale(factor: float) -> BigNumber:
 	return BigNumber.new(mantissa * factor, exponent)
 
+## Largest whole number at or below this one, so a price never comes out a
+## fraction of a coin. Above WHOLE_EXPONENT it is a no-op: a double that big has
+## no fractional digits left to drop, and the round trip through to_float() would
+## only cost precision.
+func floored() -> BigNumber:
+	if exponent >= WHOLE_EXPONENT:
+		return copy()
+	var value := to_float()
+	# Snap first, floor second. Cost curves run through pow_float(), which works in
+	# log space and lands a price that should be 20 on 19.999999996 - floored raw,
+	# every clean curve would come out a step short. Only a value already within a
+	# hair of the integer above moves; a genuine 19.9 still floors to 19.
+	var whole := roundf(value)
+	if absf(value - whole) <= maxf(absf(value), 1.0) * 1e-9:
+		return BigNumber.from_value(whole)
+	return BigNumber.from_value(floor(value))
+
 ## Collapses back to a plain float. Only safe for values that stay in float
 ## range (tick duration, point counts). Anything unbounded (nutrients, biomass)
 ## stays a BigNumber and uses to_display().
@@ -216,6 +237,12 @@ func to_display(decimals: int = 1) -> String:
 		return "%.*f%s" % [decimals, scaled, SUFFIXES[idx]]
 	# Beyond the suffix table, use scientific notation
 	return to_scientific()
+
+## to_display() without the trailing ".0" on a small whole number: crystal prices
+## are floored, and "25" reads as a price where "25.0" reads as a rate. From the
+## first suffix up the decimals carry real magnitude (1.5K is not 2K), so they stay.
+func to_display_whole() -> String:
+	return to_display(0) if exponent < 3 else to_display()
 
 ## Always scientific notation:  "1.234e56"
 ## Normalisation guarantees |mantissa| < 10, so it is already the scientific

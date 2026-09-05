@@ -58,7 +58,7 @@ var cost_text: String:
 			return ""
 		if App.is_automation_maxed(_def.id):
 			return "MAX"
-		return App.automation_cost(_def.id).to_display()
+		return App.automation_cost(_def.id).to_display_whole()
 
 ## Why this card cannot be bought yet, and where to go about it. Empty once
 ## unlocked.

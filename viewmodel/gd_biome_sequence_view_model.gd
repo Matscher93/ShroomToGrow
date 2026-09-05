@@ -252,7 +252,7 @@ var auto_unlock_toggle_text: String:
 	get: return "On" if auto_unlock_enabled else "Off"
 
 var auto_unlock_cost_text: String:
-	get: return App.biome_auto_unlock_cost(_key).to_display()
+	get: return App.biome_auto_unlock_cost(_key).to_display_whole()
 
 # --- Pagination ---
 
