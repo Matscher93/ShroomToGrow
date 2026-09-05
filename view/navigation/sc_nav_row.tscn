@@ -9,10 +9,10 @@
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_row"]
 resource_local_to_scene = true
-content_margin_left = 17.0
-content_margin_top = 15.0
-content_margin_right = 17.0
-content_margin_bottom = 15.0
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
 bg_color = Color(1, 1, 1, 0.035)
 border_width_left = 1
 border_width_top = 1
@@ -62,19 +62,27 @@ corner_radius_bottom_left = 99
 custom_minimum_size = Vector2(0, 73)
 theme_override_styles/panel = SubResource("StyleBoxFlat_row")
 script = ExtResource("1_script")
-icon = NodePath("HBoxContainer/icon")
-lbl_name = NodePath("HBoxContainer/VBoxContainer/lbl_name")
-lbl_subtitle = NodePath("HBoxContainer/VBoxContainer/lbl_subtitle")
-panel_badge = NodePath("HBoxContainer/panel_badge")
-lbl_badge = NodePath("HBoxContainer/panel_badge/lbl_badge")
+icon = NodePath("pad/HBoxContainer/icon")
+lbl_name = NodePath("pad/HBoxContainer/VBoxContainer/lbl_name")
+lbl_subtitle = NodePath("pad/HBoxContainer/VBoxContainer/lbl_subtitle")
+panel_badge = NodePath("pad/HBoxContainer/panel_badge")
+lbl_badge = NodePath("pad/HBoxContainer/panel_badge/lbl_badge")
 button = NodePath("button")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="."]
+[node name="pad" type="MarginContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 17
+theme_override_constants/margin_top = 15
+theme_override_constants/margin_right = 17
+theme_override_constants/margin_bottom = 15
+
+[node name="HBoxContainer" type="HBoxContainer" parent="pad"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 15
 
-[node name="icon" type="ColorRect" parent="HBoxContainer"]
+[node name="icon" type="ColorRect" parent="pad/HBoxContainer"]
 material = SubResource("ShaderMaterial_icon")
 custom_minimum_size = Vector2(42, 42)
 layout_mode = 2
@@ -84,28 +92,28 @@ mouse_filter = 2
 script = ExtResource("2_colorrect")
 color_param = "box_color"
 
-[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="pad/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
 theme_override_constants/separation = 1
 
-[node name="lbl_name" type="Label" parent="HBoxContainer/VBoxContainer"]
+[node name="lbl_name" type="Label" parent="pad/HBoxContainer/VBoxContainer"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_fonts/font = ExtResource("4_bold")
 theme_override_font_sizes/font_size = 19
 text = "Destination"
 
-[node name="lbl_subtitle" type="Label" parent="HBoxContainer/VBoxContainer"]
+[node name="lbl_subtitle" type="Label" parent="pad/HBoxContainer/VBoxContainer"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_fonts/font = ExtResource("5_regular")
 theme_override_font_sizes/font_size = 14
 text = "subtitle"
 
-[node name="panel_badge" type="PanelContainer" parent="HBoxContainer"]
+[node name="panel_badge" type="PanelContainer" parent="pad/HBoxContainer"]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 8
@@ -113,7 +121,7 @@ size_flags_vertical = 4
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_badge")
 
-[node name="lbl_badge" type="Label" parent="HBoxContainer/panel_badge"]
+[node name="lbl_badge" type="Label" parent="pad/HBoxContainer/panel_badge"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_fonts/font = ExtResource("6_mono")
