@@ -210,6 +210,11 @@ func _spawn_grid_slots() -> void:
 ## menu: bright for upgrades the sequence already asks for, mid for ones it could
 ## take next, faint for ones it cannot reach yet.
 ##
+## Brightness says what the recording holds; the accent border on top of it says
+## what the recording can still take. The two are separate questions - an upgrade
+## already in the sequence can usually take more steps, and one that is not in it
+## at all may be gated out - so a single dimming ramp could never carry both.
+##
 ## A blocked slot is dimmed but deliberately still pressable. Godot swallows
 ## input on a disabled Button, and pressing a blocked slot is how the status line
 ## below is asked why it is blocked - the reason used to be a tooltip, which does
@@ -225,6 +230,12 @@ func _refresh_grid_slots() -> void:
 		var id: StringName = _slot_ids[i]
 		var slot := grid_upgrade_slots.get_child(i) as Button
 		UpgradeSlotGrid.set_level_text(slot, _vm.upgrade_slot_text(id))
+		# The gate is simulated off the sequence, not the run - see can_record() -
+		# so this border says "by the time the automation reaches here it will have
+		# spent enough points to unlock this", which is the one thing the grid could
+		# not say before without the player tapping a slot to read the status line.
+		UpgradeSlotGrid.set_available(slot, biome_open and _vm.can_record(id),
+			_vm.biome_color)
 		slot.disabled = not biome_open
 		if not biome_open:
 			slot.modulate = UpgradeSlotGrid.UNAVAILABLE_MODULATE

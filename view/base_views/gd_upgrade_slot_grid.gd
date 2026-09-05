@@ -16,13 +16,14 @@ const SLOT_HEIGHT := 44
 const INDEX_FONT_SIZE := 16
 const LEVEL_FONT_SIZE := 10
 const LEVEL_COLOR := Color(1, 1, 1, 0.6)
-## The three fills a slot can be pressed through. Named because set_affordable()
+## The three fills a slot can be pressed through. Named because set_available()
 ## rebuilds all of them to carry its border, and the two must not drift apart.
 const NORMAL_FILL := Color(1, 1, 1, 0.08)
 const HOVER_FILL := Color(1, 1, 1, 0.16)
 const PRESSED_FILL := Color(1, 1, 1, 0.32)
-## Width of the accent border set_affordable() puts on a buyable slot.
-const AFFORDABLE_BORDER := 2
+## Width of the accent border set_available() puts on a slot the player can act
+## on right now.
+const AVAILABLE_BORDER := 2
 const LOCKED_MODULATE := Color(1, 1, 1, 0.4)
 ## Dimmer still, for a slot that cannot be pressed at all rather than one that is
 ## merely unused.
@@ -63,11 +64,17 @@ static func set_level_text(slot: Button, text: String) -> void:
 static func set_locked(slot: Button, locked: bool) -> void:
 	slot.modulate = LOCKED_MODULATE if locked else Color.WHITE
 
-## Marks a slot that can be bought right now, so the grid says which of the ten
-## are worth a tap instead of making the player select each one to find out.
+## Marks a slot the player can act on right now, so the grid says which of the
+## ten are worth a tap instead of making them try each one to find out.
+##
+## What "available" means belongs to the caller, because the two grids are asking
+## different questions of the same ten upgrades: the biome card borders a slot it
+## has the points to buy, the Crystal Caves sequence section borders one the
+## recording has spent enough points to reach. Both answer "you can act on this",
+## which is why they share a border rather than each inventing a cue.
 ##
 ## A border rather than a fill: the fill is what hover and pressed already speak
-## with, and overriding it would make an affordable slot look permanently
+## with, and overriding it would make an available slot look permanently
 ## half-pressed. A notification dot per slot was the other option and is worse -
 ## ten dots in a 5x2 grid of 44px buttons reads as a rash, not as news.
 ##
@@ -78,14 +85,18 @@ static func set_locked(slot: Button, locked: bool) -> void:
 ## deciding whether to spend on it. Same for hover, which is where a mouse sits
 ## while reading the slot it is about to buy.
 ##
-## Composes with set_locked(), which works through modulate: a locked slot is
-## dimmed border and all.
-static func set_affordable(slot: Button, affordable: bool, accent: Color) -> void:
+## `disabled` is left alone on purpose: a slot that cannot be pressed at all has
+## nothing to offer, so it should not wear the cue that says it has.
+##
+## Composes with set_locked() and with the sequence section's own modulate
+## states, which all work through modulate: a dimmed slot is dimmed border and
+## all.
+static func set_available(slot: Button, available: bool, accent: Color) -> void:
 	for state: Array in [["normal", NORMAL_FILL], ["hover", HOVER_FILL],
 			["pressed", PRESSED_FILL]]:
 		var style := slot_style(state[1])
-		if affordable:
-			style.set_border_width_all(AFFORDABLE_BORDER)
+		if available:
+			style.set_border_width_all(AVAILABLE_BORDER)
 			style.border_color = accent
 		slot.add_theme_stylebox_override(state[0], style)
 

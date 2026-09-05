@@ -113,7 +113,7 @@ func _refresh_grid_slots() -> void:
 		var btn := grid_upgrade_slots.get_child(i) as Button
 		UpgradeSlotGrid.set_level_text(btn, _vm.upgrade_slot_text(_slot_ids[i]))
 		UpgradeSlotGrid.set_locked(btn, not _vm.is_upgrade_unlocked(_slot_ids[i]))
-		UpgradeSlotGrid.set_affordable(btn, _vm.can_buy_upgrade(_slot_ids[i]), _vm.biome_color)
+		UpgradeSlotGrid.set_available(btn, _vm.can_buy_upgrade(_slot_ids[i]), _vm.biome_color)
 
 func _on_slot_selected(id: StringName) -> void:
 	upgrade_detail.select_upgrade(id, biome_key)
