@@ -8,13 +8,15 @@ extends ViewModel
 ## app's lifetime, mirroring App.perk_vms: every row needs live state at once, so
 ## per-selection VMs would not help.
 
-const PROP_TIER_TEXT := &"tier_text"
-const PROP_PROGRESS_TEXT := &"progress_text"
-const PROP_PROGRESS_RATIO := &"progress_ratio"
-const PROP_REWARD_TEXT := &"reward_text"
-const PROP_IS_MAXED := &"is_maxed"
-const PROP_CAN_CLAIM := &"can_claim"
-const PROP_CLAIM_TEXT := &"claim_text"
+## One notification for the whole row, rather than one per property.
+##
+## Every property below is derived from the same progress model and moves with
+## it, and the row repaints all of them on any notification - so seven
+## notifications were seven identical repaints. That is the archive's whole cost:
+## with the overlay open a single claim went through 9 rows x 7 repaints, 5.8ms
+## on a desktop, and the claim button repeats up to eight times a frame while it
+## is held.
+const PROP_STATE := &"state"
 
 var _def: AchievementDef
 
@@ -109,10 +111,4 @@ func _format_measure(value: BigNumber) -> String:
 ## AchievementSystem emits once per evaluate(), which App only runs when
 ## something an achievement measures actually moved.
 func _on_progress_changed() -> void:
-	_notify(PROP_TIER_TEXT)
-	_notify(PROP_PROGRESS_TEXT)
-	_notify(PROP_PROGRESS_RATIO)
-	_notify(PROP_REWARD_TEXT)
-	_notify(PROP_IS_MAXED)
-	_notify(PROP_CAN_CLAIM)
-	_notify(PROP_CLAIM_TEXT)
+	_notify(PROP_STATE)
