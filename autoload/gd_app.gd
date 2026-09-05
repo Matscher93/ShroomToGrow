@@ -162,6 +162,10 @@ var events_running := true
 ## loop ends, which banks every tier the gap crossed in one evaluate.
 var offline_catchup := false
 
+## Names the phase the main thread is in, for the watchdog thread to report if
+## the main thread stops coming back. See FreezeWatchdog.
+var watchdog: FreezeWatchdog
+
 ## Set by anything an achievement could measure, drained once per frame in
 ## _process. Evaluating per change would re-walk every achievement several times
 ## a tick, and the offline catch-up loop drives handle_tick() thousands of times
@@ -172,6 +176,10 @@ const BASE_TICK_DURATION := 10.0
 const MIN_TICK_DURATION := 1.0  # floor so a stacked tick_rate discount can't reach zero
 
 func _ready() -> void:
+	# First, so a lock anywhere in the rest of the boot is reported too.
+	watchdog = FreezeWatchdog.new()
+	add_child(watchdog)
+
 	player_data = PlayerData.new()
 	player_vm = PlayerViewModel.new(player_data)
 
@@ -412,6 +420,9 @@ func _on_event_timer_timeout() -> void:
 ## handful of sources - node counts, upgrade levels, biome unlocks, prestiges - so
 ## a second flag would be the first one under another name.
 func _process(_delta: float) -> void:
+	# Everything outside the two blocks below is the engine's own frame - input,
+	# layout, drawing - so "frame" is the phase a lock in a view reports under.
+	watchdog.mark("frame")
 	# Ahead of the achievement half, so a purchase made on this frame is counted
 	# on this frame. Gated on the same flag as the tick's automation block:
 	# SaveManager clears it for the whole offline catch-up, and that loop yields
@@ -421,6 +432,7 @@ func _process(_delta: float) -> void:
 		# buy many levels in this one call, and every upgrades_changed listener
 		# refreshes synchronously. The player sees one frame, so they get one
 		# refresh.
+		watchdog.mark("frame: automation drain")
 		upgrade_system.begin_batch()
 		biome_upgrade_system.begin_batch()
 		prestige_upgrade_system.begin_batch()
@@ -431,7 +443,9 @@ func _process(_delta: float) -> void:
 	if not _achievements_dirty:
 		return
 	_achievements_dirty = false
+	watchdog.mark("frame: achievement evaluate")
 	achievement_system.evaluate()
+	watchdog.mark("frame: stats sample")
 	stats_system.sample_counts()
 
 func mark_achievements_dirty() -> void:
@@ -592,6 +606,7 @@ func load_from_save(game: Dictionary) -> void:
 	# Every whole cycle the farms turned while the game was closed, paid in one
 	# O(1) sweep. This is the entire offline catch-up for the Ruins: the missions
 	# themselves need none, since completion is derived from two timestamps.
+	watchdog.mark("tick: farms")
 	mission_system.settle_farms()
 	daily_reward_data.load_from_save(game.get("daily_reward", {}))
 	# Only a device clock moved backwards can leave a last-claim day in the
@@ -675,10 +690,13 @@ func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
 		manual: Array[BigNumber] = []) -> void:
 	# Before production, so a level earned last tick pays into this one. Cheap
 	# and usually a no-op: it only invalidates when a biome actually levelled.
+	watchdog.mark("tick: sync_levels")
 	biome_system.sync_levels()
+	watchdog.mark("tick: production")
 	tick_system.handle_tick(bonuses, pump, manual)
 	# Straight after the cascade, so the peak it records is this tick's payout
 	# rather than one an automation below has already spent into.
+	watchdog.mark("tick: stats")
 	stats_system.handle_tick()
 	# Live ticks only, same as the two gates below: a catch-up moves nothing the
 	# achievement ladder or the structural stats sample read, so the flag would
@@ -690,6 +708,7 @@ func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
 	# the offline catch-up must not walk one to its goal - same reason the spawn
 	# timer checks this flag.
 	if events_running:
+		watchdog.mark("tick: events")
 		event_system.handle_tick()
 	# The farms. Not gated on a running flag and not skipped for a catch-up: a
 	# farm pays on the wall clock whether or not the game was open, and the sweep
@@ -700,6 +719,7 @@ func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
 	# After production, so an automation spends the nutrients this tick just
 	# paid out rather than always working a tick behind.
 	if automations_running:
+		watchdog.mark("tick: automations")
 		# Batched: one automation may buy many levels in this one call - the tick
 		# is bounded by time, not by a level count - and every upgrades_changed
 		# listener (tick duration, the biome panels' slot grids, every node card)
@@ -1040,9 +1060,11 @@ func achievement_claim_reward(def: AchievementDef) -> BigNumber:
 	return achievement_system.claim_reward(def)
 
 func claim_achievement(id: StringName) -> bool:
+	watchdog.mark("claim achievement %s" % id)
 	return achievement_system.claim(id)
 
 func claim_all_achievements() -> BigNumber:
+	watchdog.mark("claim all achievements")
 	return achievement_system.claim_all()
 
 func achievement_value(def: AchievementDef) -> BigNumber:
