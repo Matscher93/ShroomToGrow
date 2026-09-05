@@ -44,8 +44,6 @@ static func for_stat(stat: StringName) -> Icon:
 			return Icon.WATER_RATE
 		&"biomass_gain":
 			return Icon.BIOMASS
-		&"crystal_gain":
-			return Icon.CRYSTALS
 		&"tick_rate":
 			return Icon.TEMPO
 		&"automation_rate":

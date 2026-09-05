@@ -264,7 +264,7 @@ func _ready() -> void:
 
 	achievement_progress = AchievementProgress.new()
 	achievement_system = AchievementSystem.new(achievements, achievement_progress, player_data,
-		production_system, upgrade_system, biomes_data)
+		upgrade_system, biomes_data)
 
 	boost_system = BoostSystem.new(player_data, boost_upgrade_system, boosts,
 		prestige_upgrade_system, production_system)
@@ -1052,8 +1052,12 @@ func achievement_goal(def: AchievementDef) -> BigNumber:
 	return achievement_system.current_goal(def)
 
 ## What the next goal will pay once completed, for the archive's preview.
+##
+## Priced at the tier being filled - claimed plus banked - rather than at the
+## claimed count, which is the tier of whatever is still waiting to be collected.
 func achievement_reward(def: AchievementDef) -> BigNumber:
-	return achievement_system.reward_for(def, achievement_system.tier(def.id))
+	return achievement_system.reward_for(def,
+		achievement_system.tier(def.id) + achievement_system.unclaimed(def.id))
 
 ## What collecting the tier already waiting pays. Zero when none is.
 func achievement_claim_reward(def: AchievementDef) -> BigNumber:

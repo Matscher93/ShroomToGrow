@@ -22,7 +22,7 @@ effect = SubResource("effect_offering")
 
 [sub_resource type="Resource" id="effect_votive"]
 script = ExtResource("3_effect_script")
-stat = &"crystal_gain"
+stat = &"potency_production"
 op = 2
 scope = 0
 target = &""
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_votive"]
 script = ExtResource("2_boon_script")
 display_name = "Votive Crystals"
-description = "{value} crystals from achievements, per level, compounding."
+description = "{value} Potency production, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_votive")
 
@@ -54,7 +54,7 @@ effect = SubResource("effect_drowned")
 
 [sub_resource type="Resource" id="effect_rite"]
 script = ExtResource("3_effect_script")
-stat = &"crystal_gain"
+stat = &"synergy_production"
 op = 2
 scope = 0
 target = &""
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_rite"]
 script = ExtResource("2_boon_script")
 display_name = "Abyssal Rite"
-description = "{value} crystals from achievements, per level, compounding."
+description = "{value} Synergy production, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_rite")
 

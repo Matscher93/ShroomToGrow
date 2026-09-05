@@ -131,10 +131,9 @@ func _run_all(stat: StringName, base: BigNumber, keys: PackedStringArray) -> Big
 
 ## Everything boosting the stat *except* the player's own symbiosis levels. The
 ## project, growth and fertilizer tracks belong here as much as the boosts do: all
-## four survive a sporation, and biomass and crystals are only ever resolved
-## through here - so leaving growth out would make two of its four producers
-## inert, and leaving fertilizer out would half-disable two of its three
-## upgrades.
+## four survive a sporation, and biomass is only ever resolved through here - so
+## leaving growth out would make one of its four producers inert, and leaving
+## fertilizer out would half-disable two of its three upgrades.
 ## Scales a symbiosis upgrade's marginal per-level rate for display, so the
 ## shown rate includes the boosts applied on top of it.
 func stack_external(stat: StringName, base: BigNumber, target: StringName = &"") -> BigNumber:
@@ -255,14 +254,9 @@ func node_production_bonus(node_id: StringName) -> BigNumber:
 func modify_biomass_gain(base: BigNumber) -> BigNumber:
 	return stack_external(&"biomass_gain", base)
 
-## Crystals are permanent, so the symbiosis track (wiped on the very next
-## prestige) must not inflate an achievement payout the player keeps forever.
-func modify_crystal_gain(base: BigNumber) -> BigNumber:
-	return stack_external(&"crystal_gain", base)
-
 ## What one pump of the well draws up. Water is a run currency the sporation
 ## wipes, exactly like nutrients, so the symbiosis track counts here - unlike
-## biomass and crystals, which are permanent and use stack_external.
+## biomass, which is permanent and uses stack_external.
 func modify_water_gain(base: BigNumber) -> BigNumber:
 	return stack(&"water_production", base)
 
@@ -332,7 +326,7 @@ func hero_level_bonus(hero_id: StringName) -> int:
 ##
 ## stack_external, not stack: the three Ruins currencies are permanent, so the
 ## symbiosis track the next sporation wipes must not inflate a payout the player
-## keeps - the same reasoning modify_crystal_gain() is built on.
+## keeps.
 func modify_mission_reward(base: BigNumber, gain_stat: StringName,
 		mission_id: StringName = &"") -> BigNumber:
 	var value := stack_external(&"mission_reward", base, mission_id)

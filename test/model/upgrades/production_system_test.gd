@@ -217,14 +217,14 @@ func test_the_fertilizer_track_reaches_stack() -> void:
 	assert_float(production.node_production_bonus(&"0").to_float()) \
 		.is_equal_approx(2.0, EPS)
 
-## biomass_gain and crystal_gain resolve *only* through stack_external, so a
-## track missing from it is half-disabled in a way stack() alone cannot show.
+## biomass_gain resolves *only* through stack_external, so a track missing from
+## it is half-disabled in a way stack() alone cannot show.
 func test_the_fertilizer_track_reaches_stack_external() -> void:
 	var pair := _with_fertilizer()
 	var production: ProductionSystem = pair[0]
-	_register(pair[1], &"FertBloom", [_effect(&"crystal_gain", 1.0,
+	_register(pair[1], &"FertBloom", [_effect(&"biomass_gain", 1.0,
 		UpgradeEffectDef.Op.MORE)])
-	assert_float(production.modify_crystal_gain(BigNumber.from_value(1.0)).to_float()) \
+	assert_float(production.modify_biomass_gain(BigNumber.from_value(1.0)).to_float()) \
 		.is_equal_approx(2.0, EPS)
 
 func test_the_fertilizer_track_moves_the_memo_version() -> void:

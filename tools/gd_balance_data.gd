@@ -304,19 +304,13 @@ static func _is_achievement_curved(res: Resource) -> bool:
 ## then holds it at least one above where tier 0 sat plus one per tier since, and
 ## on a shallow curve that floor term *is* the early ladder. Sampling the formula
 ## alone would report goals the game never asks for.
-##
-## The ProductionSystem is a neutral one, mirroring the data sweep's harness:
-## reward_for() multiplies by the live &"crystal_gain" stack, so a system with
-## anything registered would report tuned numbers instead of authored ones.
 static func achievement_curve_for(res: Resource) -> Dictionary:
 	var def := res as AchievementDef
 	var list := AchievementList.new()
 	var defs: Array[AchievementDef] = [def]
 	list.achievements = defs
-	var neutral := ProductionSystem.new(UpgradeSystem.new(), UpgradeSystem.new(),
-		UpgradeSystem.new(), ResolveContext.new())
 	var system := AchievementSystem.new(list, AchievementProgress.new(), PlayerData.new(),
-		neutral, UpgradeSystem.new(), BiomesData.new())
+		UpgradeSystem.new(), BiomesData.new())
 
 	var samples := def.max_tier if def.max_tier > 0 else CURVE_OPEN_ENDED_LEVELS
 	var goals: Array = []

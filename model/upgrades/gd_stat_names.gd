@@ -14,6 +14,10 @@ extends RefCounted
 ## that starts reading it.
 ##
 ## ProductionSystem consumes most of them; the exceptions carry a note.
+##
+## There is deliberately no crystal stat. An achievement tier pays exactly what
+## its curve says, so nothing here may reach the crystal payout - see
+## AchievementSystem.reward_for().
 
 const ALL: Array[StringName] = [
 	&"potency_production", &"synergy_production", &"node_production",
@@ -22,7 +26,7 @@ const ALL: Array[StringName] = [
 	&"biome_points",
 	# Read by PlayerLevelSystem, the same way biome_points is read by BiomeSystem.
 	&"level_points",
-	&"crystal_gain", &"automation_rate",
+	&"automation_rate",
 	&"water_production", &"water_rate",
 	# Read by BoostSystem rather than ProductionSystem: the Well's projects reach
 	# a crystal boost's ceiling and its per-level rate through these.

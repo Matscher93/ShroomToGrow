@@ -130,9 +130,9 @@ func test_every_token_in_every_description_resolves() -> void:
 				% [entry["where"], " ".join(unresolved), entry["text"]]).is_zero()
 
 ## {noun} falls back to the StatResources bucket, which is the right grouping for
-## a breakdown and the wrong word for a sentence - a &"crystal_gain" boon would
-## read "crystals" where its card said "crystals from achievements". A stat added
-## without a noun degrades quietly, so the set is asserted whole.
+## a breakdown and the wrong word for a sentence - a &"boost_power" boon would
+## read "boosts" where its card said "strength". A stat added without a noun
+## degrades quietly, so the set is asserted whole.
 func test_every_stat_is_worded_for_a_sentence() -> void:
 	for stat: StringName in StatNames.ALL:
 		assert_bool(EffectLabel.NOUNS.has(stat)) \

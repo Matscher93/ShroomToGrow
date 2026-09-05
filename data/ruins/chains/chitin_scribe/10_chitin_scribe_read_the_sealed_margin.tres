@@ -14,7 +14,7 @@ _amount_exponent = 2
 
 [sub_resource type="Resource" id="reward_0"]
 script = ExtResource("4_effect_script")
-stat = &"crystal_gain"
+stat = &"water_production"
 op = 2
 scope = 0
 target = &""

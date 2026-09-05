@@ -11,15 +11,12 @@ var _progress: AchievementProgress
 var _player: PlayerData
 var _symbiosis: UpgradeSystem
 var _biomes_data: BiomesData
-var _production: ProductionSystem
 
 func before_test() -> void:
 	_progress = AchievementProgress.new()
 	_player = PlayerData.new()
 	_symbiosis = UpgradeSystem.new()
 	_biomes_data = BiomesData.new()
-	var ctx := ResolveContext.new()
-	_production = ProductionSystem.new(_symbiosis, UpgradeSystem.new(), UpgradeSystem.new(), ctx)
 
 ## goal 10, 20, 40...  reward 1, 2, 4...
 func _def(stat: AchievementDef.Stat, max_tier: int = 0) -> AchievementDef:
@@ -39,7 +36,7 @@ func _def(stat: AchievementDef.Stat, max_tier: int = 0) -> AchievementDef:
 func _system(defs: Array[AchievementDef]) -> AchievementSystem:
 	var list := AchievementList.new()
 	list.achievements = defs
-	return AchievementSystem.new(list, _progress, _player, _production, _symbiosis, _biomes_data)
+	return AchievementSystem.new(list, _progress, _player, _symbiosis, _biomes_data)
 
 # ─── Curves ──────────────────────────────────────────────────────────────────
 
@@ -121,27 +118,19 @@ func test_the_reward_rises_with_each_tier() -> void:
 	assert_float(system.reward_for(def, 0).to_float()).is_equal_approx(1.0, EPS)
 	assert_float(system.reward_for(def, 2).to_float()).is_equal_approx(4.0, EPS)
 
-func test_the_reward_is_scaled_by_crystal_gain_upgrades() -> void:
-	# Authored as +100%, so the payout has to double. A regression here means an
-	# entire upgrade track is silently dead.
-	var upgrade := UpgradeDef.new()
-	upgrade.id = &"CrystalTest"
-	var effect := UpgradeEffectDef.new()
-	effect.stat = &"crystal_gain"
-	effect.op = UpgradeEffectDef.Op.INCREASED
-	effect.scope = UpgradeEffectDef.Scope.GLOBAL
-	effect.per_level = 1.0
-	upgrade.effects = [effect]
-
-	var biome_upgrades := UpgradeSystem.new()
-	biome_upgrades.register(upgrade)
-	biome_upgrades.buy_with_points(&"CrystalTest", true)
-	_production = ProductionSystem.new(_symbiosis, biome_upgrades, UpgradeSystem.new(),
-		ResolveContext.new())
-
+func test_a_flat_reward_curve_pays_the_same_at_every_tier() -> void:
+	# reward_growth of 1.0 is how an achievement is authored to pay a fixed
+	# amount per tier. Every tier has to come back at the base, including the
+	# preview of the tier the player is working towards - a payout that climbs
+	# here is a payout the balance charts never predicted.
 	var def := _def(AchievementDef.Stat.LIFETIME_TICKS)
+	def.reward_base = BigNumber.from_value(5.0)
+	def.reward_growth = 1.0
 	var system := _system([def])
-	assert_float(system.reward_for(def, 0).to_float()).is_equal_approx(2.0, EPS)
+	for achievement_tier in [0, 1, 7, 40]:
+		assert_float(system.reward_for(def, achievement_tier).to_float()) \
+			.override_failure_message("Tier %d pays off the flat curve." % achievement_tier) \
+			.is_equal_approx(5.0, EPS)
 
 # ─── Measuring ───────────────────────────────────────────────────────────────
 
@@ -455,30 +444,20 @@ func test_claim_reward_is_zero_while_nothing_is_waiting() -> void:
 	system.evaluate()
 	assert_float(system.claim_reward(def).to_float()).is_equal_approx(1.0, EPS)
 
-func test_a_crystal_gain_upgrade_bought_before_claiming_counts() -> void:
-	# Rewards are priced when collected, not when completed, so banking tiers and
-	# then investing in crystal_gain is a real decision rather than a trap.
+func test_a_banked_tier_pays_what_it_was_worth_when_it_completed() -> void:
+	# The payout is a pure function of the tier, so collecting late can neither
+	# gain nor lose the player anything. Nothing between completing and claiming
+	# is allowed to reprice a tier.
 	var def := _def(AchievementDef.Stat.LIFETIME_TICKS)
-	var upgrade := UpgradeDef.new()
-	upgrade.id = &"CrystalTest"
-	var effect := UpgradeEffectDef.new()
-	effect.stat = &"crystal_gain"
-	effect.op = UpgradeEffectDef.Op.INCREASED
-	effect.scope = UpgradeEffectDef.Scope.GLOBAL
-	effect.per_level = 1.0
-	upgrade.effects = [effect]
-	var biome_upgrades := UpgradeSystem.new()
-	biome_upgrades.register(upgrade)
-	_production = ProductionSystem.new(_symbiosis, biome_upgrades, UpgradeSystem.new(),
-		ResolveContext.new())
+	def.reward_base = BigNumber.from_value(5.0)
+	def.reward_growth = 1.0
 	var system := _system([def])
 
-	_player.lifetime_ticks = 10
+	_player.lifetime_ticks = 40   # clears tiers 0, 1 and 2 at once
 	system.evaluate()
-	biome_upgrades.buy_with_points(&"CrystalTest", true)   # bought after completing
-	system.claim(def.id)
-
-	assert_float(_player.crystals.to_float()).is_equal_approx(2.0, EPS)
+	assert_int(system.unclaimed(def.id)).is_equal(3)
+	assert_float(system.claim_all().to_float()).is_equal_approx(15.0, EPS)
+	assert_float(_player.crystals.to_float()).is_equal_approx(15.0, EPS)
 
 func test_total_tiers_counts_claims_only() -> void:
 	var first := _def(AchievementDef.Stat.LIFETIME_TICKS)

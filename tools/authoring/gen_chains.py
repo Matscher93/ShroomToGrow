@@ -52,7 +52,7 @@ ANCHORS = {
     ],
     "chitin_scribe": [
         (0,  "trace_the_wardstone",  "Trace the Wardstone",   150.0,    3.0, ("water_production",2, 0.15, None)),
-        (2,  "read_the_frieze",      "Read the Frieze",       480.0,   15.0, ("crystal_gain",    2, 0.2,  None)),
+        (2,  "read_the_frieze",      "Read the Frieze",       480.0,   15.0, ("potency_production", 2, 0.2, None)),
         (5,  "wake_the_choir",       "Wake the Choir",       1500.0,   80.0, ("farm_slots",      0, 1.0,  None)),
         (10, "unseal_the_sanctum",   "Unseal the Sanctum",   3600.0,  380.0, ("biomass_gain",    2, 1.0,  None)),
     ],
@@ -345,7 +345,7 @@ REWARD_LADDER = {
     ],
     "chitin_scribe": [
         ("mission_reward",   2, 0.20, None, 2, "farm_copy_the_frieze"),
-        ("crystal_gain",     2, 0.30, None),
+        ("water_production",  2, 0.30, None),
         ("mission_speed",    2, 0.25, None, 2, "farm_tend_the_choir"),
         ("glyph_gain",       2, 0.50, None),
     ],
@@ -365,7 +365,7 @@ REWARD_LADDER = {
         ("workers_per_farm", 0, 1.00, None),
         ("tick_rate",        0, -0.75, 4.0),
         ("mission_reward",   2, 0.40, None, 2, "farm_keep_the_apse"),
-        ("crystal_gain",     2, 0.80, None),
+        ("relic_gain",       2, 0.80, None),
     ],
     "sealed_choir": [
         ("farm_slots",       0, 1.00, None),

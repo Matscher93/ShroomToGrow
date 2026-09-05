@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("1_script")
-stat = &"crystal_gain"
+stat = &"synergy_production"
 op = 1
 scope = 0
 target = &""

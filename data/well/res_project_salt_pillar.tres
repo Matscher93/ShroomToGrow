@@ -6,7 +6,7 @@
 
 [sub_resource type="Resource" id="effect_crust"]
 script = ExtResource("3_effect_script")
-stat = &"crystal_gain"
+stat = &"biomass_gain"
 op = 2
 scope = 0
 target = &""
@@ -16,13 +16,13 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_crust"]
 script = ExtResource("2_boon_script")
 display_name = "Salt Crust"
-description = "{value} crystals from achievements, per level, compounding."
+description = "{value} biomass gained on sporation, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_crust")
 
 [sub_resource type="Resource" id="effect_halite"]
 script = ExtResource("3_effect_script")
-stat = &"crystal_gain"
+stat = &"node_production"
 op = 2
 scope = 0
 target = &""
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_halite"]
 script = ExtResource("2_boon_script")
 display_name = "Halite Seams"
-description = "{value} crystals from achievements, per level, compounding."
+description = "{value} production on every node, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_halite")
 
@@ -54,7 +54,7 @@ effect = SubResource("effect_brine")
 
 [sub_resource type="Resource" id="effect_pillar2"]
 script = ExtResource("3_effect_script")
-stat = &"crystal_gain"
+stat = &"potency_production"
 op = 2
 scope = 0
 target = &""
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_pillar2"]
 script = ExtResource("2_boon_script")
 display_name = "The Pillar"
-description = "{value} crystals from achievements, per level, compounding."
+description = "{value} Potency production, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_pillar2")
 

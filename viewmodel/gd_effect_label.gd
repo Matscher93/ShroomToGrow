@@ -20,8 +20,8 @@ extends RefCounted
 ##
 ## Every stat in StatNames.ALL is worded here, because a description resolving
 ## {noun} through the StatResources fallback would print the bucket's name - a
-## &"crystal_gain" boon reading "crystals" where the card it replaces said
-## "crystals from achievements". authored_data_test asserts the set stays whole.
+## &"boost_power" boon reading "boosts" where the card it replaces said
+## "strength". authored_data_test asserts the set stays whole.
 const NOUNS := {
 	&"node_production": "node production",
 	&"potency_production": "potency",
@@ -40,7 +40,6 @@ const NOUNS := {
 	&"water_rate": "ticks between pumps",
 	&"water_production": "water per pump",
 	&"biomass_gain": "biomass gained on sporation",
-	&"crystal_gain": "crystals from achievements",
 	&"relic_gain": "relics from missions",
 	&"ichor_gain": "ichor from missions",
 	&"glyph_gain": "glyphs from missions",

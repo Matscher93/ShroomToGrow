@@ -38,7 +38,7 @@ effect = SubResource("effect_lumen")
 
 [sub_resource type="Resource" id="effect_prism2"]
 script = ExtResource("3_effect_script")
-stat = &"crystal_gain"
+stat = &"potency_production"
 op = 2
 scope = 0
 target = &""
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_prism2"]
 script = ExtResource("2_boon_script")
 display_name = "Prism Shoal"
-description = "{value} crystals from achievements, per level, compounding."
+description = "{value} Potency production, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_prism2")
 

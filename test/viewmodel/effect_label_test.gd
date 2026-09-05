@@ -35,12 +35,12 @@ func test_an_additive_percentage_reads_as_a_percentage() -> void:
 	assert_str(text).is_equal("+8% node production")
 
 func test_a_fractional_multiplier_drops_its_padding_zeros() -> void:
-	var text := EffectLabel.of_effect(_effect(&"crystal_gain", UpgradeEffectDef.Op.MORE, 1.5))
-	assert_str(text).is_equal("x2.5 crystals from achievements")
+	var text := EffectLabel.of_effect(_effect(&"relic_gain", UpgradeEffectDef.Op.MORE, 1.5))
+	assert_str(text).is_equal("x2.5 relics from missions")
 
 func test_a_two_place_multiplier_keeps_both() -> void:
-	var text := EffectLabel.of_effect(_effect(&"crystal_gain", UpgradeEffectDef.Op.MORE, 1.25))
-	assert_str(text).is_equal("x2.25 crystals from achievements")
+	var text := EffectLabel.of_effect(_effect(&"relic_gain", UpgradeEffectDef.Op.MORE, 1.25))
+	assert_str(text).is_equal("x2.25 relics from missions")
 
 ## The level is what the effect is worth held, which is what a perk row shows.
 func test_a_level_scales_the_phrase() -> void:
@@ -87,7 +87,7 @@ func test_a_null_effect_has_no_amount() -> void:
 func test_a_global_effect_names_no_scope() -> void:
 	# On a stat whose own noun carries no "on": biomass_gain's does ("gained on
 	# sporation"), and would answer this question with the noun rather than a scope.
-	var text := EffectLabel.of_effect(_effect(&"crystal_gain", UpgradeEffectDef.Op.MORE, 0.5))
+	var text := EffectLabel.of_effect(_effect(&"automation_rate", UpgradeEffectDef.Op.MORE, 0.5))
 	assert_str(text).not_contains(" on ")
 
 func test_a_tagged_effect_names_its_group() -> void:

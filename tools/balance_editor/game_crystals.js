@@ -30,7 +30,6 @@
     xpLadder, rowsOf, cell, numberCell, field, fieldGroup, bigField, scopeTargetFields,
   } = window.GameKit;
 
-  const CRYSTAL_STAT = "crystal_gain";
   const TIERS = 50;              // matches BalanceData.CURVE_OPEN_ENDED_LEVELS
   const AUTOMATION_LEVELS = 50;
 
@@ -222,41 +221,6 @@
 
   /* -------------------------------------------------------------- 1. the loop */
 
-  /** Every authored row that pushes on crystal_gain, wherever it lives.
-   *
-   * Scanned rather than listed: effects reach their systems by plain StringName,
-   * so the only way to know what touches crystals is to look at every row that
-   * names a stat. Boons reach theirs through an effect one hop away, which is
-   * why the boon's own row is reported as the owner. */
-  function crystalWriters() {
-    const out = [];
-    const boonByEffect = new Map();
-    for (const boon of rowsOf("ProjectBoonDef")) {
-      const effect = cell(boon, "effect");
-      if (effect) boonByEffect.set(effect, boon);
-    }
-
-    for (const file of state.files) {
-      if (!state.loaded.has(file)) continue;
-      const data = dataOf(file);
-      if (!data.header.includes("stat")) continue;
-      for (const entry of rowsOf(file)) {
-        if (cell(entry, "stat") !== CRYSTAL_STAT) continue;
-        const owner = boonByEffect.get(entry.path);
-        out.push({
-          entry,
-          label: owner ? `${cell(owner, "display_name")} (boon)` : labelOf(entry),
-          where: shortPath(entry.path),
-          op: cell(entry, "op") || "-",
-          perLevel: cell(entry, "per_level") || cell(entry, "base_per_level")
-            || cell(entry, "lp_per_level") || "-",
-          scaling: cell(entry, "level_scaling") || "-",
-        });
-      }
-    }
-    return out.sort((a, b) => a.where.localeCompare(b.where));
-  }
-
   function loopSection() {
     const wrap = document.createElement("div");
     wrap.className = "game-group";
@@ -266,38 +230,17 @@
 
     const note = document.createElement("p");
     note.className = "hint";
-    note.textContent = "Minted in one place only — claiming an achievement tier. Spent on "
+    note.textContent = "Minted in one place only \u2014 claiming an achievement tier. Spent on "
       + "boosts, automations and a biome's auto-unlock. Crystals survive prestige, which is "
-      + "what makes them the meta-currency; the reward is priced at claim time, so a "
-      + "crystal_gain upgrade bought before collecting does count.";
+      + "what makes them the meta-currency.";
     wrap.append(note);
 
-    const rows = crystalWriters();
-    const sub = document.createElement("h4");
-    sub.textContent = `Everything that raises crystal_gain (${rows.length})`;
-    wrap.append(sub);
-
-    const table = document.createElement("table");
-    table.className = "web-table water-writers";
-    const head = table.insertRow();
-    for (const column of ["what", "op", "per level", "scaling", "file"]) {
-      const th = document.createElement("th");
-      th.textContent = column;
-      head.append(th);
-    }
-    for (const row of rows) {
-      const tr = table.insertRow();
-      const name = tr.insertCell();
-      name.textContent = row.label;
-      name.className = "link";
-      name.title = "Open this in the graph";
-      name.onclick = () => { setFocus(row.entry.path); setView("graph"); };
-      tr.insertCell().textContent = row.op;
-      tr.insertCell().textContent = row.perLevel;
-      tr.insertCell().textContent = row.scaling;
-      tr.insertCell().textContent = row.where;
-    }
-    wrap.append(table);
+    const flat = document.createElement("p");
+    flat.className = "hint";
+    flat.textContent = "Nothing raises a crystal payout. There is no crystal stat for an "
+      + "upgrade, boost, project or perk to name, so a tier pays exactly what the curve below "
+      + "says and the numbers on this page are the numbers the player is paid.";
+    wrap.append(flat);
     return wrap;
   }
 
@@ -361,9 +304,9 @@
     }
     const rewardNote = document.createElement("p");
     rewardNote.className = "hint";
-    rewardNote.textContent = "Crystals paid when the tier is claimed, before any crystal_gain "
-      + "upgrade is stacked on top. The engine's samples are taken through a neutral "
-      + "production system, so both lines here are the authored numbers.";
+    rewardNote.textContent = "Crystals paid when the tier is claimed. Nothing in the game "
+      + "modifies it, so this is what the player actually collects \u2014 set reward_growth to "
+      + "1.0 for a ladder that pays the same at every tier.";
     rewardFields.append(rewardNote);
     reward.append(rewardFields, chartBlock("Reward at tier",
       (from, to) => withEngine(entry, "reward", rewardCurve(entry, from, to), from, to,
@@ -773,8 +716,7 @@
       body.append(automationCard(entry, index, automations.length)));
 
     setStatus(`${achievements.length} achievements · ${boosts.length} boosts · `
-      + `${automations.length} automations · ${crystalWriters().length} effects raising `
-      + "crystal_gain");
+      + `${automations.length} automations · payouts unmodified`);
   };
 
   window.BalanceScreens = window.BalanceScreens || {};

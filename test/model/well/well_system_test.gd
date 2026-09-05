@@ -65,7 +65,7 @@ func _project_list() -> ProjectList:
 	var open_boons: Array[ProjectBoonDef] = [
 		_boon("First", 1, &"water_production", 0.5),
 		_boon("Second", 3, &"biomass_gain", 0.25),
-		_boon("Third", 7, &"crystal_gain", 1.0),
+		_boon("Third", 7, &"potency_production", 1.0),
 	]
 	open.boons = open_boons
 

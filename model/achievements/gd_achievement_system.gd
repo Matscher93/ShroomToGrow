@@ -37,7 +37,6 @@ const LOG_SCALE_DECADES := 3.0
 var _achievements: AchievementList
 var _progress: AchievementProgress
 var _player_data: PlayerData
-var _production: ProductionSystem
 var _symbiosis: UpgradeSystem
 var _biomes_data: BiomesData
 ## id -> AchievementDef. Built once, mirroring BiomeSystem and AutomationSystem:
@@ -46,12 +45,11 @@ var _biomes_data: BiomesData
 var _defs_by_id: Dictionary = {}
 
 func _init(achievements: AchievementList, progress: AchievementProgress,
-		player_data: PlayerData, production: ProductionSystem, symbiosis: UpgradeSystem,
+		player_data: PlayerData, symbiosis: UpgradeSystem,
 		biomes_data: BiomesData) -> void:
 	_achievements = achievements
 	_progress = progress
 	_player_data = player_data
-	_production = production
 	_symbiosis = symbiosis
 	_biomes_data = biomes_data
 	for def in _achievements.achievements:
@@ -122,12 +120,14 @@ func _ceil_big(value: BigNumber) -> BigNumber:
 		return value
 	return BigNumber.from_value(ceil(value.to_float()))
 
-## Crystals paid for completing the given tier, after every &"crystal_gain"
-## upgrade has been stacked onto it.
+## Crystals paid for completing the given tier, straight off the authored curve.
+##
+## Nothing modifies it. Crystals are the one payout no upgrade, boost, project or
+## perk may touch: the ladder the balance tools chart is the ladder the player is
+## paid, so a tier is worth the same whenever it is claimed.
 func reward_for(def: AchievementDef, achievement_tier: int) -> BigNumber:
 	var scaled := pow(float(achievement_tier), def.reward_growth_exponent)
-	var base := def.reward_base.mul(BigNumber.from_value(def.reward_growth).pow_float(scaled))
-	return _production.modify_crystal_gain(base)
+	return def.reward_base.mul(BigNumber.from_value(def.reward_growth).pow_float(scaled))
 
 ## Where the player currently stands on this achievement's measure. Every Stat
 ## has to be handled here, or the achievement sits at zero forever.
@@ -171,8 +171,8 @@ func current_goal(def: AchievementDef) -> BigNumber:
 	return goal_for(def, _progress.completed(def.id))
 
 ## What claiming this achievement's next waiting tier pays. Zero when nothing is
-## waiting. Priced at claim time, so &"crystal_gain" upgrades bought before
-## collecting do count.
+## waiting. The reward is fixed by the tier alone, so waiting to collect never
+## changes it.
 func claim_reward(def: AchievementDef) -> BigNumber:
 	if _progress.unclaimed_count(def.id) <= 0:
 		return BigNumber.new(0.0, 0)

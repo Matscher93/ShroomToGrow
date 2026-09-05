@@ -605,8 +605,6 @@ func test_every_counted_achievement_asks_for_whole_numbers_that_keep_rising() ->
 	var system := AchievementSystem.new(
 		load("res://data/achievements/all_achievements.tres") as AchievementList,
 		AchievementProgress.new(), PlayerData.new(),
-		ProductionSystem.new(UpgradeSystem.new(), UpgradeSystem.new(), UpgradeSystem.new(),
-			ResolveContext.new()),
 		UpgradeSystem.new(), BiomesData.new())
 
 	for def in _achievements:

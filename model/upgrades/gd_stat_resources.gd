@@ -28,7 +28,6 @@ const RESOURCES := [
 	{"resource": "water", "metric": "stat", "stats": ["water_production"]},
 	{"resource": "water pump", "metric": "water", "stats": ["water_rate"]},
 	{"resource": "biomass", "metric": "stat", "stats": ["biomass_gain"]},
-	{"resource": "crystals", "metric": "stat", "stats": ["crystal_gain"]},
 	{"resource": "relics", "metric": "stat", "stats": ["relic_gain"]},
 	{"resource": "ichor", "metric": "stat", "stats": ["ichor_gain"]},
 	{"resource": "glyphs", "metric": "stat", "stats": ["glyph_gain"]},

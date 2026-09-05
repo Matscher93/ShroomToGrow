@@ -15,7 +15,6 @@ func test_the_two_water_stats_are_told_apart() -> void:
 
 func test_the_permanent_tracks_draw_their_own_currency() -> void:
 	assert_int(StatIcons.for_stat(&"biomass_gain")).is_equal(StatIcons.Icon.BIOMASS)
-	assert_int(StatIcons.for_stat(&"crystal_gain")).is_equal(StatIcons.Icon.CRYSTALS)
 
 func test_the_two_rate_stats_are_told_apart() -> void:
 	assert_int(StatIcons.for_stat(&"tick_rate")).is_equal(StatIcons.Icon.TEMPO)
@@ -27,7 +26,7 @@ func test_no_two_mapped_stats_share_an_icon() -> void:
 	# true, and nothing on screen would say so.
 	var seen := {}
 	for stat: StringName in [&"node_production", &"water_production", &"water_rate",
-			&"biomass_gain", &"crystal_gain", &"tick_rate", &"automation_rate",
+			&"biomass_gain", &"tick_rate", &"automation_rate",
 			&"boost_max_level", &"boost_power"]:
 		var icon := StatIcons.for_stat(stat)
 		assert_bool(seen.has(icon)) \

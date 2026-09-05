@@ -5,8 +5,8 @@
 
 // Making a crystal boost hit harder: the crystal cluster itself, shrunk and set
 // inside a burst. The cluster says which economy is being raised, the rays say
-// it is the boost's strength rather than the crystal count - crystal_gain
-// already owns the bare cluster.
+// it is the boost's strength rather than the crystal count - the bare cluster
+// stands for crystals themselves.
 float boost_power_icon(vec2 UVspace, float icon_scale)
 {
 	float cluster = crystal_icon(UVspace, icon_scale * 0.62);

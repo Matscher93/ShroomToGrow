@@ -61,7 +61,8 @@ var progress_text: String:
 var progress_ratio: float:
 	get: return App.achievement_progress_ratio(_def)
 
-## What the goal currently being filled will pay, once it is claimed.
+## What the goal currently being filled will pay, once it is claimed. Nothing
+## modifies a crystal payout, so this is exactly what the tier is worth.
 var reward_text: String:
 	get:
 		if is_maxed:

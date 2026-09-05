@@ -836,9 +836,8 @@ static func _sample(app: Node, tick: int, seconds: float) -> Dictionary:
 ## would otherwise read as contributing nothing.
 ##
 ## Those three are all a run-level probe can see, and they leave most of the game
-## unmeasured: production is nutrients per tick, so a &"biomass_gain" or
-## &"crystal_gain" upgrade moves none of the three and reads as worth nothing at
-## all. So the same probe also measures the stat buckets the upgrade itself writes
+## unmeasured: production is nutrients per tick, so a &"biomass_gain" upgrade
+## moves none of the three and reads as worth nothing at all. So the same probe also measures the stat buckets the upgrade itself writes
 ## - see _measure_buckets() - and reports what each one loses without it. That is
 ## the number that levels the upgrades a run-level probe is blind to.
 ##

@@ -39,7 +39,7 @@ effect = SubResource("effect_first")
 
 [sub_resource type="Resource" id="effect_origin"]
 script = ExtResource("3_effect_script")
-stat = &"crystal_gain"
+stat = &"synergy_production"
 op = 2
 scope = 0
 target = &""
@@ -49,7 +49,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_origin"]
 script = ExtResource("2_boon_script")
 display_name = "Origin"
-description = "{value} crystals from achievements, per level, compounding."
+description = "{value} Synergy production, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_origin")
 

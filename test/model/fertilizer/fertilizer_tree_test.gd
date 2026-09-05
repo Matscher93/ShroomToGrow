@@ -17,7 +17,7 @@ func before_test() -> void:
 			UpgradeEffectDef.Scope.GLOBAL, &""),
 		_producer(CurrencyTypes.Types.BIOMASS, &"biomass_gain",
 			UpgradeEffectDef.Scope.GLOBAL, &""),
-		_producer(CurrencyTypes.Types.CRYSTALS, &"crystal_gain",
+		_producer(CurrencyTypes.Types.CRYSTALS, &"boost_power",
 			UpgradeEffectDef.Scope.GLOBAL, &""),
 	]
 
