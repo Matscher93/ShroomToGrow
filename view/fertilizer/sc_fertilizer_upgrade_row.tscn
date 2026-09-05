@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://view/growth/gd_growth_fert_row.gd" id="1_script"]
+[ext_resource type="Script" path="res://view/fertilizer/gd_fertilizer_upgrade_row.gd" id="1_script"]
 [ext_resource type="FontFile" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="2_num_font"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_row"]
@@ -39,7 +39,7 @@ font_color = Color(0.56078434, 0.8392157, 0.41568628, 1)
 font_size = 11
 font_color = Color(0.5764706, 0.65882355, 0.6117647, 1)
 
-[node name="growth_fert_row" type="PanelContainer" node_paths=PackedStringArray("lbl_label", "lbl_level", "lbl_description", "btn_buy")]
+[node name="fertilizer_upgrade_row" type="PanelContainer" node_paths=PackedStringArray("lbl_label", "lbl_level", "lbl_description", "btn_buy")]
 theme_override_styles/panel = SubResource("StyleBoxFlat_row")
 script = ExtResource("1_script")
 lbl_label = NodePath("HBoxContainer/VBoxContainer/HBoxContainer/lbl_label")

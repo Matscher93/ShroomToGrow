@@ -1,13 +1,14 @@
 extends PanelContainer
-## VIEW: the row of overlay entry points above the currency pills. Four of them:
-## the player level chip, the events bell, the statistics sheet and the
-## achievement archive.
+## VIEW: the row of overlay entry points above the currency pills. Five of them:
+## the player level chip, the events bell, the fertilizer sack, the statistics
+## sheet and the achievement archive.
 ##
-## Three of them carry the same notification cue a biome card uses for unspent
-## points - a dot on two, a count on the bell, since "how many offers" is worth
+## Four of them carry the same notification cue a biome card uses for unspent
+## points - a dot on three, a count on the bell, since "how many offers" is worth
 ## more than "some". Every overlay is off screen by default, so that cue is the
 ## only thing telling the player something is waiting: a claimable tier, an
-## unspent Level Point, today's daily reward, or an event about to be missed.
+## unspent Level Point, today's daily reward, an affordable fertilizer upgrade,
+## or an event about to be missed.
 ##
 ## Statistics has no cue and wants none: nothing there is waiting to be
 ## collected, and a dot that never means "act on this" teaches the player to
@@ -16,6 +17,7 @@ extends PanelContainer
 signal achievements_pressed
 signal growth_pressed
 signal events_pressed
+signal fertilizer_pressed
 signal statistics_pressed
 
 @export var btn_achievements: Button
@@ -30,16 +32,23 @@ signal statistics_pressed
 @export var btn_events: Button
 @export var lbl_events_badge: Label
 @export var panel_events_badge: PanelContainer
+@export var btn_fertilizer: Button
+## The chip's glyph comes from sh_stat_icon.gdshader with icon_id 12, which is
+## StatIcons.Icon.FERTILIZER - the sack already existed as a .gdshaderinc that
+## dispatcher includes, and a wrapper shader would compile the same shape twice.
+@export var image_fertilizer_notification: ColorRect
 @export var btn_statistics: Button
 
 var _vm: AchievementsViewModel
 var _growth_vm: GrowthViewModel
 var _events_vm: EventsViewModel
+var _fertilizer_vm: FertilizerViewModel
 
 func _ready() -> void:
 	btn_achievements.pressed.connect(_on_achievements_pressed)
 	btn_growth.pressed.connect(_on_growth_pressed)
 	btn_events.pressed.connect(_on_events_pressed)
+	btn_fertilizer.pressed.connect(_on_fertilizer_pressed)
 	btn_statistics.pressed.connect(_on_statistics_pressed)
 	if App.achievements_vm:
 		bind(App.achievements_vm)
@@ -47,6 +56,8 @@ func _ready() -> void:
 		bind_growth(App.growth_vm)
 	if App.events_vm:
 		bind_events(App.events_vm)
+	if App.fertilizer_vm:
+		bind_fertilizer(App.fertilizer_vm)
 
 func bind(vm: AchievementsViewModel) -> void:
 	if _vm:
@@ -69,6 +80,13 @@ func bind_events(vm: EventsViewModel) -> void:
 	_events_vm.property_changed.connect(_on_events_property_changed)
 	_refresh_events()
 
+func bind_fertilizer(vm: FertilizerViewModel) -> void:
+	if _fertilizer_vm:
+		_fertilizer_vm.property_changed.disconnect(_on_fertilizer_property_changed)
+	_fertilizer_vm = vm
+	_fertilizer_vm.property_changed.connect(_on_fertilizer_property_changed)
+	_refresh_fertilizer()
+
 func _exit_tree() -> void:
 	if _vm:
 		_vm.property_changed.disconnect(_on_property_changed)
@@ -79,6 +97,9 @@ func _exit_tree() -> void:
 	if _events_vm:
 		_events_vm.property_changed.disconnect(_on_events_property_changed)
 		_events_vm = null
+	if _fertilizer_vm:
+		_fertilizer_vm.property_changed.disconnect(_on_fertilizer_property_changed)
+		_fertilizer_vm = null
 
 func _on_property_changed(property: StringName) -> void:
 	if property == AchievementsViewModel.PROP_HAS_CLAIMS \
@@ -95,6 +116,11 @@ func _on_events_property_changed(property: StringName) -> void:
 	if property == EventsViewModel.PROP_QUEUE_CHANGED:
 		_refresh_events()
 
+## The VM has one notification and it moves the only thing the chip shows, so
+## there is nothing to match on.
+func _on_fertilizer_property_changed(_property: StringName) -> void:
+	_refresh_fertilizer()
+
 ## Hidden outright before the Crystal Caves rather than left dead: the archive
 ## pays crystals, and until that screen exists there is nowhere to spend them.
 ## The row is an HBox, so the other three simply repack.
@@ -105,6 +131,13 @@ func _refresh() -> void:
 func _refresh_growth() -> void:
 	lbl_growth_level.text = "Lv %s" % _growth_vm.level_number
 	image_growth_notification.visible = _growth_vm.has_alert
+
+## A dot rather than the stock as a number: fertilizer arrives in threes and
+## fours against prices that start at three, so "you have some" would be lit
+## almost always. The dot means an upgrade is affordable right now, which is the
+## same "there is a decision waiting" the other two dots mean.
+func _refresh_fertilizer() -> void:
+	image_fertilizer_notification.visible = _fertilizer_vm.has_alert
 
 ## The badge carries the count rather than a bare dot: an empty queue hides it
 ## outright, so the number is only ever shown when there is something to answer.
@@ -120,6 +153,9 @@ func _on_growth_pressed() -> void:
 
 func _on_events_pressed() -> void:
 	events_pressed.emit()
+
+func _on_fertilizer_pressed() -> void:
+	fertilizer_pressed.emit()
 
 func _on_statistics_pressed() -> void:
 	statistics_pressed.emit()

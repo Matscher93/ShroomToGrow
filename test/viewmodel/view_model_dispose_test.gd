@@ -162,6 +162,12 @@ func test_growth_view_model_disposes_cleanly() -> void:
 	_assert_symmetric("GrowthViewModel",
 		func() -> ViewModel: return GrowthViewModel.new())
 
+## One of this one's two connections is a currency signal taken with .unbind(1),
+## the same shape EventsViewModel is called out for below.
+func test_fertilizer_view_model_disposes_cleanly() -> void:
+	_assert_symmetric("FertilizerViewModel",
+		func() -> ViewModel: return FertilizerViewModel.new())
+
 ## The four currency signals here are connected with .unbind(1), which is the
 ## easiest disconnect in the layer to get wrong: dropping the .unbind(1) on the
 ## disconnect side leaves the connection in place and throws no error.

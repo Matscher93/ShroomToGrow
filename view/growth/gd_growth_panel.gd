@@ -1,7 +1,7 @@
 extends PanelContainer
-## VIEW: the growth sheet - the account level, the Level Points it has banked, the
-## fertilizer events have paid out and today's daily reward - shown as a
-## full-screen overlay over whatever screen the player is on.
+## VIEW: the growth sheet - the account level, the Level Points it has banked and
+## today's daily reward - shown as a full-screen overlay over whatever screen the
+## player is on.
 ##
 ## An overlay rather than a screen for the same reason the achievement archive is
 ## one: points and rewards pile up while the player is off doing something else,
@@ -26,13 +26,10 @@ signal dismissed
 @export var bar_double: ProgressBar
 @export var lbl_double_hint: Label
 @export var vbox_lp_rows: VBoxContainer
-@export var lbl_fert_balance: Label
-@export var vbox_fert_rows: VBoxContainer
 @export var lbl_daily_streak: Label
 @export var lbl_daily_hint: Label
 @export var grid_daily: GridContainer
 @export var lp_row_scene: PackedScene
-@export var fert_row_scene: PackedScene
 @export var daily_chip_scene: PackedScene
 
 var _vm: GrowthViewModel
@@ -72,31 +69,11 @@ func _build_rows() -> void:
 		var row := lp_row_scene.instantiate()
 		vbox_lp_rows.add_child(row)
 		row.invest_requested.connect(_on_invest_requested)
-	# Painted from the CurrencyDef rather than from the green each of these
-	# scenes used to hardcode. Fertilizer got a def of its own precisely because
-	# it was the one currency whose colour lived in whichever scene happened to
-	# draw it - the values still in sc_growth_panel.tscn and
-	# sc_growth_fert_row.tscn are the editor's preview, overwritten here.
-	var accent := _fertilizer_color()
-	lbl_fert_balance.label_settings.font_color = accent
-	for _i in _vm.fert_rows.size():
-		var fert_row := fert_row_scene.instantiate()
-		vbox_fert_rows.add_child(fert_row)
-		fert_row.set_accent(accent)
-		fert_row.buy_requested.connect(_on_fert_buy_requested)
 	for _i in _vm.daily_rows.size():
 		var chip := daily_chip_scene.instantiate()
 		grid_daily.add_child(chip)
 		chip.claim_requested.connect(_on_claim_requested)
 	_refresh_rows()
-
-## Static registry read of a field fixed for the def's lifetime, which is the
-## case the ViewModel rule carves out. Falls back to what the scenes already
-## carry, so a missing def leaves the sheet looking as it always has rather than
-## painting it black.
-func _fertilizer_color() -> Color:
-	var def: CurrencyDef = App.currencies.currencies.get(CurrencyTypes.Types.FERTILIZER)
-	return def.main_color if def else lbl_fert_balance.label_settings.font_color
 
 func _refresh() -> void:
 	lbl_level.text = _vm.level_text
@@ -106,7 +83,6 @@ func _refresh() -> void:
 	lbl_double_now.text = "%s now" % _vm.global_double_text
 	bar_double.value = _vm.global_pct_fill * 100.0
 	lbl_double_hint.text = _vm.next_double_hint_text
-	lbl_fert_balance.text = _vm.fert_balance_text
 	lbl_daily_streak.text = _vm.daily_streak_text
 	lbl_daily_hint.text = _vm.daily_hint_text
 	_refresh_rows()
@@ -115,9 +91,6 @@ func _refresh_rows() -> void:
 	var lp_rows := _vm.lp_rows
 	for i in range(mini(lp_rows.size(), vbox_lp_rows.get_child_count())):
 		vbox_lp_rows.get_child(i).bind(lp_rows[i])
-	var fert_rows := _vm.fert_rows
-	for i in range(mini(fert_rows.size(), vbox_fert_rows.get_child_count())):
-		vbox_fert_rows.get_child(i).bind(fert_rows[i])
 	var daily_rows := _vm.daily_rows
 	for i in range(mini(daily_rows.size(), grid_daily.get_child_count())):
 		grid_daily.get_child(i).bind(daily_rows[i])
@@ -127,9 +100,6 @@ func _on_invest_requested(currency: CurrencyTypes.Types) -> void:
 
 func _on_claim_requested(currency: CurrencyTypes.Types) -> void:
 	_vm.claim_daily(currency)
-
-func _on_fert_buy_requested(id: StringName) -> void:
-	_vm.buy_fertilizer(id)
 
 ## Presses that reached the backdrop missed the sheet, so they are a tap outside
 ## the overlay.

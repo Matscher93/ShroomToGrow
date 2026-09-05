@@ -8,6 +8,7 @@
 [ext_resource type="Shader" uid="uid://b4hlda7wef5eg" path="res://shaders/shared/sh_notification_indicator.gdshader" id="6_notification"]
 [ext_resource type="Shader" path="res://shaders/icons/sh_event_icon.gdshader" id="7_event_icon"]
 [ext_resource type="Shader" path="res://shaders/icons/sh_statistics_icon.gdshader" id="8_statistics_icon"]
+[ext_resource type="Shader" path="res://view/icons/sh_stat_icon.gdshader" id="10_stat_icon"]
 [ext_resource type="FontFile" uid="uid://cgxf7l60an3ht" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="9_num_font"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_top_bar"]
@@ -80,6 +81,34 @@ shader_parameter/rect_size = Vector2(22, 22)
 shader_parameter/icon_color = Color(0.56078434, 0.8392157, 0.41568628, 1)
 shader_parameter/icon_scale = 1.0
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fertilizer_button"]
+resource_local_to_scene = true
+shader = ExtResource("2_background")
+shader_parameter/rect_size = Vector2(40, 40)
+shader_parameter/box_color = Color(0.56078434, 0.8392157, 0.41568628, 1)
+shader_parameter/box_extends = Vector2(1, 1)
+shader_parameter/corner_radius = 12.0
+shader_parameter/border_thickness = 1.0
+shader_parameter/additional_border_offset = 1.0
+shader_parameter/background_alpha = 0.07
+shader_parameter/border_alpha = 0.3
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fertilizer_icon"]
+resource_local_to_scene = true
+shader = ExtResource("10_stat_icon")
+shader_parameter/icon_color = Color(0.56078434, 0.8392157, 0.41568628, 1)
+shader_parameter/icon_scale = 1.0
+shader_parameter/icon_id = 12
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fertilizer_notification"]
+resource_local_to_scene = true
+shader = ExtResource("6_notification")
+shader_parameter/radius = 0.4
+shader_parameter/radius_glow = 0.9
+shader_parameter/border_thickness = 0.1
+shader_parameter/notification_color = Color(0.56078434, 0.8392157, 0.41568628, 1)
+shader_parameter/ring_color = Color(0, 0, 0, 1)
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_statistics_button"]
 resource_local_to_scene = true
 shader = ExtResource("2_background")
@@ -132,7 +161,7 @@ font_color = Color(0.91764706, 0.98039216, 0.9529412, 1)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_focus"]
 
-[node name="top_bar" type="PanelContainer" node_paths=PackedStringArray("btn_achievements", "image_achievements_notification", "btn_growth", "lbl_growth_level", "image_growth_notification", "btn_events", "lbl_events_badge", "panel_events_badge", "btn_statistics", "panel_achievements")]
+[node name="top_bar" type="PanelContainer" node_paths=PackedStringArray("btn_achievements", "image_achievements_notification", "btn_growth", "lbl_growth_level", "image_growth_notification", "btn_events", "lbl_events_badge", "panel_events_badge", "btn_fertilizer", "image_fertilizer_notification", "btn_statistics", "panel_achievements")]
 theme_override_styles/panel = SubResource("StyleBoxEmpty_top_bar")
 script = ExtResource("1_script")
 btn_achievements = NodePath("HBoxContainer/panel_achievements/btn_achievements")
@@ -144,6 +173,8 @@ image_growth_notification = NodePath("HBoxContainer/panel_growth/image_notificat
 btn_events = NodePath("HBoxContainer/panel_events/btn_events")
 lbl_events_badge = NodePath("HBoxContainer/panel_events/panel_badge/lbl_events_badge")
 panel_events_badge = NodePath("HBoxContainer/panel_events/panel_badge")
+btn_fertilizer = NodePath("HBoxContainer/panel_fertilizer/btn_fertilizer")
+image_fertilizer_notification = NodePath("HBoxContainer/panel_fertilizer/image_notification")
 panel_achievements = NodePath("HBoxContainer/panel_achievements")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
@@ -245,6 +276,50 @@ text = "0"
 label_settings = SubResource("LabelSettings_events_badge")
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="panel_fertilizer" type="PanelContainer" parent="HBoxContainer"]
+material = SubResource("ShaderMaterial_fertilizer_button")
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 4
+script = ExtResource("4_base_panel")
+color_param = "box_color"
+
+[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/panel_fertilizer"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 9
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 9
+
+[node name="image_icon" type="ColorRect" parent="HBoxContainer/panel_fertilizer/MarginContainer"]
+material = SubResource("ShaderMaterial_fertilizer_icon")
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("3_base_color_rect")
+color_param = "icon_color"
+
+[node name="btn_fertilizer" type="Button" parent="HBoxContainer/panel_fertilizer"]
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/normal = SubResource("StyleBoxEmpty_normal")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_pressed")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_hover")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_focus")
+
+[node name="image_notification" type="ColorRect" parent="HBoxContainer/panel_fertilizer"]
+material = SubResource("ShaderMaterial_fertilizer_notification")
+custom_minimum_size = Vector2(14, 14)
+visible = false
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+offset_transform_enabled = true
+offset_transform_position = Vector2(4, -4)
+mouse_filter = 2
 
 [node name="spacer" type="Control" parent="HBoxContainer"]
 layout_mode = 2

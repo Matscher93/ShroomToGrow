@@ -13,17 +13,6 @@
 [ext_resource type="Resource" path="res://data/prestige/branches/res_perk_tempo_density_1_effect.tres" id="13_density_1"]
 [ext_resource type="Resource" path="res://data/prestige/branches/res_perk_tempo_density_2_effect.tres" id="14_density_2"]
 
-[sub_resource type="Resource" id="node_4b"]
-script = ExtResource("4_node_script")
-id = &"tempo_4b"
-display_name = "Tempo IV"
-description = "Reduces Tick Timer by {magnitude} per level"
-max_level = 150
-_base_cost_exponent = 162
-cost_growth = 2.0105941163678227
-cost_growth_exponent = 1.025
-effects = Array[ExtResource("3_effect_script")]([ExtResource("10_effect_4b")])
-
 [sub_resource type="Resource" id="node_density_2"]
 script = ExtResource("4_node_script")
 id = &"tempo_density_2"
@@ -47,10 +36,21 @@ _base_cost_exponent = 37
 cost_growth = 1.5
 effects = Array[ExtResource("3_effect_script")]([ExtResource("13_density_1")])
 
+[sub_resource type="Resource" id="node_4b"]
+script = ExtResource("4_node_script")
+id = &"tempo_4b"
+display_name = "Tempo IV"
+description = "Reduces Tick Timer by {magnitude} per level"
+max_level = 150
+_base_cost_exponent = 162
+cost_growth = 2.0105941163678227
+cost_growth_exponent = 1.025
+effects = Array[ExtResource("3_effect_script")]([ExtResource("10_effect_4b")])
+
 [sub_resource type="Resource" id="node_3b"]
 script = ExtResource("4_node_script")
 id = &"tempo_3b"
-children = Array[ExtResource("4_node_script")]([SubResource("node_4b"), SubResource("node_density_1")])
+children = Array[ExtResource("4_node_script")]([SubResource("node_density_1"), SubResource("node_4b")])
 display_name = "Tempo III"
 description = "Reduces Tick Timer by {magnitude} per level"
 max_level = 100

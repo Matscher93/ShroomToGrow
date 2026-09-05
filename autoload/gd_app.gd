@@ -116,6 +116,8 @@ var daily_reward_data: DailyRewardData
 var growth_vm: GrowthViewModel
 
 var fertilizer_upgrades := load("res://data/fertilizer/all_fertilizer_upgrades.tres") as FertilizerUpgradeList
+var fertilizer_vm: FertilizerViewModel
+
 var random_events := load("res://data/events/all_random_events.tres") as RandomEventList
 var events_data: EventsData
 var events_vm: EventsViewModel
@@ -357,9 +359,11 @@ func _ready() -> void:
 	crystal_caves_vm = CrystalCavesViewModel.new()
 	# After project_vms, for the same reason.
 	well_vm = WellViewModel.new()
-	# After player_level_system, daily_reward_system and fertilizer_system: the
-	# sheet holds all three sections and reads them back through App.
+	# After player_level_system and daily_reward_system: the sheet holds both
+	# sections and reads them back through App.
 	growth_vm = GrowthViewModel.new()
+	# After fertilizer_system, for the same reason.
+	fertilizer_vm = FertilizerViewModel.new()
 	# After event_system, for the same reason.
 	events_vm = EventsViewModel.new()
 	# After the three Ruins VM dictionaries: the screen's VM hands out those cards.

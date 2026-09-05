@@ -34,9 +34,10 @@ const PROP_HAS_ATTENTION := &"has_attention"
 ## Whether the card's buy body is open. Parked here for the same reason as
 ## BiomeViewModel.expanded: App owns this VM for the app's lifetime, the Nodes
 ## screen is freed on every nav switch, and a flag on the card would collapse
-## every tier again on every visit. Defaults shut - the list is long and only one
-## tier is usually being worked on. Not saved.
-var expanded := false
+## every tier again on every visit. Defaults open: the buy body is the card's
+## whole point, and a screen of shut cards hides every cost on first open.
+## Not saved.
+var expanded := true
 
 var _player_data: PlayerData
 var _mycelium_data: MyceliumNodeData
