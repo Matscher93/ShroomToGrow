@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_roots2"]
 script = ExtResource("2_boon_script")
 display_name = "Sunken Roots"
-description = "{value} production on every node, per level, compounding."
+description = "{value} production, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_roots2")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_canopy"]
 script = ExtResource("2_boon_script")
 display_name = "Drowned Canopy"
-description = "{value} node production on {scope}, per level, compounding."
+description = "{value} node production, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_canopy")
 

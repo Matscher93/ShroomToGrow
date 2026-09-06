@@ -29,8 +29,14 @@ var display_name: String:
 ## rather than the one the ladder was authored at.
 var description: String:
 	get:
-		return EffectLabel.expand(_def.description, [], 0,
+		var body := EffectLabel.expand(_def.description, [], 0,
 			{"rate": "x%.2f" % (1.0 + App.boost_next_gain(_id))})
+		# Off the BoostDef rather than an effect, for the same reason {rate} is:
+		# the tier defs are generated and rewritten as the ladder climbs, and the
+		# scope is the one thing about them that never moves.
+		var reach := ScopeLabel.sentence(
+			ScopeLabel.reach_of(_def.scope, _def.target, _def.stat))
+		return body if reach.is_empty() else "%s\n%s" % [body, reach]
 
 ## Against the ceiling the prestige perks have opened so far, not some ladder's
 ## far end: a boost capped at 100 showing "/ 500" reads as buyable when it isn't.

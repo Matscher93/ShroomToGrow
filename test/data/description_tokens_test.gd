@@ -180,3 +180,40 @@ func _walk(nodes: Array[PerkNodeDef]) -> Array[PerkNodeDef]:
 		all.append(node)
 		all.append_array(_walk(node.children))
 	return all
+
+## The scope is generated, so it must not also be authored.
+##
+## Every card with effects appends ScopeLabel.reach_sentence() under its
+## description - "Affects all nodes.", "Affects Sporocarp (Level 4)." - and the
+## prose that used to carry the same fact by hand has been taken out of the data.
+## Eighteen descriptions said "on every node", two biome upgrades named their tier
+## and then had it appended underneath, and a Well boon naming a tier could not
+## follow its effect when the effect was retargeted.
+##
+## Only the wording the generated line actually produces is banned, and only on
+## entries that get one: a Reach rung's "Opens Level 10 nodes (Panspore)" carries
+## no effect, generates nothing, and is meant to name the tier itself.
+func test_no_description_states_a_scope_the_card_already_generates() -> void:
+	for entry in _described():
+		if ScopeLabel.reach(entry["effects"]).is_empty():
+			continue
+		var text := _without_tokens(entry["text"])
+		for phrase: String in _scope_phrases(entry["effects"]):
+			assert_bool(text.findn(phrase) != -1) \
+				.override_failure_message(("%s writes '%s' into its description, which " \
+					+ "the generated 'Affects ...' line already says underneath. Leave the " \
+					+ "scope to the line, or a retargeted effect leaves the prose behind." \
+					+ "\n  %s") % [entry["where"], phrase, text]).is_false()
+
+## The wording a set of effects would have the card generate, as the phrases an
+## author might have typed instead. A global effect bans only the two spellings
+## of "everywhere"; a scoped one also bans the name of what it lands on.
+func _scope_phrases(effects: Array) -> PackedStringArray:
+	var phrases: PackedStringArray = ["every node", "all nodes", "Affects "]
+	for effect: UpgradeEffectDef in effects:
+		if effect == null or effect.scope == UpgradeEffectDef.Scope.GLOBAL:
+			continue
+		var name := ScopeLabel.of_effect(effect)
+		if not name.is_empty() and not phrases.has(name):
+			phrases.append(name)
+	return phrases

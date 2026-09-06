@@ -72,6 +72,13 @@ func _row(upgrade: FertilizerUpgradeDef) -> FertilizerRow:
 	# per_level on the def - so its rate arrives as an extra.
 	row.description = EffectLabel.expand(upgrade.description, [], 0,
 		{"rate": "%s%%" % EffectLabel.trimmed(upgrade.per_level * 100.0)})
+	# The scope lives on the generated def, not the authored one: FertilizerTree
+	# copies each producer's own scope/target, so an upgrade covering nutrients
+	# reaches the base tier and one covering water reaches nothing node-shaped.
+	var built := App.fertilizer_upgrade_system.def(upgrade.id)
+	var reach := ScopeLabel.reach_sentence(built.effects) if built else ""
+	if not reach.is_empty():
+		row.description = "%s\n%s" % [row.description, reach]
 	row.level_text = "Lv %d" % App.fertilizer_level(upgrade.id)
 	row.cost_text = App.fertilizer_cost(upgrade.id).to_display(0)
 	row.enabled = App.can_buy_fertilizer(upgrade.id)

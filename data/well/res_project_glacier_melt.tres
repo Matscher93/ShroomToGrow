@@ -49,7 +49,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_cold"]
 script = ExtResource("2_boon_script")
 display_name = "Cold Nutrition"
-description = "{value} production on every node, per level, compounding."
+description = "{value} production, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_cold")
 

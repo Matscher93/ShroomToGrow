@@ -269,3 +269,26 @@ func test_an_index_past_the_effects_is_unresolved() -> void:
 func test_a_description_that_resolves_leaves_nothing_behind() -> void:
 	var effects: Array = [_capped(&"tick_rate", UpgradeEffectDef.Op.ADD, -0.02, 0.75)]
 	assert_array(EffectLabel.unresolved_tokens("{value}, up to {cap}.", effects)).is_empty()
+
+# ─── Scope-free phrasing ─────────────────────────────────────────────────────
+
+## The card states the scope once, in the line ScopeLabel generates under the
+## description. A phrase inside that description carrying "on Canopy" as well
+## would say it twice, in two different spellings.
+func test_a_phrase_can_be_worded_without_its_scope() -> void:
+	var effect := _effect(&"farm_slots", UpgradeEffectDef.Op.ADD, 1.0,
+		UpgradeEffectDef.Scope.TAG, &"canopy")
+	assert_str(EffectLabel.of_effect(effect, 1, false)).is_equal("+1 farm plot")
+	assert_str(EffectLabel.of_amount(effect, 3.0, false)).is_equal("+3 farm plots")
+
+func test_the_effect_token_leaves_the_scope_to_the_generated_line() -> void:
+	var effect := _effect(&"node_production", UpgradeEffectDef.Op.INCREASED, 0.08,
+		UpgradeEffectDef.Scope.TAG, &"canopy")
+	assert_str(EffectLabel.expand("{effect}, per level.", [effect])) \
+		.is_equal("+8% node production, per level.")
+
+## Still available for a sentence that wants the scope in the middle of it.
+func test_the_scope_token_still_names_the_scope() -> void:
+	var effect := _effect(&"node_production", UpgradeEffectDef.Op.INCREASED, 0.08,
+		UpgradeEffectDef.Scope.TAG, &"canopy")
+	assert_str(EffectLabel.expand("on {scope}", [effect])).is_equal("on Canopy")

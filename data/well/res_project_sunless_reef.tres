@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_coral"]
 script = ExtResource("2_boon_script")
 display_name = "Coral Frame"
-description = "{value} production on every node, per level, compounding."
+description = "{value} production, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_coral")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_tenders"]
 script = ExtResource("2_boon_script")
 display_name = "Reef Tenders"
-description = "{value} Spore Density strength, per level, compounding."
+description = "{value} strength, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_tenders")
 

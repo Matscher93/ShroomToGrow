@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_pillar"]
 script = ExtResource("2_boon_script")
 display_name = "Pillar Beds"
-description = "{value} node production on {scope}, per level, compounding."
+description = "{value} node production, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_pillar")
 

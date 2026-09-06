@@ -180,6 +180,11 @@ var slot_status_text: String:
 			return ""
 		var lines := "%s - %s" % [upgrade_def.display_name,
 			EffectLabel.expand(upgrade_def.description, upgrade_def.effects, upgrade_def.max_level)]
+		# The same generated line the biome card carries, so a slot and the card
+		# it was recorded from describe the upgrade identically.
+		var reach := ScopeLabel.reach_sentence(upgrade_def.effects)
+		if not reach.is_empty():
+			lines = "%s\n%s" % [lines, reach]
 		var blocked := record_blocked_reason(_status_id)
 		if not blocked.is_empty():
 			return "%s\n%s" % [lines, blocked]

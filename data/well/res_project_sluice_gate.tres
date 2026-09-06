@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_silt"]
 script = ExtResource("2_boon_script")
 display_name = "Silt Bed"
-description = "{value} production on every node, per level, compounding."
+description = "{value} production, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_silt")
 
@@ -48,7 +48,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_intake"]
 script = ExtResource("2_boon_script")
 display_name = "Deep Intake"
-description = "{value} node production on {scope}, per level, compounding."
+description = "{value} node production, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_intake")
 

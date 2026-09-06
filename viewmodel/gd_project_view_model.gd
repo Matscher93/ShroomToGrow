@@ -27,7 +27,13 @@ var display_name: String:
 ## its own, and the line under its name is a summary of the rungs beneath it, so
 ## {value:3} is how it quotes the deepest one without typing the number twice.
 var description: String:
-	get: return EffectLabel.expand(_def.description, _boon_effects(), _def.max_level)
+	get:
+		var body := EffectLabel.expand(_def.description, _boon_effects(), _def.max_level)
+		# Across every boon, so a project that raises all nodes and then two tiers
+		# again says both - the card's summary is the only place the reader sees
+		# the project's whole reach before opening the rungs.
+		var reach := ScopeLabel.reach_sentence(_boon_effects())
+		return body if reach.is_empty() else "%s\n%s" % [body, reach]
 
 ## Against the ceiling the depth perk has opened so far, not the authored one: a
 ## project the perk has widened would otherwise read as maxed while it is still
@@ -102,7 +108,7 @@ func boon_rows() -> Array[Dictionary]:
 			# A boon carries one effect and its own ceiling is the project's, so the
 			# rung's levels are what {total} would be measured against - not a number
 			# the boon knows. max_level is left at 0 rather than guessed at.
-			"description": EffectLabel.expand(boon.description, [boon.effect]),
+			"description": _boon_description(boon),
 			"detail": detail,
 			"rate": rate,
 			"stat": boon.effect.stat if boon.effect != null else &"",
@@ -137,6 +143,14 @@ func _on_changed() -> void:
 	_notify(PROP_PROJECT_CHANGED)
 
 # --- Formatting ---
+
+## One rung's sentence, with what it reaches on the end of it. A rung is one line
+## rather than a paragraph, so the generated part is appended inline instead of
+## on a line of its own the way the project's own description takes it.
+func _boon_description(boon: ProjectBoonDef) -> String:
+	var body := EffectLabel.expand(boon.description, [boon.effect])
+	var reach := ScopeLabel.reach_sentence([boon.effect])
+	return body if reach.is_empty() else "%s %s" % [body, reach]
 
 ## The boons' effects in authored order, so a {value:N} in a description names
 ## the same rung the card lists Nth.

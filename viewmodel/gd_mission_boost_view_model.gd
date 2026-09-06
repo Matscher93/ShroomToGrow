@@ -24,7 +24,13 @@ var display_name: String:
 	get: return _def.display_name
 
 var description: String:
-	get: return EffectLabel.expand(_def.description, _def.effects, _def.max_level)
+	get:
+		var body := EffectLabel.expand(_def.description, _def.effects, _def.max_level)
+		# Empty for most rungs - the control half of the ladder moves missions and
+		# workers, which no node has an opinion about - and a sentence for the few
+		# that reach production.
+		var reach := ScopeLabel.reach_sentence(_def.effects)
+		return body if reach.is_empty() else "%s\n%s" % [body, reach]
 
 ## Which half of the ladder this rung sits in. Read off the stats its effects
 ## name rather than an authored flag, so a rung cannot claim to be one and behave

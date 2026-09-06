@@ -66,9 +66,10 @@ func before_test() -> void:
 		_chains[mission.hero_id].append(mission)
 	_mission_boosts = (load("res://data/ruins/all_mission_boosts.tres") as MissionBoostList).boosts
 
-## Node tiers, biomes and crystal boosts all address by StringName, and
-## NODE-scoped effects use one field for all three, so a target is valid if it
-## names any of them.
+## Node tiers, biomes, crystal boosts and farms all address by StringName, and
+## NODE-scoped effects use one field for all four, so a target is valid if it
+## names any of them. The farms are here because an expedition's reward lands on
+## one - "+20% mission payout on Tap the Seeps".
 func _scope_targets() -> Dictionary:
 	var targets := {}
 	for node in _nodes:
@@ -77,6 +78,8 @@ func _scope_targets() -> Dictionary:
 		targets[biome.key] = true
 	for boost in _boosts:
 		targets[boost.id] = true
+	for farm in _farms:
+		targets[farm.id] = true
 	return targets
 
 ## Every group a node declares. There is no authored list of tags anywhere else:
@@ -197,6 +200,19 @@ func test_every_scoped_effect_target_resolves() -> void:
 					assert_bool(tags.has(e.target)) \
 						.override_failure_message("Upgrade '%s' targets group '%s', which no node carries. It is dead at every level." \
 							% [def.id, e.target]).is_true()
+
+## An expedition's reward is an UpgradeEffectDef that reaches no UpgradeDef, so
+## the sweep above never saw one. Its scope is shown on the hero card - the card
+## words the target by name - and a drifted target reads there as its own id.
+func test_every_expedition_reward_target_resolves() -> void:
+	var targets := _scope_targets()
+	for mission in _expeditions:
+		for e: UpgradeEffectDef in mission.rewards:
+			if e.scope != UpgradeEffectDef.Scope.NODE:
+				continue
+			assert_bool(targets.has(e.target)) \
+				.override_failure_message("Expedition '%s' rewards an effect on '%s', which names nothing." \
+					% [mission.id, e.target]).is_true()
 
 func test_no_node_declares_the_same_tag_twice() -> void:
 	# UpgradeSystem.scope_keys() dedupes, so a duplicate is silent rather than

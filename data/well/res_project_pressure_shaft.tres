@@ -16,7 +16,7 @@ level_scaling = 0
 [sub_resource type="Resource" id="boon_bore"]
 script = ExtResource("2_boon_script")
 display_name = "Bore Head"
-description = "{value} max levels for Nutrient Flow, per level."
+description = "{value} max levels, per level."
 unlock_at_level = 1
 effect = SubResource("effect_bore")
 
@@ -49,7 +49,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_surge"]
 script = ExtResource("2_boon_script")
 display_name = "Surge Tank"
-description = "{value} Nutrient Flow strength, per level, compounding."
+description = "{value} strength, per level, compounding."
 unlock_at_level = 15
 effect = SubResource("effect_surge")
 

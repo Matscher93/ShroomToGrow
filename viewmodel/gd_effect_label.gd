@@ -63,30 +63,37 @@ const UNITS := {
 
 ## One effect at one level, as a phrase. `level` is what the effect is worth when
 ## it is held - 1 for an expedition reward, which is only ever granted once.
-static func of_effect(effect: UpgradeEffectDef, level: int = 1) -> String:
+##
+## `with_scope` is false where the card states the scope itself - a description
+## and the "Affects ..." line ScopeLabel generates under it would otherwise name
+## the same tier twice in two spellings.
+static func of_effect(effect: UpgradeEffectDef, level: int = 1,
+		with_scope: bool = true) -> String:
 	if effect == null:
 		return ""
-	return of_amount(effect, effect.per_level * float(level))
+	return of_amount(effect, effect.per_level * float(level), with_scope)
 
 ## The same phrase from an amount somebody else already worked out - what
 ## UpgradeEffectDef.contribution() resolved for the levels actually held,
 ## dependency scaling and cap included - rather than from per_level times a
 ## count. of_effect() is the authored rate; this is what the player has.
-static func of_amount(effect: UpgradeEffectDef, amount: float) -> String:
+static func of_amount(effect: UpgradeEffectDef, amount: float,
+		with_scope: bool = true) -> String:
 	if effect == null:
 		return ""
 	var noun := noun_for(effect.stat)
 	if effect.op == UpgradeEffectDef.Op.ADD and not UNCOUNTED.has(effect.stat):
 		noun = _plural(noun, amount)
-	var where := ScopeLabel.suffix(ScopeLabel.of_effect(effect))
+	var where := ScopeLabel.suffix(ScopeLabel.of_effect(effect)) if with_scope else ""
 	return "%s %s%s" % [_amount_text(effect, amount), noun, where]
 
 ## Every effect on one upgrade, joined. Almost everything authored carries one,
 ## and the join is what keeps the caller from having to know that.
-static func of_effects(effects: Array[UpgradeEffectDef], level: int = 1) -> String:
+static func of_effects(effects: Array[UpgradeEffectDef], level: int = 1,
+		with_scope: bool = true) -> String:
 	var parts: PackedStringArray = []
 	for effect in effects:
-		var text := of_effect(effect, level)
+		var text := of_effect(effect, level, with_scope)
 		if text.is_empty():
 			continue
 		parts.append(text)
@@ -199,7 +206,10 @@ static func _resolve(name: String, index_text: String, effects: Array, max_level
 	if effect == null:
 		return null
 	match name:
-		"effect": return of_effect(effect)
+		# Scope-free: the card appends ScopeLabel.reach_sentence() under the
+		# description, and the two saying it in different words is what the
+		# generated line exists to stop.
+		"effect": return of_effect(effect, 1, false)
 		"value": return value_of(effect)
 		"magnitude": return magnitude_of(effect)
 		"noun": return noun_for(effect.stat)

@@ -50,7 +50,7 @@ level_scaling = 0
 [sub_resource type="Resource" id="boon_cycle"]
 script = ExtResource("2_boon_script")
 display_name = "Lock Cycling"
-description = "{value} max levels for Spore Density, per level."
+description = "{value} max levels, per level."
 unlock_at_level = 15
 effect = SubResource("effect_cycle")
 

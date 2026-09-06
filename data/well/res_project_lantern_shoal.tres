@@ -16,7 +16,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_glow"]
 script = ExtResource("2_boon_script")
 display_name = "Glowing Beds"
-description = "{value} node production on {scope}, per level, compounding."
+description = "{value} node production, per level, compounding."
 unlock_at_level = 1
 effect = SubResource("effect_glow")
 
@@ -32,7 +32,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_lumen"]
 script = ExtResource("2_boon_script")
 display_name = "Lumen Feed"
-description = "{value} production on every node, per level, compounding."
+description = "{value} production, per level, compounding."
 unlock_at_level = 5
 effect = SubResource("effect_lumen")
 
@@ -64,7 +64,7 @@ level_scaling = 1
 [sub_resource type="Resource" id="boon_beacon"]
 script = ExtResource("2_boon_script")
 display_name = "Beacon Beds"
-description = "{value} node production on {scope}, per level, compounding."
+description = "{value} node production, per level, compounding."
 unlock_at_level = 40
 effect = SubResource("effect_beacon")
 

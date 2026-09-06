@@ -23,9 +23,9 @@ var max_level: int:
 var description: String:
 	get:
 		if _def.description.is_empty():
-			return _generated_effect_text()
-		return EffectLabel.expand(_def.description, _def.effects, _def.max_level,
-			PerkTree.cap_step_extras(_id))
+			return _with_reach(_generated_effect_text())
+		return _with_reach(EffectLabel.expand(_def.description, _def.effects,
+			_def.max_level, PerkTree.cap_step_extras(_id)))
 
 # --- Read-only display properties bound by the View ---
 var status: String:
@@ -104,7 +104,18 @@ func _generated_effect_text() -> String:
 	if _def.effects.is_empty():
 		return ""
 	var effect: UpgradeEffectDef = _def.effects[0]
-	return "%s per level%s" % [EffectLabel.of_effect(effect), EffectLabel.scaling_note(effect)]
+	# Scope-free: _with_reach() states it under the line, naming the tier's level
+	# as well as its name, and a Substrate perk saying "on Grove" here would then
+	# say "Grove (Level 8)" again directly below.
+	return "%s per level%s" % [EffectLabel.of_effect(effect, 1, false),
+		EffectLabel.scaling_note(effect)]
+
+## The perk's own line with what it reaches under it. A cap perk raises somebody
+## else's ceiling and carries no effect at all, so most of the Instinct and Tide
+## branches get nothing added and read exactly as they did.
+func _with_reach(body: String) -> String:
+	var reach := ScopeLabel.reach_sentence(_def.effects)
+	return body if reach.is_empty() else "%s\n%s" % [body, reach]
 
 # --- Lifecycle ---
 
