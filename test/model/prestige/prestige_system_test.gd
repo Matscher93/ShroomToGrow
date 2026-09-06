@@ -177,6 +177,45 @@ func _ladder_effect(stat: StringName, per_level: float) -> Array[UpgradeEffectDe
 	e.scope = UpgradeEffectDef.Scope.GLOBAL
 	return [e]
 
+# ─── Storage tally ───────────────────────────────────────────────────────────
+
+func test_the_storage_tally_matches_the_two_ladders_it_projects() -> void:
+	# Permafrost levels off this number (BiomeDef.XpSource.STORAGE_AREAS), so it
+	# has to be the same count the prestige screen's bars are drawn from.
+	_make_prestige_available()
+	_player.run_nutrients = BigNumber.from_value(1e9)
+	_player.tick_count = 60
+
+	_system.sync_storage_areas()
+
+	var report := _system.storage_report()
+	assert_int(_player.storage_areas).is_equal(report["total_areas"])
+	assert_int(_player.storage_areas).is_greater(0)
+
+func test_the_storage_tally_falls_back_with_the_run_it_measures() -> void:
+	_make_prestige_available()
+	_player.run_nutrients = BigNumber.from_value(1e9)
+	_player.tick_count = 60
+	_system.sync_storage_areas()
+	assert_int(_player.storage_areas).is_greater(0)
+
+	_system.prestige()
+
+	# Zeroed by prestige() itself rather than by the next tick: Permafrost's
+	# level has to fall with the run the moment it is traded in.
+	assert_int(_player.storage_areas).is_zero()
+
+func test_a_ladder_discount_moves_the_storage_tally() -> void:
+	_make_prestige_available()
+	_player.run_nutrients = BigNumber.from_value(1e9)
+	_system.sync_storage_areas()
+	var before := _player.storage_areas
+
+	_register(_perks, &"Densification", 100, _ladder_effect(&"nutrient_area_growth", -0.001))
+	_system.sync_storage_areas()
+
+	assert_int(_player.storage_areas).is_greater(before)
+
 func test_a_tick_area_discount_makes_the_time_ladder_cheaper() -> void:
 	_make_prestige_available()
 	_player.tick_count = 60

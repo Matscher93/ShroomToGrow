@@ -275,17 +275,52 @@ static func _amount_text(effect: UpgradeEffectDef, amount: float) -> String:
 		_:
 			return "%s%%" % _signed(amount * 100.0)
 
+## Magnitude at which the exact figure stops being the readable one and the
+## suffix wording takes over: "x40.0K" rather than "x40000".
+##
+## A threshold rather than a blanket conversion, because the small numbers are
+## the ones the cards promise exactly - a x1.03 perk and a -0.5s tick are their
+## own digits, and "1.0" is not what either of them says. Four digits still read
+## as a number, so the switch waits until five.
+##
+## It is also the point past which "%d" is unsafe: an exponential perk's total
+## runs off the end of a 64-bit int within a few levels, and the wrap prints a
+## negative bonus on a card that just got stronger.
+const COMPACT_ABOVE := 10_000.0
+
+## `value` in BigNumber's own suffix wording and without a sign, or "" for one
+## small enough to print exactly. Shared so _signed() and trimmed() switch over
+## at the same magnitude - a "+40.0K" next to an "x40000" would read as two
+## different scales.
+##
+## Unsigned, because the two callers disagree about what to do with the sign:
+## _signed() always spells it out and trimmed() only ever shows a minus.
+static func _compact(value: float) -> String:
+	# A non-finite value has no exponent for BigNumber.from_value() to take a
+	# logarithm of, so it is left to the exact branch below rather than turned
+	# into a saturated number that reads like a real one.
+	if not is_finite(value) or absf(value) < COMPACT_ABOVE:
+		return ""
+	return BigNumber.from_value(absf(value)).to_display()
+
 ## Whole counts read as whole numbers; a fractional add keeps up to three places
 ## with the padding zeros dropped, so half a second is "-0.5" and not "-0.500".
+## Past COMPACT_ABOVE the suffix wording takes over.
 ##
 ## Three rather than two because the Well's rungs converted into halves of a
 ## hundredth: at two places a x1.045 and a x1.04 print the same.
 static func _signed(amount: float) -> String:
+	var compact := _compact(amount)
+	if not compact.is_empty():
+		return "%s%s" % ["-" if amount < 0.0 else "+", compact]
 	if is_equal_approx(amount, roundf(amount)):
 		return "%+d" % int(roundf(amount))
 	return ("%+.3f" % amount).rstrip("0").rstrip(".")
 
 static func trimmed(value: float) -> String:
+	var compact := _compact(value)
+	if not compact.is_empty():
+		return "%s%s" % ["-" if value < 0.0 else "", compact]
 	if is_equal_approx(value, roundf(value)):
 		return "%d" % int(roundf(value))
 	return ("%.3f" % value).rstrip("0").rstrip(".")

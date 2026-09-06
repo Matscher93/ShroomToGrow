@@ -36,6 +36,17 @@ static func xp_for(def: BiomeDef, mycelium_nodes: Array[MyceliumNode],
 			# wall-clock time rather than by what the player can afford, so the
 			# tally climbs far more slowly.
 			return player_data.missions_completed * 5
+		BiomeDef.XpSource.STORAGE_AREAS:
+			# The *current run's* two prestige storage ladders, both summed - so
+			# this source falls back to zero on every sporation instead of only
+			# climbing. Unweighted: an area is far cheaper to fill than a whole
+			# run is to finish, so one area is worth one XP.
+			#
+			# Same cached-projection contract as WELL_PROJECTS above: the ladders
+			# need the discounted PrestigeCurveDef, which this pure function is
+			# not handed, so PrestigeSystem.sync_storage_areas() writes the tally
+			# onto PlayerData once a tick and this reads it back.
+			return player_data.storage_areas
 		_:
 			return 0
 

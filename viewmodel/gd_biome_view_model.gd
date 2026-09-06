@@ -160,6 +160,7 @@ func _init(key: StringName, def: BiomeDef) -> void:
 	App.player_data.achievement_tiers_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.ACHIEVEMENT_TIERS
 	App.player_data.well_project_levels_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.WELL_PROJECTS
 	App.player_data.missions_completed_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.MISSIONS_COMPLETED
+	App.player_data.storage_areas_changed.connect(_on_xp_source_changed.unbind(1))  # XpSource.STORAGE_AREAS
 	# Every currency a biome can be priced in, so an unlock button never sits
 	# stale on a balance it should be reacting to. CurrencyTypes decides what
 	# unlock_currency may name, so a new one belongs here too.
@@ -184,6 +185,7 @@ func dispose() -> void:
 	App.player_data.achievement_tiers_changed.disconnect(_on_xp_source_changed.unbind(1))
 	App.player_data.well_project_levels_changed.disconnect(_on_xp_source_changed.unbind(1))
 	App.player_data.missions_completed_changed.disconnect(_on_xp_source_changed.unbind(1))
+	App.player_data.storage_areas_changed.disconnect(_on_xp_source_changed.unbind(1))
 	App.player_data.nutrients_changed.disconnect(_on_currency_changed)
 	App.player_data.water_changed.disconnect(_on_currency_changed)
 	App.player_data.biomass_changed.disconnect(_on_currency_changed)

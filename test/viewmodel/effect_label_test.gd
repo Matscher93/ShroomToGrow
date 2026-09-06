@@ -77,6 +77,34 @@ func test_a_resolved_amount_keeps_its_scope_and_plural() -> void:
 		UpgradeEffectDef.Scope.TAG, &"canopy")
 	assert_str(EffectLabel.of_amount(effect, 3.0)).is_equal("+3 farm plots on Canopy")
 
+# ─── Large amounts ───────────────────────────────────────────────────────────
+
+## The exponential perks are the reason: a x40000 total is a wall of digits
+## where every currency beside it is already worded with a suffix.
+func test_a_large_multiplier_takes_the_suffix_wording() -> void:
+	var effect := _effect(&"biomass_gain", UpgradeEffectDef.Op.MORE, 1.0)
+	assert_str(EffectLabel.of_amount(effect, 39999.0)) \
+		.is_equal("x40.0K biomass gained on sporation")
+
+func test_a_large_add_keeps_its_sign() -> void:
+	var effect := _effect(&"farm_slots", UpgradeEffectDef.Op.ADD, 1.0)
+	assert_str(EffectLabel.of_amount(effect, 2500000.0)).is_equal("+2.5M farm plots")
+	assert_str(EffectLabel.of_amount(effect, -2500000.0)).is_equal("-2.5M farm plots")
+
+## Past 2^63 the old "%d" wrapped, so a stronger perk printed a negative bonus.
+func test_an_amount_past_what_an_int_holds_still_reads_as_a_gain() -> void:
+	var effect := _effect(&"biomass_gain", UpgradeEffectDef.Op.MORE, 1.0)
+	var text := EffectLabel.of_amount(effect, 1e25)
+	assert_str(text).starts_with("x10.0Sp")
+	assert_str(text).not_contains("-")
+
+## The small numbers are the ones the cards promise exactly, so the threshold
+## must not reach down to them.
+func test_a_small_amount_still_prints_its_own_digits() -> void:
+	var effect := _effect(&"water_production", UpgradeEffectDef.Op.MORE, 0.045)
+	assert_str(EffectLabel.value_of(effect)).is_equal("x1.045")
+	assert_str(EffectLabel.trimmed(9999.0)).is_equal("9999")
+
 func test_a_null_effect_has_no_amount() -> void:
 	assert_str(EffectLabel.of_amount(null, 1.0)).is_empty()
 

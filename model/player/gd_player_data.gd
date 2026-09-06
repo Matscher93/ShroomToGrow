@@ -15,6 +15,7 @@ signal prestige_count_changed(value: int)
 signal achievement_tiers_changed(value: int)
 signal well_project_levels_changed(value: int)
 signal missions_completed_changed(value: int)
+signal storage_areas_changed(value: int)
 
 ## Open batches, and the fields written while they were open. Same idiom and the
 ## same rationale as UpgradeSystem.begin_batch(): a caller moving these many
@@ -197,6 +198,26 @@ var missions_completed: int = 0:
 		missions_completed = value
 		if _defer(&"missions_completed"): return
 		missions_completed_changed.emit(missions_completed)
+
+## Prestige storage areas the *current run* has filled, both ladders summed.
+## Doubles as Permafrost's XP source (BiomeDef.XpSource.STORAGE_AREAS), so it
+## needs a change signal.
+##
+## Same contract as the three projections above: a cached projection of
+## PrestigeCalculator.total_areas(), rewritten by PrestigeSystem once a tick and
+## re-synced after a load. Deliberately not in _PLAIN_FIELDS - it is derived from
+## run_nutrients and tick_count, which are saved, so saving it too would let the
+## two drift.
+##
+## Run-scoped, unlike the other three: prestige() zeroes the counters it is read
+## off, so Permafrost's level falls back with them.
+var storage_areas: int = 0:
+	set(value):
+		if storage_areas == value:
+			return
+		storage_areas = value
+		if _defer(&"storage_areas"): return
+		storage_areas_changed.emit(storage_areas)
 
 ## Lifetime totals the achievement ladder measures against. Unlike tick_count and
 ## the currencies above, these are never reset, so an achievement goal stays

@@ -284,7 +284,7 @@ func test_unknown_biome_has_no_auto_unlock() -> void:
 # ─── Points ──────────────────────────────────────────────────────────────────
 
 func test_biome_points_bonus_flows_through_the_production_stack() -> void:
-	# permafrost scores off PRESTIGE_COUNT, which is 0 on a fresh PlayerData.
+	# permafrost scores off STORAGE_AREAS, which is 0 on a fresh PlayerData.
 	assert_int(_system.available_points(&"permafrost")).is_zero()
 	# meadow scores off TOTAL_NODES, so it already has points from the authored
 	# node data, so capture that rather than assuming a value.
@@ -431,9 +431,11 @@ func test_unknown_biome_has_no_size_cost() -> void:
 # ─── Biome level ─────────────────────────────────────────────────────────────
 
 func test_sync_levels_feeds_the_resolve_context() -> void:
-	# Permafrost levels off the prestige count, which is the one XP source this
-	# harness can move without touching the shared node resources.
-	_player.prestige_count = 1   # 10 XP, and level 2 starts at 6
+	# Permafrost levels off the run's filled prestige storage areas, which is the
+	# one XP source this harness can move without touching the shared node
+	# resources. PlayerData.storage_areas is the projection PrestigeSystem writes
+	# once a tick, so setting it directly is what a synced run looks like here.
+	_player.storage_areas = 6   # level 2 starts at 6
 
 	_system.sync_levels()
 
@@ -453,21 +455,23 @@ func test_sync_levels_invalidates_only_when_a_level_moved() -> void:
 	_system.sync_levels()
 	assert_int(_prestige.version).is_equal(version)
 
-	_player.prestige_count = 1
+	_player.storage_areas = 6
 	_system.sync_levels()
 	assert_int(_prestige.version).is_greater(version)
 
 func test_reset_reseeds_the_levels_rather_than_leaving_them_stale() -> void:
-	_player.prestige_count = 1
+	_player.storage_areas = 29   # level 4 starts at 29 XP
 	_system.sync_levels()
-	assert_float(_ctx.biome_level(&"permafrost")).is_equal_approx(2.0, EPS)
+	assert_float(_ctx.biome_level(&"permafrost")).is_equal_approx(4.0, EPS)
 
-	# A sporation raises the count it levels off, so the fresh run starts at the
-	# new level and not at the one it was reset from.
-	_player.prestige_count = 3
+	# A sporation empties the storage ladders permafrost levels off, and
+	# PrestigeSystem re-syncs the tally before it calls reset() - so the fresh
+	# run starts at the level the emptied ladders are worth, not at the one it
+	# was reset from.
+	_player.storage_areas = 0
 	_system.reset()
 
-	assert_float(_ctx.biome_level(&"permafrost")).is_equal_approx(4.0, EPS)
+	assert_float(_ctx.biome_level(&"permafrost")).is_equal_approx(1.0, EPS)
 
 # ─── Prestige reset ──────────────────────────────────────────────────────────
 

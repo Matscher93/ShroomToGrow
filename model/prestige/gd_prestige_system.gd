@@ -120,6 +120,19 @@ func storage_report() -> Dictionary:
 		"best": _player_data.best_biomass_gain,
 	}
 
+## Rewrites PlayerData.storage_areas from the run's two ladders.
+##
+## A pull rather than a write from whoever moved a counter: the tally is a
+## function of run_nutrients, tick_count *and* the discounted curve, and all
+## three move on a tick with nobody pressing anything. App calls this once a tick
+## just ahead of BiomeSystem.sync_levels(), which is what turns the number into
+## Permafrost's level, and again after a load.
+func sync_storage_areas() -> void:
+	if _curve == null or _production == null:
+		return
+	_player_data.storage_areas = PrestigeCalculator.total_areas(
+		_player_data.tick_count, _player_data.run_nutrients, effective_curve())
+
 ## Resets the current run (nutrients, water, tick_count, node purchases,
 ## symbiosis upgrades, biome unlocks) and converts it into biomass. Perks are
 ## untouched, they persist across prestiges.
@@ -136,6 +149,9 @@ func prestige() -> void:
 	_player_data.water = BigNumber.from_value(0.0)
 	_player_data.tick_count = 0
 	_player_data.prestige_count += 1
+	# The two ladders were just emptied, so Permafrost's XP source has to fall
+	# back with them rather than wait for the next tick to notice.
+	sync_storage_areas()
 
 	for node in _nodes:
 		# Tier 0 keeps one node, or the run restarts with nothing producing and

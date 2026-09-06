@@ -65,6 +65,17 @@ func test_prestige_count_source_is_worth_ten_each() -> void:
 	assert_int(BiomeCalculator.xp_for(def, [] as Array[MyceliumNode],
 		UpgradeSystem.new(), player)).is_equal(40)
 
+func test_storage_areas_source_reads_the_run_tally_unweighted() -> void:
+	# Permafrost levels off the run's prestige storage, so one filled area is
+	# worth one XP and a sporation takes the whole source back down with it.
+	var player := PlayerData.new()
+	player.storage_areas = 9
+	var def := BiomeDef.new()
+	def.xp_source = BiomeDef.XpSource.STORAGE_AREAS
+
+	assert_int(BiomeCalculator.xp_for(def, [] as Array[MyceliumNode],
+		UpgradeSystem.new(), player)).is_equal(9)
+
 func test_achievement_tiers_source_reads_the_player_total() -> void:
 	# Crystal Caves levels off the achievement ladder, which is what makes its
 	# tab worth opening in the first place.

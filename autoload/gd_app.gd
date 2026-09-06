@@ -620,10 +620,14 @@ func load_from_save(game: Dictionary) -> void:
 	# Only a device clock moved backwards can leave a last-claim day in the
 	# future, and only a load can be the first thing to notice.
 	daily_reward_system.sync_clock_rollback()
+	# PlayerData.storage_areas is a projection of the run counters just loaded,
+	# not a saved field, so it is rebuilt here too - and before sync_levels(),
+	# which reads it as Permafrost's XP.
+	prestige_system.sync_storage_areas()
 	# Last, once every XP source a biome level reads has been loaded: the nodes,
-	# the symbiosis levels, the achievement tiers, the well projects and the
-	# missions are all in by here. Without it the first tick of a loaded session
-	# resolves every level-scaled perk against level 1.
+	# the symbiosis levels, the achievement tiers, the well projects, the
+	# missions and the storage ladders are all in by here. Without it the first
+	# tick of a loaded session resolves every level-scaled perk against level 1.
 	biome_system.sync_levels()
 
 ## Keyed by node_id, like every other track in the file.
@@ -698,7 +702,10 @@ func handle_tick(bonuses: Array[BigNumber] = [], pump: WaterPumpPlan = null,
 		manual: Array[BigNumber] = []) -> void:
 	# Before production, so a level earned last tick pays into this one. Cheap
 	# and usually a no-op: it only invalidates when a biome actually levelled.
+	# The storage tally goes first because it is one of the XP sources the levels
+	# below are read off - see PrestigeSystem.sync_storage_areas().
 	watchdog.mark("tick: sync_levels")
+	prestige_system.sync_storage_areas()
 	biome_system.sync_levels()
 	watchdog.mark("tick: production")
 	tick_system.handle_tick(bonuses, pump, manual)
