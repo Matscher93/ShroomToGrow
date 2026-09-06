@@ -6,6 +6,7 @@
 #extra-views { display: contents; }
 
 #curves-view,
+#spread-view,
 #sim-view {
   display: grid;
   grid-template-columns: 1fr 340px;
@@ -13,6 +14,7 @@
 }
 
 #curves-view[hidden],
+#spread-view[hidden],
 #sim-view[hidden] { display: none; }
 
 /* The web is a game screen now, so it sits inside #game-view's body rather than
@@ -55,6 +57,7 @@
 .web-cost-name { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
 
 .curve-canvas,
+.spread-canvas,
 .web-canvas,
 .sim-canvas {
   overflow: auto;
@@ -68,6 +71,7 @@
 .web-canvas { overflow: hidden; }
 
 .curve-panel,
+.spread-panel,
 .web-panel,
 .sim-panel {
   border-left: 1px solid var(--line);
@@ -86,10 +90,13 @@
 .curve-modes,
 .curve-actions,
 .sim-actions,
+.spread-modes,
 .web-modes { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .curve-modes button.active,
+.spread-modes button.active,
 .web-modes button.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.spread-modes button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* The row list takes the leftover height and scrolls inside it; the legend under
  * it scrolls inside its own capped box. Neither can push the other's contents
@@ -1065,3 +1072,58 @@
 /* Cards here are read one after another down a long page - a chain is twenty of
    them - so they need the air the biome cards get from being three abreast. */
 .ruins-card + .ruins-card { margin-top: 2px; }
+
+
+/* ------------------------------------------------------------------- spread */
+
+/* One lane per authored set, one dot per level. The dots are drawn faint and
+   jittered off the centre line on purpose: forty levels of one def land within a
+   pixel of each other on a log axis, and reading that as one offer is the
+   mistake the whole view exists to stop. */
+.spread-dot { opacity: 0.42; }
+.spread-dot:hover { opacity: 1; }
+
+/* The axis pans and zooms. touch-action is what stops a trackpad or a touch
+   drag being taken by the page's own scrolling before pointermove is seen. */
+.spread-chart { cursor: grab; touch-action: none; }
+/* On the body, not the chart: a pan redraws on every move, and the svg wearing
+   this class is thrown away by the first one. */
+body.spread-panning { cursor: grabbing; user-select: none; }
+body.spread-panning .spread-chart { cursor: grabbing; }
+
+/* Ground, not a mark: banding tells lanes apart where a name is off-screen, and
+   the gap band is the widest span a lane offers nothing in. */
+.spread-lane-band { fill: var(--line); opacity: 0.16; }
+.spread-gap { fill: var(--accent); opacity: 0.1; }
+.spread-gap:hover { opacity: 0.2; }
+.spread-grid { stroke: var(--line); stroke-width: 1; opacity: 0.5; }
+.spread-bar { fill: var(--accent); opacity: 0.45; }
+.spread-bar:hover { opacity: 0.8; }
+
+.spread-lane-name { font: 11px ui-monospace, monospace; fill: var(--muted); }
+
+.spread-field { display: flex; flex-direction: column; gap: 3px; }
+.spread-field-label { font-size: 11px; font-weight: 600; color: var(--muted); }
+.spread-lane-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 30vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+.spread-lane-row { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+
+/* The chart said in words. Worth its own block rather than a tooltip: a hole in
+   a lane is the thing that ends up quoted in a commit message, and a judgement
+   read off pixels is not quotable. */
+.spread-findings { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column;
+  gap: 3px; font-size: 12px; }
+.spread-findings li { color: var(--text); }
+.spread-findings li.hint { color: var(--muted); }
+.spread-findings-slot { border-top: 1px solid var(--line); padding-top: 6px; }
+
+/* Embedded in a game screen rather than filling a view: it takes the width it is
+   given and scrolls sideways if the lanes need more. */
+.spread-strip { display: flex; flex-direction: column; gap: 6px; overflow-x: auto; }

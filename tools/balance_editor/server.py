@@ -62,6 +62,11 @@ _snapshot: dict = {}
 # Godot editor is invisible until someone presses "Reload from .tres".
 _version = 0
 _derived: dict = {}      # command name -> its last report, dropped whenever data changes
+# What the last simulated run bought and when, served on /api/purchases. Kept
+# here rather than returned with the run: it is one row per level first reached
+# and only the spread view reads it, so a sim the spread view is not open for
+# should not pay to ship it.
+_purchases: dict = {}
 # Where the running simulation is writing its progress, and when it started.
 # Empty whenever nothing is running, which is what /api/sim/progress reports as
 # "not running". Only ever written under _godot_lock, so there is only ever one.
@@ -172,6 +177,10 @@ def simulate(request: dict) -> dict:
         f"--breakdowns={breakdowns}",
     ]
     with tempfile.TemporaryDirectory() as tmp:
+        # Written beside the run and read back below. The trace is only produced
+        # when a path is given, so asking for it is what turns it on.
+        trace_path = Path(tmp) / "purchases.json"
+        args.append(f"--purchases={trace_path}")
         start = request.get("save")
         if isinstance(start, dict):
             # Handed over as a file rather than on the command line: a save is
@@ -184,8 +193,13 @@ def simulate(request: dict) -> dict:
                 f"--from-seconds={max(0.0, float(request.get('from_seconds', 0.0)))}",
             ]
         report = run_godot(args, entry=[SIM_SCENE], timeout=SIM_TIMEOUT, progress=True)
+        # Inside the temporary directory, which is gone the moment it closes.
+        global _purchases
+        if trace_path.is_file():
+            _purchases = json.loads(trace_path.read_text())
     if report.get("errors"):
         raise GodotError("; ".join(report["errors"]))
+    report["purchase_count"] = len(_purchases.get("purchases", []))
     return report
 
 
@@ -358,6 +372,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._events()
             elif self.path == "/api/sim/progress":
                 self._send_json(sim_progress())
+            elif self.path == "/api/purchases":
+                # Empty until a run has been asked for, which is a state the
+                # spread view draws rather than an error: its price axis needs
+                # nothing from here.
+                self._send_json(_purchases or {"purchases": []})
             elif self.path.split("?")[0] in ("/api/curves", "/api/perks", "/api/unused"):
                 # ?fresh=1 drops the cache first. The cache is keyed off data
                 # writes, so a change to the .gd that *derives* the report - a

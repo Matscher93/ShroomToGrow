@@ -20,6 +20,7 @@
     log10Of: bigLog10,   // the local log10Of below takes a pair, this one a pair's halves
     fromLog10, formatBig, logSumExp, costToMaxLog10, resetRange,
     scopeTargetFields, rowsOf, fieldGroup, bigField, hueOf, dependencyField,
+    spreadSection,
   } = window.GameKit;
 
   /* The one resource pricing a finished run: PrestigeCurveDef, authored as
@@ -3103,6 +3104,9 @@
 
     canvas.replaceChildren(drawWeb());
     renderPanel(panel);
+    // At the foot of the panel rather than in the canvas: the canvas is the web
+    // itself, which pans and zooms and has nowhere a block of chart could sit.
+    panel.append(spreadSection(["perks"], "Perk prices"));
 
     // After the content is back, so there is something to scroll to. The browser
     // clamps whatever the new content is too short for.

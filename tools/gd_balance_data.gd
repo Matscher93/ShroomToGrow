@@ -110,6 +110,115 @@ const WORKER_CURVE_CREW := 30
 const CURVE_ID := &"#curve"
 
 
+#region Areas
+
+## res_path prefix -> the lane a priced def belongs to, and what buys it.
+##
+## Currency is a property of the *track*, not of the def: UpgradeSystem.buy() is
+## handed a PlayerData field name by App (gd_app.gd:188-226) and the pairing
+## exists nowhere else, so a def cannot be asked what it costs in. The few that
+## do carry a CurrencyDef of their own - a mission boost, a hero - override this;
+## see area_of().
+##
+## Ordered longest prefix first, because the first match wins and
+## data/prestige/branches sits under data/prestige.
+const AREAS: Array[Dictionary] = [
+	{"prefix": "res://data/upgrades/symbiosis/", "area": "nodes", "currency": "nutrients"},
+	{"prefix": "res://data/upgrades/biomes/", "area": "biome", "currency": "biome_points"},
+	{"prefix": "res://data/prestige/branches/", "area": "perks", "currency": "biomass"},
+	{"prefix": "res://data/prestige/", "area": "prestige", "currency": "nutrients"},
+	{"prefix": "res://data/mycelium_nodes/", "area": "nodes", "currency": "nutrients"},
+	{"prefix": "res://data/achievements/", "area": "achievements", "currency": ""},
+	{"prefix": "res://data/automation/", "area": "automations", "currency": "crystals"},
+	{"prefix": "res://data/fertilizer/", "area": "fertilizer", "currency": "fertilizer"},
+	{"prefix": "res://data/growth/", "area": "growth", "currency": ""},
+	{"prefix": "res://data/biomes/", "area": "biome_size", "currency": "nutrients"},
+	{"prefix": "res://data/boosts/", "area": "boosts", "currency": "crystals"},
+	{"prefix": "res://data/ruins/", "area": "ruins", "currency": "relics"},
+	{"prefix": "res://data/well/", "area": "well", "currency": "water"},
+]
+
+const BIOMES_PATH := "res://data/biomes/all_biomes.tres"
+
+## upgrade id -> the key of the biome that spends points on it. Built once.
+static var _biome_by_upgrade: Dictionary[String, String] = {}
+
+
+## The lane a priced def belongs to: { "area", "sub_area", "currency" }.
+##
+## `sub_area` splits a lane that holds more than one authored set - which biome
+## an upgrade belongs to, which branch a perk grows on. For a biome it is
+## resolved through BiomeDef.upgrade_ids and not off the folder name, because the
+## folders lag the biome renames: data/upgrades/biomes/forest holds the *meadow*
+## upgrades and data/upgrades/biomes/symbiosis holds the forest ones.
+##
+## An empty `area` means the def sits somewhere AREAS does not name, which is a
+## finding rather than an error - the spread view lanes it as "unmapped".
+static func area_of(res: Resource) -> Dictionary:
+	var path := res.resource_path.get_slice("::", 0)
+	var lane := {"area": "", "sub_area": "", "currency": ""}
+	for entry: Dictionary in AREAS:
+		if not path.begins_with(entry["prefix"]):
+			continue
+		lane["area"] = entry["area"]
+		lane["currency"] = entry["currency"]
+		lane["sub_area"] = _sub_area(entry, path, res)
+		break
+	var own := _own_currency(res)
+	if not own.is_empty():
+		lane["currency"] = own
+	return lane
+
+
+static func _sub_area(entry: Dictionary, path: String, res: Resource) -> String:
+	var folder: String = path.trim_prefix(entry["prefix"]).get_slice("/", 0)
+	match entry["area"]:
+		"biome":
+			var id: StringName = res.get(&"id") if properties_has(res, &"id") else &""
+			var key: String = _biome_keys_by_upgrade().get(String(id), "")
+			return key if not key.is_empty() else folder
+		"perks":
+			return path.get_file().trim_prefix("res_branch_").trim_suffix(".tres")
+		"nodes":
+			# The two halves of a tier are priced apart: the node itself in
+			# data/mycelium_nodes, its potency and synergy tracks in data/upgrades.
+			return "tracks" if path.begins_with("res://data/upgrades/") else "buy"
+	return folder if folder.get_extension().is_empty() else ""
+
+
+## The currency a def names for itself. Only a few do - a mission boost and a
+## hero carry a CurrencyDef, and nothing about the folder says which one - so an
+## empty return means "use the track's".
+##
+## BiomeDef.unlock_currency is deliberately not read: the curve sampled out of
+## data/biomes is the *size* ladder, and BiomeSystem.buy_size() spends nutrients
+## whatever the unlock was paid in.
+static func _own_currency(res: Resource) -> String:
+	for name: StringName in [&"currency", &"level_currency"]:
+		if not properties_has(res, name):
+			continue
+		var value: Variant = res.get(name)
+		if value is CurrencyDef:
+			return String(CurrencyTypes.field_for(value.currency_type))
+		if value is int:
+			return String(CurrencyTypes.field_for(value))
+	return ""
+
+
+static func _biome_keys_by_upgrade() -> Dictionary[String, String]:
+	if not _biome_by_upgrade.is_empty():
+		return _biome_by_upgrade
+	var list := load(BIOMES_PATH) as BiomeList
+	if list == null:
+		return _biome_by_upgrade
+	for def: BiomeDef in list.biomes:
+		for id: StringName in def.upgrade_ids:
+			_biome_by_upgrade[String(id)] = String(def.key)
+	return _biome_by_upgrade
+
+#endregion
+
+
 ## Cost and effect per level for every priced def under `data_dir`.
 ##
 ## Sampled through the live game code - UpgradeSystem.cost() and
@@ -125,18 +234,24 @@ const CURVE_ID := &"#curve"
 ##           "boosts": { res_path: { "cost": [...], "multiplier": [...] } },
 ##           "heroes": { res_path: { "cost": [...], "speed": [...], "yield": [...] } },
 ##           "workers": { res_path: { "prices": [{ currency, cost: [...] }] } },
+##           "fertilizer": { res_path: { "cost": [...], "effect": [...] } },
 ##           "errors": [...] }
 ##
-## Six dictionaries rather than one, because only `curves` holds priced defs:
+## Eight dictionaries rather than one, because only `curves` holds priced defs:
 ## the pacing sweep asserts every entry there has a rising cost_growth and the
 ## simulator sums every entry's cost array. An achievement is measured in goals,
 ## a boon is granted rather than bought, and a boost's ladder restarts its price
 ## five times - none of them fit that contract. A hero's ladder is priced per
 ## level of a creature rather than per level of an upgrade, and a worker's has no
-## single price at all: it is one ladder per currency, climbing together.
+## single price at all: it is one ladder per currency, climbing together. A
+## fertilizer upgrade is priced in plain floats and so carries none of the
+## mantissa pair `_is_priced` is defined by.
 ##
 ## `cost[i]` is what buying the *next* level costs while sitting at level i,
 ## matching what the game charges; `effect[i]` is the total magnitude at level i.
+##
+## Every entry in every bucket also carries `area`, `sub_area` and `currency`
+## from area_of(), which is what lets a reader lane one bucket against another.
 static func curves(data_dir: String) -> Dictionary:
 	var out := {}
 	var boons := {}
@@ -145,6 +260,7 @@ static func curves(data_dir: String) -> Dictionary:
 	var heroes := {}
 	var workers := {}
 	var prestige := {}
+	var fertilizer := {}
 	var errors: Array = []
 	_open_files.clear()
 	_subresources.clear()
@@ -162,26 +278,28 @@ static func curves(data_dir: String) -> Dictionary:
 		_expand_subresources(res, path, found, seen)
 		for row: Resource in found:
 			if _is_priced(row):
-				out[row.resource_path] = curve_for(row, fallbacks.get(row.resource_path, []))
+				out[row.resource_path] = _tagged(row, curve_for(row, fallbacks.get(row.resource_path, [])))
 				# A well project's payoff is spread over its boons, and only the
 				# first one is reached by curve_for(). Sampled from the project
 				# because a boon knows its own threshold but not the ceiling it
 				# is climbing towards.
 				_add_boon_curves(row, boons)
 			elif _is_size_priced(row):
-				out[row.resource_path] = size_curve_for(row)
+				out[row.resource_path] = _tagged(row, size_curve_for(row))
 			elif _is_node_priced(row):
-				out[row.resource_path] = node_curve_for(row)
+				out[row.resource_path] = _tagged(row, node_curve_for(row))
 			elif _is_achievement_curved(row):
-				achievements[row.resource_path] = achievement_curve_for(row)
+				achievements[row.resource_path] = _tagged(row, achievement_curve_for(row))
 			elif _is_boost_curved(row):
-				boosts[row.resource_path] = boost_curve_for(row)
+				boosts[row.resource_path] = _tagged(row, boost_curve_for(row))
 			elif _is_hero_leveled(row):
-				heroes[row.resource_path] = hero_curve_for(row)
+				heroes[row.resource_path] = _tagged(row, hero_curve_for(row))
 			elif _is_worker_priced(row):
-				workers[row.resource_path] = worker_curve_for(row)
+				workers[row.resource_path] = _tagged(row, worker_curve_for(row))
 			elif _is_prestige_curved(row):
-				prestige[row.resource_path] = prestige_curve_for(row)
+				prestige[row.resource_path] = _tagged(row, prestige_curve_for(row))
+			elif _is_fertilizer_priced(row):
+				fertilizer[row.resource_path] = _tagged(row, fertilizer_curve_for(row))
 	return {
 		"curves": out,
 		"boons": boons,
@@ -190,8 +308,42 @@ static func curves(data_dir: String) -> Dictionary:
 		"heroes": heroes,
 		"workers": workers,
 		"prestige": prestige,
+		"fertilizer": fertilizer,
 		"errors": errors,
 	}
+
+
+## A curve with the lane it belongs to folded in, so every bucket carries the
+## same `area`, `sub_area` and `currency` keys and a reader never has to know
+## which of the eight it came out of.
+##
+## A boon is tagged from the *project* carrying it rather than from itself: it
+## lives in the same file, and its own resource has no price to place it by.
+static func _tagged(res: Resource, curve: Dictionary) -> Dictionary:
+	curve.merge(area_of(res))
+	curve["id"] = identity_of(res)
+	return curve
+
+
+## What a def calls itself, as the simulator's purchase log names it.
+##
+## Three fields rather than one because the authored sets never agreed: an
+## upgrade and a perk carry `id`, a biome carries `key`, and a mycelium tier
+## carries the int `node_id` that MyceliumNode.id_key stringifies. Nothing joins
+## a purchase to a curve without this, since a PerkDef is built at runtime by
+## PerkTree and has no resource_path to be joined by.
+static func identity_of(res: Resource) -> String:
+	for name: StringName in [&"id", &"key", &"node_id"]:
+		if not properties_has(res, name):
+			continue
+		# str(), not String(): node_id is an int, and String has no constructor
+		# taking one.
+		var text := str(res.get(name))
+		if not text.is_empty():
+			return text
+	# A def with none of the three - the worker cost table is the only one - is
+	# still worth a stable name, and its file has exactly one of them in it.
+	return res.resource_path.get_slice("::", 0).get_file().trim_suffix(".tres")
 
 
 ## Each of a priced def's boons, sampled against the *project's* level and keyed
@@ -217,7 +369,7 @@ static func _add_boon_curves(res: Resource, out: Dictionary) -> void:
 	for boon: Resource in boons:
 		if boon == null or boon.resource_path.is_empty():
 			continue
-		out[boon.resource_path] = boon_curve_for(boon, samples)
+		out[boon.resource_path] = _tagged(res, boon_curve_for(boon, samples))
 
 
 ## One boon's magnitude at each level of the project carrying it.
@@ -600,6 +752,63 @@ static func size_curve_for(res: Resource) -> Dictionary:
 	}
 
 
+## What each of the first `samples` levels costs, priced through the real
+## UpgradeSystem.cost() rather than a copy of its formula.
+##
+## A one-def UpgradeSystem is the only way in: cost() reads the level out of its
+## own table, so the level has to be loaded rather than passed.
+static func _cost_samples(base: BigNumber, growth: float, growth_exponent: float,
+		samples: int) -> Array:
+	var system := UpgradeSystem.new()
+	var def := UpgradeDef.new()
+	def.id = CURVE_ID
+	def.base_cost = base
+	def.cost_growth = growth
+	def.cost_growth_exponent = growth_exponent
+	system.register(def)
+
+	var costs: Array = []
+	for level in range(samples + 1):
+		system.from_save({String(CURVE_ID): level})
+		costs.append(_big_pair(system.cost(CURVE_ID)))
+	return costs
+
+
+## A fertilizer upgrade prices itself in plain floats - single and double digits,
+## which cannot leave float range - so it carries `base_cost` and `cost_growth`
+## without the BigNumber mantissa/exponent pair every other priced def has.
+static func _is_fertilizer_priced(res: Resource) -> bool:
+	var properties := _properties_by_name(res)
+	return properties.has(&"cost_growth") and properties.has(&"base_cost") \
+		and not properties.has(&"_base_cost_mantissa")
+
+
+## One fertilizer upgrade's ladder, sampled the way FertilizerTree builds it:
+## the authored floats widened into an UpgradeDef with a flat exponent
+## (gd_fertilizer_tree.gd:80-82) and priced through the same cost().
+##
+## Its own bucket rather than `curves` because `_is_priced` - the gate the pacing
+## sweep and the simulator both read that dictionary through - is defined by the
+## mantissa pair this def does not have.
+static func fertilizer_curve_for(res: Resource) -> Dictionary:
+	var per_level: float = res.get(&"per_level")
+	var magnitudes: Array = []
+	for level in range(CURVE_OPEN_ENDED_LEVELS + 1):
+		# Stacks add rather than compound, matching GrowthProducerDef.lp_per_level.
+		magnitudes.append(_big_pair(BigNumber.from_value(per_level * float(level))))
+	return {
+		"max_level": 0,
+		"samples": CURVE_OPEN_ENDED_LEVELS,
+		"cost": _cost_samples(BigNumber.from_value(res.get(&"base_cost")),
+			res.get(&"cost_growth"), 1.0, CURVE_OPEN_ENDED_LEVELS),
+		"effect": magnitudes,
+		"cost_growth": res.get(&"cost_growth"),
+		"cost_growth_exponent": 1.0,
+		"per_level": per_level,
+		"kind": "fertilizer",
+	}
+
+
 ## One def's sampled curve. `fallback_effects` stands in when the def declares
 ## none of its own, mirroring PerkBranchDef.effects_for().
 static func curve_for(res: Resource, fallback_effects: Array) -> Dictionary:
@@ -607,16 +816,10 @@ static func curve_for(res: Resource, fallback_effects: Array) -> Dictionary:
 	var max_level: int = res.get(&"max_level") if properties.has(&"max_level") else 0
 	var samples := max_level if max_level > 0 else CURVE_OPEN_ENDED_LEVELS
 
-	# A one-def UpgradeSystem is the only way to price a level through the real
-	# cost(), which reads the level out of its own table.
-	var system := UpgradeSystem.new()
-	var def := UpgradeDef.new()
-	def.id = CURVE_ID
-	def.base_cost = res.get(&"base_cost")
-	def.cost_growth = res.get(&"cost_growth")
-	if properties.has(&"cost_growth_exponent"):
-		def.cost_growth_exponent = res.get(&"cost_growth_exponent")
-	system.register(def)
+	var growth_exponent: float = res.get(&"cost_growth_exponent") \
+		if properties.has(&"cost_growth_exponent") else 1.0
+	var costs := _cost_samples(res.get(&"base_cost"), res.get(&"cost_growth"),
+		growth_exponent, samples)
 
 	var own_effects: Array = res.get(&"effects") if properties.has(&"effects") else []
 	if own_effects.is_empty():
@@ -624,11 +827,8 @@ static func curve_for(res: Resource, fallback_effects: Array) -> Dictionary:
 	var effects: Array = own_effects if not own_effects.is_empty() else fallback_effects
 	var effect: UpgradeEffectDef = effects[0] if not effects.is_empty() else null
 
-	var costs: Array = []
 	var magnitudes: Array = []
 	for level in range(samples + 1):
-		system.from_save({String(CURVE_ID): level})
-		costs.append(_big_pair(system.cost(CURVE_ID)))
 		magnitudes.append(_big_pair(effect.magnitude(level)) if effect else [0.0, 0])
 
 	var curve := {
@@ -636,8 +836,8 @@ static func curve_for(res: Resource, fallback_effects: Array) -> Dictionary:
 		"samples": samples,
 		"cost": costs,
 		"effect": magnitudes,
-		"cost_growth": def.cost_growth,
-		"cost_growth_exponent": def.cost_growth_exponent,
+		"cost_growth": res.get(&"cost_growth"),
+		"cost_growth_exponent": growth_exponent,
 	}
 	if effect:
 		curve["stat"] = String(effect.stat)

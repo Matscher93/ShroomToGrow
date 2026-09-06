@@ -27,6 +27,7 @@
     log10Of, formatBig, growthCurve, effectCurve, enumIs, chartBlock, engineSeries, engineCurve,
     rowsOf, findRow, cell, numberCell, field, fieldGroup, bigField, scopeTargetFields,
     declaredGroups, tagsOfNode, dependencyField, dependencyFactor, dependencyAxis,
+    spreadSection,
   } = window.GameKit;
 
   const BUY_LEVELS = 50;         // matches BalanceData.CURVE_OPEN_ENDED_LEVELS
@@ -787,6 +788,7 @@
     body.append(ladderChart(entries));
     body.append(compareSection(entries));
     entries.forEach((entry, index) => body.append(card(entry, index, entries.length)));
+    body.append(spreadSection(["nodes"], "Node prices"));
 
     const missing = entries.filter((entry) =>
       !trackOf("Potency", cell(entry, "node_id")).def

@@ -29,6 +29,7 @@
     formatBig, log10Of, growthCurve, hueOf, chartBlock, enumIs,
     engineCurve, engineSeries, rowsOf, cell, numberCell,
     field, fieldGroup, bigField, scopeTargetFields, dependencyField,
+    spreadSection,
   } = window.GameKit;
 
   /* Constants the game holds in GDScript rather than in .tres, so this editor
@@ -1115,6 +1116,7 @@
     }
     (RENDERERS[screen.section] || chainsSection)(body);
     writersSection(body);
+    body.append(spreadSection(["ruins"], "Ruins prices"));
   };
 
   window.BalanceScreens = window.BalanceScreens || {};

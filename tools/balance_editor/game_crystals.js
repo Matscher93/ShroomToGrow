@@ -28,6 +28,7 @@
   const {
     log10Of, formatBig, growthCurve, powerCurve, chartBlock, engineSeries, engineCurve,
     xpLadder, rowsOf, cell, numberCell, field, fieldGroup, bigField, scopeTargetFields,
+    spreadSection,
   } = window.GameKit;
 
   const TIERS = 50;              // matches BalanceData.CURVE_OPEN_ENDED_LEVELS
@@ -714,6 +715,7 @@
       + "measured in runs per tick rather than in a multiplier."));
     automations.forEach((entry, index) =>
       body.append(automationCard(entry, index, automations.length)));
+    body.append(spreadSection(["boosts", "automations"], "Crystal prices"));
 
     setStatus(`${achievements.length} achievements · ${boosts.length} boosts · `
       + `${automations.length} automations · payouts unmodified`);

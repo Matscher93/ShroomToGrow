@@ -25,6 +25,7 @@
     rowsOf, findRow, cell, numberCell,
     field, fieldGroup, bigField, engineCurve, scopeTargetFields, dependencyField,
     dependencyFactor, dependencyAxis,
+    spreadSection,
   } = window.GameKit;
 
   const SIZE_LEVELS = 50;        // matches BalanceData.CURVE_OPEN_ENDED_LEVELS
@@ -498,6 +499,7 @@
     }
     body.append(ladderChart(entries));
     entries.forEach((entry, index) => body.append(card(entry, index, entries.length)));
+    body.append(spreadSection(["biome", "biome_size"], "Biome prices"));
     setStatus(`${entries.length} biomes · ${entries.reduce(
       (total, entry) => total + list(cell(entry, "upgrade_ids")).length, 0)} upgrade slots`);
   };

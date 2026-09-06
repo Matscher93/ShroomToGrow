@@ -31,6 +31,7 @@
     log10Of, formatBig, growthCurve, effectCurve, enumIs, chartBlock,
     engineSeries, engineCurve, rowsOf, cell, numberCell,
     field, fieldGroup, bigField, scopeTargetFields,
+    spreadSection,
   } = window.GameKit;
 
   /* WaterSystem's own constants. GDScript `const`s, not .tres - this editor
@@ -634,6 +635,7 @@
 
     body.append(ladderChart(entries));
     entries.forEach((entry, index) => body.append(card(entry, index, entries.length)));
+    body.append(spreadSection(["well"], "Well prices"));
 
     const boonCount = entries.reduce(
       (total, entry) => total + list(cell(entry, "boons")).length, 0);

@@ -6,7 +6,7 @@ extends Node
 ##       [--ticks=20000] [--policy=roi|cheapest|nodes_only] [--prestiges=3] \
 ##       [--samples=200] [--stride=100000] [--progress=FILE] \
 ##       [--load=SAVE] [--from-tick=0] [--from-seconds=0] [--save=FILE] \
-##       [--breakdowns=milestones|end|off] --out=FILE
+##       [--breakdowns=milestones|end|off] [--purchases=FILE] --out=FILE
 ##   godot --headless tools/sc_balance_sim.tscn -- --report --out=FILE
 ##
 ## Run as a scene rather than with --script, because the ViewModels App builds
@@ -90,6 +90,11 @@ const ACHIEVEMENTS_EVERY := 5
 ## never asks.
 const BREAKDOWN_OFF := "off"
 const BREAKDOWN_END := "end"
+## Levels per id kept in a purchase trace. A track with no ceiling can be bought
+## past level 1000 in a long run, and the tail of that is one def's private
+## staircase rather than anything a distribution reads off.
+const MAX_TRACED_LEVELS := 200
+
 const BREAKDOWN_MILESTONES := "milestones"
 const BREAKDOWN_MODES := [BREAKDOWN_OFF, BREAKDOWN_END, BREAKDOWN_MILESTONES]
 
@@ -115,6 +120,7 @@ func _ready() -> void:
 	var from_seconds := 0.0
 	var policy_name := "roi"
 	var breakdowns := BREAKDOWN_MILESTONES
+	var purchases_path := ""
 
 	for arg: String in args:
 		if arg == "--report":
@@ -143,6 +149,8 @@ func _ready() -> void:
 			policy_name = arg.trim_prefix("--policy=")
 		elif arg.begins_with("--breakdowns="):
 			breakdowns = arg.trim_prefix("--breakdowns=")
+		elif arg.begins_with("--purchases="):
+			purchases_path = arg.trim_prefix("--purchases=")
 
 	if not BREAKDOWN_MODES.has(breakdowns):
 		printerr("--breakdowns must be one of %s" % ", ".join(BREAKDOWN_MODES))
@@ -164,8 +172,24 @@ func _ready() -> void:
 			return
 		app.load_from_save(loaded)
 	var result := run(app, BalancePolicyScript.kind_from_name(policy_name),
-		ticks, prestiges, samples, stride, progress_path, from_tick, from_seconds, breakdowns)
+		ticks, prestiges, samples, stride, progress_path, from_tick, from_seconds, breakdowns,
+		not purchases_path.is_empty())
 	if not save_path.is_empty() and _write(save_path, result["save"]) != 0:
+		_finish(2)
+		return
+	# Its own file, and lifted out of the result: the trace is tens of thousands
+	# of rows and would swamp everything else --out is read for.
+	var purchases: Array = result.get("purchases", [])
+	result.erase("purchases")
+	if not purchases_path.is_empty() and _write(purchases_path, {
+			"note": "What a simulated run bought and when. Levels are first "
+				+ "reached, not re-bought after a prestige. Join to "
+				+ "BalanceData.curves() on area and id.",
+			"policy": result["policy"],
+			"seconds": result["seconds"],
+			"prestiges": result["prestiges"],
+			"purchases": purchases,
+		}) != 0:
 		_finish(2)
 		return
 	_finish(_write(out_path, result))
@@ -334,9 +358,34 @@ static func _reset(app: Node) -> void:
 static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges: int,
 		samples: int, stride: int = DEFAULT_STRIDE, progress_path: String = "",
 		from_tick: int = 0, from_seconds: float = 0.0,
-		breakdowns: String = BREAKDOWN_MILESTONES) -> Dictionary:
+		breakdowns: String = BREAKDOWN_MILESTONES,
+		trace_purchases: bool = false) -> Dictionary:
 	var policy := BalancePolicyScript.new(app, kind)
 	var milestones: Array = []
+	# What the run bought and when, when a caller asked for it. Off by default:
+	# the trace is tens of thousands of rows and nothing but the spread view
+	# reads it.
+	var purchases: Array = []
+	# area/id#level of everything already traced. Only the *first* time a level is
+	# reached is kept, because a prestige relocks most of the game and every run
+	# after the first re-buys the same early levels - and the question the trace
+	# answers is when something first became reachable, not how often it was
+	# re-bought.
+	var traced: Dictionary[String, bool] = {}
+	# tick, seconds and prestige count as the sink sees them. One array for the
+	# same reason `clock` below is one: a lambda captures a local by value, so a
+	# closure over `tick` would report tick zero for the whole run.
+	var at: Array = [from_tick, from_seconds, 0]
+	if trace_purchases:
+		policy.on_purchase = func(area: String, id: String, level: int) -> void:
+			if level > MAX_TRACED_LEVELS:
+				return
+			var key := "%s/%s#%d" % [area, id, level]
+			if traced.has(key):
+				return
+			traced[key] = true
+			purchases.append({"area": area, "id": id, "level": level,
+				"tick": at[0], "seconds": at[1], "prestige": at[2]})
 	# One save per milestone, so a run can be picked up again from any of the
 	# points worth naming rather than only from where it stopped.
 	var savepoints: Array = []
@@ -411,6 +460,8 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 		tick += 1
 		seconds += app.tick_duration()
 		clock[0] = SIM_EPOCH + seconds
+		at[0] = from_tick + tick
+		at[1] = seconds
 		app.handle_tick()
 		# App drains this once per frame in _process, and the loop here never
 		# yields a frame. Without it no achievement ever completes and the run
@@ -437,6 +488,7 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 			var gain: BigNumber = app.preview_biomass_gain()
 			app.prestige()
 			prestige_count += 1
+			at[2] = prestige_count
 			last_prestige_tick = tick
 			# A prestige relocks them, so the next run re-earns them - all but the
 			# free ones, which reset() hands straight back.
@@ -472,6 +524,7 @@ static func run(app: Node, kind: BalancePolicyScript.Kind, ticks: int, prestiges
 		"prestige_target": prestiges,
 		"prestiges": prestige_count,
 		"milestones": milestones,
+		"purchases": purchases,
 		# What every levelled upgrade was contributing at the end, and - unless
 		# this run was asked for less - at each milestone on the way. Null rather
 		# than empty for a run that asked for none, so a page can tell "nothing was

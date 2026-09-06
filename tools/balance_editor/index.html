@@ -434,6 +434,9 @@
 <script src="unused.js"></script>
 <!-- game.js first: the screens read their shared helpers off window.GameKit. -->
 <script src="game.js"></script>
+<!-- After game.js, before the screens: it reads GameKit and adds the strip the
+     screens embed. -->
+<script src="spread.js"></script>
 <script src="game_biomes.js"></script>
 <script src="game_nodes.js"></script>
 <script src="game_water.js"></script>

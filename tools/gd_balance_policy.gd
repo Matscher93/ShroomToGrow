@@ -32,11 +32,41 @@ const MAX_PURCHASES_PER_TICK := 40
 
 var _app: Node
 var _kind: Kind
+## Called with (area, id, level) after every purchase, when a caller wants a
+## trace of what was bought. Left unset by default: a run that nobody is
+## recording should not pay for the bookkeeping.
+##
+## The level is the one just reached, and the area names which authored set it
+## came out of - the same lanes BalanceData.AREAS defines, so a trace joins
+## straight onto a cost curve.
+var on_purchase: Callable = Callable()
 ## Symbiosis ids, read once from the same loader App registers them with.
 var _symbiosis_ids: Array[StringName] = []
 ## The producers Level Points and daily rewards are spread across, read once from
 ## the same list App builds the growth track from.
 var _growth_currencies: Array[CurrencyTypes.Types] = []
+
+## Reports one purchase to `on_purchase`, if anyone is listening.
+##
+## Called with the level *after* the buy, which is what the price paid was
+## charged for: BalanceData's cost[i] is what the move from level i costs, so a
+## purchase reaching level n paid cost[n - 1].
+func _record(area: String, id: StringName, level: int) -> void:
+	if on_purchase.is_valid():
+		on_purchase.call(area, String(id), level)
+
+
+## _record() folded into a buy that already returns whether it happened, so a
+## shopping candidate's `buy` stays the one-expression lambda _buy_best expects.
+##
+## `level` reads correctly because arguments evaluate left to right: the buy in
+## the first argument has already happened by the time the level in the last one
+## is read, so what lands in the trace is the level the purchase reached.
+func _bought(ok: bool, area: String, id: StringName, level: int) -> bool:
+	if ok:
+		_record(area, id, level)
+	return ok
+
 
 func _init(app: Node, kind: Kind) -> void:
 	_app = app
@@ -209,11 +239,13 @@ func _progression() -> int:
 	for def: BiomeDef in _app.biomes.biomes:
 		if _app.can_unlock_biome(def.key):
 			_app.unlock_biome(def.key)
+			_record("biome_unlock", def.key, 1)
 			made += 1
 		if not _app.biomes_data.is_unlocked(def.key):
 			continue     # a shut biome has no size to grow and no points to spend
 		if _app.can_buy_biome_size(def.key):
 			_app.buy_biome_size(def.key)
+			_record("biome_size", def.key, _app.biome_size(def.key))
 			made += 1
 		made += _spend_biome_points(def.key)
 	made += _buy_cheapest_perk()
@@ -239,6 +271,7 @@ func _spend_biome_points(key: StringName) -> int:
 			continue
 		if not _app.buy_biome_upgrade(id, key):
 			continue
+		_record("biome", id, _app.biome_upgrade_system.level(id))
 		points -= 1
 		made += 1
 	return made
@@ -314,7 +347,10 @@ func _buy_cheapest_perk() -> int:
 			best_cost = cost
 	if best.is_empty():
 		return 0
-	return 1 if _app.buy_perk(best) else 0
+	if not _app.buy_perk(best):
+		return 0
+	_record("perks", best, _app.prestige_upgrade_system.level(best))
+	return 1
 
 
 ## One automation level per call, cheapest first. Crystals buy only this and the
@@ -331,7 +367,10 @@ func _buy_cheapest_automation() -> int:
 			best_cost = cost
 	if best.is_empty():
 		return 0
-	return 1 if _app.buy_automation(best) else 0
+	if not _app.buy_automation(best):
+		return 0
+	_record("automations", best, _app.automation_level(best))
+	return 1
 
 
 ## One boost level per call, cheapest first, out of whatever crystals the
@@ -351,7 +390,10 @@ func _buy_cheapest_boost() -> int:
 			best_cost = cost
 	if best.is_empty():
 		return 0
-	return 1 if _app.buy_boost(best) else 0
+	if not _app.buy_boost(best):
+		return 0
+	_record("boosts", best, _app.boost_level(best))
+	return 1
 
 
 ## One well project funded per call, cheapest first. Water buys nothing else, and
@@ -369,7 +411,10 @@ func _fund_cheapest_project() -> int:
 			best_cost = cost
 	if best.is_empty():
 		return 0
-	return 1 if _app.invest_project(best) else 0
+	if not _app.invest_project(best):
+		return 0
+	_record("well", best, _app.project_level(best))
+	return 1
 
 
 # --------------------------------------------------------------------- shopping
@@ -438,7 +483,8 @@ func _affordable() -> Array[Dictionary]:
 		out.append({
 			"cost": data.upgrade_cost(),
 			"gain": _app.node_production_bonus(data.node.id_key),
-			"buy": func() -> bool: return data.buy_upgrade(),
+			"buy": func() -> bool: return _bought(data.buy_upgrade(),
+				"nodes", data.node.id_key, data.node.manual_nodes),
 			"refresh": func() -> Dictionary: return _node_offer(data),
 		})
 	if _kind == Kind.NODES_ONLY:
@@ -450,7 +496,9 @@ func _affordable() -> Array[Dictionary]:
 		out.append({
 			"cost": _app.upgrade_system.cost(id),
 			"gain": _app.upgrade_system.next_level_delta(id, _app.resolve_context),
-			"buy": func() -> bool: return _app.upgrade_system.buy(id, _app.player_data),
+			"buy": func() -> bool: return _bought(
+				_app.upgrade_system.buy(id, _app.player_data),
+				"nodes", id, _app.upgrade_system.level(id)),
 			"refresh": func() -> Dictionary: return _symbiosis_offer(id),
 		})
 	return out
