@@ -11,4 +11,4 @@ display_name = "Undergrowth"
 description = "{value} Potency production, per level. Compounds with a nodes Potency upgrade levels. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
-min_biome_points_spent = 8
+min_biome_points_spent = 10

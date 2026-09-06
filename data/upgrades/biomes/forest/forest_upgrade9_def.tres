@@ -11,4 +11,4 @@ display_name = "Woodland Chorus"
 description = "{value} Synergy production, per level. Compounds with a nodes Synergy upgrade levels. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
-min_biome_points_spent = 20
+min_biome_points_spent = 75

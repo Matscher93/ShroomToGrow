@@ -11,4 +11,4 @@ display_name = "Deep Roots"
 description = "{value} node production, per level. Scales with this biome's Size."
 max_level = 10
 effects = Array[ExtResource("1_effect_script")]([ExtResource("2_effect")])
-min_biome_points_spent = 14
+min_biome_points_spent = 30

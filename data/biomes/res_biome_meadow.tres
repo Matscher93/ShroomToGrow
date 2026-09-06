@@ -16,6 +16,6 @@ upgrade_ids = Array[StringName]([&"DenseMycelium", &"ForestUpgrade2", &"ForestUp
 _unlock_cost_mantissa = 1.0
 _size_base_cost_exponent = 2
 size_cost_growth = 1.25
-size_cost_growth_exponent = 1.01
+size_cost_growth_exponent = 1.02
 _auto_unlock_cost_mantissa = 5.0
 _auto_unlock_cost_exponent = 0
