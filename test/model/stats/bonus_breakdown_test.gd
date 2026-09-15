@@ -122,3 +122,56 @@ func test_the_heaviest_op_sorts_first_within_a_track() -> void:
 	for upgrade: Dictionary in BonusBreakdown.build(_production)[0]["sources"][0]["upgrades"]:
 		names.append(str(upgrade["name"]))
 	assert_array(names).is_equal(["More", "Inc", "Add"])
+
+func _node_def(id: StringName, display_name: String, target: StringName,
+		per_level: float) -> UpgradeDef:
+	var def := _def(id, display_name, &"node_production", UpgradeEffectDef.Op.MORE, per_level)
+	def.effects[0].scope = UpgradeEffectDef.Scope.NODE
+	def.effects[0].target = target
+	return def
+
+## The header resolves at one node and every node's copy of a perk was listed
+## under it, so the rows could only ever read high - ten Potency perks explaining
+## a total that multiplied by one of them.
+func test_rows_scoped_to_another_node_are_not_listed() -> void:
+	_level(_symbiosis, _def(&"g", "Global", &"node_production", UpgradeEffectDef.Op.MORE, 0.5), 1)
+	_level(_symbiosis, _node_def(&"n0", "Node 0", &"0", 3.0), 1)
+	_level(_symbiosis, _node_def(&"n1", "Node 1", &"1", 0.2), 1)
+
+	var group: Dictionary = BonusBreakdown.build(_production)[0]
+	assert_str(str(group["total_scope"])).is_equal("n:0")
+	var names: Array = []
+	for upgrade: Dictionary in group["sources"][0]["upgrades"]:
+		names.append(str(upgrade["name"]))
+	# Node 1's bucket is not in n:0's key set, so the header never read it.
+	assert_array(names).is_equal(["Node 0", "Global"])
+	assert_int(int(group["upgrade_count"])).is_equal(2)
+
+## What the filtering is for: a resource written entirely in MOREs multiplies out
+## from its own rows to the number printed over them. An INCREASED would not -
+## those pool in the game and compound in the rows - but which effects the two
+## are talking about is the same either way.
+func test_the_listed_rows_multiply_out_to_the_header() -> void:
+	_level(_symbiosis, _def(&"g", "Global", &"node_production", UpgradeEffectDef.Op.MORE, 0.5), 1)
+	_level(_symbiosis, _node_def(&"n0", "Node 0", &"0", 3.0), 1)
+	_level(_perks, _node_def(&"n1", "Node 1", &"1", 0.2), 1)
+
+	var group: Dictionary = BonusBreakdown.build(_production)[0]
+	var product := BigNumber.from_value(1.0)
+	for source: Dictionary in group["sources"]:
+		for upgrade: Dictionary in source["upgrades"]:
+			for effect: Dictionary in upgrade["effects"]:
+				product = product.mul((effect["mag"] as BigNumber).add(BigNumber.from_value(1.0)))
+	# 1.5 * 4.0, the same two the header resolved through.
+	assert_str(product.to_display(2)).is_equal("6.00")
+	assert_str((group["total"] as BigNumber).to_display(2)).is_equal(product.to_display(2))
+
+## A track whose every row is aimed elsewhere drops out with them: a heading over
+## an empty list explains nothing.
+func test_a_track_left_with_no_rows_is_dropped() -> void:
+	_level(_symbiosis, _node_def(&"n0", "Node 0", &"0", 3.0), 1)
+	_level(_perks, _node_def(&"n1", "Node 1", &"1", 0.2), 1)
+
+	var group: Dictionary = BonusBreakdown.build(_production)[0]
+	assert_int((group["sources"] as Array).size()).is_equal(1)
+	assert_str(str(group["sources"][0]["track"])).is_equal("symbiosis")

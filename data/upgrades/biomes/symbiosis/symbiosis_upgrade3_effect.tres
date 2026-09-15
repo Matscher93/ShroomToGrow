@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_script")
 stat = &"synergy_production"
-op = 1
+op = 2
 scope = 0
 target = &""
 per_level = 0.05

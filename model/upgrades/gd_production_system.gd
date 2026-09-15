@@ -176,6 +176,17 @@ func tracks() -> Array:
 		["expeditions", _expeditions],
 	]
 
+## The bucket keys a read at `target` draws from - the set stack() runs on, that
+## node's tags included.
+##
+## Exposed for BonusBreakdown, which resolves a header at one target and then has
+## to say which of its rows that header actually read. Handing out the same list
+## stack() uses is the only version of that answer which cannot drift from it;
+## rebuilding it in the caller would put the tags back in a caller's hands, which
+## is exactly what _keys_for() exists to prevent.
+func scope_keys_for(target: StringName) -> PackedStringArray:
+	return _keys_for(target)
+
 ## Every track's breakdown, keyed by track name. See UpgradeSystem.breakdown().
 func breakdown() -> Dictionary:
 	var out := {}

@@ -383,10 +383,13 @@ func _build_bonus_groups() -> Array:
 ## MORE and INCREASED both read as x(1+mag): exact for a MORE, and for an
 ## INCREASED it is what that upgrade alone is worth rather than its share of a
 ## bucket it adds into alongside others. Same honesty BonusBreakdown documents -
-## exact rather than comparable. Multiplying the two together is the same
-## overstatement in the other direction and is what the header's own total is
-## there to correct: the number in the card's title is resolved by the game,
-## these are the parts.
+## exact rather than comparable.
+##
+## So these rows multiply out to the header for a resource written in MOREs, and
+## sit above it for one carrying INCREASEDs, which compound here and pool in the
+## game. What they no longer do is disagree about *which* effects they are: the
+## rows BonusBreakdown hands over are the ones the header resolved through, not
+## every node's copy of the same perk.
 ##
 ## Effects that only ADD have no multiplier to show at all - a flat +6 nutrients
 ## is not an x7 of anything - so those print their total instead.

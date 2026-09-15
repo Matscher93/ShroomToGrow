@@ -6,5 +6,6 @@
 [resource]
 script = ExtResource("1_script")
 stat = &"biomass_gain"
+op = 2
 per_level = 0.1
 dependency = ExtResource("2_dep")

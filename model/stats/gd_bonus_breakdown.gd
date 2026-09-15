@@ -46,6 +46,10 @@ extends RefCounted
 ## resolved globally sat orders of magnitude below rows listed underneath it. The
 ## scope reported is whichever one resolves largest - the best a single target
 ## actually gets - so the header is never smaller than the rows explaining it.
+##
+## `sources` and `upgrade_count` are that same scope's, not the resource's: only
+## the effects `total` resolved through are listed, so the rows multiply out to
+## the header instead of to every node's copy of the same perk. See _in_scope().
 static func build(production: ProductionSystem) -> Array:
 	var rows_by_track: Dictionary = production.breakdown()
 
@@ -78,7 +82,6 @@ static func build(production: ProductionSystem) -> Array:
 		var stats: Array = stats_by_resource[resource]
 		var tracks: Dictionary = grouped[resource]
 		var sources: Array = []
-		var total := 0
 		# Walked through tracks() rather than through the dictionary, so the
 		# sources read in stacking order - the order the game actually applies
 		# them in, which is the order that explains the number in the header.
@@ -88,20 +91,77 @@ static func build(production: ProductionSystem) -> Array:
 				continue
 			var upgrades: Array = (tracks[track] as Dictionary).values()
 			upgrades.sort_custom(_heavier_first)
-			total += upgrades.size()
 			sources.append({"track": track, "upgrades": upgrades})
 		var additive := _is_additive(sources)
 		var scope := _best_scope(production, stats, sources, additive)
+		# Every candidate scope had to be weighed against the full set above, so
+		# the narrowing happens here rather than earlier: _best_scope() cannot
+		# pick the node whose rows resolve largest out of a list those rows have
+		# already been cut from.
+		var in_scope := _in_scope(production, sources, scope)
 		out.append({
 			"resource": resource,
 			"stats": stats,
 			"additive": additive,
 			"total": _total(production, stats, additive, scope),
 			"total_scope": scope,
-			"upgrade_count": total,
-			"sources": sources,
+			"upgrade_count": _count(in_scope),
+			"sources": in_scope,
 		})
 	return out
+
+## The rows the header actually read, upgrade by upgrade.
+##
+## A resource's effects are authored at every bucket they target and the header
+## resolves through one key set, so unfiltered the two disagree by every effect
+## aimed somewhere else: nutrients carry 92 effects, 52 of them on ten different
+## nodes, under a header that multiplies the 40 global ones and a single node's
+## five. Nine nodes' worth of Potency perks sat under a total that never touched
+## them, and the rows could only ever read high.
+##
+## Filtered in the model rather than in the view because the header and the rows
+## are then two readings of one decision - `total_scope` - instead of two rules
+## that have to be kept in step by whoever edits them next.
+##
+## An upgrade with no effect left drops out, and a track left with no upgrades
+## drops with it: a heading over an empty list explains nothing. Re-sorted after
+## the cut, since _heavier_first() ranks on the effects an upgrade has and those
+## are no longer the effects it was sorted by.
+static func _in_scope(production: ProductionSystem, sources: Array, scope: String) -> Array:
+	var keys := _keys_of(production, scope)
+	var out: Array = []
+	for source: Dictionary in sources:
+		var upgrades: Array = []
+		for upgrade: Dictionary in source["upgrades"]:
+			var effects: Array = []
+			for effect: Dictionary in upgrade["effects"]:
+				if keys.has(String(effect["key"])):
+					effects.append(effect)
+			if effects.is_empty():
+				continue
+			var kept := upgrade.duplicate()
+			kept["effects"] = effects
+			upgrades.append(kept)
+		if upgrades.is_empty():
+			continue
+		upgrades.sort_custom(_heavier_first)
+		out.append({"track": source["track"], "upgrades": upgrades})
+	return out
+
+## The bucket keys `scope` resolves through - what _resolve_at() reads, listed
+## rather than summed, and derived the same two ways for the same two reasons.
+static func _keys_of(production: ProductionSystem, scope: String) -> PackedStringArray:
+	if scope.begins_with("t:"):
+		return UpgradeSystem.scope_keys(PackedStringArray([scope.substr(2)]), &"")
+	return production.scope_keys_for(_target_of(scope))
+
+## Upgrades left across every track, for the "N upgrades" the header counts. Off
+## the filtered rows, so the count names the rows the card lists.
+static func _count(sources: Array) -> int:
+	var total := 0
+	for source: Dictionary in sources:
+		total += (source["upgrades"] as Array).size()
+	return total
 
 ## True when nothing here multiplies anything - every effect is an ADD.
 ##
