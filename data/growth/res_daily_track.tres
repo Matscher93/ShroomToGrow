@@ -1,0 +1,110 @@
+[gd_resource type="Resource" script_class="DailyTrackList" format=3]
+
+[ext_resource type="Script" path="res://model/growth/res_daily_track_list.gd" id="1_script"]
+[ext_resource type="Script" path="res://model/growth/res_daily_track_slot_def.gd" id="2_slot_script"]
+[ext_resource type="Resource" uid="uid://cu7pu8ny7a7lb" path="res://data/currencies/res_nutrients_def.tres" id="3_nutrients"]
+[ext_resource type="Resource" uid="uid://byespeth6sl5t" path="res://data/currencies/res_water_def.tres" id="4_water"]
+[ext_resource type="Resource" uid="uid://cro3wpo0rxwsk" path="res://data/currencies/res_biomass_def.tres" id="5_biomass"]
+[ext_resource type="Resource" path="res://data/currencies/res_crystals_def.tres" id="6_crystals"]
+
+[sub_resource type="Resource" id="Resource_day_01"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("3_nutrients")
+pct_of_balance = 0.02
+flat_amount = 0.0
+min_amount = 25.0
+
+[sub_resource type="Resource" id="Resource_day_02"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("4_water")
+pct_of_balance = 0.03
+flat_amount = 0.0
+min_amount = 40.0
+
+[sub_resource type="Resource" id="Resource_day_03"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("3_nutrients")
+pct_of_balance = 0.05
+flat_amount = 0.0
+min_amount = 70.0
+
+[sub_resource type="Resource" id="Resource_day_04"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("5_biomass")
+pct_of_balance = 0.07
+flat_amount = 0.0
+min_amount = 120.0
+
+[sub_resource type="Resource" id="Resource_day_05"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("4_water")
+pct_of_balance = 0.1
+flat_amount = 0.0
+min_amount = 200.0
+
+[sub_resource type="Resource" id="Resource_day_06"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("3_nutrients")
+pct_of_balance = 0.13
+flat_amount = 0.0
+min_amount = 350.0
+
+[sub_resource type="Resource" id="Resource_day_07"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("6_crystals")
+pct_of_balance = 0.17
+flat_amount = 0.0
+min_amount = 600.0
+
+[sub_resource type="Resource" id="Resource_day_08"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("4_water")
+pct_of_balance = 0.22
+flat_amount = 0.0
+min_amount = 1000.0
+
+[sub_resource type="Resource" id="Resource_day_09"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("5_biomass")
+pct_of_balance = 0.28
+flat_amount = 0.0
+min_amount = 1800.0
+
+[sub_resource type="Resource" id="Resource_day_10"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("3_nutrients")
+pct_of_balance = 0.35
+flat_amount = 0.0
+min_amount = 3000.0
+
+[sub_resource type="Resource" id="Resource_day_11"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("6_crystals")
+pct_of_balance = 0.45
+flat_amount = 0.0
+min_amount = 5000.0
+
+[sub_resource type="Resource" id="Resource_day_12"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("4_water")
+pct_of_balance = 0.6
+flat_amount = 0.0
+min_amount = 9000.0
+
+[sub_resource type="Resource" id="Resource_day_13"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("5_biomass")
+pct_of_balance = 0.8
+flat_amount = 0.0
+min_amount = 15000.0
+
+[sub_resource type="Resource" id="Resource_day_14"]
+script = ExtResource("2_slot_script")
+currency = ExtResource("6_crystals")
+pct_of_balance = 1.2
+flat_amount = 0.0
+min_amount = 30000.0
+
+[resource]
+script = ExtResource("1_script")
+slots = Array[ExtResource("2_slot_script")]([SubResource("Resource_day_01"), SubResource("Resource_day_02"), SubResource("Resource_day_03"), SubResource("Resource_day_04"), SubResource("Resource_day_05"), SubResource("Resource_day_06"), SubResource("Resource_day_07"), SubResource("Resource_day_08"), SubResource("Resource_day_09"), SubResource("Resource_day_10"), SubResource("Resource_day_11"), SubResource("Resource_day_12"), SubResource("Resource_day_13"), SubResource("Resource_day_14")])

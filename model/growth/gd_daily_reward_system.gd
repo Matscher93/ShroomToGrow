@@ -1,7 +1,14 @@
 class_name DailyRewardSystem
 extends RefCounted
-## MODEL: one claim per local calendar day, granting a permanent stack to one
-## producer of the player's choosing.
+## MODEL: one claim per producer per local calendar day, each granting that
+## producer a permanent stack.
+##
+## Every producer rather than a choice between them: the chips were a pick-one,
+## which made the daily a small decision taken in a second and then a closed
+## sheet.
+##
+## Knows nothing about the fourteen-day track that sits under it in the same
+## sheet. That is claimed on its own day by its own press - see DailyTrackSystem.
 ##
 ## Claim-driven, not accrual-driven: nothing ticks, nothing banks up, and a
 ## missed day is simply a day not claimed. That is deliberate - stacking missed
@@ -37,8 +44,17 @@ func _init(data: DailyRewardData, upgrades: UpgradeSystem, list: GrowthProducerL
 func today() -> int:
 	return DailyCalendar.day_index(float(now_provider.call()), int(tz_bias_provider.call()))
 
+## Whether anything is left to claim today - any producer whose own day has not
+## caught up with this one. This is what lights the notification dot, so it has to
+## stay true while two of the three chips are still unpressed.
 func can_claim() -> bool:
-	return today() > _data.last_claim_day
+	var current := today()
+	for producer in _producers:
+		if producer == null or producer.currency == null:
+			continue
+		if current > _data.claim_day(producer.currency.currency_type):
+			return true
+	return false
 
 func streak() -> int:
 	return _data.streak
@@ -60,18 +76,29 @@ func seconds_until_next_day() -> float:
 func stacks(currency: CurrencyTypes.Types) -> int:
 	return _upgrades.level(GrowthTree.daily_id(currency))
 
+## Per producer, against that producer's own last claim day. A chip pressed today
+## goes quiet until tomorrow; its neighbours do not.
 func can_claim_into(currency: CurrencyTypes.Types) -> bool:
-	return can_claim() and _upgrades.has_def(GrowthTree.daily_id(currency))
+	if today() <= _data.claim_day(currency):
+		return false
+	return _upgrades.has_def(GrowthTree.daily_id(currency))
 
-## Spends today's claim on one producer. The stack is permanent; the claim is
-## not repeatable until the local day rolls over.
+## Claims one producer's stack for today. The stack is permanent; that producer
+## is not claimable again until the local day rolls over, and its neighbours are
+## untouched.
+##
+## The first claim of the day also takes the day itself, adding the streak and
+## stamping the day; the two claims after it do neither.
 func claim(currency: CurrencyTypes.Types) -> bool:
 	if not can_claim_into(currency):
 		return false
 	if not _upgrades.buy_with_points(GrowthTree.daily_id(currency), true):
 		return false
-	_data.last_claim_day = today()
-	_data.streak += 1
+	var current := today()
+	_data.set_claim_day(currency, current)
+	if current > _data.last_claim_day:
+		_data.last_claim_day = current
+		_data.streak += 1
 	return true
 
 ## Pulls a last-claim day that sits in the future back to today, after a save
@@ -87,6 +114,11 @@ func claim(currency: CurrencyTypes.Types) -> bool:
 ## at OfflineProgress.MAX_SECONDS rather than trying to detect it.
 func sync_clock_rollback() -> void:
 	var current := today()
+	# The per-producer days are clamped too, or the chip stays dead until real
+	# time catches up even once the shared day has been pulled back.
+	for currency: int in _data.claim_days.keys():
+		if int(_data.claim_days[currency]) > current:
+			_data.claim_days[currency] = current
 	if _data.last_claim_day <= current:
 		return
 	push_warning("Daily reward was last claimed on day %d, ahead of today (%d). Clamping to today."

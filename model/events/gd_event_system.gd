@@ -36,13 +36,10 @@ var _biomes_data: BiomesData
 var _fertilizer: FertilizerSystem
 var _defs: Dictionary = {}      # StringName -> RandomEventDef
 var _pool: Array[RandomEventDef] = []
-## CurrencyTypes.Types -> StringName, the biome whose screen is where that
-## currency is shown and spent. Derived rather than authored: a screen already
-## lists its currencies and a biome already names its screen, so an event never
-## has to repeat the mapping and a new one cannot forget it. Currencies whose
-## screen has no owning biome (nutrients) are absent, which reads as "always
-## reachable".
-var _currency_biome: Dictionary = {}
+## Which biome owns the screen a currency is shown on, and therefore whether the
+## player has a home for it yet. Shared with the daily-reward track, which asks
+## the same question of the same map.
+var _homes: CurrencyHomes
 
 func _init(data: EventsData, player_data: PlayerData, biomes_data: BiomesData,
 		fertilizer: FertilizerSystem, list: RandomEventList, screens: Screens = null,
@@ -57,29 +54,10 @@ func _init(data: EventsData, player_data: PlayerData, biomes_data: BiomesData,
 				continue
 			_defs[def.id] = def
 			_pool.append(def)
-	_build_currency_biomes(screens, biomes)
-
-## Both registries are static and optional: without them the map stays empty and
-## every event is currency-reachable, which is what a test building the system
-## from two hand-made defs wants.
-func _build_currency_biomes(screens: Screens, biomes: BiomeList) -> void:
-	if screens == null or biomes == null:
-		return
-	var biome_for_screen: Dictionary = {}
-	for biome_def in biomes.biomes:
-		if biome_def == null:
-			continue
-		biome_for_screen[biome_def.screen_type] = biome_def.key
-	for screen_type: ScreenTypes.Types in screens.screens:
-		if not biome_for_screen.has(screen_type):
-			continue
-		var screen_def: ScreenDefinition = screens.screens[screen_type]
-		if screen_def == null:
-			continue
-		for currency in screen_def.currencies:
-			if currency == null:
-				continue
-			_currency_biome[currency.currency_type] = biome_for_screen[screen_type]
+	# Both registries stay optional: without them the map is empty and every event
+	# is currency-reachable, which is what a test building the system from two
+	# hand-made defs wants.
+	_homes = CurrencyHomes.new(screens, biomes)
 
 # ---------------------------------------------------------------- spawning
 
@@ -125,9 +103,7 @@ func _eligible() -> Array[RandomEventDef]:
 func _currency_reachable(def: RandomEventDef) -> bool:
 	if def.currency == null:
 		return true
-	if not _currency_biome.has(def.currency.currency_type):
-		return true
-	return _biomes_data.is_ever_unlocked(_currency_biome[def.currency.currency_type])
+	return _homes.is_reachable(def.currency.currency_type, _biomes_data)
 
 func _roll_fertilizer(def: RandomEventDef) -> int:
 	var low := int(def.fertilizer_min)

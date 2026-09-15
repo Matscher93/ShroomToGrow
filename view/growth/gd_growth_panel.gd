@@ -29,8 +29,12 @@ signal dismissed
 @export var lbl_daily_streak: Label
 @export var lbl_daily_hint: Label
 @export var grid_daily: GridContainer
+@export var lbl_track_progress: Label
+@export var lbl_track_hint: Label
+@export var grid_track: GridContainer
 @export var lp_row_scene: PackedScene
 @export var daily_chip_scene: PackedScene
+@export var track_slot_scene: PackedScene
 
 var _vm: GrowthViewModel
 
@@ -69,10 +73,25 @@ func _build_rows() -> void:
 		var row := lp_row_scene.instantiate()
 		vbox_lp_rows.add_child(row)
 		row.invest_requested.connect(_on_invest_requested)
-	for _i in _vm.daily_rows.size():
+		row.invest_step_requested.connect(_on_invest_step_requested)
+	# One column per producer, so the day's choices are a single row the player
+	# reads across rather than a block they scan. Counted rather than authored on
+	# the scene: at three producers a fixed two-column grid left one chip alone on
+	# a second line, and the next producer added would do the same again.
+	var daily_rows := _vm.daily_rows
+	grid_daily.columns = maxi(daily_rows.size(), 1)
+	for _i in daily_rows.size():
 		var chip := daily_chip_scene.instantiate()
 		grid_daily.add_child(chip)
 		chip.claim_requested.connect(_on_claim_requested)
+	# Two rows of seven for the fourteen days, so a week reads as a line. The
+	# columns are authored on the scene rather than counted the way the daily grid
+	# above counts producers: the track's length is a design decision with a shape,
+	# not a list that grows.
+	for _i in _vm.track_rows.size():
+		var slot := track_slot_scene.instantiate()
+		grid_track.add_child(slot)
+		slot.claim_requested.connect(_on_track_claim_requested)
 	_refresh_rows()
 
 func _refresh() -> void:
@@ -85,6 +104,8 @@ func _refresh() -> void:
 	lbl_double_hint.text = _vm.next_double_hint_text
 	lbl_daily_streak.text = _vm.daily_streak_text
 	lbl_daily_hint.text = _vm.daily_hint_text
+	lbl_track_progress.text = _vm.track_progress_text
+	lbl_track_hint.text = _vm.track_hint_text
 	_refresh_rows()
 
 func _refresh_rows() -> void:
@@ -94,12 +115,23 @@ func _refresh_rows() -> void:
 	var daily_rows := _vm.daily_rows
 	for i in range(mini(daily_rows.size(), grid_daily.get_child_count())):
 		grid_daily.get_child(i).bind(daily_rows[i])
+	var track_rows := _vm.track_rows
+	for i in range(mini(track_rows.size(), grid_track.get_child_count())):
+		grid_track.get_child(i).bind(track_rows[i])
 
 func _on_invest_requested(currency: CurrencyTypes.Types) -> void:
 	_vm.invest(currency)
 
+func _on_invest_step_requested(currency: CurrencyTypes.Types) -> void:
+	_vm.invest_step(currency)
+
 func _on_claim_requested(currency: CurrencyTypes.Types) -> void:
 	_vm.claim_daily(currency)
+
+## Every slot is wired to this, and only today's is pressable - so the press does
+## not have to say which day it was: the track knows which one it is sitting on.
+func _on_track_claim_requested() -> void:
+	_vm.claim_track()
 
 ## Presses that reached the backdrop missed the sheet, so they are a tap outside
 ## the overlay.

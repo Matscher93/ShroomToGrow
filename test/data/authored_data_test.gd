@@ -1382,3 +1382,38 @@ func test_every_currency_type_maps_to_its_own_player_data_field() -> void:
 		seen[field] = true
 		assert_bool(player.get(field) is BigNumber).override_failure_message(
 			"PlayerData has no BigNumber field '%s'." % field).is_true()
+
+# ---------------------------------------------------------------- daily track
+
+## The track is a fortnight by design: the sheet lays it out as two rows of seven
+## and says "of 14" in its caption, so a fifteenth day would wrap into a third
+## row nothing is sized for.
+func test_the_daily_track_is_a_fortnight_long() -> void:
+	assert_int(App.daily_track.count()).override_failure_message(
+		"The daily reward track is laid out as two rows of seven.").is_equal(14)
+
+func test_every_track_day_pays_a_real_currency() -> void:
+	for day in range(1, App.daily_track.count() + 1):
+		var slot := App.daily_track.slots[day - 1]
+		assert_object(slot).override_failure_message(
+			"Track day %d is empty." % day).is_not_null()
+		assert_object(slot.currency).override_failure_message(
+			"Track day %d names no currency." % day).is_not_null()
+		var def: CurrencyDef = App.currencies.currencies.get(slot.currency.currency_type)
+		assert_object(def).override_failure_message(
+			"Track day %d pays a currency with no def." % day).is_not_null()
+
+## The whole shape of the track: every day is worth more than the one before it,
+## both in what it scales off the balance and in the floor that carries it when
+## the balance is small. A flat stretch is a week the player has no reason to
+## finish.
+func test_the_track_gets_richer_every_day() -> void:
+	for day in range(2, App.daily_track.count() + 1):
+		var previous := App.daily_track.slots[day - 2]
+		var slot := App.daily_track.slots[day - 1]
+		assert_float(slot.pct_of_balance).override_failure_message(
+			"Track day %d scales no harder than day %d." % [day, day - 1]
+			).is_greater(previous.pct_of_balance)
+		assert_float(slot.min_amount).override_failure_message(
+			"Track day %d floors no higher than day %d." % [day, day - 1]
+			).is_greater(previous.min_amount)

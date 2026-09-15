@@ -76,6 +76,13 @@ var water_system: WaterSystem
 var well_system: WellSystem
 var player_level_system: PlayerLevelSystem
 var daily_reward_system: DailyRewardSystem
+var daily_track_system: DailyTrackSystem
+## Which biome owns the screen a currency lives on, and so whether the player has
+## a home for it yet. The daily track refuses to pay in a resource they have
+## never seen, exactly as the random events refuse to offer one - EventSystem
+## builds its own from the same class off the same two registries, since it is
+## handed them already.
+var currency_homes: CurrencyHomes
 var fertilizer_system: FertilizerSystem
 var event_system: EventSystem
 var hero_system: HeroSystem
@@ -112,6 +119,7 @@ var project_vms: Dictionary = {}  # StringName -> ProjectViewModel
 var well_vm: WellViewModel
 
 var growth_producers := load("res://data/growth/all_producers.tres") as GrowthProducerList
+var daily_track := load("res://data/growth/res_daily_track.tres") as DailyTrackList
 var daily_reward_data: DailyRewardData
 var growth_vm: GrowthViewModel
 
@@ -275,8 +283,14 @@ func _ready() -> void:
 		prestige_upgrade_system)
 
 	daily_reward_data = DailyRewardData.new()
+	currency_homes = CurrencyHomes.new(screens, biomes)
 	player_level_system = PlayerLevelSystem.new(player_data, growth_upgrade_system,
 		growth_producers, production_system)
+	# Two dailies over one DailyRewardData, each with its own day: the producer
+	# chips and the fourteen-day track are claimed separately and neither spends
+	# the other's press.
+	daily_track_system = DailyTrackSystem.new(daily_reward_data, player_data, daily_track,
+		currency_homes, biomes_data)
 	daily_reward_system = DailyRewardSystem.new(daily_reward_data, growth_upgrade_system,
 		growth_producers)
 
@@ -906,10 +920,24 @@ func can_invest_lp(currency: CurrencyTypes.Types) -> bool:
 func invest_lp(currency: CurrencyTypes.Types) -> bool:
 	return player_level_system.invest(currency)
 
+## Points one press of the step button would spend - up to the next doubling, or
+## whatever is left in the budget.
+func lp_step_size(currency: CurrencyTypes.Types) -> int:
+	return player_level_system.step_size(currency)
+
+func invest_lp_step(currency: CurrencyTypes.Types) -> int:
+	return player_level_system.invest_to_next_double(currency)
+
 # ---------------------------------------------------------------- daily reward
 
+## Anything left to claim today - any producer still unpressed.
 func can_claim_daily() -> bool:
 	return daily_reward_system.can_claim()
+
+## Whether today's track step is still unspent. Its own day, so it stays true on a
+## day already spent on every producer chip.
+func can_step_daily_track() -> bool:
+	return daily_track_pending_day() > 0
 
 func can_claim_daily_into(currency: CurrencyTypes.Types) -> bool:
 	return daily_reward_system.can_claim_into(currency)
@@ -922,6 +950,34 @@ func daily_stacks(currency: CurrencyTypes.Types) -> int:
 
 func claim_daily(currency: CurrencyTypes.Types) -> bool:
 	return daily_reward_system.claim(currency)
+
+# ------------------------------------------------------------ daily track
+#
+# Every read takes its day index from the reward system rather than asking the
+# clock again, so the sheet and the claim can never disagree about what today is.
+
+func daily_track_count() -> int:
+	return daily_track_system.count()
+
+## Slots already claimed in the pass still running, 0 once a missed day has
+## broken it.
+func daily_track_claimed_days() -> int:
+	return daily_track_system.claimed_days(daily_reward_system.today())
+
+## The day today's claim would pay, 0 when it is already spent.
+func daily_track_pending_day() -> int:
+	return daily_track_system.pending_day(daily_reward_system.today())
+
+func daily_track_currency(day: int) -> CurrencyTypes.Types:
+	return daily_track_system.currency_for(day)
+
+func daily_track_amount(day: int) -> BigNumber:
+	return daily_track_system.amount_for(day)
+
+## Takes today's step, paying whatever slot the track is sitting on. False when
+## it was already taken today.
+func claim_daily_track() -> bool:
+	return daily_track_system.claim(daily_reward_system.today()) > 0
 
 # ---------------------------------------------------------------- fertilizer
 

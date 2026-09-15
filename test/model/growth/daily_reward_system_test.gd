@@ -61,15 +61,27 @@ func test_claiming_grants_a_stack() -> void:
 	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_true()
 	assert_int(_system.stacks(CurrencyTypes.Types.WATER)).is_equal(1)
 
-func test_claiming_uses_up_the_day() -> void:
+## Each producer owns its own day. Spending one leaves the rest of the sheet
+## live, which is the whole point of the chips being separate.
+func test_claiming_one_producer_leaves_the_others_claimable() -> void:
 	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_true()
-	assert_bool(_system.can_claim()).is_false()
+	assert_bool(_system.can_claim_into(CurrencyTypes.Types.WATER)).is_false()
+	assert_bool(_system.can_claim_into(CurrencyTypes.Types.NUTRIENTS)).is_true()
+	assert_bool(_system.can_claim()).is_true()
 
-func test_a_second_claim_the_same_day_is_refused() -> void:
+func test_every_producer_can_be_claimed_on_the_same_day() -> void:
 	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_true()
 	_now += 3600.0
-	assert_bool(_system.claim(CurrencyTypes.Types.NUTRIENTS)).is_false()
-	assert_int(_system.stacks(CurrencyTypes.Types.NUTRIENTS)).is_zero()
+	assert_bool(_system.claim(CurrencyTypes.Types.NUTRIENTS)).is_true()
+	assert_int(_system.stacks(CurrencyTypes.Types.WATER)).is_equal(1)
+	assert_int(_system.stacks(CurrencyTypes.Types.NUTRIENTS)).is_equal(1)
+	assert_bool(_system.can_claim()).is_false()
+
+func test_the_same_producer_twice_in_a_day_is_refused() -> void:
+	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_true()
+	_now += 3600.0
+	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_false()
+	assert_int(_system.stacks(CurrencyTypes.Types.WATER)).is_equal(1)
 
 func test_crossing_midnight_opens_the_next_claim() -> void:
 	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_true()
@@ -92,9 +104,12 @@ func test_claiming_into_a_producer_that_is_not_authored_is_refused() -> void:
 
 # ---------------------------------------------------------------- streak
 
-func test_the_streak_counts_claims() -> void:
+## Days turned up on, not chips pressed: a visit that claims all three producers
+## is one day on the record.
+func test_the_streak_counts_days_rather_than_claims() -> void:
 	assert_int(_system.streak()).is_zero()
 	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_true()
+	assert_bool(_system.claim(CurrencyTypes.Types.NUTRIENTS)).is_true()
 	assert_int(_system.streak()).is_equal(1)
 
 func test_a_refused_claim_does_not_move_the_streak() -> void:
@@ -136,17 +151,19 @@ func test_the_countdown_reaches_the_tick_the_next_claim_opens_on() -> void:
 
 # ---------------------------------------------------------------- rollback
 
+## Asked of the producer that was claimed: its own day is the one left sitting in
+## the future, and the chips its neighbours own were never spent.
 func test_a_clock_set_back_does_not_lock_the_player_out() -> void:
 	_now += DAY * 400.0
 	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_true()
 	_now -= DAY * 400.0
-	assert_bool(_system.can_claim()).is_false()
+	assert_bool(_system.can_claim_into(CurrencyTypes.Types.WATER)).is_false()
 	_system.sync_clock_rollback()
 	# Still not today's - the claim was spent - but tomorrow works again rather
 	# than the player waiting out the 400 days the clock had jumped.
-	assert_bool(_system.can_claim()).is_false()
+	assert_bool(_system.can_claim_into(CurrencyTypes.Types.WATER)).is_false()
 	_now += DAY
-	assert_bool(_system.can_claim()).is_true()
+	assert_bool(_system.can_claim_into(CurrencyTypes.Types.WATER)).is_true()
 
 func test_rollback_leaves_a_sane_last_claim_alone() -> void:
 	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_true()
@@ -154,3 +171,26 @@ func test_rollback_leaves_a_sane_last_claim_alone() -> void:
 	_now += DAY * 5.0
 	_system.sync_clock_rollback()
 	assert_int(_data.last_claim_day).is_equal(claimed_on)
+
+# ---------------------------------------------------------------- the track
+
+## The track is claimed by its own press on its own day. Nothing here should
+## reach it - a chip claim that stepped it would spend a press the player never
+## made, which is what the separate slot button exists to avoid.
+func test_claiming_a_producer_leaves_the_track_alone() -> void:
+	var player := PlayerData.new()
+	player.nutrients = BigNumber.from_value(1000.0)
+	var list := DailyTrackList.new()
+	var slot := DailyTrackSlotDef.new()
+	var currency := CurrencyDef.new()
+	currency.currency_type = CurrencyTypes.Types.NUTRIENTS
+	slot.currency = currency
+	slot.pct_of_balance = 0.1
+	slot.min_amount = 10.0
+	var slots: Array[DailyTrackSlotDef] = [slot, slot]
+	list.slots = slots
+	var track := DailyTrackSystem.new(_data, player, list)
+
+	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_true()
+	assert_int(_data.track_day).is_zero()
+	assert_int(track.pending_day(_system.today())).is_equal(1)

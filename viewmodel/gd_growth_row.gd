@@ -24,3 +24,13 @@ var detail_text: String
 ## still unspent today. A disabled row stays visible - hiding it gives the player
 ## nothing to work towards.
 var enabled: bool
+
+## LP rows only: the second button, which invests up to the next doubling rather
+## than one point. Its label counts the points that press would actually spend,
+## so "+3" from seven points in means the doubling lands on it.
+var step_text: String
+
+## False when there is nothing left to spend. Separate from `enabled` because the
+## two buttons can differ - they cannot today, but a future budget rule that
+## allows one point and not a run of them would land here rather than in the view.
+var step_enabled: bool

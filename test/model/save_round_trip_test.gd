@@ -457,11 +457,27 @@ func test_daily_reward_data_round_trip() -> void:
 	var original := DailyRewardData.new()
 	original.last_claim_day = 20_113
 	original.streak = 12
+	original.track_day = 7
+	original.set_claim_day(CurrencyTypes.Types.WATER, 20_113)
 
 	var restored := DailyRewardData.from_save(original.to_save())
 
 	assert_int(restored.last_claim_day).is_equal(20_113)
 	assert_int(restored.streak).is_equal(12)
+	assert_int(restored.track_day).is_equal(7)
+	assert_int(restored.claim_day(CurrencyTypes.Types.WATER)).is_equal(20_113)
+	assert_int(restored.claim_day(CurrencyTypes.Types.NUTRIENTS)).is_zero()
+
+## The per-producer days go through JSON, which has string keys and floats for
+## numbers - so they have to survive being read back as "1" rather than 1.
+func test_daily_reward_claim_days_survive_json() -> void:
+	var original := DailyRewardData.new()
+	original.set_claim_day(CurrencyTypes.Types.BIOMASS, 20_200)
+
+	var parsed: Dictionary = JSON.parse_string(JSON.stringify(original.to_save()))
+	var restored := DailyRewardData.from_save(parsed)
+
+	assert_int(restored.claim_day(CurrencyTypes.Types.BIOMASS)).is_equal(20_200)
 
 func test_daily_reward_data_loads_in_place() -> void:
 	# GrowthViewModel binds to these signals, so a load must mutate rather than
@@ -481,6 +497,8 @@ func test_an_empty_daily_reward_save_reads_as_never_claimed() -> void:
 	var restored := DailyRewardData.from_save({})
 	assert_int(restored.last_claim_day).is_zero()
 	assert_int(restored.streak).is_zero()
+	assert_int(restored.track_day).is_zero()
+	assert_int(restored.claim_day(CurrencyTypes.Types.WATER)).is_zero()
 
 # ─── AutomationData ──────────────────────────────────────────────────────────
 

@@ -21,8 +21,14 @@ const PROP_DAILY_CHANGED := &"daily_changed"
 func invest(currency: CurrencyTypes.Types) -> void:
 	App.invest_lp(currency)
 
+func invest_step(currency: CurrencyTypes.Types) -> void:
+	App.invest_lp_step(currency)
+
 func claim_daily(currency: CurrencyTypes.Types) -> void:
 	App.claim_daily(currency)
+
+func claim_track() -> void:
+	App.claim_daily_track()
 
 # --- Read-only display properties bound by the View ---
 
@@ -83,14 +89,76 @@ var daily_streak_text: String:
 var daily_hint_text: String:
 	get:
 		if App.can_claim_daily():
-			return "Pick a producer for a permanent boost today."
-		return "Claimed today. The next one arrives tomorrow."
+			return "Claim each producer once a day for a permanent boost."
+		return "All claimed today. They come back tomorrow."
 
 ## The chip's notification dot: unspent points, or a reward still waiting today.
 ## The dot is the only thing telling the player either exists, since the sheet is
 ## off screen by default - the same job the achievement archive's dot does.
 var has_alert: bool:
-	get: return App.lp_available() > 0 or App.can_claim_daily()
+	get:
+		return App.lp_available() > 0 or App.can_claim_daily() or App.can_step_daily_track()
+
+# --- The fourteen-day track ---
+
+## Reads the claim state once and builds every row against it, rather than each
+## row asking again: the pass boundary is a comparison against today, and a row
+## built either side of a midnight that fell mid-loop would disagree with its
+## neighbours.
+var track_rows: Array[DailyTrackRow]:
+	get:
+		var rows: Array[DailyTrackRow] = []
+		var claimed := App.daily_track_claimed_days()
+		var pending := App.daily_track_pending_day()
+		for day in range(1, App.daily_track_count() + 1):
+			rows.append(_track_row(day, claimed, pending))
+		return rows
+
+## The track's own caption, beside its heading. Reads the day the player is *on*
+## rather than the count behind them, which is the number the slots are labelled
+## with - "Day 5 of 14" next to a highlighted D5.
+var track_progress_text: String:
+	get:
+		var count := App.daily_track_count()
+		if count == 0:
+			return ""
+		var pending := App.daily_track_pending_day()
+		if pending == 0:
+			return "Day %d of %d claimed" % [App.daily_track_claimed_days(), count]
+		return "Day %d of %d" % [pending, count]
+
+## Says where the track stands and what to do about it. The step is claimed apart
+## from the chips above, so the hint has to name the press - a highlighted tile
+## with no words is not an obvious button.
+var track_hint_text: String:
+	get:
+		var count := App.daily_track_count()
+		var claimed := App.daily_track_claimed_days()
+		if claimed >= count and count > 0:
+			return "Track complete. It starts over tomorrow."
+		var pending := App.daily_track_pending_day()
+		if pending == 0:
+			return "Day %d claimed. Day %d arrives tomorrow." % [claimed, claimed + 1]
+		if pending > 1:
+			return "Tap day %d to claim it. Miss a day and the track resets." % pending
+		if claimed == 0 and App.daily_streak() > 0:
+			return "A missed day reset the track. Tap day 1 to start it again."
+		return "Tap day 1 to start the track. Each day is worth more than the last."
+
+func _track_row(day: int, claimed: int, pending: int) -> DailyTrackRow:
+	var row := DailyTrackRow.new()
+	row.day = day
+	row.currency = App.daily_track_currency(day)
+	var def: CurrencyDef = App.currencies.currencies.get(row.currency)
+	row.accent = def.main_color if def else Color.WHITE
+	row.amount_text = "+%s" % App.daily_track_amount(day).to_display(1)
+	if day <= claimed:
+		row.state = DailyTrackRow.State.CLAIMED
+	elif day == pending:
+		row.state = DailyTrackRow.State.TODAY
+	else:
+		row.state = DailyTrackRow.State.LOCKED
+	return row
 
 var lp_rows: Array[GrowthRow]:
 	get:
@@ -121,12 +189,17 @@ func _init() -> void:
 	App.growth_upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
 	App.daily_reward_data.last_claim_day_changed.connect(_on_daily_changed)
 	App.daily_reward_data.streak_changed.connect(_on_daily_changed)
+	# The track is claimed by its own press, which moves neither of the two above.
+	App.daily_reward_data.track_day_changed.connect(_on_daily_changed)
+	App.daily_reward_data.track_claim_day_changed.connect(_on_daily_changed)
 
 func dispose() -> void:
 	App.player_data.tick_count_changed.disconnect(_on_tick_count_changed)
 	App.growth_upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
 	App.daily_reward_data.last_claim_day_changed.disconnect(_on_daily_changed)
 	App.daily_reward_data.streak_changed.disconnect(_on_daily_changed)
+	App.daily_reward_data.track_day_changed.disconnect(_on_daily_changed)
+	App.daily_reward_data.track_claim_day_changed.disconnect(_on_daily_changed)
 
 # --- Model -> notification plumbing ---
 
@@ -161,6 +234,11 @@ func _lp_row(producer: GrowthProducerDef) -> GrowthRow:
 	row.value_text = "x%s" % stacks.mul(App.lp_global_double()).to_display(2)
 	row.detail_text = "%d LP" % invested
 	row.enabled = App.can_invest_lp(currency)
+	var step := App.lp_step_size(currency)
+	# With nothing left to spend the button is dead anyway, so it shows the points
+	# the next doubling is waiting on rather than a "+0" that reads as a bug.
+	row.step_text = "+%d" % (step if step > 0 else App.lp_points_to_next_double())
+	row.step_enabled = step > 0
 	return row
 
 func _daily_row(producer: GrowthProducerDef) -> GrowthRow:

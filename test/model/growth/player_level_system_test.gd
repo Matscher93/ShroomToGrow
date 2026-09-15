@@ -10,6 +10,9 @@ var _player: PlayerData
 var _upgrades: UpgradeSystem
 var _list: GrowthProducerList
 var _system: PlayerLevelSystem
+## GDScript lambdas capture locals by value, so a counter assigned inside a
+## signal handler has to live on the suite to be readable from the assertion.
+var _announced: int = 0
 
 func before_test() -> void:
 	_player = PlayerData.new()
@@ -18,6 +21,7 @@ func before_test() -> void:
 	for def in GrowthTree.build(_list):
 		_upgrades.register(def)
 	_system = PlayerLevelSystem.new(_player, _upgrades, _list)
+	_announced = 0
 
 func _currency(type: CurrencyTypes.Types, currency_name: String) -> CurrencyDef:
 	var def := CurrencyDef.new()
@@ -183,6 +187,70 @@ func test_points_to_the_next_doubling_counts_down() -> void:
 	assert_int(_system.points_to_next_double()).is_equal(PlayerLevelSystem.LP_PER_DOUBLE)
 	assert_bool(_system.invest(CurrencyTypes.Types.WATER)).is_true()
 	assert_int(_system.points_to_next_double()).is_equal(PlayerLevelSystem.LP_PER_DOUBLE - 1)
+
+# ---------------------------------------------------------------- the step
+
+## The whole point of the second button: from a standing start it is a flat ten,
+## which is exactly one doubling.
+func test_a_step_from_nothing_invested_is_ten() -> void:
+	_set_level(30)
+	assert_int(_system.step_size(CurrencyTypes.Types.WATER)).is_equal(
+		PlayerLevelSystem.LP_PER_DOUBLE)
+	assert_int(_system.invest_to_next_double(CurrencyTypes.Types.WATER)).is_equal(
+		PlayerLevelSystem.LP_PER_DOUBLE)
+	assert_int(_system.doublings()).is_equal(1)
+
+## And off one: seven points in, the step is the three that land on the doubling
+## rather than a ten that sails seven past it.
+func test_a_step_fills_up_to_the_next_doubling() -> void:
+	_set_level(30)
+	for _i in range(7):
+		assert_bool(_system.invest(CurrencyTypes.Types.WATER)).is_true()
+	assert_int(_system.step_size(CurrencyTypes.Types.NUTRIENTS)).is_equal(3)
+	assert_int(_system.invest_to_next_double(CurrencyTypes.Types.NUTRIENTS)).is_equal(3)
+	assert_int(_system.invested_total()).is_equal(PlayerLevelSystem.LP_PER_DOUBLE)
+	assert_int(_system.doublings()).is_equal(1)
+
+## The points go into the producer that was pressed, wherever the ones before
+## them went.
+func test_a_step_invests_into_the_producer_it_was_pressed_on() -> void:
+	_set_level(30)
+	for _i in range(7):
+		assert_bool(_system.invest(CurrencyTypes.Types.WATER)).is_true()
+	assert_int(_system.invest_to_next_double(CurrencyTypes.Types.NUTRIENTS)).is_equal(3)
+	assert_int(_system.invested(CurrencyTypes.Types.NUTRIENTS)).is_equal(3)
+	assert_int(_system.invested(CurrencyTypes.Types.WATER)).is_equal(7)
+
+## A budget short of the boundary spends what there is rather than refusing: the
+## points are still worth investing, they just do not reach the doubling.
+func test_a_step_is_capped_by_the_budget() -> void:
+	_set_level(4)
+	assert_int(_system.available_points()).is_equal(4)
+	assert_int(_system.step_size(CurrencyTypes.Types.WATER)).is_equal(4)
+	assert_int(_system.invest_to_next_double(CurrencyTypes.Types.WATER)).is_equal(4)
+	assert_int(_system.available_points()).is_zero()
+	assert_int(_system.doublings()).is_zero()
+
+func test_a_step_with_no_points_does_nothing() -> void:
+	assert_int(_system.step_size(CurrencyTypes.Types.WATER)).is_zero()
+	assert_int(_system.invest_to_next_double(CurrencyTypes.Types.WATER)).is_zero()
+	assert_int(_system.invested(CurrencyTypes.Types.WATER)).is_zero()
+
+func test_a_step_into_a_producer_that_is_not_authored_is_refused() -> void:
+	_set_level(30)
+	assert_int(_system.step_size(CurrencyTypes.Types.CRYSTALS)).is_zero()
+	assert_int(_system.invest_to_next_double(CurrencyTypes.Types.CRYSTALS)).is_zero()
+
+## Eleven writes - ten points and the doubling - must reach the views as one
+## notification, or every bound row rebuilds ten times per press.
+func test_a_step_announces_once() -> void:
+	_set_level(30)
+	_upgrades.upgrades_changed.connect(_on_upgrades_changed)
+	_system.invest_to_next_double(CurrencyTypes.Types.WATER)
+	assert_int(_announced).is_equal(1)
+
+func _on_upgrades_changed() -> void:
+	_announced += 1
 
 # ---------------------------------------------------------------- sync
 

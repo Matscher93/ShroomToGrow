@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/growth/gd_growth_track_slot.gd" id="1_script"]
+[ext_resource type="FontFile" path="res://fonts/JetBrains_Mono/JetBrainsMono-Bold.ttf" id="2_num_font"]
+[ext_resource type="Shader" uid="uid://bi2mjv5oeguva" path="res://view/resource_pill/sh_header_icon.gdshader" id="3_currency_icon"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot"]
+resource_local_to_scene = true
+content_margin_left = 4.0
+content_margin_top = 7.0
+content_margin_right = 4.0
+content_margin_bottom = 7.0
+bg_color = Color(1, 1, 1, 0.03)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.06)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_icon"]
+resource_local_to_scene = true
+shader = ExtResource("3_currency_icon")
+shader_parameter/rect_size = Vector2(18, 18)
+shader_parameter/circle_color = Color(0.9019608, 0.7254902, 0.33333334, 1)
+shader_parameter/inner_radius = 0.5
+shader_parameter/outer_radius = 0.65
+shader_parameter/icon_scale = 0.9
+shader_parameter/icon_id = 0
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_flat"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_day"]
+font_size = 10
+font_color = Color(0.43529412, 0.52156866, 0.47843137, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_amount"]
+font = ExtResource("2_num_font")
+font_size = 10
+font_color = Color(0.5764706, 0.65882355, 0.6117647, 1)
+
+[node name="growth_track_slot" type="PanelContainer" node_paths=PackedStringArray("icon", "lbl_day", "lbl_amount", "btn_claim")]
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
+script = ExtResource("1_script")
+icon = NodePath("VBoxContainer/icon_wrap/icon")
+lbl_day = NodePath("VBoxContainer/lbl_day")
+lbl_amount = NodePath("VBoxContainer/lbl_amount")
+btn_claim = NodePath("btn_claim")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="lbl_day" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "D1"
+label_settings = SubResource("LabelSettings_day")
+horizontal_alignment = 1
+
+[node name="icon_wrap" type="CenterContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="icon" type="ColorRect" parent="VBoxContainer/icon_wrap"]
+material = SubResource("ShaderMaterial_icon")
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="lbl_amount" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "+0"
+label_settings = SubResource("LabelSettings_amount")
+horizontal_alignment = 1
+clip_text = true
+
+[node name="btn_claim" type="Button" parent="."]
+layout_mode = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_flat")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_flat")
+flat = true

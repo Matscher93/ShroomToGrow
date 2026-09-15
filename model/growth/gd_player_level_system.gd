@@ -103,6 +103,41 @@ func invest(currency: CurrencyTypes.Types) -> bool:
 	_upgrades.end_batch()
 	return bought
 
+## The points one press of the step button would spend: enough to land the
+## invested total on the next doubling, or everything left in the budget when
+## that is less.
+##
+## The ten is a boundary rather than a quantity. Investing a flat ten from seven
+## points in overshoots the doubling by seven and leaves the next one seven short
+## - the press that is actually worth offering is the one that lands on it.
+func step_size(currency: CurrencyTypes.Types) -> int:
+	if not can_invest(currency):
+		return 0
+	return mini(points_to_next_double(), available_points())
+
+## Invests up to the next doubling in one press. Returns the points spent, 0 when
+## there was nothing to spend.
+##
+## One batch around the whole run, for the reason invest() takes one around its
+## single point: the ten investments and the doubling they earn are one decision
+## to the player, and a notification each would refresh every bound view eleven
+## times.
+func invest_to_next_double(currency: CurrencyTypes.Types) -> int:
+	var wanted := step_size(currency)
+	if wanted <= 0:
+		return 0
+	var id := GrowthTree.invest_id(currency)
+	var bought := 0
+	_upgrades.begin_batch()
+	for _i in range(wanted):
+		if not _upgrades.buy_with_points(id, true):
+			break
+		bought += 1
+	if bought > 0:
+		sync_global_double()
+	_upgrades.end_batch()
+	return bought
+
 ## Brings the global-doubling level up to what the invested total warrants: one
 ## per LP_PER_DOUBLE points, wherever they were spent.
 ##
