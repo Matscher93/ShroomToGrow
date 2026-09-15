@@ -1127,3 +1127,23 @@ body.spread-panning .spread-chart { cursor: grabbing; }
 /* Embedded in a game screen rather than filling a view: it takes the width it is
    given and scrolls sideways if the lanes need more. */
 .spread-strip { display: flex; flex-direction: column; gap: 6px; overflow-x: auto; }
+
+/* ---------------------------------------------------------------- Growth screen */
+
+/* Sample rungs of the level ladder, beside the two fields that shape it: the
+   curve is exponential, so a handful of sampled rungs says more than the numbers do. */
+.growth-ladder { display: flex; flex-direction: column; gap: 2px; grid-column: 1 / -1;
+  margin-top: 6px; }
+.growth-ladder > div { display: flex; align-items: baseline; gap: 8px; }
+.growth-ladder b { font: 11px ui-monospace, monospace; color: var(--muted); min-width: 44px; }
+.growth-ladder .num { font: 12px ui-monospace, monospace; color: var(--text); min-width: 72px; }
+.growth-ladder i { font-style: normal; font-size: 11px; color: var(--muted); }
+
+/* The fourteen track slots, as a grid rather than a column: the curve across the
+   fortnight is the thing being tuned, and a column of fourteen cards hides it. */
+.growth-track { display: grid; gap: 8px; margin-top: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.growth-track-slot { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 2px; }
+.growth-track-slot h5 { margin: 0 0 2px; font-size: 11px; color: var(--muted);
+  font-weight: 600; }
+.growth-track-slot .game-fields { grid-template-columns: minmax(0, 1fr); }

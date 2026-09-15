@@ -119,6 +119,7 @@ var project_vms: Dictionary = {}  # StringName -> ProjectViewModel
 var well_vm: WellViewModel
 
 var growth_producers := load("res://data/growth/all_producers.tres") as GrowthProducerList
+var player_level_curve := load("res://data/growth/res_player_level_curve.tres") as PlayerLevelCurve
 var daily_track := load("res://data/growth/res_daily_track.tres") as DailyTrackList
 var daily_reward_data: DailyRewardData
 var growth_vm: GrowthViewModel
@@ -274,7 +275,7 @@ func _ready() -> void:
 
 	achievement_progress = AchievementProgress.new()
 	achievement_system = AchievementSystem.new(achievements, achievement_progress, player_data,
-		upgrade_system, biomes_data)
+		upgrade_system, biomes_data, player_level_curve)
 
 	boost_system = BoostSystem.new(player_data, boost_upgrade_system, boosts,
 		prestige_upgrade_system, production_system)
@@ -285,7 +286,7 @@ func _ready() -> void:
 	daily_reward_data = DailyRewardData.new()
 	currency_homes = CurrencyHomes.new(screens, biomes)
 	player_level_system = PlayerLevelSystem.new(player_data, growth_upgrade_system,
-		growth_producers, production_system)
+		growth_producers, production_system, player_level_curve)
 	# Two dailies over one DailyRewardData, each with its own day: the producer
 	# chips and the fourteen-day track are claimed separately and neither spends
 	# the other's press.

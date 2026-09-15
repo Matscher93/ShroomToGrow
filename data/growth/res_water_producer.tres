@@ -7,7 +7,5 @@
 script = ExtResource("1_script")
 currency = ExtResource("2_currency")
 stat = &"water_production"
-scope = 0
-target = &""
-lp_per_level = 0.05
-daily_per_level = 0.02
+lp_per_level = 0.02
+daily_per_level = 0.01

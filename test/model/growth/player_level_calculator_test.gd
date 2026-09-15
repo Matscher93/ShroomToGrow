@@ -19,7 +19,7 @@ func test_below_the_first_requirement_is_still_level_zero() -> void:
 	assert_int(_level(999.0)).is_equal(0)
 
 func test_the_first_requirement_lands_level_one() -> void:
-	assert_int(_level(PlayerLevelCalculator.BASE)).is_equal(1)
+	assert_int(_level(PlayerLevelCurve.DEFAULT_BASE)).is_equal(1)
 
 func test_a_level_holds_until_the_next_requirement() -> void:
 	assert_int(_level(2999.0)).is_equal(1)
@@ -93,3 +93,66 @@ func test_progress_still_moves_far_past_float_range() -> void:
 	assert_float(low_pct).is_greater(0.0)
 	assert_float(high_pct).is_less(1.0)
 	assert_float(high_pct).is_greater(low_pct)
+
+# ---------------------------------------------------------------- the curve
+
+func _curve(base: float, growth: float) -> PlayerLevelCurve:
+	var curve := PlayerLevelCurve.new()
+	curve.base = base
+	curve.growth = growth
+	return curve
+
+## The authored ladder is what the balance editor edits, so it has to be the
+## thing the arithmetic actually reads - not a default the curve shadows.
+func test_an_authored_curve_moves_the_requirements() -> void:
+	var curve := _curve(100.0, 2.0)
+	assert_float(PlayerLevelCalculator.requirement(1, curve).to_float()).is_equal_approx(
+		100.0, EPS)
+	assert_float(PlayerLevelCalculator.requirement(2, curve).to_float()).is_equal_approx(
+		200.0, EPS)
+	assert_float(PlayerLevelCalculator.requirement(3, curve).to_float()).is_equal_approx(
+		400.0, EPS)
+
+func test_an_authored_curve_moves_the_levels() -> void:
+	var curve := _curve(100.0, 2.0)
+	assert_int(PlayerLevelCalculator.level_of(BigNumber.from_value(99.0), curve)).is_zero()
+	assert_int(PlayerLevelCalculator.level_of(BigNumber.from_value(100.0), curve)).is_equal(1)
+	assert_int(PlayerLevelCalculator.level_of(BigNumber.from_value(400.0), curve)).is_equal(3)
+
+## Every boundary of an edited curve, the same sweep the default one gets: the
+## log-space shortcut has to land on the level below as exactly here as there.
+func test_an_authored_curve_lands_on_its_own_boundaries() -> void:
+	var curve := _curve(250.0, 1.7)
+	for level in range(1, 40):
+		var requirement := PlayerLevelCalculator.requirement(level, curve)
+		assert_int(PlayerLevelCalculator.level_of(requirement, curve)).override_failure_message(
+			"Level %d's requirement should read back as level %d." % [level, level]
+			).is_equal(level)
+		var just_under := requirement.scale(0.999)
+		assert_int(PlayerLevelCalculator.level_of(just_under, curve)).override_failure_message(
+			"Just under level %d should read as level %d." % [level, level - 1]
+			).is_equal(level - 1)
+
+## No curve at all is the authored default, so a system built without one - every
+## test suite that does not care about the ladder - behaves as it always did.
+func test_no_curve_is_the_authored_default() -> void:
+	assert_float(PlayerLevelCalculator.requirement(1).to_float()).is_equal_approx(
+		PlayerLevelCurve.DEFAULT_BASE, EPS)
+	assert_float(PlayerLevelCalculator.requirement(2).to_float()).is_equal_approx(
+		PlayerLevelCurve.DEFAULT_BASE * PlayerLevelCurve.DEFAULT_GROWTH, EPS)
+
+## A curve edited to nonsense in the editor must not hang the ladder-walking
+## loops or hand back a level the requirements disagree with.
+func test_a_degenerate_curve_reads_as_level_zero() -> void:
+	assert_int(PlayerLevelCalculator.level_of(BigNumber.from_value(1.0e9),
+		_curve(1000.0, 1.0))).is_zero()
+	assert_int(PlayerLevelCalculator.level_of(BigNumber.from_value(1.0e9),
+		_curve(0.0, 3.0))).is_zero()
+
+## The shipped file, not a hand-made one: the editor writes this, and a value
+## that reads as degenerate would flatten every level to zero in a live game.
+func test_the_authored_curve_file_is_sane() -> void:
+	var curve := load("res://data/growth/res_player_level_curve.tres") as PlayerLevelCurve
+	assert_object(curve).is_not_null()
+	assert_float(curve.base).is_greater(0.0)
+	assert_float(curve.growth).is_greater(1.0)

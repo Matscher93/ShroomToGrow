@@ -139,7 +139,7 @@ func test_every_stat_is_handled() -> void:
 	# achievement just never moves.
 	_player.lifetime_manual_nodes = 1
 	_player.lifetime_ticks = 2
-	# Past PlayerLevelCalculator.BASE, not the token 3 the other counters use:
+	# Past PlayerLevelCurve.DEFAULT_BASE, not the token 3 the other counters use:
 	# PLAYER_LEVEL is derived from this one, and below the first requirement it
 	# reads zero however large the others are.
 	_player.lifetime_nutrients = BigNumber.from_value(3000.0)
@@ -172,7 +172,7 @@ func test_player_level_counts_levels_reached() -> void:
 func test_player_level_reads_zero_before_the_first_requirement() -> void:
 	var def := _def(AchievementDef.Stat.PLAYER_LEVEL)
 	var system := _system([def])
-	_player.lifetime_nutrients = BigNumber.from_value(PlayerLevelCalculator.BASE - 1.0)
+	_player.lifetime_nutrients = BigNumber.from_value(PlayerLevelCurve.DEFAULT_BASE - 1.0)
 	assert_float(system.current_value(def).to_float()).is_zero()
 
 ## Levels come off lifetime nutrients, which nothing resets, so the bar never

@@ -39,14 +39,21 @@ var _progress: AchievementProgress
 var _player_data: PlayerData
 var _symbiosis: UpgradeSystem
 var _biomes_data: BiomesData
+## The authored level ladder the PLAYER_LEVEL counter reads through.
+var _level_curve: PlayerLevelCurve
 ## id -> AchievementDef. Built once, mirroring BiomeSystem and AutomationSystem:
 ## claim() and claim_all() look a def up per claim, and the authored list never
 ## changes at runtime.
 var _defs_by_id: Dictionary = {}
 
+## `curve` is the authored level ladder, optional so a suite testing a counter
+## that has nothing to do with levels can leave it out. It must be the same one
+## PlayerLevelSystem holds: a PLAYER_LEVEL achievement read off a second curve
+## would unlock at a level the sheet never shows.
 func _init(achievements: AchievementList, progress: AchievementProgress,
 		player_data: PlayerData, symbiosis: UpgradeSystem,
-		biomes_data: BiomesData) -> void:
+		biomes_data: BiomesData, curve: PlayerLevelCurve = null) -> void:
+	_level_curve = curve
 	_achievements = achievements
 	_progress = progress
 	_player_data = player_data
@@ -155,7 +162,8 @@ func current_value(def: AchievementDef) -> BigNumber:
 			# The level itself, not the Level Point budget: a perk handing out
 			# points must not also hand out achievement tiers.
 			return BigNumber.from_value(
-				float(PlayerLevelCalculator.level_of(_player_data.lifetime_nutrients)))
+				float(PlayerLevelCalculator.level_of(_player_data.lifetime_nutrients,
+					_level_curve)))
 		AchievementDef.Stat.BIOMES_EVER_UNLOCKED:
 			var count := 0
 			for key in _biomes_data.ever_unlocked:

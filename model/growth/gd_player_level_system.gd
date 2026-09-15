@@ -18,26 +18,31 @@ var _player_data: PlayerData
 var _upgrades: UpgradeSystem
 var _production: ProductionSystem
 var _producers: Array[GrowthProducerDef] = []
+## The authored ladder. Null falls back to PlayerLevelCurve's own defaults, which
+## are the numbers this held as consts before the curve was authored.
+var _curve: PlayerLevelCurve
 
 ## `production` is optional so a test caring only about the ladder can build this
 ## with three arguments. Without it the &"level_points" stat resolves to nothing
-## and the budget is the level alone, which is the pre-perk behaviour.
+## and the budget is the level alone, which is the pre-perk behaviour. `curve` is
+## optional for the same reason.
 func _init(player_data: PlayerData, upgrades: UpgradeSystem, list: GrowthProducerList,
-		production: ProductionSystem = null) -> void:
+		production: ProductionSystem = null, curve: PlayerLevelCurve = null) -> void:
 	_player_data = player_data
 	_upgrades = upgrades
 	_production = production
+	_curve = curve
 	if list != null:
 		_producers = list.producers
 
 # ---------------------------------------------------------------- level
 
 func level() -> int:
-	return PlayerLevelCalculator.level_of(_player_data.lifetime_nutrients)
+	return PlayerLevelCalculator.level_of(_player_data.lifetime_nutrients, _curve)
 
 ## {level, into, need, pct} for the progress bar and its caption.
 func level_progress() -> Dictionary:
-	return PlayerLevelCalculator.level_for(_player_data.lifetime_nutrients)
+	return PlayerLevelCalculator.level_for(_player_data.lifetime_nutrients, _curve)
 
 # ---------------------------------------------------------------- points
 
