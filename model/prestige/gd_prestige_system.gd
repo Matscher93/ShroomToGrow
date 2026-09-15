@@ -18,12 +18,12 @@ signal prestiging(gain: BigNumber)
 ## Prestige stays hidden until this biome has been reached at least once.
 const GATE_BIOME := &"permafrost"
 
-## Floor on the discounted first tick area, and on the discounted nutrient
-## ladder growth. Both guard the same failure: PrestigeCalculator.areas_filled()
-## reports max_areas for a ladder with no width or a growth at or below 1.0, so
-## an unclamped &"tick_area_cost" or &"nutrient_area_growth" discount would stop
-## being a discount and start paying every run the ceiling.
-const MIN_TICK_AREA_TICKS := 1.0
+## Floor on the discounted nutrient ladder growth. Guards the failure
+## PrestigeCalculator.areas_filled() has at a growth of 1.0 or below: it reports
+## max_areas for a ladder with no width, so an unclamped
+## &"nutrient_area_growth" discount would stop being a discount and start paying
+## every run the ceiling. The tick ladder's matching floor is per area rather
+## than on its base - see PrestigeCalculator.MIN_AREA_COST.
 const MIN_NUTRIENT_AREA_GROWTH := 1.25
 
 var _player_data: PlayerData
@@ -62,7 +62,7 @@ func effective_curve() -> PrestigeCurveDef:
 	if _curve == null or _production == null:
 		return _curve
 	var curve: PrestigeCurveDef = _curve.duplicate()
-	curve.set_tick_base(_production.tick_area_ticks(_curve.tick_base(), MIN_TICK_AREA_TICKS))
+	curve.tick_discount = _production.tick_area_discount(_curve.tick_base())
 	curve.nutrient_growth = _production.nutrient_area_growth(
 		_curve.nutrient_growth, MIN_NUTRIENT_AREA_GROWTH)
 	return curve
@@ -110,11 +110,11 @@ func storage_report() -> Dictionary:
 		"tick_areas": tick_areas,
 		"tick_fill": PrestigeCalculator.fill_fraction(
 			ticks, curve.tick_base(), curve.tick_growth,
-			curve.tick_growth_exponent, tick_areas),
+			curve.tick_growth_exponent, tick_areas, curve.tick_discount),
 		"tick_amount": ticks,
 		"tick_next": PrestigeCalculator.area_threshold(
 			curve.tick_base(), curve.tick_growth,
-			curve.tick_growth_exponent, tick_areas + 1),
+			curve.tick_growth_exponent, tick_areas + 1, curve.tick_discount),
 		"total_areas": nutrient_areas + tick_areas,
 		"gain": preview_biomass_gain(),
 		"best": _player_data.best_biomass_gain,

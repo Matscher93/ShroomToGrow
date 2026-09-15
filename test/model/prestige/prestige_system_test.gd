@@ -67,7 +67,9 @@ func _biomass_effect(per_level: float) -> Array[UpgradeEffectDef]:
 ## priced off what the run *produced*, so that is what this fills.
 func _make_prestige_available() -> void:
 	_biomes_data.unlock(PrestigeSystem.GATE_BIOME)
-	_player.run_nutrients = BigNumber.from_value(1e6)
+	# Past the authored first nutrient area (1e7), so the run is worth a payout
+	# rather than merely gated open.
+	_player.run_nutrients = BigNumber.from_value(1e8)
 
 # ─── Gating ──────────────────────────────────────────────────────────────────
 
@@ -169,6 +171,11 @@ func test_symbiosis_never_boosts_the_gain_it_is_paying_for() -> void:
 func _authored_curve() -> PrestigeCurveDef:
 	return load("res://data/prestige/res_prestige_curve.tres") as PrestigeCurveDef
 
+## What one time storage area costs on a curve, discount and floor included.
+func _area_ticks(curve: PrestigeCurveDef, area: int) -> BigNumber:
+	return PrestigeCalculator.area_threshold(curve.tick_base(), curve.tick_growth,
+		curve.tick_growth_exponent, area, curve.tick_discount)
+
 func _ladder_effect(stat: StringName, per_level: float) -> Array[UpgradeEffectDef]:
 	var e := UpgradeEffectDef.new()
 	e.stat = stat
@@ -220,14 +227,38 @@ func test_a_tick_area_discount_makes_the_time_ladder_cheaper() -> void:
 	_make_prestige_available()
 	_player.tick_count = 60
 	var before := _system.storage_report()
+	var plain := _system.effective_curve()
 
 	_register(_perks, &"Compression", 30, _ladder_effect(&"tick_area_cost", -1.0))
 	var after := _system.storage_report()
+	var cheap := _system.effective_curve()
 
 	assert_int(after["tick_areas"]).is_greater(before["tick_areas"])
-	assert_bool((after["tick_next"] as BigNumber).lt(before["tick_next"])) \
-		.override_failure_message("The next time area still costs %s, not less than %s." \
-			% [after["tick_next"], before["tick_next"]]).is_true()
+	# Area for area rather than report against report: a discount that bought an
+	# area moves "tick_next" one rung up the ladder, so the two reports are not
+	# pricing the same thing.
+	for area in range(1, 6):
+		var full := _area_ticks(plain, area)
+		var cut := _area_ticks(cheap, area)
+		assert_bool(cut.lt(full)) \
+			.override_failure_message("Area %d still costs %s, not less than %s." \
+				% [area, cut, full]).is_true()
+
+func test_a_tick_area_discount_is_the_same_ticks_on_every_area() -> void:
+	# The point of subtracting the discount *after* the ladder is raised: taken
+	# off the base instead, the ladder multiplied it back up and 30 ticks off the
+	# first area was hundreds off the tenth.
+	_make_prestige_available()
+	var plain := _system.effective_curve()
+	_register(_perks, &"Compression", 30, _ladder_effect(&"tick_area_cost", -1.0))
+	var cheap := _system.effective_curve()
+
+	assert_float(cheap.tick_discount).is_equal_approx(30.0, EPS)
+	for area in range(1, 11):
+		var saved := _area_ticks(plain, area).sub(_area_ticks(cheap, area)).to_float()
+		assert_float(saved) \
+			.override_failure_message("Area %d saved %f ticks, not the 30 the perk buys." \
+				% [area, saved]).is_equal_approx(30.0, EPS)
 
 func test_a_nutrient_growth_discount_fills_more_nutrient_areas() -> void:
 	_make_prestige_available()
@@ -253,12 +284,16 @@ func test_an_absurd_discount_stops_at_the_floor_instead_of_paying_the_ceiling() 
 	_register(_perks, &"Collapse", 1, _ladder_effect(&"nutrient_area_growth", -1000.0))
 
 	var curve := _system.effective_curve()
-	assert_float(curve.tick_base().to_float()) \
-		.is_equal_approx(PrestigeSystem.MIN_TICK_AREA_TICKS, EPS)
 	assert_float(curve.nutrient_growth) \
 		.is_equal_approx(PrestigeSystem.MIN_NUTRIENT_AREA_GROWTH, EPS)
+	# A discount deeper than the ladder leaves every area at its one tick rather
+	# than at nothing, so the areas a run fills stay bounded by the ticks it ran.
+	for area in range(1, 8):
+		assert_float(_area_ticks(curve, area).to_float()) \
+			.is_greater_equal(PrestigeCalculator.MIN_AREA_COST * float(area))
 
 	var report := _system.storage_report()
+	assert_int(report["tick_areas"]).is_less_equal(_player.tick_count)
 	assert_int(report["tick_areas"]).is_less(curve.max_areas)
 	assert_int(report["nutrient_areas"]).is_less(curve.max_areas)
 

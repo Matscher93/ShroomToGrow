@@ -37,6 +37,18 @@ extends Resource
 ## The same bend on the tick ladder. See nutrient_growth_exponent.
 @export_range(1.0, 1.5, 0.001, "or_greater") var tick_growth_exponent: float = 1.0
 
+## Ticks knocked off *every* tick area, filled in per run from the
+## &"tick_area_cost" stat - see PrestigeSystem.effective_curve(). Subtracted
+## after the ladder is raised rather than off the base it is raised from, so a
+## discount is worth the same ticks on the tenth area as on the first; the floor
+## keeping an area at a tick lives in PrestigeCalculator.MIN_AREA_COST.
+##
+## Deliberately not an @export: it is what a run's perks have bought, not a
+## number data/ authors, so it must neither be written into the .tres the
+## balance editor reads nor survive Resource.duplicate() into the copy
+## effective_curve() sets it on.
+var tick_discount: float = 0.0
+
 ## Biomass the first filled area (of either kind) pays, and the factor each
 ## further area's step is worth over the step below it. A run is paid every one
 ## of its steps added up, so a run with one area pays exactly this base.
@@ -59,13 +71,6 @@ func nutrient_base() -> BigNumber:
 
 func tick_base() -> BigNumber:
 	return BigNumber.new(_tick_base_mantissa, _tick_base_exponent)
-
-## Overwrites the ticks the first tick area needs. Only for the discounted copy
-## PrestigeSystem builds - see PrestigeSystem.effective_curve() - so that the
-## copy is written through this class rather than through its two halves.
-func set_tick_base(value: BigNumber) -> void:
-	_tick_base_mantissa = value.mantissa
-	_tick_base_exponent = value.exponent
 
 func payout_base() -> BigNumber:
 	return BigNumber.new(_payout_base_mantissa, _payout_base_exponent)

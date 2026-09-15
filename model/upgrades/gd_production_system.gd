@@ -294,25 +294,32 @@ func tick_duration(base_duration: float, minimum: float) -> float:
 
 # ---------------------------------------------------------------- storage ladders
 
-## Ticks the first prestige time storage area costs, after every
-## &"tick_area_cost" discount - authored as an ADD effect with a negative
-## per_level, the same shape as tick_rate.
+## Ticks every prestige time storage area is discounted by: the gap between the
+## authored first-area price and what every &"tick_area_cost" effect leaves of
+## it - authored as an ADD effect with a negative per_level, the same shape as
+## tick_rate.
 ##
-## Clamped so a stacked discount can never reach or cross zero: a ladder with no
-## width is one PrestigeCalculator.areas_filled() reports max_areas for, which
-## would pay every run the ceiling.
+## Read as a gap rather than as the discounted price itself because the ladder
+## subtracts it *after* raising a threshold - see
+## PrestigeCalculator.area_threshold(). Handing the discounted base to the ladder
+## instead let it multiply the saving back up, so a flat "15 ticks less" was
+## worth 15 ticks on the first area and thousands of them on the tenth. The floor
+## keeping an area at a tick lives in PrestigeCalculator.MIN_AREA_COST, per area,
+## rather than on this number.
+##
+## Never negative: an effect stacking the other way round would otherwise make
+## areas cost *more* through a stat that only exists to discount them.
 ##
 ## stack_external, not stack: the sporation is about to wipe the symbiosis track,
 ## so the levels being traded in must not price the trade - the same reason
 ## modify_biomass_gain() uses it.
-func tick_area_ticks(base: BigNumber, minimum: float) -> BigNumber:
+func tick_area_discount(base: BigNumber) -> float:
 	var ticks := stack_external(&"tick_area_cost", base)
-	var floor_value := BigNumber.from_value(minimum)
-	return floor_value if ticks.lt(floor_value) else ticks
+	return maxf(0.0, base.sub(ticks).to_float())
 
 ## The factor each nutrient storage area costs over the one below it, after every
 ## &"nutrient_area_growth" discount. Clamped strictly above 1.0 for the same
-## reason tick_area_ticks() is clamped away from zero - see
+## reason PrestigeCalculator.MIN_AREA_COST floors a tick area - see
 ## PrestigeCalculator.areas_filled(), which treats a growth of 1.0 or below as a
 ## ladder every amount fills to the ceiling.
 func nutrient_area_growth(base: float, minimum: float) -> float:

@@ -30,6 +30,13 @@ const AREA_EPSILON := 0.000000001
 ## answer there and the one a flat ladder means. See payout_total().
 const PAYOUT_FLAT_EPSILON := 0.000001
 
+## Ticks one time storage area costs at the very least, however deep the
+## &"tick_area_cost" discount runs. The discount is subtracted from a threshold
+## the ladder has already raised, so without this floor an early area could cost
+## nothing at all - and an area filled by a run that has not ticked is one every
+## run is paid for. Area k therefore never sits below k ticks: one per area.
+const MIN_AREA_COST := 1.0
+
 ## The index a ladder is actually raised to at `area` steps above its base:
 ## `area * growth_exponent^area`, the same scaled level UpgradeSystem prices a
 ## purchase with. At an exponent of 1.0 this is the plain index and the ladder is
@@ -43,8 +50,8 @@ static func scaled_area(area: int, growth_exponent: float) -> float:
 	return steps * pow(maxf(growth_exponent, 1.0), steps)
 
 ## How many areas `amount` fills on a ladder starting at `base` and multiplying
-## by `growth^(k * growth_exponent^k)` at area k above it. Zero below the first
-## area, clamped at `max_areas`.
+## by `growth^(k * growth_exponent^k)` at area k above it, every area of it `discount`
+## cheaper. Zero below the first area, clamped at `max_areas`.
 ##
 ## Done in log space rather than by walking the ladder: run nutrients pass what a
 ## double holds long before the ladder runs out of areas. A bent ladder
@@ -52,25 +59,33 @@ static func scaled_area(area: int, growth_exponent: float) -> float:
 ## W shaped - so it is bisected instead, which is bounded by max_areas at some
 ## seventeen steps of float arithmetic rather than by the areas actually filled.
 static func areas_filled(amount: BigNumber, base: BigNumber, growth: float,
-		growth_exponent: float, max_areas: int) -> int:
+		growth_exponent: float, max_areas: int, discount: float = 0.0) -> int:
 	if amount == null or base == null or amount.mantissa <= 0.0 or base.mantissa <= 0.0:
 		return 0
-	if amount.lt(base):
+	# A flat discount lowers every threshold by the same amount, so the areas
+	# `amount` fills on the discounted ladder are the ones `amount + discount`
+	# fills on the authored one. Reaching further up an untouched ladder rather
+	# than rebuilding a discounted one is what keeps the inverse below closed:
+	# a ladder with a constant subtracted has no logarithm.
+	var reach := amount
+	if discount > 0.0:
+		reach = amount.add(BigNumber.from_value(discount))
+	if reach.lt(base):
 		return 0
 	# A flat or shrinking ladder has no area width to divide by. Everything at or
 	# past the base sits in the last area rather than in an infinite number of
 	# them; PrestigeCurveDef.max_areas documents why this cannot be left to loop.
 	if growth <= 1.0:
-		return max_areas
+		return _cap_to_floor(max_areas, amount, max_areas, discount)
 	# How much index the run has bought, in areas of an unbent ladder. Carrying a
 	# relative slack for the same reason calculate_biomass_gain snaps: the span is
 	# a difference of logarithms, so an amount sitting exactly on an area's
 	# threshold lands on 2.8799999 rather than on 2.88 - and without the slack
 	# that is an area the run filled and does not get paid for.
-	var span := (amount.log10() - base.log10()) / (log(growth) / log(10.0))
+	var span := (reach.log10() - base.log10()) / (log(growth) / log(10.0))
 	span += AREA_EPSILON * maxf(1.0, absf(span))
 	if maxf(growth_exponent, 1.0) == 1.0:
-		return clampi(int(floor(span)) + 1, 0, max_areas)
+		return _cap_to_floor(int(floor(span)) + 1, amount, max_areas, discount)
 	# Largest k with scaled_area(k) <= span. The climb is monotonic (the exponent
 	# is clamped at 1.0), so bisection cannot land past the first area that
 	# outruns the span - and an index that overflows to INF simply fails the test.
@@ -82,30 +97,60 @@ static func areas_filled(amount: BigNumber, base: BigNumber, growth: float,
 			low = middle
 		else:
 			high = middle - 1
-	return clampi(low + 1, 0, max_areas)
+	return _cap_to_floor(low + 1, amount, max_areas, discount)
 
-## What `area` costs on this ladder: `base * growth^scaled_area(area - 1)`. Zero
-## for area 0, which is the empty ladder rather than a threshold.
+## `areas` clamped into the ladder, and - once a discount is in play - into what
+## the MIN_AREA_COST floor still charges: area k costs at least k, so `amount`
+## can never have filled more than `amount / MIN_AREA_COST` areas however deep
+## the discount runs. Both bounds are monotonic in the area index, so taking the
+## smaller of the two is the last area whose threshold the amount actually
+## reaches.
+static func _cap_to_floor(areas: int, amount: BigNumber, max_areas: int,
+		discount: float) -> int:
+	var filled := clampi(areas, 0, max_areas)
+	if discount <= 0.0:
+		return filled
+	# to_float() on an amount past a double is INF, and int(INF) is not a number
+	# of areas - so anything at or past the ceiling is simply the ceiling.
+	var ceiling := BigNumber.from_value(float(max_areas) * MIN_AREA_COST)
+	if not amount.lt(ceiling):
+		return filled
+	return mini(filled, int(floor(amount.to_float() / MIN_AREA_COST)))
+
+## What `area` costs on this ladder: `base * growth^scaled_area(area - 1)`, less
+## `discount`. Zero for area 0, which is the empty ladder rather than a threshold.
+##
+## The discount comes off the raised threshold rather than off the base it was
+## raised from, which is what makes it the flat saving it is named for: taken off
+## the base, the ladder multiplies it back up, so "15 ticks less" was worth 15
+## ticks on the first area and thousands of them on the tenth.
 static func area_threshold(base: BigNumber, growth: float, growth_exponent: float,
-		area: int) -> BigNumber:
+		area: int, discount: float = 0.0) -> BigNumber:
 	if area <= 0 or base == null:
 		return BigNumber.new(0.0, 0)
 	# BigNumber.pow_float clamps at MAX_EXPONENT, so a scaled index that has run
 	# off the end of a double lands on the largest BigNumber rather than a NaN.
-	return base.mul(BigNumber.from_value(growth).pow_float(
+	var threshold := base.mul(BigNumber.from_value(growth).pow_float(
 		scaled_area(area - 1, growth_exponent)))
+	if discount <= 0.0:
+		return threshold
+	threshold = threshold.sub(BigNumber.from_value(discount))
+	# One tick per area, so a discount deeper than the ladder is still a ladder -
+	# see MIN_AREA_COST.
+	var floor_value := BigNumber.from_value(MIN_AREA_COST * float(area))
+	return floor_value if threshold.lt(floor_value) else threshold
 
 ## Progress across the area currently being filled, 0.0 to 1.0, for a storage
 ## bar. Measured against the same two numbers the bar is labelled with - what
 ## the area started at and what it needs - so a bar at half is a label at half.
 static func fill_fraction(amount: BigNumber, base: BigNumber, growth: float,
-		growth_exponent: float, areas: int) -> float:
+		growth_exponent: float, areas: int, discount: float = 0.0) -> float:
 	if amount == null or base == null or amount.mantissa <= 0.0 or base.mantissa <= 0.0:
 		return 0.0
 	if growth <= 1.0:
 		return 0.0
-	var filled := area_threshold(base, growth, growth_exponent, areas)
-	var needed := area_threshold(base, growth, growth_exponent, areas + 1)
+	var filled := area_threshold(base, growth, growth_exponent, areas, discount)
+	var needed := area_threshold(base, growth, growth_exponent, areas + 1, discount)
 	var span := needed.sub(filled)
 	if span.mantissa <= 0.0:
 		return 0.0
@@ -167,7 +212,7 @@ static func nutrient_areas(nutrients_generated: BigNumber, def: PrestigeCurveDef
 ## Areas the tick ladder has filled this run.
 static func tick_areas(tick_count: int, def: PrestigeCurveDef) -> int:
 	return areas_filled(BigNumber.from_value(float(maxi(tick_count, 0))), def.tick_base(),
-		def.tick_growth, def.tick_growth_exponent, def.max_areas)
+		def.tick_growth, def.tick_growth_exponent, def.max_areas, def.tick_discount)
 
 ## Both ladders summed - the number the payout is an exponential of.
 static func total_areas(tick_count: int, nutrients_generated: BigNumber,
