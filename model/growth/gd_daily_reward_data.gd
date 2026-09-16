@@ -15,6 +15,10 @@ signal last_claim_day_changed(value: int)
 signal streak_changed(value: int)
 signal track_day_changed(value: int)
 signal track_claim_day_changed(value: int)
+## A producer's claim day moved. Its own signal because only the first claim of a
+## day moves last_claim_day - the second and third producer claimed that day
+## would otherwise leave their chips looking claimable until the next tick.
+signal claim_day_changed(currency: int)
 
 ## DailyCalendar day index of the last day *any* producer was claimed on. 0 is
 ## 1970-01-01, so a fresh save - and every save written before this system
@@ -79,7 +83,10 @@ func claim_day(currency: CurrencyTypes.Types) -> int:
 	return int(claim_days.get(int(currency), 0))
 
 func set_claim_day(currency: CurrencyTypes.Types, day: int) -> void:
+	if claim_day(currency) == day:
+		return
 	claim_days[int(currency)] = day
+	claim_day_changed.emit(int(currency))
 
 ## Single source of truth for which fields round-trip through a save file.
 ## Add a new field here, and nowhere else, to have it saved and loaded.

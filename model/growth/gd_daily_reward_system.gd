@@ -118,7 +118,7 @@ func sync_clock_rollback() -> void:
 	# time catches up even once the shared day has been pulled back.
 	for currency: int in _data.claim_days.keys():
 		if int(_data.claim_days[currency]) > current:
-			_data.claim_days[currency] = current
+			_data.set_claim_day(currency, current)
 	if _data.last_claim_day <= current:
 		return
 	push_warning("Daily reward was last claimed on day %d, ahead of today (%d). Clamping to today."

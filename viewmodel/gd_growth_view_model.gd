@@ -189,6 +189,7 @@ func _init() -> void:
 	App.growth_upgrade_system.upgrades_changed.connect(_on_upgrades_changed)
 	App.daily_reward_data.last_claim_day_changed.connect(_on_daily_changed)
 	App.daily_reward_data.streak_changed.connect(_on_daily_changed)
+	App.daily_reward_data.claim_day_changed.connect(_on_daily_changed)
 	# The track is claimed by its own press, which moves neither of the two above.
 	App.daily_reward_data.track_day_changed.connect(_on_daily_changed)
 	App.daily_reward_data.track_claim_day_changed.connect(_on_daily_changed)
@@ -198,6 +199,7 @@ func dispose() -> void:
 	App.growth_upgrade_system.upgrades_changed.disconnect(_on_upgrades_changed)
 	App.daily_reward_data.last_claim_day_changed.disconnect(_on_daily_changed)
 	App.daily_reward_data.streak_changed.disconnect(_on_daily_changed)
+	App.daily_reward_data.claim_day_changed.disconnect(_on_daily_changed)
 	App.daily_reward_data.track_day_changed.disconnect(_on_daily_changed)
 	App.daily_reward_data.track_claim_day_changed.disconnect(_on_daily_changed)
 

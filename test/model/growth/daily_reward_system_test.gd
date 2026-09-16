@@ -77,6 +77,16 @@ func test_every_producer_can_be_claimed_on_the_same_day() -> void:
 	assert_int(_system.stacks(CurrencyTypes.Types.NUTRIENTS)).is_equal(1)
 	assert_bool(_system.can_claim()).is_false()
 
+## Only the first claim of a day moves last_claim_day and the streak, so a later
+## producer claimed that day needs its own signal - without it the panel keeps
+## that chip looking claimable until the next tick refreshes it.
+func test_a_second_claim_on_the_same_day_signals_its_claim_day() -> void:
+	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_true()
+	var seen: Array[int] = []
+	_data.claim_day_changed.connect(func(currency: int) -> void: seen.append(currency))
+	assert_bool(_system.claim(CurrencyTypes.Types.NUTRIENTS)).is_true()
+	assert_array(seen).contains_exactly([int(CurrencyTypes.Types.NUTRIENTS)])
+
 func test_the_same_producer_twice_in_a_day_is_refused() -> void:
 	assert_bool(_system.claim(CurrencyTypes.Types.WATER)).is_true()
 	_now += 3600.0
