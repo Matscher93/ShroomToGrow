@@ -4,5 +4,5 @@
 
 [resource]
 script = ExtResource("1_script")
-base = 1000.0
-growth = 3.0
+base = 10.0
+growth_exponent = 1.2

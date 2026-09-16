@@ -1,9 +1,10 @@
 extends GdUnitTestSuite
 ## Unit tests for PlayerLevelCalculator (model/growth/gd_player_level_calculator.gd).
 ##
-## The ladder is BASE * GROWTH^(n-1), so the interesting cases are all at a
-## boundary - where the log-space shortcut and the requirement it is corrected
-## against have to agree exactly.
+## The ladder is BASE * GROWTH^((n-1)^EXPONENT), so the interesting cases are all
+## at a boundary - where the log-space shortcut and the requirement it is
+## corrected against have to agree exactly. The exponent bends the ladder without
+## moving that contract, so it gets the same boundary sweeps.
 
 const EPS := 0.000001
 
@@ -96,10 +97,11 @@ func test_progress_still_moves_far_past_float_range() -> void:
 
 # ---------------------------------------------------------------- the curve
 
-func _curve(base: float, growth: float) -> PlayerLevelCurve:
+func _curve(base: float, growth: float, exponent: float = 1.0) -> PlayerLevelCurve:
 	var curve := PlayerLevelCurve.new()
 	curve.base = base
 	curve.growth = growth
+	curve.growth_exponent = exponent
 	return curve
 
 ## The authored ladder is what the balance editor edits, so it has to be the
@@ -149,6 +151,81 @@ func test_a_degenerate_curve_reads_as_level_zero() -> void:
 	assert_int(PlayerLevelCalculator.level_of(BigNumber.from_value(1.0e9),
 		_curve(0.0, 3.0))).is_zero()
 
+# ------------------------------------------------------- the growth exponent
+
+## The shipped exponent, and the one every curve built without one gets. The
+## whole ladder has to come out bit-identical to the flat-ratio one it replaced,
+## or the knob's default silently retunes a live save.
+func test_an_exponent_of_one_is_the_ladder_it_replaced() -> void:
+	var curve := _curve(1000.0, 3.0, 1.0)
+	for level in range(1, 40):
+		var with_exponent := PlayerLevelCalculator.requirement(level, curve)
+		var default_curve := PlayerLevelCalculator.requirement(level)
+		assert_float(with_exponent.log10()).override_failure_message(
+			"Level %d moved at an exponent of 1.0." % level
+			).is_equal_approx(default_curve.log10(), EPS)
+
+## The point of the knob: above 1.0 the gap between levels widens as the ladder
+## climbs, rather than holding at a flat `growth` ratio.
+func test_an_exponent_above_one_stretches_the_late_levels() -> void:
+	var curve := _curve(1000.0, 3.0, 2.0)
+	# base * growth^((n-1)^2): level 2 is one growth up, level 3 is four.
+	assert_float(PlayerLevelCalculator.requirement(1, curve).to_float()).is_equal_approx(
+		1000.0, EPS)
+	assert_float(PlayerLevelCalculator.requirement(2, curve).to_float()).is_equal_approx(
+		3000.0, EPS)
+	assert_float(PlayerLevelCalculator.requirement(3, curve).to_float()).is_equal_approx(
+		81000.0, EPS)
+
+func test_an_exponent_below_one_flattens_the_ladder() -> void:
+	var curve := _curve(1000.0, 3.0, 0.5)
+	var flat := _curve(1000.0, 3.0, 1.0)
+	assert_float(PlayerLevelCalculator.requirement(10, curve).log10()).is_less(
+		PlayerLevelCalculator.requirement(10, flat).log10())
+
+## level_of() inverts requirement() by taking a root in log space. Every boundary
+## of a bent ladder has to land as exactly as a straight one's, at exponents on
+## both sides of 1.0 - a float ulp either way is a whole Level Point.
+func test_a_bent_ladder_lands_on_its_own_boundaries() -> void:
+	for exponent in [0.6, 1.4, 2.0]:
+		var curve := _curve(1000.0, 3.0, exponent)
+		for level in range(1, 30):
+			var requirement := PlayerLevelCalculator.requirement(level, curve)
+			assert_int(PlayerLevelCalculator.level_of(requirement, curve)).override_failure_message(
+				"At exponent %f, level %d's requirement read back wrong." % [exponent, level]
+				).is_equal(level)
+			var just_under := requirement.scale(0.999)
+			assert_int(PlayerLevelCalculator.level_of(just_under, curve)).override_failure_message(
+				"At exponent %f, just under level %d read wrong." % [exponent, level]
+				).is_equal(level - 1)
+
+func test_a_bent_ladder_is_still_level_zero_below_its_first_requirement() -> void:
+	var curve := _curve(1000.0, 3.0, 1.8)
+	assert_int(PlayerLevelCalculator.level_of(BigNumber.from_value(999.0), curve)).is_zero()
+	assert_int(PlayerLevelCalculator.level_of(BigNumber.from_value(1.0), curve)).is_zero()
+
+## A bent ladder leaves float range within a handful of levels, which is exactly
+## where it is meant to be tuned - the progress bar has to keep moving there.
+func test_a_bent_ladder_still_reports_progress_past_float_range() -> void:
+	var curve := _curve(1000.0, 3.0, 1.6)
+	var low := PlayerLevelCalculator.requirement(40, curve).scale(1.2)
+	assert_int(PlayerLevelCalculator.level_of(low, curve)).is_equal(40)
+	var pct: float = PlayerLevelCalculator.level_for(low, curve)["pct"]
+	assert_float(pct).is_greater(0.0)
+	assert_float(pct).is_less(1.0)
+
+## An exponent edited to zero or below has no monotone ladder behind it, so it is
+## read as the default rather than walked. Both functions must agree on that, or
+## level_of() would correct against requirements it never derived the level from.
+func test_a_non_positive_exponent_reads_as_the_default() -> void:
+	for exponent in [0.0, -2.0]:
+		var curve := _curve(1000.0, 3.0, exponent)
+		assert_float(PlayerLevelCalculator.requirement(4, curve).to_float()
+			).override_failure_message("Exponent %f did not fall back." % exponent
+			).is_equal_approx(27000.0, EPS)
+		assert_int(PlayerLevelCalculator.level_of(BigNumber.from_value(27000.0), curve)
+			).is_equal(4)
+
 ## The shipped file, not a hand-made one: the editor writes this, and a value
 ## that reads as degenerate would flatten every level to zero in a live game.
 func test_the_authored_curve_file_is_sane() -> void:
@@ -156,3 +233,4 @@ func test_the_authored_curve_file_is_sane() -> void:
 	assert_object(curve).is_not_null()
 	assert_float(curve.base).is_greater(0.0)
 	assert_float(curve.growth).is_greater(1.0)
+	assert_float(curve.growth_exponent).is_greater(0.0)

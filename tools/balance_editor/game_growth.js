@@ -83,13 +83,38 @@
 
   const curveBase = () => numberCell(curveRow(), "base", 0);
   const curveGrowth = () => numberCell(curveRow(), "growth", 0);
+  /* PlayerLevelCalculator._exponent_of() reads a non-positive exponent as 1.0
+   * rather than as authored, so the chart has to do the same or it would draw a
+   * ladder the game never walks. */
+  const curveExponent = () => {
+    const value = numberCell(curveRow(), "growth_exponent", 1);
+    return value > 0 ? value : 1;
+  };
 
   /** log10 of the lifetime nutrients level n costs, which is what
-   * PlayerLevelCalculator.requirement() computes: base * growth^(n - 1).
+   * PlayerLevelCalculator.requirement() computes:
+   * base * growth^((n - 1)^growth_exponent).
    *
    * Level 0 is free by definition and is left off the line rather than plotted
    * at zero, where a log axis has no place to put it. */
   function ladderCurve(from, to) {
+    const base = curveBase();
+    const growth = curveGrowth();
+    const exponent = curveExponent();
+    if (base <= 0 || growth <= 0) return [];
+    const out = [];
+    for (let level = from; level <= to; level += 1) {
+      out.push(level <= 0
+        ? null
+        : Math.log10(base) + Math.pow(level - 1, exponent) * Math.log10(growth));
+    }
+    return out;
+  }
+
+  /** The straight-ratio ladder the exponent bends away from, so the chart shows
+   * what the knob is actually doing rather than one unplaceable line. Drawn
+   * only when the exponent is off 1.0, where the two lines coincide. */
+  function flatLadderCurve(from, to) {
     const base = curveBase();
     const growth = curveGrowth();
     if (base <= 0 || growth <= 0) return [];
@@ -98,6 +123,16 @@
       out.push(level <= 0 ? null : Math.log10(base) + (level - 1) * Math.log10(growth));
     }
     return out;
+  }
+
+  /** How much dearer level 30 gets at a modest exponent, as a plain ratio - the
+   * one number that makes the knob's reach obvious before it is turned. Read off
+   * the authored base and growth so it stays true after a retune. */
+  function exponentBiteText() {
+    const growth = curveGrowth();
+    if (growth <= 1) return "far more";
+    const extra = (Math.pow(29, 1.2) - 29) * Math.log10(growth);
+    return `10^${extra.toFixed(0)} times as much as at 1.0`;
   }
 
   function ladderSection() {
@@ -118,7 +153,7 @@
 
     const fields = document.createElement("div");
     fields.className = "game-fields";
-    for (const column of ["base", "growth"]) {
+    for (const column of ["base", "growth", "growth_exponent"]) {
       const editor = field(entry, column);
       if (editor) fields.append(editor);
     }
@@ -127,9 +162,14 @@
     note.className = "hint";
     note.textContent = "Levels off lifetime nutrients, which no sporation resets - this is the "
       + "one ladder that measures the account rather than the run. Level n costs "
-      + "base x growth^(n-1), and the level IS the Level Point budget: one point per level, "
-      + "so this curve alone decides how fast the Growth sheet fills up. growth at or below "
-      + "1.0 is degenerate and PlayerLevelCalculator reads the whole ladder as level 0.";
+      + "base x growth^((n-1)^growth_exponent), and the level IS the Level Point budget: one "
+      + "point per level, so this curve alone decides how fast the Growth sheet fills up. "
+      + "growth_exponent 1.0 is the flat-ratio ladder - every level costs exactly `growth` "
+      + "times the one before. Above 1.0 that ratio itself climbs, stretching the late levels "
+      + "without touching the first few; below 1.0 the ladder flattens out. It bites hard: at "
+      + "1.2 level 30 already costs about " + exponentBiteText() + ". growth at or below 1.0 "
+      + "is degenerate and PlayerLevelCalculator reads the whole ladder as level 0; a "
+      + "growth_exponent at or below 0.0 is read as 1.0.";
     fields.append(note);
 
     const table = document.createElement("div");
@@ -149,7 +189,15 @@
     wrap.append(fields);
 
     wrap.append(chartBlock("Lifetime nutrients to reach a level",
-      (from, to) => [{ label: "requirement", points: ladderCurve(from, to) }],
+      (from, to) => {
+        const lines = [{ label: "requirement", points: ladderCurve(from, to) }];
+        // At an exponent of 1.0 the two are the same line, and a second one
+        // drawn over it reads as a bug rather than as a comparison.
+        if (curveExponent() !== 1) {
+          lines.push({ label: "exponent 1.0", points: flatLadderCurve(from, to) });
+        }
+        return lines;
+      },
       { log: true, xLabel: "level",
         range: { key: "growth-ladder", from: 1, to: LADDER_LEVELS, label: "level" } }));
     return wrap;
@@ -343,7 +391,10 @@
 
     const base = curveBase();
     const growth = curveGrowth();
-    setStatus(`level ${base || "?"} x ${growth || "?"}^(n-1) · ${producers.length} producers · `
+    const exponent = curveExponent();
+    // Bracketed once bent: "3^(n-1)^1.35" reads as the wrong association.
+    const step = exponent === 1 ? "(n-1)" : `((n-1)^${exponent})`;
+    setStatus(`level ${base || "?"} x ${growth || "?"}^${step} · ${producers.length} producers · `
       + `${track.length}-day reward track`);
   };
 

@@ -9,5 +9,5 @@ stat = &"node_production"
 op = 2
 scope = 2
 target = &"0"
-per_level = 0.15
+per_level = 0.05
 dependency = ExtResource("2_dep")

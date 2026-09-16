@@ -7,8 +7,5 @@
 script = ExtResource("1_script")
 stat = &"potency_production"
 op = 2
-scope = 0
-target = &""
-per_level = 0.05
-level_scaling = 0
+per_level = 0.01
 dependency = ExtResource("2_dep")

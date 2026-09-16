@@ -7,5 +7,6 @@ script = ExtResource("1_script")
 _nutrient_base_exponent = 7
 nutrient_growth_exponent = 1.01
 tick_growth = 1.5
+_payout_base_mantissa = 2.0
 payout_growth = 1.05
 max_areas = 100000000

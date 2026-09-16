@@ -27,6 +27,16 @@ static func _base_of(curve: PlayerLevelCurve) -> float:
 static func _growth_of(curve: PlayerLevelCurve) -> float:
 	return curve.growth if curve != null else PlayerLevelCurve.DEFAULT_GROWTH
 
+## A non-positive exponent reads as the default rather than as authored. At zero
+## every level past the first costs the same, and below it the ladder runs
+## backwards - level_of() would walk it forever. Falling back here rather than
+## guarding in level_of() alone keeps requirement() reading the same ladder the
+## level is derived from, which is the one invariant this file has.
+static func _exponent_of(curve: PlayerLevelCurve) -> float:
+	if curve == null or curve.growth_exponent <= 0.0:
+		return PlayerLevelCurve.DEFAULT_GROWTH_EXPONENT
+	return curve.growth_exponent
+
 ## The level a lifetime nutrient total has reached. Doubles as the Level Point
 ## budget - one point per level - so the ladder's shape lives here alone.
 static func level_of(lifetime: BigNumber, curve: PlayerLevelCurve = null) -> int:
@@ -40,21 +50,31 @@ static func level_of(lifetime: BigNumber, curve: PlayerLevelCurve = null) -> int
 	# corrected against the real requirement. The division lands on an exact
 	# integer at every boundary, where a float ulp either way would put the
 	# player a whole level out, and neither loop below runs more than once.
+	#
+	# Inverting requirement(): the ladder is base * growth^((n-1)^exponent), so
+	# `steps` is (n-1)^exponent and the level is one past its exponent-th root.
+	# At an exponent of 1.0 the root is the identity and this is the plain
+	# division it has always been.
 	var steps := (lifetime.log10() - log(base) / log(10.0)) / (log(growth) / log(10.0))
-	var level := maxi(0, int(floor(steps)) + 1)
+	# Below the first requirement there is no root to take - pow() of a negative
+	# base with a fractional exponent is NaN, which floors to a garbage level.
+	if steps < 0.0:
+		return 0
+	var level := maxi(0, int(floor(pow(steps, 1.0 / _exponent_of(curve)))) + 1)
 	while level > 0 and lifetime.lt(requirement(level, curve)):
 		level -= 1
 	while lifetime.gte(requirement(level + 1, curve)):
 		level += 1
 	return level
 
-## Lifetime nutrients needed to reach the given level. Zero at level 0, which is
-## where every save starts.
+## Lifetime nutrients needed to reach the given level: base * growth^((n-1)^e).
+## Zero at level 0, which is where every save starts.
 static func requirement(level: int, curve: PlayerLevelCurve = null) -> BigNumber:
 	if level <= 0:
 		return BigNumber.new(0.0, 0)
+	var scaled := pow(float(level - 1), _exponent_of(curve))
 	return BigNumber.from_value(_base_of(curve)).mul(
-		BigNumber.from_value(_growth_of(curve)).pow_float(float(level - 1)))
+		BigNumber.from_value(_growth_of(curve)).pow_float(scaled))
 
 ## {level, into, need, pct} for a lifetime nutrient total: the level itself, how
 ## far into it the player is, how wide it is, and the fraction for the bar.
